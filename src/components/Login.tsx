@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { authenticate } from '../utils/auth';
 import { User, COUNTRIES } from '../types';
 
@@ -13,6 +13,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const countrySelectRef = useRef<HTMLSelectElement>(null);
+
+  // Set custom validation message for country select
+  useEffect(() => {
+    if (countrySelectRef.current) {
+      countrySelectRef.current.setCustomValidity(
+        country ? '' : 'Please select a country.'
+      );
+    }
+  }, [country]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,6 +144,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
               <div className="floating-input-group">
                 <select
+                  ref={countrySelectRef}
                   id="country"
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}

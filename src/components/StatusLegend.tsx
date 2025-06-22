@@ -3,7 +3,7 @@ import { CaseStatus } from '../types';
 import { getStatusColor } from './CasesList/utils';
 
 const StatusLegend: React.FC = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
 
   const statusList: { status: CaseStatus; description: string }[] = [
     { status: 'Case Booked', description: 'Initial case submission' },
@@ -19,36 +19,47 @@ const StatusLegend: React.FC = () => {
   ];
 
   return (
-    <div className="status-legend">
+    <>
       <button 
-        className="legend-toggle"
-        onClick={() => setIsExpanded(!isExpanded)}
-        aria-expanded={isExpanded}
-        aria-controls="legend-content"
+        className="status-legend-button"
+        onClick={() => setShowPopup(true)}
       >
-        <span className="legend-title">📊 Status Colors</span>
-        <span className={`legend-arrow ${isExpanded ? 'expanded' : ''}`}>▼</span>
+        📊 Status Colors
       </button>
       
-      {isExpanded && (
-        <div id="legend-content" className="legend-content">
-          <div className="legend-grid">
-            {statusList.map(({ status, description }) => (
-              <div key={status} className="legend-item">
-                <div 
-                  className="status-indicator"
-                  style={{ backgroundColor: getStatusColor(status) }}
-                ></div>
-                <div className="status-info">
-                  <span className="status-name">{status}</span>
-                  <span className="status-description">{description}</span>
-                </div>
+      {showPopup && (
+        <div className="status-legend-overlay" onClick={() => setShowPopup(false)}>
+          <div className="status-legend-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="legend-header">
+              <h3>Status Color Legend</h3>
+              <button 
+                className="close-button"
+                onClick={() => setShowPopup(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="legend-content">
+              <div className="legend-grid">
+                {statusList.map(({ status, description }) => (
+                  <div key={status} className="legend-item">
+                    <div 
+                      className="status-indicator"
+                      style={{ backgroundColor: getStatusColor(status) }}
+                    ></div>
+                    <div className="status-info">
+                      <span className="status-name">{status}</span>
+                      <span className="status-description">{description}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

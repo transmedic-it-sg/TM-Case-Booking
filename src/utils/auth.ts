@@ -51,6 +51,12 @@ export const authenticate = (username: string, password: string, country: string
     return { user: null, error: "Invalid username or password" };
   }
   
+  // Check if user account is enabled (default to true for backward compatibility)
+  const userEnabled = user.enabled !== undefined ? user.enabled : true;
+  if (!userEnabled) {
+    return { user: null, error: "Your account has been disabled. Please contact your administrator." };
+  }
+  
   // Check if user has access to the selected country
   if (user.role === 'admin' || (user.countries && user.countries.includes(country))) {
     const userWithCountry = { ...user, selectedCountry: country };
@@ -72,4 +78,18 @@ export const logout = (): void => {
 
 export const isAuthenticated = (): boolean => {
   return getCurrentUser() !== null;
+};
+
+/**
+ * Get user email by username/name
+ * @param identifier - Username or full name of the user
+ * @returns User email if found, null otherwise
+ */
+export const getUserEmail = (identifier: string): string | null => {
+  const users = getUsers();
+  const user = users.find(u => 
+    u.username.toLowerCase() === identifier.toLowerCase() || 
+    u.name.toLowerCase() === identifier.toLowerCase()
+  );
+  return user?.email || null;
 };

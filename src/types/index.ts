@@ -94,6 +94,18 @@ export interface StatusHistory {
   details?: string;
 }
 
+export interface AmendmentHistory {
+  amendmentId: string;
+  timestamp: string;
+  amendedBy: string;
+  changes: {
+    field: string;
+    oldValue: string;
+    newValue: string;
+  }[];
+  reason?: string;
+}
+
 export interface User {
   id: string;
   username: string;
@@ -103,6 +115,8 @@ export interface User {
   departments: string[];
   countries: string[];
   selectedCountry?: string;
+  email?: string;
+  enabled?: boolean;
 }
 
 export interface CaseBooking {
@@ -134,6 +148,16 @@ export interface CaseBooking {
   attachments?: string[];
   orderSummary?: string;
   doNumber?: string;
+  originalValues?: {
+    hospital?: string;
+    department?: string;
+    dateOfSurgery?: string;
+    procedureType?: string;
+    doctorName?: string;
+    timeOfProcedure?: string;
+    specialInstruction?: string;
+  };
+  amendmentHistory?: AmendmentHistory[];
 }
 
 export interface FilterOptions {

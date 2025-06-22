@@ -1,7 +1,8 @@
 import React from 'react';
-import { FilterOptions } from '../../types';
+import { FilterOptions, COUNTRIES } from '../../types';
 import DatePicker from '../DatePicker';
 import { statusOptions } from './utils';
+import { getCurrentUser } from '../../utils/auth';
 
 interface CasesFilterProps {
   filters: FilterOptions;
@@ -32,6 +33,7 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
   onToggleFilters,
   onQuickFilter
 }) => {
+  const currentUser = getCurrentUser();
   return (
     <div className="modern-filters-section">
       <div className="filters-header" onClick={onToggleFilters}>
@@ -90,6 +92,27 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
                     <span className="filter-icon">🏥</span>
                   </div>
                 </div>
+
+                {currentUser?.role === 'admin' && (
+                  <div className="modern-filter-group">
+                    <label>Country</label>
+                    <div className="filter-input-wrapper">
+                      <select
+                        value={tempFilters.country || ''}
+                        onChange={(e) => onFilterChange('country', e.target.value)}
+                        className="modern-filter-input"
+                      >
+                        <option value="">All Countries</option>
+                        {COUNTRIES.map((country) => (
+                          <option key={country} value={country}>
+                            {country}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="filter-icon">🌍</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -2,10 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { PROCEDURE_TYPES } from '../../types';
 import { useToast } from '../ToastContainer';
 import { useSound } from '../../contexts/SoundContext';
+import { getCurrentUser } from '../../utils/auth';
+import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
 import { EditSetsProps, CategorizedSets, DraggedItem } from './types';
 import { validateItemName } from './validation';
 import { initializeCategorizedSets, reorderItems, swapItems } from './utils';
-import { saveCategorizedSets, getCategorizedSets } from '../../utils/storage';
+import { 
+  saveCategorizedSets, 
+  getCategorizedSets, 
+  getAllProcedureTypes, 
+  addCustomProcedureType, 
+  removeCustomProcedureType, 
+  getCustomProcedureTypes 
+} from '../../utils/storage';
 import SetsList from './SetsList';
 
 const EditSets: React.FC<EditSetsProps> = () => {
@@ -22,9 +31,27 @@ const EditSets: React.FC<EditSetsProps> = () => {
   const [draggedItem, setDraggedItem] = useState<DraggedItem | null>(null);
   const [surgerySetError, setSurgerySetError] = useState('');
   const [implantBoxError, setImplantBoxError] = useState('');
+  const [allProcedureTypes, setAllProcedureTypes] = useState<string[]>([]);
+  const [showAddProcedureType, setShowAddProcedureType] = useState(false);
+  const [newProcedureTypeName, setNewProcedureTypeName] = useState('');
+  const [procedureTypeError, setProcedureTypeError] = useState('');
 
   const { showError, showSuccess } = useToast();
   const { playSound } = useSound();
+  
+  const currentUser = getCurrentUser();
+  const canManageProcedureTypes = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) : false;
+
+  // Load all procedure types on component mount
+  useEffect(() => {
+    const allTypes = getAllProcedureTypes();
+    setAllProcedureTypes(allTypes);
+    
+    // Update selected procedure type if it doesn't exist in the loaded types
+    if (!allTypes.includes(selectedProcedureType)) {
+      setSelectedProcedureType(allTypes[0] || PROCEDURE_TYPES[0]);
+    }
+  }, []);
 
   // Initialize categorized sets on component mount
   useEffect(() => {
@@ -44,6 +71,95 @@ const EditSets: React.FC<EditSetsProps> = () => {
       saveCategorizedSets(categorizedSets);
     }
   }, [categorizedSets]);
+
+  // Procedure Type Management Functions
+  const handleAddProcedureType = () => {
+    const trimmedName = newProcedureTypeName.trim();
+    
+    if (!trimmedName) {
+      setProcedureTypeError('Procedure type name is required');
+      return;
+    }
+    
+    if (allProcedureTypes.includes(trimmedName)) {
+      setProcedureTypeError('This procedure type already exists');
+      return;
+    }
+    
+    if (trimmedName.length < 2) {
+      setProcedureTypeError('Procedure type name must be at least 2 characters');
+      return;
+    }
+    
+    if (trimmedName.length > 50) {
+      setProcedureTypeError('Procedure type name must be less than 50 characters');
+      return;
+    }
+    
+    // Add to localStorage
+    if (addCustomProcedureType(trimmedName)) {
+      // Update local state
+      const updatedTypes = getAllProcedureTypes();
+      setAllProcedureTypes(updatedTypes);
+      
+      // Initialize empty sets for the new procedure type
+      setCategorizedSets(prev => ({
+        ...prev,
+        [trimmedName]: {
+          surgerySets: [],
+          implantBoxes: []
+        }
+      }));
+      
+      // Reset form
+      setNewProcedureTypeName('');
+      setShowAddProcedureType(false);
+      setProcedureTypeError('');
+      
+      // Switch to the new procedure type
+      setSelectedProcedureType(trimmedName);
+      
+      playSound.success();
+      showSuccess('Procedure Type Added', `"${trimmedName}" has been added successfully`);
+    } else {
+      setProcedureTypeError('Failed to add procedure type');
+    }
+  };
+
+  const handleDeleteProcedureType = (typeName: string) => {
+    // Prevent deleting base procedure types
+    if (PROCEDURE_TYPES.includes(typeName as any)) {
+      showError('Cannot Delete', 'Base procedure types cannot be deleted');
+      return;
+    }
+    
+    const confirmMessage = `Are you sure you want to delete "${typeName}"?\n\nThis will remove all associated surgery sets and implant boxes. This action cannot be undone.`;
+    
+    if (confirm(confirmMessage)) {
+      if (removeCustomProcedureType(typeName)) {
+        // Update local state
+        const updatedTypes = getAllProcedureTypes();
+        setAllProcedureTypes(updatedTypes);
+        
+        // Remove from categorized sets
+        setCategorizedSets(prev => {
+          const newSets = { ...prev };
+          delete newSets[typeName];
+          return newSets;
+        });
+        
+        // Switch to first available procedure type if current one was deleted
+        if (selectedProcedureType === typeName) {
+          setSelectedProcedureType(updatedTypes[0] || PROCEDURE_TYPES[0]);
+        }
+        
+        playSound.delete();
+        showSuccess('Procedure Type Deleted', `"${typeName}" has been removed`);
+      } else {
+        showError('Delete Failed', 'Failed to delete procedure type');
+      }
+    }
+  };
 
   const handleAddSurgerySet = () => {
     const validation = validateItemName(
@@ -287,18 +403,101 @@ const EditSets: React.FC<EditSetsProps> = () => {
 
       {/* Procedure Type Selector */}
       <div className="procedure-type-selector">
-        <h3>Select Procedure Type:</h3>
-        <div className="procedure-tabs">
-          {PROCEDURE_TYPES.map(procedureType => (
+        <div className="procedure-type-header">
+          <h3>Select Procedure Type:</h3>
+          {canManageProcedureTypes && (
             <button
-              key={procedureType}
-              onClick={() => setSelectedProcedureType(procedureType)}
-              className={`procedure-tab ${selectedProcedureType === procedureType ? 'active' : ''}`}
+              className="btn btn-primary btn-sm add-procedure-type-button"
+              onClick={() => setShowAddProcedureType(true)}
+              title="Add new procedure type"
             >
-              {procedureType}
+              + Add Procedure Type
             </button>
-          ))}
+          )}
         </div>
+        
+        <div className="procedure-tabs">
+          {allProcedureTypes.map(procedureType => {
+            const isCustomType = !PROCEDURE_TYPES.includes(procedureType as any);
+            return (
+              <div key={procedureType} className="procedure-tab-container">
+                <button
+                  onClick={() => setSelectedProcedureType(procedureType)}
+                  className={`procedure-tab ${selectedProcedureType === procedureType ? 'active' : ''}`}
+                >
+                  {procedureType}
+                  {isCustomType && <span className="custom-type-indicator">★</span>}
+                </button>
+                {canManageProcedureTypes && isCustomType && (
+                  <button
+                    className="delete-procedure-type-button"
+                    onClick={() => handleDeleteProcedureType(procedureType)}
+                    title={`Delete ${procedureType}`}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Add Procedure Type Form */}
+        {showAddProcedureType && (
+          <div className="add-procedure-type-form">
+            <div className="form-header">
+              <h4>Add New Procedure Type</h4>
+              <button
+                className="close-form-button"
+                onClick={() => {
+                  setShowAddProcedureType(false);
+                  setNewProcedureTypeName('');
+                  setProcedureTypeError('');
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="form-content">
+              <div className="form-group">
+                <label htmlFor="procedureTypeName">Procedure Type Name:</label>
+                <input
+                  type="text"
+                  id="procedureTypeName"
+                  value={newProcedureTypeName}
+                  onChange={(e) => {
+                    setNewProcedureTypeName(e.target.value);
+                    setProcedureTypeError('');
+                  }}
+                  placeholder="Enter procedure type name (e.g., Ankle, Wrist)"
+                  maxLength={50}
+                />
+                {procedureTypeError && (
+                  <span className="error-message">{procedureTypeError}</span>
+                )}
+              </div>
+              <div className="form-actions">
+                <button
+                  className="btn btn-primary btn-md"
+                  onClick={handleAddProcedureType}
+                  disabled={!newProcedureTypeName.trim()}
+                >
+                  Add Procedure Type
+                </button>
+                <button
+                  className="btn btn-secondary btn-md"
+                  onClick={() => {
+                    setShowAddProcedureType(false);
+                    setNewProcedureTypeName('');
+                    setProcedureTypeError('');
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="sets-grid">

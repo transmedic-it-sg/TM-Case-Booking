@@ -3,6 +3,7 @@ import { CaseBooking, CaseStatus, User } from '../../types';
 export interface CasesListProps {
   onProcessCase: (caseData: CaseBooking) => void;
   currentUser: User | null;
+  onNavigateToPermissions?: () => void;
 }
 
 export interface CaseCardProps {
@@ -42,6 +43,7 @@ export interface CaseCardProps {
   onOrderDeliveredOffice: (caseId: string) => void;
   onToBeBilled: (caseId: string) => void;
   onDeleteCase: (caseId: string, caseItem: CaseBooking) => void;
+  onCancelCase: (caseId: string) => void;
   onAttachmentUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveAttachment: (index: number) => void;
   onAmendmentDataChange: (data: Partial<CaseBooking>) => void;
@@ -50,6 +52,7 @@ export interface CaseCardProps {
   onReceivedImageChange: (image: string) => void;
   onOrderSummaryChange: (summary: string) => void;
   onDoNumberChange: (doNumber: string) => void;
+  onNavigateToPermissions?: () => void;
 }
 
 export interface CaseActionsProps {
@@ -64,5 +67,6 @@ export interface CaseActionsProps {
   onCaseCompleted: (caseId: string) => void;
   onOrderDeliveredOffice: (caseId: string) => void;
   onToBeBilled: (caseId: string) => void;
+  onCancelCase: (caseId: string) => void;
   canAmendCase: (caseItem: CaseBooking) => boolean;
 }

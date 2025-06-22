@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { CaseBooking, SURGERY_SETS, IMPLANT_BOXES, PROCEDURE_TYPES, PROCEDURE_TYPE_MAPPINGS, DEPARTMENTS } from '../types';
-import { saveCase, generateCaseReferenceNumber, getCategorizedSets } from '../utils/storage';
+import { saveCase, generateCaseReferenceNumber, getCategorizedSets, getAllProcedureTypes } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';
 import MultiSelectDropdown from './MultiSelectDropdown';
-import DatePicker from './DatePicker';
+import TimePicker from './common/TimePicker';
 
 interface CaseBookingFormProps {
   onCaseSubmitted: () => void;
@@ -30,6 +30,13 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [availableProcedureTypes, setAvailableProcedureTypes] = useState<string[]>([]);
+
+  // Load dynamic procedure types on component mount
+  useEffect(() => {
+    const allTypes = getAllProcedureTypes();
+    setAvailableProcedureTypes(allTypes);
+  }, []);
 
   const surgerySetOptions = useMemo(() => {
     if (!formData.procedureType) {
@@ -180,7 +187,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     setFormData({
       hospital: '',
       department: '',
-      dateOfSurgery: '',
+      dateOfSurgery: getDefaultDate(),
       procedureType: '',
       procedureName: '',
       doctorName: '',
@@ -236,28 +243,28 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
         <div className="form-row">
           <div className="form-group">
-            <DatePicker
+            <label htmlFor="dateOfSurgery" className="required">Date of Surgery</label>
+            <input
+              type="date"
               id="dateOfSurgery"
-              label="Date of Surgery"
               value={formData.dateOfSurgery}
-              onChange={(value) => setFormData(prev => ({ ...prev, dateOfSurgery: value }))}
-              required={true}
-              error={errors.dateOfSurgery}
+              onChange={(e) => setFormData(prev => ({ ...prev, dateOfSurgery: e.target.value }))}
+              className={errors.dateOfSurgery ? 'error' : ''}
               min={new Date().toISOString().split('T')[0]}
-              placeholder="Select surgery date"
+              required
             />
+            {errors.dateOfSurgery && <span className="error-text">{errors.dateOfSurgery}</span>}
           </div>
 
           <div className="form-group">
             <label htmlFor="timeOfProcedure">Time of Procedure</label>
-            <div className="time-input-wrapper" onClick={() => (document.getElementById('timeOfProcedure') as HTMLInputElement)?.showPicker?.()}>
-              <input
-                type="time"
-                id="timeOfProcedure"
-                value={formData.timeOfProcedure}
-                onChange={(e) => setFormData(prev => ({ ...prev, timeOfProcedure: e.target.value }))}
-              />
-            </div>
+            <TimePicker
+              id="timeOfProcedure"
+              value={formData.timeOfProcedure}
+              onChange={(value) => setFormData(prev => ({ ...prev, timeOfProcedure: value }))}
+              placeholder="Select procedure time"
+              step={15}
+            />
           </div>
         </div>
 
@@ -276,7 +283,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               className={errors.procedureType ? 'error' : ''}
             >
               <option value="">Select Procedure Type</option>
-              {PROCEDURE_TYPES.map((type) => (
+              {availableProcedureTypes.map((type) => (
                 <option key={type} value={type}>
                   {type}
                 </option>
@@ -284,7 +291,9 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             </select>
             {errors.procedureType && <span className="error-text">{errors.procedureType}</span>}
           </div>
+        </div>
 
+        <div className="form-row">
           <div className="form-group">
             <label htmlFor="procedureName" className="required">Procedure Name</label>
             <input

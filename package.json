@@ -1,6 +1,6 @@
 {
   "name": "case-booking-app",
-  "version": "1.0.7",
+  "version": "1.0.9",
   "description": "Transmedic Case Booking application",
   "main": "index.js",
   "scripts": {

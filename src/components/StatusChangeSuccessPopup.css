@@ -1,0 +1,273 @@
+/* Status Change Success Popup */
+.status-success-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease !important;
+}
+
+.status-success-popup {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease !important;
+  position: relative;
+  overflow: hidden;
+  z-index: 10000;
+}
+
+.success-icon {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.success-checkmark {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.checkmark-circle {
+  width: 80px;
+  height: 80px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: #4caf50;
+  border-radius: 50%;
+  animation: checkmarkCircle 0.6s ease-in-out !important;
+  z-index: 1;
+}
+
+.checkmark-stem {
+  position: absolute;
+  width: 5px;
+  height: 20px;
+  background: white;
+  left: 32px;
+  top: 35px;
+  transform: rotate(45deg);
+  animation: checkmarkStem 0.4s ease-in-out 0.2s backwards !important;
+  z-index: 2;
+}
+
+.checkmark-kick {
+  position: absolute;
+  width: 12px;
+  height: 5px;
+  background: white;
+  left: 25px;
+  top: 45px;
+  transform: rotate(-45deg);
+  animation: checkmarkKick 0.25s ease-in-out 0.35s backwards !important;
+  z-index: 2;
+}
+
+.success-content h3 {
+  color: #2c3e50;
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.success-content p {
+  color: #5a6c7d;
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.close-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #bbb;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.close-button:hover {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.close-button:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.auto-close-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #e0e6ed;
+  overflow: hidden;
+}
+
+.auto-close-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #45a049);
+  width: 0;
+  animation: autoCloseProgress 3s linear !important;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: scale(0.8) translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes checkmarkCircle {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes checkmarkStem {
+  0% {
+    height: 0;
+  }
+  100% {
+    height: 20px;
+  }
+}
+
+@keyframes checkmarkKick {
+  0% {
+    width: 0;
+  }
+  100% {
+    width: 12px;
+  }
+}
+
+@keyframes autoCloseProgress {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .status-success-popup {
+    padding: 24px;
+    margin: 20px;
+  }
+  
+  .success-checkmark {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .checkmark-circle {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .checkmark-stem {
+    left: 24px;
+    top: 26px;
+    height: 15px;
+  }
+  
+  .checkmark-kick {
+    left: 19px;
+    top: 34px;
+    width: 9px;
+  }
+  
+  .success-content h3 {
+    font-size: 20px;
+  }
+  
+  .success-content p {
+    font-size: 14px;
+  }
+}
+
+/* Reduced motion support - but keep the checkmark visible */
+@media (prefers-reduced-motion: reduce) {
+  .status-success-overlay,
+  .status-success-popup {
+    animation: none !important;
+  }
+  
+  .status-success-popup {
+    transform: none !important;
+  }
+  
+  /* Still show the checkmark elements but without animation */
+  .checkmark-circle,
+  .checkmark-stem,
+  .checkmark-kick {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: scale(1) !important;
+  }
+  
+  .checkmark-stem {
+    height: 20px !important;
+  }
+  
+  .checkmark-kick {
+    width: 12px !important;
+  }
+  
+  .auto-close-bar {
+    animation: none !important;
+    width: 100% !important;
+  }
+}

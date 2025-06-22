@@ -4,9 +4,12 @@ import { getUsers, addUser, getCurrentUser } from '../utils/auth';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useToast } from './ToastContainer';
 import { useSound } from '../contexts/SoundContext';
+import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import MultiSelectDropdown from './MultiSelectDropdown';
 
 const UserManagement: React.FC = () => {
+  const currentUser = getCurrentUser();
+  
   const [users, setUsers] = useState<User[]>([]);
   const [showAddUser, setShowAddUser] = useState(false);
   const [editingUser, setEditingUser] = useState<string | null>(null);
@@ -15,18 +18,20 @@ const UserManagement: React.FC = () => {
     username: '',
     password: '',
     name: '',
-    role: 'admin' as 'admin' | 'operations' | 'operation-manager' | 'sales' | 'sales-manager' | 'driver' | 'it',
+    role: (currentUser?.role === 'admin' ? 'admin' : 'operations') as 'admin' | 'operations' | 'operation-manager' | 'sales' | 'sales-manager' | 'driver' | 'it',
     departments: [] as string[],
-    countries: [] as string[]
+    countries: [] as string[],
+    email: '',
+    enabled: true
   });
   const [error, setError] = useState('');
-  const [showRoleDescriptions, setShowRoleDescriptions] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(10);
-
-  const currentUser = getCurrentUser();
   const isAdmin = currentUser?.role === 'admin';
-  const canManageUsers = currentUser?.role === 'admin' || currentUser?.role === 'it';
+  const canCreateUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CREATE_USER) : false;
+  const canEditUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_USER) : false;
+  const canDeleteUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.DELETE_USER) : false;
+  const canEnableDisableUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.ENABLE_DISABLE_USER) : false;
   
   const { addNotification } = useNotifications();
   const { showSuccess, showError } = useToast();
@@ -62,9 +67,23 @@ const UserManagement: React.FC = () => {
       name: user.name,
       role: user.role,
       departments: user.departments || [],
-      countries: user.countries || []
+      countries: user.countries || [],
+      email: user.email || '',
+      enabled: user.enabled !== undefined ? user.enabled : true
     });
     setShowAddUser(true);
+    
+    // Scroll to the form after a brief delay to ensure it's rendered
+    setTimeout(() => {
+      const formElement = document.querySelector('.add-user-form');
+      if (formElement) {
+        formElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start',
+          inline: 'nearest'
+        });
+      }
+    }, 100);
   };
 
   const handleDeleteUser = (userId: string) => {
@@ -86,6 +105,33 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
+    const userToToggle = users.find(u => u.id === userId);
+    if (!userToToggle) return;
+    
+    const newStatus = !currentStatus;
+    const action = newStatus ? 'enabled' : 'disabled';
+    const confirmMessage = `Are you sure you want to ${newStatus ? 'enable' : 'disable'} user "${userToToggle.name}" (${userToToggle.username})?\n\nThis will ${newStatus ? 'allow' : 'prevent'} them from logging into the system.`;
+    
+    if (window.confirm(confirmMessage)) {
+      const updatedUsers = users.map(u => 
+        u.id === userId 
+          ? { ...u, enabled: newStatus }
+          : u
+      );
+      localStorage.setItem('case-booking-users', JSON.stringify(updatedUsers));
+      loadUsers();
+      
+      playSound.success();
+      showSuccess('User Status Updated', `User "${userToToggle.name}" has been ${action}.`);
+      addNotification({
+        title: `User Account ${newStatus ? 'Enabled' : 'Disabled'}`,
+        message: `${userToToggle.name} (${userToToggle.username}) has been ${action} in the system.`,
+        type: newStatus ? 'success' : 'warning'
+      });
+    }
+  };
+
   const handleCancelEdit = () => {
     setEditingUser(null);
     setShowAddUser(false);
@@ -93,9 +139,11 @@ const UserManagement: React.FC = () => {
       username: '',
       password: '',
       name: '',
-      role: 'admin',
+      role: currentUser?.role === 'admin' ? 'admin' : 'operations',
       departments: [],
-      countries: []
+      countries: [],
+      email: '',
+      enabled: true
     });
     setError('');
   };
@@ -105,7 +153,18 @@ const UserManagement: React.FC = () => {
     setError('');
 
     if (!newUser.username || !newUser.password || !newUser.name) {
-      setError('All fields are required');
+      setError('Username, password, and full name are required');
+      return;
+    }
+
+    if (newUser.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    // Prevent non-admin users from creating admin accounts
+    if (newUser.role === 'admin' && currentUser?.role !== 'admin') {
+      setError('Only administrators can create admin accounts');
       return;
     }
 
@@ -149,9 +208,11 @@ const UserManagement: React.FC = () => {
         username: '',
         password: '',
         name: '',
-        role: 'admin',
+        role: currentUser?.role === 'admin' ? 'admin' : 'operations',
         departments: [],
-        countries: []
+        countries: [],
+        email: '',
+        enabled: true
       });
       setEditingUser(null);
       setShowAddUser(false);
@@ -164,7 +225,10 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  if (!canManageUsers) {
+  // Check if user has permission to view users (this check is also done in App.tsx)
+  const canViewUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.VIEW_USERS) : false;
+  
+  if (!canViewUsers) {
     return (
       <div className="user-management">
         <div className="access-denied">
@@ -192,12 +256,14 @@ const UserManagement: React.FC = () => {
     <div className="user-management">
       <div className="user-management-header">
         <h2>User Access Matrix</h2>
-        <button
-          onClick={() => showAddUser ? handleCancelEdit() : setShowAddUser(true)}
-          className="btn btn-primary btn-md add-user-button"
-        >
-          {showAddUser ? 'Cancel' : 'Add New User'}
-        </button>
+        {canCreateUsers && (
+          <button
+            onClick={() => showAddUser ? handleCancelEdit() : setShowAddUser(true)}
+            className="btn btn-primary btn-md add-user-button"
+          >
+            {showAddUser ? 'Cancel' : 'Add New User'}
+          </button>
+        )}
       </div>
 
       {showAddUser && (
@@ -251,13 +317,24 @@ const UserManagement: React.FC = () => {
               </div>
 
               <div className="form-group">
+                <label htmlFor="newEmail">Email Address</label>
+                <input
+                  type="email"
+                  id="newEmail"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="user@example.com"
+                />
+              </div>
+
+              <div className="form-group">
                 <label htmlFor="newRole" className="required">Role</label>
                 <select
                   id="newRole"
                   value={newUser.role}
                   onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value as 'admin' | 'operations' | 'operation-manager' | 'sales' | 'sales-manager' | 'driver' | 'it' }))}
                 >
-                  <option value="admin">Admin</option>
+                  {currentUser?.role === 'admin' && <option value="admin">Admin</option>}
                   <option value="operations">Operations</option>
                   <option value="operation-manager">Operation Manager</option>
                   <option value="sales">Sales</option>
@@ -290,6 +367,27 @@ const UserManagement: React.FC = () => {
                 placeholder="Select countries..."
                 required={false}
               />
+              
+              <div className="form-group">
+                <label htmlFor="userEnabled">User Status</label>
+                <div className="checkbox-wrapper">
+                  <input
+                    type="checkbox"
+                    id="userEnabled"
+                    checked={newUser.enabled}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, enabled: e.target.checked }))}
+                  />
+                  <label htmlFor="userEnabled" className="checkbox-label">
+                    {newUser.enabled ? 'Account Enabled' : 'Account Disabled'}
+                  </label>
+                </div>
+                <small className="form-helper-text">
+                  {newUser.enabled 
+                    ? 'User can log in and access the system' 
+                    : 'User cannot log in (account disabled)'
+                  }
+                </small>
+              </div>
             </div>
 
             {error && <div className="error-message">{error}</div>}
@@ -317,46 +415,66 @@ const UserManagement: React.FC = () => {
             <tr>
               <th>Username</th>
               <th>Full Name</th>
+              <th>Email</th>
               <th>Role</th>
               <th>Department</th>
               <th>Countries</th>
+              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {getCurrentPageUsers().map(user => (
-              <tr key={user.id}>
-                <td>{user.username}</td>
-                <td>{user.name}</td>
-                <td>
-                  {user.role.replace('-', ' ').toUpperCase()}
-                </td>
-                <td>{user.departments ? user.departments.join(', ') : 'N/A'}</td>
-                <td>{user.countries ? user.countries.join(', ') : 'N/A'}</td>
-                <td>
-                  {user.username !== 'Admin' && (
-                    <div className="user-actions">
-                      {(currentUser?.role === 'admin' || currentUser?.role === 'it') && (
-                        <button 
-                          className="btn btn-outline-secondary btn-sm" 
-                          onClick={() => handleEditUser(user)}
-                        >
-                          Edit
-                        </button>
-                      )}
-                      {(currentUser?.role === 'admin' || currentUser?.role === 'it') && (
-                        <button 
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDeleteUser(user.id)}
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {getCurrentPageUsers().map(user => {
+              const userEnabled = user.enabled !== undefined ? user.enabled : true;
+              return (
+                <tr key={user.id} className={!userEnabled ? 'user-disabled' : ''}>
+                  <td>{user.username}</td>
+                  <td>{user.name}</td>
+                  <td>{user.email || 'N/A'}</td>
+                  <td>
+                    {user.role.replace(/-/g, ' ').toUpperCase()}
+                  </td>
+                  <td>{user.departments ? user.departments.join(', ') : 'N/A'}</td>
+                  <td>{user.countries ? user.countries.join(', ') : 'N/A'}</td>
+                  <td>
+                    <span className={`user-status ${userEnabled ? 'enabled' : 'disabled'}`}>
+                      {userEnabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </td>
+                  <td>
+                    {user.username !== 'Admin' && (
+                      <div className="user-actions">
+                        {canEditUsers && (
+                          <button 
+                            className="btn btn-outline-secondary btn-sm" 
+                            onClick={() => handleEditUser(user)}
+                          >
+                            Edit
+                          </button>
+                        )}
+                        {canEnableDisableUsers && (
+                          <button 
+                            className={`btn btn-sm ${userEnabled ? 'btn-warning' : 'btn-success'}`}
+                            onClick={() => handleToggleUserStatus(user.id, userEnabled)}
+                            title={userEnabled ? 'Disable User' : 'Enable User'}
+                          >
+                            {userEnabled ? 'Disable' : 'Enable'}
+                          </button>
+                        )}
+                        {canDeleteUsers && (
+                          <button 
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleDeleteUser(user.id)}
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         
@@ -416,53 +534,6 @@ const UserManagement: React.FC = () => {
         )}
       </div>
 
-      <div className="role-descriptions">
-        <div className="role-descriptions-header">
-          <h3 onClick={() => setShowRoleDescriptions(!showRoleDescriptions)} className="collapsible-header">
-            Role Descriptions
-            <span className={`collapse-arrow ${showRoleDescriptions ? 'expanded' : ''}`}>▼</span>
-          </h3>
-        </div>
-        {showRoleDescriptions && (
-          <div className="role-descriptions-content">
-            <div className="role-description">
-              <strong>Admin:</strong>
-              <ul>
-                <li>Full access to all features</li>
-                <li>Can manage users</li>
-                <li>Can view, create, and process all cases</li>
-                <li>Can change case statuses</li>
-              </ul>
-            </div>
-            <div className="role-description">
-              <strong>Operations:</strong>
-              <ul>
-                <li>Can create new case bookings</li>
-                <li>Can view cases they submitted</li>
-                <li>Can process orders assigned to them</li>
-                <li>Limited status change permissions</li>
-              </ul>
-            </div>
-            <div className="role-description">
-              <strong>Sales & Sales Manager:</strong>
-              <ul>
-                <li>Department-specific case creation and viewing</li>
-                <li>Can create cases for their assigned department</li>
-                <li>Can view cases filtered by their department</li>
-                <li>Limited to department-specific operations</li>
-              </ul>
-            </div>
-            <div className="role-description">
-              <strong>Driver & IT:</strong>
-              <ul>
-                <li>Driver: Can view delivery-related case information</li>
-                <li>IT: Can manage users and technical system access</li>
-                <li>Role-specific permissions and access levels</li>
-              </ul>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 };

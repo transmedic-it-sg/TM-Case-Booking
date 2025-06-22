@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { CaseCardProps } from './types';
 import { getStatusColor, getNextResponsibleRole, formatDateTime } from './utils';
 import CaseActions from './CaseActions';
 import { getCurrentUser } from '../../utils/auth';
+import { DEPARTMENTS, PROCEDURE_TYPES } from '../../types';
+import { getAllProcedureTypes } from '../../utils/storage';
+import DatePicker from '../common/DatePicker';
+import TimePicker from '../common/TimePicker';
 
 const CaseCard: React.FC<CaseCardProps> = ({
   caseItem,
@@ -39,6 +43,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   onOrderDeliveredOffice,
   onToBeBilled,
   onDeleteCase,
+  onCancelCase,
   onAttachmentUpload,
   onRemoveAttachment,
   onAmendmentDataChange,
@@ -46,8 +51,17 @@ const CaseCard: React.FC<CaseCardProps> = ({
   onReceivedDetailsChange,
   onReceivedImageChange,
   onOrderSummaryChange,
-  onDoNumberChange
+  onDoNumberChange,
+  onNavigateToPermissions
 }) => {
+  const [availableProcedureTypes, setAvailableProcedureTypes] = useState<string[]>([]);
+
+  // Load dynamic procedure types on component mount
+  useEffect(() => {
+    const allTypes = getAllProcedureTypes();
+    setAvailableProcedureTypes(allTypes);
+  }, []);
+
   const canAmendCase = (caseItem: any): boolean => {
     const currentUser = getCurrentUser();
     if (!currentUser) return false;
@@ -90,7 +104,18 @@ const CaseCard: React.FC<CaseCardProps> = ({
           {getNextResponsibleRole(caseItem.status) && (
             <div className="pending-indicator">
               <span className="pending-icon">⏳</span>
-              <span className="pending-text">Awaiting: {getNextResponsibleRole(caseItem.status)}</span>
+              <span 
+                className="pending-text clickable-pending"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onNavigateToPermissions) {
+                    onNavigateToPermissions();
+                  }
+                }}
+                title="Click to view Role-Based Permission Matrix"
+              >
+                Awaiting: {getNextResponsibleRole(caseItem.status)}
+              </span>
             </div>
           )}
         </div>
@@ -183,7 +208,41 @@ const CaseCard: React.FC<CaseCardProps> = ({
                           <div className="history-details">
                             <span className="history-processor">By: {historyItem.processedBy}</span>
                             {historyItem.details && (
-                              <div className="history-notes">{historyItem.details}</div>
+                              <div className="history-notes">
+                                {(() => {
+                                  try {
+                                    const parsedDetails = JSON.parse(historyItem.details);
+                                    if (parsedDetails.deliveryDetails) {
+                                      return (
+                                        <div>
+                                          <strong>Delivery Details:</strong> {parsedDetails.deliveryDetails}
+                                          {parsedDetails.deliveryImage && (
+                                            <div className="delivery-image-note">📷 Image attached</div>
+                                          )}
+                                        </div>
+                                      );
+                                    } else if (parsedDetails.orderSummary || parsedDetails.doNumber) {
+                                      return (
+                                        <div>
+                                          {parsedDetails.orderSummary && (
+                                            <div><strong>Order Summary:</strong> {parsedDetails.orderSummary}</div>
+                                          )}
+                                          {parsedDetails.doNumber && (
+                                            <div><strong>DO Number:</strong> {parsedDetails.doNumber}</div>
+                                          )}
+                                          {parsedDetails.attachments && parsedDetails.attachments.length > 0 && (
+                                            <div><strong>Attachments:</strong> {parsedDetails.attachments.length} file(s)</div>
+                                          )}
+                                        </div>
+                                      );
+                                    } else {
+                                      return <div>{JSON.stringify(parsedDetails, null, 2)}</div>;
+                                    }
+                                  } catch {
+                                    return <div>{historyItem.details}</div>;
+                                  }
+                                })()}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -202,7 +261,41 @@ const CaseCard: React.FC<CaseCardProps> = ({
                           <div className="history-details">
                             <span className="history-processor">By: {historyItem.processedBy}</span>
                             {historyItem.details && (
-                              <div className="history-notes">{historyItem.details}</div>
+                              <div className="history-notes">
+                                {(() => {
+                                  try {
+                                    const parsedDetails = JSON.parse(historyItem.details);
+                                    if (parsedDetails.deliveryDetails) {
+                                      return (
+                                        <div>
+                                          <strong>Delivery Details:</strong> {parsedDetails.deliveryDetails}
+                                          {parsedDetails.deliveryImage && (
+                                            <div className="delivery-image-note">📷 Image attached</div>
+                                          )}
+                                        </div>
+                                      );
+                                    } else if (parsedDetails.orderSummary || parsedDetails.doNumber) {
+                                      return (
+                                        <div>
+                                          {parsedDetails.orderSummary && (
+                                            <div><strong>Order Summary:</strong> {parsedDetails.orderSummary}</div>
+                                          )}
+                                          {parsedDetails.doNumber && (
+                                            <div><strong>DO Number:</strong> {parsedDetails.doNumber}</div>
+                                          )}
+                                          {parsedDetails.attachments && parsedDetails.attachments.length > 0 && (
+                                            <div><strong>Attachments:</strong> {parsedDetails.attachments.length} file(s)</div>
+                                          )}
+                                        </div>
+                                      );
+                                    } else {
+                                      return <div>{JSON.stringify(parsedDetails, null, 2)}</div>;
+                                    }
+                                  } catch {
+                                    return <div>{historyItem.details}</div>;
+                                  }
+                                })()}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -225,30 +318,59 @@ const CaseCard: React.FC<CaseCardProps> = ({
                     value={amendmentData.hospital || ''}
                     onChange={(e) => onAmendmentDataChange({ ...amendmentData, hospital: e.target.value })}
                   />
+                  {caseItem.originalValues?.hospital && (
+                    <small className="original-value">
+                      Original: {caseItem.originalValues.hospital}
+                    </small>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Department:</label>
-                  <input
-                    type="text"
+                  <select
                     value={amendmentData.department || ''}
                     onChange={(e) => onAmendmentDataChange({ ...amendmentData, department: e.target.value })}
-                  />
+                  >
+                    <option value="">Select Department</option>
+                    {DEPARTMENTS.map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                  {caseItem.originalValues?.department && (
+                    <small className="original-value">
+                      Original: {caseItem.originalValues.department}
+                    </small>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Date of Surgery:</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={amendmentData.dateOfSurgery || ''}
-                    onChange={(e) => onAmendmentDataChange({ ...amendmentData, dateOfSurgery: e.target.value })}
+                    onChange={(value) => onAmendmentDataChange({ ...amendmentData, dateOfSurgery: value })}
+                    placeholder="Select surgery date"
+                    required
                   />
+                  {caseItem.originalValues?.dateOfSurgery && (
+                    <small className="original-value">
+                      Original: {new Date(caseItem.originalValues.dateOfSurgery).toLocaleDateString()}
+                    </small>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Procedure Type:</label>
-                  <input
-                    type="text"
+                  <select
                     value={amendmentData.procedureType || ''}
                     onChange={(e) => onAmendmentDataChange({ ...amendmentData, procedureType: e.target.value })}
-                  />
+                  >
+                    <option value="">Select Procedure Type</option>
+                    {availableProcedureTypes.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                  {caseItem.originalValues?.procedureType && (
+                    <small className="original-value">
+                      Original: {caseItem.originalValues.procedureType}
+                    </small>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Doctor Name:</label>
@@ -257,14 +379,25 @@ const CaseCard: React.FC<CaseCardProps> = ({
                     value={amendmentData.doctorName || ''}
                     onChange={(e) => onAmendmentDataChange({ ...amendmentData, doctorName: e.target.value })}
                   />
+                  {caseItem.originalValues?.doctorName && (
+                    <small className="original-value">
+                      Original: {caseItem.originalValues.doctorName}
+                    </small>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Time of Procedure:</label>
-                  <input
-                    type="time"
+                  <TimePicker
                     value={amendmentData.timeOfProcedure || ''}
-                    onChange={(e) => onAmendmentDataChange({ ...amendmentData, timeOfProcedure: e.target.value })}
+                    onChange={(value) => onAmendmentDataChange({ ...amendmentData, timeOfProcedure: value })}
+                    placeholder="Select procedure time"
+                    step={15}
                   />
+                  {caseItem.originalValues?.timeOfProcedure && (
+                    <small className="original-value">
+                      Original: {caseItem.originalValues.timeOfProcedure}
+                    </small>
+                  )}
                 </div>
                 <div className="form-group full-width">
                   <label>Special Instructions:</label>
@@ -273,6 +406,11 @@ const CaseCard: React.FC<CaseCardProps> = ({
                     onChange={(e) => onAmendmentDataChange({ ...amendmentData, specialInstruction: e.target.value })}
                     rows={3}
                   />
+                  {caseItem.originalValues?.specialInstruction && (
+                    <small className="original-value">
+                      Original: {caseItem.originalValues.specialInstruction}
+                    </small>
+                  )}
                 </div>
               </div>
               <div className="amendment-actions">
@@ -477,6 +615,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
             onCaseCompleted={onCaseCompleted}
             onOrderDeliveredOffice={onOrderDeliveredOffice}
             onToBeBilled={onToBeBilled}
+            onCancelCase={onCancelCase}
             canAmendCase={canAmendCase}
           />
         </div>

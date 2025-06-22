@@ -6,9 +6,12 @@ import ProcessOrderPage from './components/ProcessOrderPage';
 import UserManagement from './components/UserManagement';
 import EditSets from './components/EditSets';
 import WelcomePopup from './components/WelcomePopup';
+import PermissionMatrixPage from './components/PermissionMatrixPage';
+import LogoutConfirmation from './components/LogoutConfirmation';
 import { User, CaseBooking } from './types';
 import { getCurrentUser, logout } from './utils/auth';
 import { updateCaseStatus } from './utils/storage';
+import { hasPermission, PERMISSION_ACTIONS } from './utils/permissions';
 import { SoundProvider, useSound } from './contexts/SoundContext';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { ToastProvider, useToast } from './components/ToastContainer';
@@ -17,7 +20,7 @@ import Settings from './components/Settings';
 import StatusLegend from './components/StatusLegend';
 import './App.css';
 
-type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets';
+type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'permissions';
 
 const getCountryAbbreviation = (country: string): string => {
   const abbreviations: { [key: string]: string } = {
@@ -63,6 +66,7 @@ const AppContent: React.FC = () => {
   const [activePage, setActivePage] = useState<ActivePage>('booking');
   const [processingCase, setProcessingCase] = useState<CaseBooking | null>(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
   const { isEnabled, toggleSound, playSound } = useSound();
   const { addNotification } = useNotifications();
   const { showSuccess, showError, showInfo } = useToast();
@@ -87,11 +91,21 @@ const AppContent: React.FC = () => {
   };
 
   const handleLogout = () => {
+    setShowLogoutConfirmation(true);
+  };
+
+  const confirmLogout = () => {
     logout();
     setUser(null);
     setActivePage('booking');
     setProcessingCase(null);
+    setShowLogoutConfirmation(false);
     playSound.click();
+    showSuccess('Logged Out', 'You have been successfully logged out of the system');
+  };
+
+  const cancelLogout = () => {
+    setShowLogoutConfirmation(false);
   };
 
   const handleCaseSubmitted = () => {
@@ -140,13 +154,19 @@ const AppContent: React.FC = () => {
           <div className="header-left">
             <h1>🏥 Transmedic Case Booking</h1>
             <div className="header-info">
-              <span className={`role-badge ${user.role}`}>{user.role.replace('-', ' ').toUpperCase()}</span>
-              {user.selectedCountry && (
-                <span className="country-badge">
-                  {user.selectedCountry}
-                </span>
-              )}
-              {(user.role === 'admin' || user.role === 'it') && (
+              <div className="role-country-info">
+                <span className="info-label">Role:</span>
+                <span className={`role-badge ${user.role}`}>{user.role.replace('-', ' ').toUpperCase()}</span>
+                {user.selectedCountry && (
+                  <>
+                    <span className="info-label">Country:</span>
+                    <span className="country-badge">
+                      {user.selectedCountry}
+                    </span>
+                  </>
+                )}
+              </div>
+              {hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) && (
                 <button
                   onClick={() => {
                     setActivePage('users');
@@ -157,10 +177,24 @@ const AppContent: React.FC = () => {
                   👥 User Management
                 </button>
               )}
+              {user.role === 'admin' && (
+                <button
+                  onClick={() => {
+                    setActivePage('permissions');
+                    playSound.click();
+                  }}
+                  className={`permissions-button ${activePage === 'permissions' ? 'active' : ''}`}
+                >
+                  🔐 Permissions
+                </button>
+              )}
             </div>
           </div>
           <div className="header-right">
-            <span className="user-display-name">{user.name}</span>
+            <div className="logged-in-info">
+              <span className="logged-in-label">Logged in as:</span>
+              <span className="user-display-name">{user.name}</span>
+            </div>
             <div className="header-actions">
               <NotificationBell />
               <Settings />
@@ -173,46 +207,75 @@ const AppContent: React.FC = () => {
       </header>
 
       <nav className="app-nav">
-        <button
-          onClick={() => {
-            setActivePage('booking');
-            playSound.click();
-          }}
-          className={activePage === 'booking' ? 'active' : ''}
-        >
-          📝 New Case Booking
-        </button>
-        <button
-          onClick={() => {
-            setActivePage('cases');
-            playSound.click();
-          }}
-          className={activePage === 'cases' ? 'active' : ''}
-        >
-          📋 View All Cases
-        </button>
-        {(user.role === 'admin' || user.role === 'operation-manager') && (
+        <div className="nav-buttons">
+          {hasPermission(user.role, PERMISSION_ACTIONS.CREATE_CASE) && (
+            <button
+              onClick={() => {
+                setActivePage('booking');
+                playSound.click();
+              }}
+              className={activePage === 'booking' ? 'active' : ''}
+            >
+              📝 New Case Booking
+            </button>
+          )}
           <button
             onClick={() => {
-              setActivePage('sets');
+              setActivePage('cases');
               playSound.click();
             }}
-            className={activePage === 'sets' ? 'active' : ''}
+            className={activePage === 'cases' ? 'active' : ''}
           >
-            ⚙️ Edit Sets
+            📋 View All Cases
           </button>
-        )}
+          <StatusLegend />
+          {(user.role === 'admin' || user.role === 'operation-manager') && (
+            <button
+              onClick={() => {
+                setActivePage('sets');
+                playSound.click();
+              }}
+              className={activePage === 'sets' ? 'active' : ''}
+            >
+              ⚙️ Edit Sets
+            </button>
+          )}
+        </div>
       </nav>
 
-      <StatusLegend />
-
       <main className="app-main">
-        {activePage === 'booking' && (
+        {activePage === 'booking' && hasPermission(user.role, PERMISSION_ACTIONS.CREATE_CASE) && (
           <CaseBookingForm onCaseSubmitted={handleCaseSubmitted} />
         )}
         
+        {activePage === 'booking' && !hasPermission(user.role, PERMISSION_ACTIONS.CREATE_CASE) && (
+          <div className="permission-denied">
+            <div className="permission-denied-content">
+              <h2>🚫 Access Denied</h2>
+              <p>You don't have permission to create new cases.</p>
+              <p>Your role (<strong>{user.role}</strong>) does not allow case booking access.</p>
+              <button
+                onClick={() => {
+                  setActivePage('cases');
+                  playSound.click();
+                }}
+                className="btn btn-primary btn-lg"
+              >
+                View Cases Instead
+              </button>
+            </div>
+          </div>
+        )}
+        
         {activePage === 'cases' && (
-          <CasesList onProcessCase={handleProcessCase} currentUser={user} />
+          <CasesList 
+            onProcessCase={handleProcessCase} 
+            currentUser={user} 
+            onNavigateToPermissions={() => {
+              setActivePage('permissions');
+              playSound.click();
+            }}
+          />
         )}
         
         {activePage === 'process' && processingCase && (
@@ -223,8 +286,12 @@ const AppContent: React.FC = () => {
           />
         )}
         
-        {activePage === 'users' && (user.role === 'admin' || user.role === 'it') && (
+        {activePage === 'users' && hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) && (
           <UserManagement />
+        )}
+        
+        {activePage === 'permissions' && user.role === 'admin' && (
+          <PermissionMatrixPage />
         )}
         
         {activePage === 'sets' && (user.role === 'admin' || user.role === 'operation-manager') && (
@@ -245,6 +312,13 @@ const AppContent: React.FC = () => {
           onClose={() => setShowWelcomePopup(false)}
         />
       )}
+
+      <LogoutConfirmation
+        isOpen={showLogoutConfirmation}
+        onConfirm={confirmLogout}
+        onCancel={cancelLogout}
+        userName={user?.name}
+      />
     </div>
   );
 };
