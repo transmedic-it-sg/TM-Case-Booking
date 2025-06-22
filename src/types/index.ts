@@ -1,0 +1,146 @@
+export type CaseStatus = 
+  | 'Case Booked'
+  | 'Order Preparation'
+  | 'Pending Preparation'
+  | 'Order Prepared'
+  | 'Pending Delivery (Hospital)'
+  | 'Delivered (Hospital)'
+  | 'Case Completed'
+  | 'Delivered (Office)'
+  | 'To be billed'
+  | 'Case Cancelled';
+
+export const COUNTRIES = [
+  'Singapore',
+  'Malaysia', 
+  'Philippines',
+  'Indonesia',
+  'Vietnam',
+  'Hongkong',
+  'Thailand'
+] as const;
+
+export const DEPARTMENTS = [
+  'Cardiology',
+  'Orthopedics', 
+  'Neurosurgery',
+  'Oncology',
+  'Emergency',
+  'Radiology',
+  'General Surgery',
+  'Pediatrics'
+] as const;
+
+export const PROCEDURE_TYPES = [
+  'Knee',
+  'Head',
+  'Hip', 
+  'Hands',
+  'Neck',
+  'Spine'
+] as const;
+
+export const SURGERY_SETS = [
+  'Spine Surgery Set A',
+  'Spine Surgery Set B', 
+  'Joint Replacement Set',
+  'Sports Medicine Set',
+  'Orthobiologics Set',
+  'Neuromonitoring Set',
+  'General Orthopedic Set'
+] as const;
+
+export const IMPLANT_BOXES = [
+  'Spine Implant Box 1',
+  'Spine Implant Box 2',
+  'Hip Implant Box',
+  'Knee Implant Box', 
+  'Shoulder Implant Box',
+  'Sports Med Implant Box',
+  'Biologics Box'
+] as const;
+
+export const PROCEDURE_TYPE_MAPPINGS = {
+  'Spine': {
+    surgerySets: ['Spine Surgery Set A', 'Spine Surgery Set B', 'Neuromonitoring Set', 'General Orthopedic Set'],
+    implantBoxes: ['Spine Implant Box 1', 'Spine Implant Box 2', 'Biologics Box']
+  },
+  'Knee': {
+    surgerySets: ['Joint Replacement Set', 'Sports Medicine Set', 'General Orthopedic Set'],
+    implantBoxes: ['Knee Implant Box', 'Sports Med Implant Box', 'Biologics Box']
+  },
+  'Hip': {
+    surgerySets: ['Joint Replacement Set', 'Orthobiologics Set', 'General Orthopedic Set'],
+    implantBoxes: ['Hip Implant Box', 'Biologics Box']
+  },
+  'Head': {
+    surgerySets: ['Neuromonitoring Set', 'General Orthopedic Set'],
+    implantBoxes: ['Biologics Box']
+  },
+  'Hands': {
+    surgerySets: ['Sports Medicine Set', 'General Orthopedic Set'],
+    implantBoxes: ['Sports Med Implant Box']
+  },
+  'Neck': {
+    surgerySets: ['Spine Surgery Set A', 'Neuromonitoring Set', 'General Orthopedic Set'],
+    implantBoxes: ['Spine Implant Box 1', 'Biologics Box']
+  }
+} as const;
+
+export interface StatusHistory {
+  status: CaseStatus;
+  timestamp: string;
+  processedBy: string;
+  details?: string;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  password: string;
+  role: 'admin' | 'operations' | 'operation-manager' | 'sales' | 'sales-manager' | 'driver' | 'it';
+  name: string;
+  departments: string[];
+  countries: string[];
+  selectedCountry?: string;
+}
+
+export interface CaseBooking {
+  id: string;
+  caseReferenceNumber: string;
+  hospital: string;
+  department: string;
+  dateOfSurgery: string;
+  procedureType: string;
+  procedureName: string;
+  doctorName?: string;
+  timeOfProcedure?: string;
+  surgerySetSelection: string[];
+  implantBox: string[];
+  specialInstruction?: string;
+  status: CaseStatus;
+  submittedBy: string;
+  submittedAt: string;
+  processedBy?: string;
+  processedAt?: string;
+  processOrderDetails?: string;
+  country: string;
+  amendedBy?: string;
+  amendedAt?: string;
+  isAmended?: boolean;
+  statusHistory?: StatusHistory[];
+  deliveryImage?: string;
+  deliveryDetails?: string;
+  attachments?: string[];
+  orderSummary?: string;
+  doNumber?: string;
+}
+
+export interface FilterOptions {
+  submitter?: string;
+  hospital?: string;
+  status?: CaseStatus;
+  country?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
