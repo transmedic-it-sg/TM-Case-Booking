@@ -331,7 +331,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
               </div>
             ) : (
               <div className="items-grid">
-                {currentTable.items.map((item, index) => (
+                {currentTable.items.sort().map((item, index) => (
                   <div key={index} className="item-card">
                     {editingItem === item ? (
                       <div className="edit-item-form">

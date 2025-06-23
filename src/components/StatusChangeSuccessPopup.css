@@ -41,41 +41,34 @@
   vertical-align: top;
 }
 
-.checkmark-circle {
+.checkmark-svg {
   width: 80px;
   height: 80px;
-  position: absolute;
-  left: 0;
-  top: 0;
-  background: #4caf50;
-  border-radius: 50%;
-  animation: checkmarkCircle 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  transform-origin: center center;
-  z-index: 1;
+  display: block;
+  margin: 0 auto;
 }
 
-.checkmark-stem {
-  position: absolute;
-  width: 5px;
-  height: 20px;
-  background: white;
-  left: 32px;
-  top: 35px;
-  transform: rotate(45deg);
-  animation: checkmarkStem 0.4s ease-in-out 0.2s backwards !important;
-  z-index: 2;
+.checkmark-circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-width: 2;
+  stroke-miterlimit: 10;
+  stroke: #4caf50;
+  fill: #4caf50;
+  animation: checkmarkCircle 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+  animation-delay: 0.1s;
 }
 
-.checkmark-kick {
-  position: absolute;
-  width: 12px;
-  height: 5px;
-  background: white;
-  left: 25px;
-  top: 45px;
-  transform: rotate(-45deg);
-  animation: checkmarkKick 0.25s ease-in-out 0.35s backwards !important;
-  z-index: 2;
+.checkmark-check {
+  transform-origin: 50% 50%;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  stroke: #ffffff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: checkmarkCheck 0.3s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+  animation-delay: 0.5s;
 }
 
 .success-content h3 {
@@ -162,34 +155,21 @@
 
 @keyframes checkmarkCircle {
   0% {
-    transform: scale(0) rotate(0deg);
-    opacity: 0;
-  }
-  50% {
-    transform: scale(1.1) rotate(180deg);
-    opacity: 1;
+    stroke-dashoffset: 166;
+    fill-opacity: 0;
   }
   100% {
-    transform: scale(1) rotate(360deg);
-    opacity: 1;
+    stroke-dashoffset: 0;
+    fill-opacity: 1;
   }
 }
 
-@keyframes checkmarkStem {
+@keyframes checkmarkCheck {
   0% {
-    height: 0;
+    stroke-dashoffset: 48;
   }
   100% {
-    height: 20px;
-  }
-}
-
-@keyframes checkmarkKick {
-  0% {
-    width: 0;
-  }
-  100% {
-    width: 12px;
+    stroke-dashoffset: 0;
   }
 }
 
@@ -214,21 +194,9 @@
     height: 60px;
   }
   
-  .checkmark-circle {
+  .checkmark-svg {
     width: 60px;
     height: 60px;
-  }
-  
-  .checkmark-stem {
-    left: 24px;
-    top: 26px;
-    height: 15px;
-  }
-  
-  .checkmark-kick {
-    left: 19px;
-    top: 34px;
-    width: 9px;
   }
   
   .success-content h3 {
@@ -253,19 +221,17 @@
   
   /* Still show the checkmark elements but without animation */
   .checkmark-circle,
-  .checkmark-stem,
-  .checkmark-kick {
+  .checkmark-check {
     animation: none !important;
-    opacity: 1 !important;
-    transform: scale(1) !important;
   }
   
-  .checkmark-stem {
-    height: 20px !important;
+  .checkmark-circle {
+    stroke-dashoffset: 0 !important;
+    fill-opacity: 1 !important;
   }
   
-  .checkmark-kick {
-    width: 12px !important;
+  .checkmark-check {
+    stroke-dashoffset: 0 !important;
   }
   
   .auto-close-bar {

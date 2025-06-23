@@ -28,7 +28,8 @@
       "Bash(npx kill-port:*)",
       "Bash(PORT=3001 npm start)",
       "Bash(grep:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

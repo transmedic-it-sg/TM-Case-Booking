@@ -41,9 +41,25 @@ const StatusChangeSuccessPopup: React.FC<StatusChangeSuccessPopupProps> = ({
       <div className="status-success-popup" onClick={(e) => e.stopPropagation()}>
         <div className="success-icon">
           <div className="success-checkmark">
-            <div className="checkmark-circle"></div>
-            <div className="checkmark-stem"></div>
-            <div className="checkmark-kick"></div>
+            <svg 
+              className="checkmark-svg" 
+              viewBox="0 0 52 52"
+              width="80" 
+              height="80"
+            >
+              <circle 
+                className="checkmark-circle" 
+                cx="26" 
+                cy="26" 
+                r="25" 
+                fill="none"
+              />
+              <path 
+                className="checkmark-check" 
+                fill="none" 
+                d="m14.1 27.2l7.1 7.2 16.7-16.8"
+              />
+            </svg>
           </div>
         </div>
         <div className="success-content">

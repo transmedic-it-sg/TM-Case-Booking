@@ -5,6 +5,7 @@ import { getCurrentUser } from '../utils/auth';
 import { getHospitals, getDepartments, initializeCodeTables } from '../utils/codeTable';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import TimePicker from './common/TimePicker';
+import SearchableDropdown from './SearchableDropdown';
 
 interface CaseBookingFormProps {
   onCaseSubmitted: () => void;
@@ -38,58 +39,58 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
   useEffect(() => {
     initializeCodeTables();
     const allTypes = getAllProcedureTypes();
-    setAvailableProcedureTypes(allTypes);
+    setAvailableProcedureTypes(allTypes.sort());
     
     // Load hospitals from code tables
     const hospitals = getHospitals();
-    setAvailableHospitals(hospitals);
+    setAvailableHospitals(hospitals.sort());
   }, []);
 
   const surgerySetOptions = useMemo(() => {
     if (!formData.procedureType) {
-      return [...SURGERY_SETS];
+      return [...SURGERY_SETS].sort();
     }
     
     // Try to get from categorized sets first
     const categorizedSets = getCategorizedSets();
     if (categorizedSets[formData.procedureType]?.surgerySets?.length > 0) {
-      return categorizedSets[formData.procedureType].surgerySets;
+      return categorizedSets[formData.procedureType].surgerySets.sort();
     }
     
     // Fallback to static mapping
     const mapping = PROCEDURE_TYPE_MAPPINGS[formData.procedureType as keyof typeof PROCEDURE_TYPE_MAPPINGS];
-    return mapping ? mapping.surgerySets : [...SURGERY_SETS];
+    return mapping ? mapping.surgerySets.sort() : [...SURGERY_SETS].sort();
   }, [formData.procedureType]);
 
   const implantBoxOptions = useMemo(() => {
     if (!formData.procedureType) {
-      return [...IMPLANT_BOXES];
+      return [...IMPLANT_BOXES].sort();
     }
     
     // Try to get from categorized sets first
     const categorizedSets = getCategorizedSets();
     if (categorizedSets[formData.procedureType]?.implantBoxes?.length > 0) {
-      return categorizedSets[formData.procedureType].implantBoxes;
+      return categorizedSets[formData.procedureType].implantBoxes.sort();
     }
     
     // Fallback to static mapping
     const mapping = PROCEDURE_TYPE_MAPPINGS[formData.procedureType as keyof typeof PROCEDURE_TYPE_MAPPINGS];
-    return mapping ? mapping.implantBoxes : [...IMPLANT_BOXES];
+    return mapping ? mapping.implantBoxes.sort() : [...IMPLANT_BOXES].sort();
   }, [formData.procedureType]);
 
   const availableDepartments = useMemo(() => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
-      return getDepartments();
+      return getDepartments().sort();
     }
     
     // Admin and IT users can access all departments
     if (currentUser.role === 'admin' || currentUser.role === 'it') {
-      return getDepartments();
+      return getDepartments().sort();
     }
     
     // Other users are restricted to their assigned departments
-    return getDepartments(currentUser.departments);
+    return getDepartments(currentUser.departments).sort();
   }, []);
 
   const validateForm = () => {
@@ -214,37 +215,29 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="hospital" className="required">Hospital</label>
-            <select
+            <SearchableDropdown
               id="hospital"
               value={formData.hospital}
-              onChange={(e) => setFormData(prev => ({ ...prev, hospital: e.target.value }))}
+              onChange={(value) => setFormData(prev => ({ ...prev, hospital: value }))}
+              options={availableHospitals}
+              placeholder="Search and select hospital"
               className={errors.hospital ? 'error' : ''}
-            >
-              <option value="">Select Hospital</option>
-              {availableHospitals.map((hospital) => (
-                <option key={hospital} value={hospital}>
-                  {hospital}
-                </option>
-              ))}
-            </select>
+              required
+            />
             {errors.hospital && <span className="error-text">{errors.hospital}</span>}
           </div>
 
           <div className="form-group">
             <label htmlFor="department" className="required">Department</label>
-            <select
+            <SearchableDropdown
               id="department"
               value={formData.department}
-              onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
+              onChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
+              options={availableDepartments}
+              placeholder="Search and select department"
               className={errors.department ? 'error' : ''}
-            >
-              <option value="">Select Department</option>
-              {availableDepartments.map((department) => (
-                <option key={department} value={department}>
-                  {department}
-                </option>
-              ))}
-            </select>
+              required
+            />
             {errors.department && <span className="error-text">{errors.department}</span>}
           </div>
         </div>
@@ -279,24 +272,20 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="procedureType" className="required">Procedure Type</label>
-            <select
+            <SearchableDropdown
               id="procedureType"
               value={formData.procedureType}
-              onChange={(e) => setFormData(prev => ({ 
+              onChange={(value) => setFormData(prev => ({ 
                 ...prev, 
-                procedureType: e.target.value,
+                procedureType: value,
                 surgerySetSelection: [],
                 implantBox: []
               }))}
+              options={availableProcedureTypes}
+              placeholder="Search and select procedure type"
               className={errors.procedureType ? 'error' : ''}
-            >
-              <option value="">Select Procedure Type</option>
-              {availableProcedureTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
+              required
+            />
             {errors.procedureType && <span className="error-text">{errors.procedureType}</span>}
           </div>
         </div>

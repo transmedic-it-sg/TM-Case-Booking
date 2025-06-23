@@ -13,7 +13,9 @@ import {
   getAllProcedureTypes, 
   addCustomProcedureType, 
   removeCustomProcedureType, 
-  getCustomProcedureTypes 
+  getCustomProcedureTypes,
+  getHiddenProcedureTypesList,
+  restoreProcedureType
 } from '../../utils/storage';
 import SetsList from './SetsList';
 
@@ -32,6 +34,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
   const [surgerySetError, setSurgerySetError] = useState('');
   const [implantBoxError, setImplantBoxError] = useState('');
   const [allProcedureTypes, setAllProcedureTypes] = useState<string[]>([]);
+  const [hiddenProcedureTypes, setHiddenProcedureTypes] = useState<string[]>([]);
   const [showAddProcedureType, setShowAddProcedureType] = useState(false);
   const [newProcedureTypeName, setNewProcedureTypeName] = useState('');
   const [procedureTypeError, setProcedureTypeError] = useState('');
@@ -45,7 +48,9 @@ const EditSets: React.FC<EditSetsProps> = () => {
   // Load all procedure types on component mount
   useEffect(() => {
     const allTypes = getAllProcedureTypes();
+    const hidden = getHiddenProcedureTypesList();
     setAllProcedureTypes(allTypes);
+    setHiddenProcedureTypes(hidden);
     
     // Update selected procedure type if it doesn't exist in the loaded types
     if (!allTypes.includes(selectedProcedureType)) {
@@ -127,26 +132,26 @@ const EditSets: React.FC<EditSetsProps> = () => {
   };
 
   const handleDeleteProcedureType = (typeName: string) => {
-    // Prevent deleting base procedure types
-    if (PROCEDURE_TYPES.includes(typeName as any)) {
-      showError('Cannot Delete', 'Base procedure types cannot be deleted');
-      return;
-    }
-    
-    const confirmMessage = `Are you sure you want to delete "${typeName}"?\n\nThis will remove all associated surgery sets and implant boxes. This action cannot be undone.`;
+    const isBaseType = PROCEDURE_TYPES.includes(typeName as any);
+    const actionWord = isBaseType ? 'hide' : 'delete';
+    const confirmMessage = `Are you sure you want to ${actionWord} "${typeName}"?\n\n${isBaseType ? 'This will hide the procedure type from the list. You can restore it later.' : 'This will remove all associated surgery sets and implant boxes.'} This action ${isBaseType ? 'can be undone' : 'cannot be undone'}.`;
     
     if (confirm(confirmMessage)) {
       if (removeCustomProcedureType(typeName)) {
         // Update local state
         const updatedTypes = getAllProcedureTypes();
+        const updatedHidden = getHiddenProcedureTypesList();
         setAllProcedureTypes(updatedTypes);
+        setHiddenProcedureTypes(updatedHidden);
         
-        // Remove from categorized sets
-        setCategorizedSets(prev => {
-          const newSets = { ...prev };
-          delete newSets[typeName];
-          return newSets;
-        });
+        // Remove from categorized sets if it's a custom type
+        if (!isBaseType) {
+          setCategorizedSets(prev => {
+            const newSets = { ...prev };
+            delete newSets[typeName];
+            return newSets;
+          });
+        }
         
         // Switch to first available procedure type if current one was deleted
         if (selectedProcedureType === typeName) {
@@ -154,9 +159,31 @@ const EditSets: React.FC<EditSetsProps> = () => {
         }
         
         playSound.delete();
-        showSuccess('Procedure Type Deleted', `"${typeName}" has been removed`);
+        showSuccess(
+          isBaseType ? 'Procedure Type Hidden' : 'Procedure Type Deleted', 
+          `"${typeName}" has been ${isBaseType ? 'hidden' : 'removed'}`
+        );
       } else {
-        showError('Delete Failed', 'Failed to delete procedure type');
+        showError(`${actionWord.charAt(0).toUpperCase() + actionWord.slice(1)} Failed`, `Failed to ${actionWord} procedure type`);
+      }
+    }
+  };
+
+  const handleRestoreProcedureType = (typeName: string) => {
+    const confirmMessage = `Are you sure you want to restore "${typeName}"?\n\nThis will make the procedure type available again in the procedure types list.`;
+    
+    if (confirm(confirmMessage)) {
+      if (restoreProcedureType(typeName)) {
+        // Update local state
+        const updatedTypes = getAllProcedureTypes();
+        const updatedHidden = getHiddenProcedureTypesList();
+        setAllProcedureTypes(updatedTypes);
+        setHiddenProcedureTypes(updatedHidden);
+        
+        playSound.success();
+        showSuccess('Procedure Type Restored', `"${typeName}" has been restored to the procedure types list`);
+      } else {
+        showError('Restore Failed', 'Failed to restore procedure type');
       }
     }
   };
@@ -428,11 +455,11 @@ const EditSets: React.FC<EditSetsProps> = () => {
                   {procedureType}
                   {isCustomType && <span className="custom-type-indicator">★</span>}
                 </button>
-                {canManageProcedureTypes && isCustomType && (
+                {canManageProcedureTypes && (
                   <button
                     className="delete-procedure-type-button"
                     onClick={() => handleDeleteProcedureType(procedureType)}
-                    title={`Delete ${procedureType}`}
+                    title={`${isCustomType ? 'Delete' : 'Hide'} ${procedureType}`}
                   >
                     ✕
                   </button>
@@ -495,6 +522,28 @@ const EditSets: React.FC<EditSetsProps> = () => {
                   Cancel
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Hidden Procedure Types Section */}
+        {canManageProcedureTypes && hiddenProcedureTypes.length > 0 && (
+          <div className="hidden-procedure-types-section">
+            <h4>Hidden Procedure Types</h4>
+            <p className="section-description">These base procedure types have been hidden. Click restore to make them available again.</p>
+            <div className="hidden-types-grid">
+              {hiddenProcedureTypes.map((hiddenType) => (
+                <div key={hiddenType} className="hidden-type-item">
+                  <span className="hidden-type-name">{hiddenType}</span>
+                  <button
+                    className="restore-procedure-type-button"
+                    onClick={() => handleRestoreProcedureType(hiddenType)}
+                    title={`Restore ${hiddenType}`}
+                  >
+                    ↻ Restore
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         )}

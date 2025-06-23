@@ -245,6 +245,7 @@ export const getCategorizedSets = (): CategorizedSets => {
 
 // Dynamic Procedure Types Management
 const CUSTOM_PROCEDURE_TYPES_KEY = 'custom_procedure_types';
+const HIDDEN_PROCEDURE_TYPES_KEY = 'hidden_procedure_types';
 
 export const getCustomProcedureTypes = (): string[] => {
   try {
@@ -264,6 +265,24 @@ export const saveCustomProcedureTypes = (types: string[]): void => {
   }
 };
 
+export const getHiddenProcedureTypes = (): string[] => {
+  try {
+    const stored = localStorage.getItem(HIDDEN_PROCEDURE_TYPES_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Error loading hidden procedure types:', error);
+    return [];
+  }
+};
+
+export const saveHiddenProcedureTypes = (types: string[]): void => {
+  try {
+    localStorage.setItem(HIDDEN_PROCEDURE_TYPES_KEY, JSON.stringify(types));
+  } catch (error) {
+    console.error('Error saving hidden procedure types:', error);
+  }
+};
+
 export const addCustomProcedureType = (typeName: string): boolean => {
   const customTypes = getCustomProcedureTypes();
   const trimmedName = typeName.trim();
@@ -279,13 +298,37 @@ export const addCustomProcedureType = (typeName: string): boolean => {
 
 export const removeCustomProcedureType = (typeName: string): boolean => {
   const customTypes = getCustomProcedureTypes();
-  const updatedTypes = customTypes.filter(type => type !== typeName);
   
-  if (updatedTypes.length === customTypes.length) {
-    return false; // Type not found
+  // Check if it's a custom type first
+  const isCustom = customTypes.includes(typeName);
+  if (isCustom) {
+    const updatedTypes = customTypes.filter(type => type !== typeName);
+    saveCustomProcedureTypes(updatedTypes);
+    return true;
   }
   
-  saveCustomProcedureTypes(updatedTypes);
+  // If it's a base type, add it to the hidden/removed types list
+  const baseProcedureTypes = ['Knee', 'Head', 'Hip', 'Hands', 'Neck', 'Spine'];
+  if (baseProcedureTypes.includes(typeName)) {
+    const hiddenTypes = getHiddenProcedureTypes();
+    if (!hiddenTypes.includes(typeName)) {
+      saveHiddenProcedureTypes([...hiddenTypes, typeName]);
+      return true;
+    }
+  }
+  
+  return false; // Type not found
+};
+
+export const restoreProcedureType = (typeName: string): boolean => {
+  const hiddenTypes = getHiddenProcedureTypes();
+  const updatedHiddenTypes = hiddenTypes.filter(type => type !== typeName);
+  
+  if (updatedHiddenTypes.length === hiddenTypes.length) {
+    return false; // Type not found in hidden list
+  }
+  
+  saveHiddenProcedureTypes(updatedHiddenTypes);
   return true;
 };
 
@@ -293,5 +336,17 @@ export const getAllProcedureTypes = (): string[] => {
   // Import the base types from types file
   const baseProcedureTypes = ['Knee', 'Head', 'Hip', 'Hands', 'Neck', 'Spine'];
   const customTypes = getCustomProcedureTypes();
-  return [...baseProcedureTypes, ...customTypes];
+  const hiddenTypes = getHiddenProcedureTypes();
+  
+  // Filter out hidden base types and combine with custom types
+  const visibleBaseTypes = baseProcedureTypes.filter(type => !hiddenTypes.includes(type));
+  return [...visibleBaseTypes, ...customTypes];
+};
+
+export const getHiddenProcedureTypesList = (): string[] => {
+  const baseProcedureTypes = ['Knee', 'Head', 'Hip', 'Hands', 'Neck', 'Spine'];
+  const hiddenTypes = getHiddenProcedureTypes();
+  
+  // Only return hidden types that are actually base types
+  return hiddenTypes.filter(type => baseProcedureTypes.includes(type));
 };

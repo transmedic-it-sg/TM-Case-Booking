@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getDepartments } from '../utils/codeTable';
 import { getCurrentUser } from '../utils/auth';
+import { getCases } from '../utils/storage';
+import { CaseBooking } from '../types';
+import SearchableDropdown from './SearchableDropdown';
 import './BookingCalendar.css';
 
 interface BookingCalendarProps {}
@@ -9,15 +12,39 @@ const BookingCalendar: React.FC<BookingCalendarProps> = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [departments, setDepartments] = useState<string[]>([]);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [cases, setCases] = useState<CaseBooking[]>([]);
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
+    const user = getCurrentUser();
+    setCurrentUser(user);
+    
     // Get departments filtered by user's assigned departments
-    const userDepartments = getDepartments(currentUser?.departments);
-    setDepartments(userDepartments);
+    const userDepartments = getDepartments(user?.departments);
+    setDepartments(userDepartments.sort()); // Sort alphabetically
     if (userDepartments.length > 0) {
       setSelectedDepartment(userDepartments[0]);
     }
+    
+    // Load and filter cases by user's country and departments
+    const allCases = getCases();
+    const filteredCases = allCases.filter(caseItem => {
+      // Filter by user's country
+      const userCountry = user?.selectedCountry || user?.countries?.[0];
+      if (userCountry && caseItem.country !== userCountry) {
+        return false;
+      }
+      
+      // Filter by user's assigned departments (unless admin/IT)
+      if (user?.role !== 'admin' && user?.role !== 'it') {
+        if (user?.departments && !user.departments.includes(caseItem.department)) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+    setCases(filteredCases);
   }, []);
 
   // Calendar helper functions
@@ -45,6 +72,19 @@ const BookingCalendar: React.FC<BookingCalendarProps> = () => {
     });
   };
 
+  // Get cases for a specific day
+  const getCasesForDay = (day: number): CaseBooking[] => {
+    if (!selectedDepartment) return [];
+    
+    const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
+      .toISOString().split('T')[0];
+    
+    return cases.filter(caseItem => 
+      caseItem.dateOfSurgery === dateStr && 
+      caseItem.department === selectedDepartment
+    );
+  };
+
   const renderCalendarGrid = () => {
     const daysInMonth = getDaysInMonth(currentDate);
     const firstDay = getFirstDayOfMonth(currentDate);
@@ -70,24 +110,25 @@ const BookingCalendar: React.FC<BookingCalendarProps> = () => {
     for (let day = 1; day <= daysInMonth; day++) {
       const isToday = isCurrentMonth && day === today.getDate();
       const dayClass = `calendar-day ${isToday ? 'calendar-day-today' : ''}`;
+      const dayCases = getCasesForDay(day);
       
       days.push(
         <div key={day} className={dayClass}>
           <div className="calendar-day-number">{day}</div>
           <div className="calendar-day-content">
-            {/* Mock booking data - you can replace this with actual booking data */}
-            {day % 7 === 0 && (
-              <div className="booking-item">
-                <div className="booking-time">09:00</div>
-                <div className="booking-title">Surgery A</div>
+            {dayCases.map((caseItem, index) => (
+              <div 
+                key={`${caseItem.id}-${index}`} 
+                className="booking-item"
+                title={`${caseItem.caseReferenceNumber} - ${caseItem.procedureName} - ${caseItem.doctorName} - Status: ${caseItem.status}`}
+              >
+                <div className="booking-time">{caseItem.timeOfProcedure || 'TBD'}</div>
+                <div className="booking-title">{caseItem.procedureName}</div>
+                <div className="booking-doctor" style={{fontSize: '9px', opacity: 0.8}}>
+                  Dr. {caseItem.doctorName}
+                </div>
               </div>
-            )}
-            {day % 5 === 0 && day !== 0 && (
-              <div className="booking-item">
-                <div className="booking-time">14:30</div>
-                <div className="booking-title">Surgery B</div>
-              </div>
-            )}
+            ))}
           </div>
         </div>
       );
@@ -105,25 +146,27 @@ const BookingCalendar: React.FC<BookingCalendarProps> = () => {
     <div className="booking-calendar">
       <div className="booking-calendar-header">
         <h2>📅 Booking Calendar</h2>
-        <p>View and manage case bookings by department</p>
+        <p>View and manage case bookings by department 
+          {currentUser?.selectedCountry && (
+            <span> • Country: <strong>{currentUser.selectedCountry}</strong></span>
+          )}
+          {currentUser?.role !== 'admin' && currentUser?.role !== 'it' && (
+            <span> • Filtered by your assigned departments</span>
+          )}
+        </p>
       </div>
 
       <div className="calendar-controls">
         <div className="department-selector">
           <label htmlFor="department-select">Department:</label>
-          <select
+          <SearchableDropdown
             id="department-select"
             value={selectedDepartment}
-            onChange={(e) => setSelectedDepartment(e.target.value)}
+            onChange={setSelectedDepartment}
+            options={departments}
+            placeholder="Search and select department"
             className="form-control"
-          >
-            <option value="">Select Department</option>
-            {departments.map((dept) => (
-              <option key={dept} value={dept}>
-                {dept}
-              </option>
-            ))}
-          </select>
+          />
         </div>
         
         <div className="calendar-navigation">
