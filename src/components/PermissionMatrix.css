@@ -233,6 +233,7 @@
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  opacity: 1 !important;
 }
 
 .permission-toggle.readonly .permission-icon {
@@ -464,17 +465,15 @@
   }
 }
 
-/* Grey out non-integrated categories */
-.permission-row .action-category[data-category="Data Operations"],
-.permission-row .action-category[data-category="System Settings"] {
+/* Grey out only Data Operations category */
+.permission-row .action-category[data-category="Data Operations"] {
   background: #f8f9fa;
   color: #6c757d;
   opacity: 0.6;
   position: relative;
 }
 
-.permission-row .action-category[data-category="Data Operations"]::after,
-.permission-row .action-category[data-category="System Settings"]::after {
+.permission-row .action-category[data-category="Data Operations"]::after {
   content: ' (Coming Soon)';
   font-size: 9px;
   font-weight: normal;
@@ -486,24 +485,16 @@
   background: rgba(248, 249, 250, 0.5);
 }
 
-.permission-row:has(.action-category[data-category="System Settings"]) {
-  opacity: 0.6;
-  background: rgba(248, 249, 250, 0.5);
-}
-
-.permission-row:has(.action-category[data-category="Data Operations"]) .permission-toggle,
-.permission-row:has(.action-category[data-category="System Settings"]) .permission-toggle {
+.permission-row:has(.action-category[data-category="Data Operations"]) .permission-toggle {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.permission-row:has(.action-category[data-category="Data Operations"]) .action-name,
-.permission-row:has(.action-category[data-category="System Settings"]) .action-name {
+.permission-row:has(.action-category[data-category="Data Operations"]) .action-name {
   color: #6c757d;
 }
 
-.permission-row:has(.action-category[data-category="Data Operations"]) .action-description,
-.permission-row:has(.action-category[data-category="System Settings"]) .action-description {
+.permission-row:has(.action-category[data-category="Data Operations"]) .action-description {
   color: #adb5bd;
 }
 

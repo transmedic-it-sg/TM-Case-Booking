@@ -197,6 +197,12 @@ export const permissionActions: PermissionAction[] = [
     category: 'System Settings'
   },
   {
+    id: 'booking-calendar',
+    name: 'Booking Calendar',
+    description: 'View and manage booking calendar',
+    category: 'Case Management'
+  },
+  {
     id: 'backup-restore',
     name: 'Backup & Restore',
     description: 'Manage system backups and restoration',
@@ -232,12 +238,35 @@ export const permissionActions: PermissionAction[] = [
 
 // Define the permission matrix
 export const permissions: Permission[] = [
-  // Admin - Full access to everything
-  ...permissionActions.map(action => ({
-    actionId: action.id,
-    roleId: 'admin',
-    allowed: true
-  })),
+  // Admin - Full access to everything (explicit list to ensure it works)
+  { actionId: 'create-case', roleId: 'admin', allowed: true },
+  { actionId: 'view-cases', roleId: 'admin', allowed: true },
+  { actionId: 'amend-case', roleId: 'admin', allowed: true },
+  { actionId: 'delete-case', roleId: 'admin', allowed: true },
+  { actionId: 'edit-sets', roleId: 'admin', allowed: true },
+  { actionId: 'booking-calendar', roleId: 'admin', allowed: true },
+  { actionId: 'process-order', roleId: 'admin', allowed: true },
+  { actionId: 'order-processed', roleId: 'admin', allowed: true },
+  { actionId: 'pending-delivery-hospital', roleId: 'admin', allowed: true },
+  { actionId: 'delivered-hospital', roleId: 'admin', allowed: true },
+  { actionId: 'case-completed', roleId: 'admin', allowed: true },
+  { actionId: 'delivered-office', roleId: 'admin', allowed: true },
+  { actionId: 'to-be-billed', roleId: 'admin', allowed: true },
+  { actionId: 'export-data', roleId: 'admin', allowed: true },
+  { actionId: 'import-data', roleId: 'admin', allowed: true },
+  { actionId: 'view-reports', roleId: 'admin', allowed: true },
+  { actionId: 'create-user', roleId: 'admin', allowed: true },
+  { actionId: 'edit-user', roleId: 'admin', allowed: true },
+  { actionId: 'delete-user', roleId: 'admin', allowed: true },
+  { actionId: 'view-users', roleId: 'admin', allowed: true },
+  { actionId: 'enable-disable-user', roleId: 'admin', allowed: true },
+  { actionId: 'system-settings', roleId: 'admin', allowed: true },
+  { actionId: 'code-table-setup', roleId: 'admin', allowed: true },
+  { actionId: 'backup-restore', roleId: 'admin', allowed: true },
+  { actionId: 'audit-logs', roleId: 'admin', allowed: true },
+  { actionId: 'upload-files', roleId: 'admin', allowed: true },
+  { actionId: 'download-files', roleId: 'admin', allowed: true },
+  { actionId: 'delete-files', roleId: 'admin', allowed: true },
   
   // Operations - Order processing and case management
   { actionId: 'create-case', roleId: 'operations', allowed: true },
@@ -255,6 +284,7 @@ export const permissions: Permission[] = [
   { actionId: 'amend-case', roleId: 'operation-manager', allowed: true },
   { actionId: 'delete-case', roleId: 'operation-manager', allowed: true },
   { actionId: 'edit-sets', roleId: 'operation-manager', allowed: true },
+  { actionId: 'booking-calendar', roleId: 'operation-manager', allowed: true },
   { actionId: 'process-order', roleId: 'operation-manager', allowed: true },
   { actionId: 'order-processed', roleId: 'operation-manager', allowed: true },
   { actionId: 'upload-files', roleId: 'operation-manager', allowed: true },
@@ -266,6 +296,7 @@ export const permissions: Permission[] = [
   { actionId: 'create-case', roleId: 'sales', allowed: true },
   { actionId: 'view-cases', roleId: 'sales', allowed: true },
   { actionId: 'amend-case', roleId: 'sales', allowed: true },
+  { actionId: 'booking-calendar', roleId: 'sales', allowed: true },
   { actionId: 'case-completed', roleId: 'sales', allowed: true },
   { actionId: 'delivered-office', roleId: 'sales', allowed: true },
   { actionId: 'to-be-billed', roleId: 'sales', allowed: true },
@@ -277,6 +308,7 @@ export const permissions: Permission[] = [
   { actionId: 'create-case', roleId: 'sales-manager', allowed: true },
   { actionId: 'view-cases', roleId: 'sales-manager', allowed: true },
   { actionId: 'amend-case', roleId: 'sales-manager', allowed: true },
+  { actionId: 'booking-calendar', roleId: 'sales-manager', allowed: true },
   { actionId: 'case-completed', roleId: 'sales-manager', allowed: true },
   { actionId: 'delivered-office', roleId: 'sales-manager', allowed: true },
   { actionId: 'to-be-billed', roleId: 'sales-manager', allowed: true },

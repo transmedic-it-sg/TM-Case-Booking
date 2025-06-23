@@ -112,12 +112,30 @@ export const saveCodeTables = (tables: CodeTable[]): void => {
   }
 };
 
-// Initialize code tables if they don't exist
+// Initialize code tables if they don't exist or if corrupted
 export const initializeCodeTables = (): void => {
   const existingTables = localStorage.getItem('codeTables');
   if (!existingTables) {
     const defaultTables = getDefaultCodeTables();
     saveCodeTables(defaultTables);
+  } else {
+    // Check if countries table is corrupted (missing countries)
+    try {
+      const tables = JSON.parse(existingTables);
+      const countriesTable = tables.find((table: CodeTable) => table.id === 'countries');
+      const defaultCountries = getDefaultCodeTables().find(table => table.id === 'countries');
+      
+      // If countries table exists but has fewer items than default, reset to defaults
+      if (countriesTable && defaultCountries && countriesTable.items.length < defaultCountries.items.length) {
+        console.log('Detected corrupted countries table, resetting to defaults...');
+        const defaultTables = getDefaultCodeTables();
+        saveCodeTables(defaultTables);
+      }
+    } catch (error) {
+      console.error('Error checking code tables, resetting to defaults:', error);
+      const defaultTables = getDefaultCodeTables();
+      saveCodeTables(defaultTables);
+    }
   }
 };
 

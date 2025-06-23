@@ -46,19 +46,19 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     }
   }, []);
 
-  // Filter code tables based on user's country access
+  // Filter code tables based on user's country access (VIEW ONLY - don't modify original data)
   const getFilteredTablesForUser = (tables: CodeTable[]): CodeTable[] => {
     if (!currentUser) return tables;
     
-    // Admin can see all tables
-    if (currentUser.role === 'admin') {
+    // Admin and IT can see and modify all tables
+    if (currentUser.role === 'admin' || currentUser.role === 'it') {
       return tables;
     }
     
-    // For other users, filter based on their assigned countries
+    // For other users, filter based on their assigned countries (VIEW ONLY)
     return tables.map(table => {
       if (table.id === 'countries' && currentUser.countries && currentUser.countries.length > 0) {
-        // Filter countries based on user's assigned countries
+        // Filter countries based on user's assigned countries FOR DISPLAY ONLY
         return {
           ...table,
           items: table.items.filter(country => currentUser.countries?.includes(country))
@@ -71,12 +71,12 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
   // Save code tables to localStorage whenever they change
   useEffect(() => {
     if (codeTables.length > 0) {
-      // Only save if user has permission to modify
-      if (canManageCodeTables) {
+      // Only save if user has permission to modify AND is admin/IT (to prevent filtered data from being saved)
+      if (canManageCodeTables && (currentUser?.role === 'admin' || currentUser?.role === 'it')) {
         saveCodeTables(codeTables);
       }
     }
-  }, [codeTables, canManageCodeTables]);
+  }, [codeTables, canManageCodeTables, currentUser?.role]);
 
   const getCurrentTable = (): CodeTable | undefined => {
     return codeTables.find(table => table.id === selectedTable);
@@ -119,25 +119,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     showSuccess('Code Table Added', `"${trimmedName}" has been created successfully`);
   };
 
-  const handleDeleteTable = (tableId: string) => {
-    const table = codeTables.find(t => t.id === tableId);
-    if (!table) return;
-
-    const confirmMessage = `Are you sure you want to delete "${table.name}"?\n\nThis will remove all items in this table. This action cannot be undone.`;
-    
-    if (confirm(confirmMessage)) {
-      setCodeTables(prev => prev.filter(t => t.id !== tableId));
-      
-      // Switch to first available table if current one was deleted
-      if (selectedTable === tableId) {
-        const remainingTables = codeTables.filter(t => t.id !== tableId);
-        setSelectedTable(remainingTables.length > 0 ? remainingTables[0].id : '');
-      }
-      
-      playSound.delete();
-      showSuccess('Code Table Deleted', `"${table.name}" has been removed`);
-    }
-  };
 
   const handleAddItem = () => {
     const trimmedName = newItemName.trim();
@@ -262,23 +243,15 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
         
         <div className="table-tabs">
           {codeTables.map(table => (
-            <div key={table.id} className="table-tab-container">
-              <button
-                onClick={() => setSelectedTable(table.id)}
-                className={`table-tab ${selectedTable === table.id ? 'active' : ''}`}
-                title={table.description}
-              >
-                {table.name}
-                <span className="item-count">({table.items.length})</span>
-              </button>
-              <button
-                className="delete-table-button"
-                onClick={() => handleDeleteTable(table.id)}
-                title={`Delete ${table.name}`}
-              >
-                ✕
-              </button>
-            </div>
+            <button
+              key={table.id}
+              onClick={() => setSelectedTable(table.id)}
+              className={`table-tab ${selectedTable === table.id ? 'active' : ''}`}
+              title={table.description}
+            >
+              {table.name}
+              <span className="item-count">({table.items.length})</span>
+            </button>
           ))}
         </div>
 

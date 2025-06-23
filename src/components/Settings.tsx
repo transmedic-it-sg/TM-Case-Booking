@@ -10,6 +10,8 @@ const Settings: React.FC = () => {
   const settingsRef = useRef<HTMLDivElement>(null);
   const [tempVolume, setTempVolume] = useState(volume);
   const [showEmailConfig, setShowEmailConfig] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [emailConfig, setEmailConfig] = useState({
     smtpServer: '',
     smtpPort: '587',
@@ -92,8 +94,103 @@ const Settings: React.FC = () => {
     if (!isEnabled) {
       toggleSound();
     }
+    // Reset notifications
+    setNotificationsEnabled(false);
+    localStorage.removeItem('notifications-enabled');
+    
     playSound.success();
     showSuccess('Settings Reset', 'All settings have been restored to defaults');
+  };
+
+  const handleNotificationToggle = async () => {
+    if (!('Notification' in window)) {
+      showSuccess('Not Supported', 'Browser notifications are not supported in this browser');
+      return;
+    }
+
+    if (notificationPermission === 'denied') {
+      showSuccess('Permission Denied', 'Notifications are blocked. Please enable them in your browser settings.');
+      return;
+    }
+
+    if (notificationPermission === 'default') {
+      try {
+        const permission = await Notification.requestPermission();
+        setNotificationPermission(permission);
+        
+        if (permission === 'granted') {
+          setNotificationsEnabled(true);
+          localStorage.setItem('notifications-enabled', 'true');
+          showSuccess('Notifications Enabled', 'You will now receive browser notifications');
+          
+          // Show a test notification
+          new Notification('Case Booking System', {
+            body: 'Notifications are now enabled!',
+            icon: '/favicon.ico'
+          });
+        } else {
+          showSuccess('Permission Required', 'Please allow notifications to enable this feature');
+        }
+      } catch (error) {
+        console.error('Error requesting notification permission:', error);
+        showSuccess('Error', 'Failed to request notification permission');
+      }
+    } else if (notificationPermission === 'granted') {
+      const newState = !notificationsEnabled;
+      setNotificationsEnabled(newState);
+      localStorage.setItem('notifications-enabled', JSON.stringify(newState));
+      
+      if (newState) {
+        showSuccess('Notifications Enabled', 'You will now receive browser notifications');
+        // Show a test notification
+        new Notification('Case Booking System', {
+          body: 'Notifications are now enabled!',
+          icon: '/favicon.ico'
+        });
+      } else {
+        showSuccess('Notifications Disabled', 'Browser notifications have been disabled');
+      }
+    }
+    
+    playSound.click();
+  };
+
+  const testNotification = () => {
+    if (!('Notification' in window)) {
+      showSuccess('Not Supported', 'Browser notifications are not supported');
+      return;
+    }
+
+    if (notificationPermission !== 'granted' || !notificationsEnabled) {
+      showSuccess('Enable Notifications', 'Please enable notifications first');
+      return;
+    }
+
+    new Notification('Test Notification', {
+      body: 'This is a test notification from the Case Booking System',
+      icon: '/favicon.ico',
+      tag: 'test-notification'
+    });
+    
+    playSound.notification();
+    showSuccess('Test Sent', 'Test notification has been sent');
+  };
+
+  const getNotificationButtonText = () => {
+    if (!('Notification' in window)) return 'Not Supported';
+    if (notificationPermission === 'denied') return 'Blocked';
+    if (notificationPermission === 'default') return 'Allow';
+    return notificationsEnabled ? 'Enabled' : 'Disabled';
+  };
+
+  const getNotificationButtonClass = () => {
+    if (!('Notification' in window) || notificationPermission === 'denied') {
+      return 'btn btn-secondary btn-sm notification-disabled';
+    }
+    if (notificationPermission === 'granted' && notificationsEnabled) {
+      return 'btn btn-success btn-sm';
+    }
+    return 'btn btn-primary btn-sm';
   };
 
   // Load email configuration from localStorage
@@ -104,6 +201,20 @@ const Settings: React.FC = () => {
         setEmailConfig(JSON.parse(savedConfig));
       } catch (error) {
         console.error('Failed to load email configuration:', error);
+      }
+    }
+  }, []);
+
+  // Load notification settings and check browser support
+  useEffect(() => {
+    // Check if notifications are supported
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+      
+      // Load saved notification preference
+      const savedNotificationSetting = localStorage.getItem('notifications-enabled');
+      if (savedNotificationSetting) {
+        setNotificationsEnabled(JSON.parse(savedNotificationSetting));
       }
     }
   }, []);
@@ -203,7 +314,7 @@ const Settings: React.FC = () => {
                         className="volume-slider"
                       />
                       <span className="volume-percentage">
-                        {Math.round(tempVolume * 00)}%
+                        {Math.round(tempVolume * 100)}%
                       </span>
                     </div>
                   </div>
@@ -264,22 +375,46 @@ const Settings: React.FC = () => {
               <div className="settings-item">
                 <div className="settings-item-info">
                   <label>Browser Notifications</label>
-                  <small>Show desktop notifications (if supported)</small>
+                  <small>Show desktop notifications for important updates</small>
                 </div>
                 <div className="notification-control">
                   <button
-                    className="btn btn-secondary btn-sm"
-                    disabled
-                    style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                    onClick={() => {
-                      // Disabled functionality
-                      playSound.click();
-                    }}
+                    className={getNotificationButtonClass()}
+                    onClick={handleNotificationToggle}
+                    disabled={!('Notification' in window) || notificationPermission === 'denied'}
                   >
-                    Disabled
+                    {getNotificationButtonText()}
                   </button>
                 </div>
               </div>
+              
+              {notificationsEnabled && notificationPermission === 'granted' && (
+                <div className="settings-item">
+                  <div className="settings-item-info">
+                    <label>Notification Status</label>
+                    <small>Your browser will show notifications for case updates</small>
+                  </div>
+                  <button
+                    onClick={testNotification}
+                    className="btn btn-info btn-sm"
+                  >
+                    🧪 Test Notification
+                  </button>
+                </div>
+              )}
+              
+              {notificationPermission === 'denied' && (
+                <div className="settings-item">
+                  <div className="notification-blocked-info">
+                    <small style={{ color: '#e74c3c' }}>
+                      Notifications are blocked. To enable them:
+                      <br />1. Click the lock icon in your browser's address bar
+                      <br />2. Set Notifications to "Allow"
+                      <br />3. Refresh this page
+                    </small>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* App Information Section */}

@@ -12,7 +12,22 @@ const PermissionMatrixPage: React.FC = () => {
   // Load runtime permissions on component mount
   useEffect(() => {
     const runtimePermissions = getRuntimePermissions();
-    setPermissions(runtimePermissions);
+    
+    // Debug: Check if admin has code-table-setup permission
+    const adminCodeTablePerm = runtimePermissions.find(p => 
+      p.roleId === 'admin' && p.actionId === 'code-table-setup'
+    );
+    console.log('Admin code-table-setup permission:', adminCodeTablePerm);
+    
+    // Auto-fix if missing
+    if (!adminCodeTablePerm || !adminCodeTablePerm.allowed) {
+      console.log('Admin code-table-setup permission missing or disabled, fixing...');
+      updatePermission('admin', 'code-table-setup', true);
+      const fixedPermissions = getRuntimePermissions();
+      setPermissions(fixedPermissions);
+    } else {
+      setPermissions(runtimePermissions);
+    }
   }, []);
 
   const handlePermissionChange = (actionId: string, roleId: string, allowed: boolean) => {

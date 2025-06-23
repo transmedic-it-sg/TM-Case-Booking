@@ -11,7 +11,20 @@ export const getRuntimePermissions = (): Permission[] => {
   try {
     const stored = localStorage.getItem(RUNTIME_PERMISSIONS_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const permissions = JSON.parse(stored);
+      
+      // Validate that admin has all permissions (auto-fix if missing)
+      const adminPermissions = permissions.filter((p: Permission) => p.roleId === 'admin' && p.allowed);
+      const totalActions = defaultPermissions.filter(p => p.roleId === 'admin' && p.allowed).length;
+      
+      if (adminPermissions.length < totalActions) {
+        console.log('Admin permissions incomplete, resetting to defaults...');
+        const fixed = defaultPermissions;
+        saveRuntimePermissions(fixed);
+        return fixed;
+      }
+      
+      return permissions;
     }
   } catch (error) {
     console.error('Error loading runtime permissions:', error);
@@ -68,6 +81,7 @@ export const PERMISSION_ACTIONS = {
   AMEND_CASE: 'amend-case',
   DELETE_CASE: 'delete-case',
   EDIT_SETS: 'edit-sets',
+  BOOKING_CALENDAR: 'booking-calendar',
   
   // Status Transitions
   PROCESS_ORDER: 'process-order',
@@ -87,6 +101,7 @@ export const PERMISSION_ACTIONS = {
   
   // System Settings
   SYSTEM_SETTINGS: 'system-settings',
+  CODE_TABLE_SETUP: 'code-table-setup',
   BACKUP_RESTORE: 'backup-restore',
   AUDIT_LOGS: 'audit-logs',
   

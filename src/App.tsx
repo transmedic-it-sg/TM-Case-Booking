@@ -5,6 +5,7 @@ import CasesList from './components/CasesList';
 import ProcessOrderPage from './components/ProcessOrderPage';
 import UserManagement from './components/UserManagement';
 import EditSets from './components/EditSets';
+import BookingCalendar from './components/BookingCalendar';
 import CodeTableSetup from './components/CodeTableSetup';
 import WelcomePopup from './components/WelcomePopup';
 import PermissionMatrixPage from './components/PermissionMatrixPage';
@@ -14,6 +15,12 @@ import { getCurrentUser, logout } from './utils/auth';
 import { updateCaseStatus } from './utils/storage';
 import { hasPermission, PERMISSION_ACTIONS } from './utils/permissions';
 import { initializeCodeTables } from './utils/codeTable';
+import './utils/resetPermissions'; // Debug utility
+import './utils/fixPermissions'; // Auto-fix permissions
+import './utils/emergencyFix'; // Emergency fix
+import './utils/testPermissions'; // Test permissions
+import './utils/checkPermissionData'; // Check permission data
+import './utils/forceFixPermissions'; // Force fix permissions
 import { SoundProvider, useSound } from './contexts/SoundContext';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { ToastProvider, useToast } from './components/ToastContainer';
@@ -23,7 +30,7 @@ import StatusLegend from './components/StatusLegend';
 import './App.css';
 import './components/CodeTableSetup.css';
 
-type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'permissions' | 'codetables';
+type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'calendar' | 'permissions' | 'codetables';
 
 const getCountryAbbreviation = (country: string): string => {
   const abbreviations: { [key: string]: string } = {
@@ -203,7 +210,7 @@ const AppContent: React.FC = () => {
                     
                     {adminPanelExpanded && (
                       <div className="header-admin-submenu">
-                        {(user.role === 'admin' || user.role === 'it') && (
+                        {hasPermission(user.role, 'code-table-setup') && (
                           <button
                             onClick={() => {
                               setActivePage('codetables');
@@ -285,6 +292,17 @@ const AppContent: React.FC = () => {
             📋 View All Cases
           </button>
           <StatusLegend />
+          {hasPermission(user.role, 'booking-calendar') && (
+            <button
+              onClick={() => {
+                setActivePage('calendar');
+                playSound.click();
+              }}
+              className={activePage === 'calendar' ? 'active' : ''}
+            >
+              📅 Booking Calendar
+            </button>
+          )}
           {(user.role === 'admin' || user.role === 'operation-manager') && (
             <button
               onClick={() => {
@@ -309,7 +327,7 @@ const AppContent: React.FC = () => {
             <div className="permission-denied-content">
               <h2>🚫 Access Denied</h2>
               <p>You don't have permission to create new cases.</p>
-              <p>Your role (<strong>{user.role}</strong>) does not allow case booking access.</p>
+              <p>Your role (<span className={`role-badge ${user.role}`}>{user.role.replace('-', ' ').toUpperCase()}</span>) does not allow case booking access.</p>
               <button
                 onClick={() => {
                   setActivePage('cases');
@@ -350,18 +368,22 @@ const AppContent: React.FC = () => {
           <PermissionMatrixPage />
         )}
         
+        {activePage === 'calendar' && hasPermission(user.role, 'booking-calendar') && (
+          <BookingCalendar />
+        )}
+        
         {activePage === 'sets' && (user.role === 'admin' || user.role === 'operation-manager') && (
           <EditSets />
         )}
         
-        {activePage === 'codetables' && (user.role === 'admin' || user.role === 'it') && (
+        {activePage === 'codetables' && hasPermission(user.role, 'code-table-setup') && (
           <CodeTableSetup />
         )}
       </main>
 
       <footer className="app-footer">
         <div className="footer-content">
-          <p>&copy; 2024 Transmedic Case Booking. All rights reserved.</p>
+          <p>&copy; 2025 Transmedic Case Booking. All rights reserved.</p>
           <p>Logged in as: {user.name} ({user.role})</p>
         </div>
       </footer>

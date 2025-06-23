@@ -96,11 +96,6 @@
   margin-bottom: 16px;
 }
 
-.table-tab-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
 
 .table-tab {
   background: var(--background-light);
@@ -143,35 +138,6 @@
   opacity: 0.9;
 }
 
-.delete-table-button {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  background: var(--danger-color);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  font-size: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  opacity: 0;
-  transform: scale(0.8);
-}
-
-.table-tab-container:hover .delete-table-button {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.delete-table-button:hover {
-  background: #c82333;
-  transform: scale(1.1);
-}
 
 /* Add Table Form */
 .add-table-form {

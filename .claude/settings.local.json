@@ -23,7 +23,12 @@
       "Bash(mkdir:*)",
       "Bash(npx tsc:*)",
       "Bash(timeout 60 npm run build)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npm start)",
+      "Bash(npx kill-port:*)",
+      "Bash(PORT=3001 npm start)",
+      "Bash(grep:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

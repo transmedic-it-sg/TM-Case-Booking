@@ -1516,7 +1516,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 24px 0 24px;
+  padding: 24px 24px 20px 24px;
   border-bottom: 1px solid var(--border-light);
   margin-bottom: 24px;
 }
@@ -5007,7 +5007,6 @@ textarea:focus {
   background: rgba(32, 178, 170, 0.15);
   transform: scale(0.95);
 }
-}
 
 .set-name {
   flex: 1;
@@ -5967,15 +5966,16 @@ textarea:focus {
 
 /* Permission Denied Page */
 .permission-denied {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 80vh;
-  width: 100%;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.05);
+  z-index: 100;
   padding: 40px;
 }
 
@@ -6010,6 +6010,20 @@ textarea:focus {
 .permission-denied-content strong {
   color: var(--text-primary);
   font-weight: 600;
+}
+
+/* Notification Settings Styles */
+.notification-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.notification-blocked-info {
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.2);
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 8px;
 }
 
 /* Email Configuration Modal Styles */
