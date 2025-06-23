@@ -201,7 +201,7 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
               📋 New Cases
             </button>
             <button 
-              onClick={() => onQuickFilter('status', 'Pending Preparation')}
+              onClick={() => onQuickFilter('status', 'Order Preparation')}
               className="btn btn-outline-secondary btn-sm quick-filter-button"
             >
               ⏳ Pending

@@ -3,7 +3,6 @@ import { CaseStatus } from '../../types';
 export const statusOptions: CaseStatus[] = [
   'Case Booked',
   'Order Preparation',
-  'Pending Preparation',
   'Order Prepared',
   'Pending Delivery (Hospital)',
   'Delivered (Hospital)',
@@ -18,7 +17,6 @@ export const getNextResponsibleRole = (status: CaseStatus): string | null => {
     case 'Case Booked':
       return 'Operations / Operations Manager';
     case 'Order Preparation':
-    case 'Pending Preparation':
       return 'Operations Team';
     case 'Order Prepared':
       return 'Driver';
@@ -61,7 +59,6 @@ export const getStatusColor = (status: CaseStatus): string => {
   switch (status) {
     case 'Case Booked': return '#ff9800';
     case 'Order Preparation': return '#e91e63';
-    case 'Pending Preparation': return '#2196f3';
     case 'Order Prepared': return '#9c27b0';
     case 'Pending Delivery (Hospital)': return '#4caf50';
     case 'Delivered (Hospital)': return '#00bcd4';

@@ -12,15 +12,31 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 32px;
-  gap: 24px;
+  gap: 40px;
   min-height: 60px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  flex: 1;
+}
+
+.header-title-section {
+  flex-shrink: 0;
+}
+
+.header-description-section {
+  flex-grow: 1;
 }
 
 .header-content h1 {
   color: var(--text-primary);
   font-size: 32px;
   font-weight: 700;
-  margin: 0 0 8px 0;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .header-content p {

@@ -220,17 +220,17 @@ const CaseCard: React.FC<CaseCardProps> = ({
               </div>
             )}
             {caseItem.processedBy && (
-              <div className="detail-item">
+              <div className="detail-item prepared-by">
                 <strong>Prepared by:</strong> {caseItem.processedBy}
               </div>
             )}
             {caseItem.processedAt && (
-              <div className="detail-item">
+              <div className="detail-item prepared-at">
                 <strong>Prepared at:</strong> {formatDateTime(caseItem.processedAt)}
               </div>
             )}
             {caseItem.processOrderDetails && (
-              <div className="detail-item full-width">
+              <div className="detail-item full-width prepared-order-details">
                 <strong>Prepared Order Details:</strong>
                 <p>{caseItem.processOrderDetails}</p>
               </div>

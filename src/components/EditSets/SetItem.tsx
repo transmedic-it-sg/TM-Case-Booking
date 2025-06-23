@@ -48,7 +48,16 @@ const SetItem: React.FC<SetItemProps> = ({
         </div>
       ) : (
         <div className="set-display">
-          <div className="drag-handle" title="Drag to reorder">⋮⋮</div>
+          <div className="drag-handle" title="Drag to reorder">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <circle cx="4" cy="4" r="1.5"/>
+              <circle cx="12" cy="4" r="1.5"/>
+              <circle cx="4" cy="8" r="1.5"/>
+              <circle cx="12" cy="8" r="1.5"/>
+              <circle cx="4" cy="12" r="1.5"/>
+              <circle cx="12" cy="12" r="1.5"/>
+            </svg>
+          </div>
           <span className="set-name">{name}</span>
           <div className="set-actions">
             <div className="arrow-controls">

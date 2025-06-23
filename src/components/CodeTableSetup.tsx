@@ -258,13 +258,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       <div className="table-selector">
         <div className="table-selector-header">
           <h3>Select Code Table:</h3>
-          <button
-            className="btn btn-primary btn-sm add-table-button"
-            onClick={() => setShowAddTable(true)}
-            title="Add new code table"
-          >
-            + Add Code Table
-          </button>
         </div>
         
         <div className="table-tabs">
@@ -289,75 +282,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
           ))}
         </div>
 
-        {/* Add Table Form */}
-        {showAddTable && (
-          <div className="add-table-form">
-            <div className="form-header">
-              <h4>Add New Code Table</h4>
-              <button
-                className="close-form-button"
-                onClick={() => {
-                  setShowAddTable(false);
-                  setNewTableName('');
-                  setNewTableDescription('');
-                  setTableError('');
-                }}
-              >
-                ✕
-              </button>
-            </div>
-            <div className="form-content">
-              <div className="form-group">
-                <label htmlFor="tableName">Table Name:</label>
-                <input
-                  type="text"
-                  id="tableName"
-                  value={newTableName}
-                  onChange={(e) => {
-                    setNewTableName(e.target.value);
-                    setTableError('');
-                  }}
-                  placeholder="Enter table name (e.g., Status Codes, Priority Levels)"
-                  maxLength={50}
-                />
-                {tableError && (
-                  <span className="error-message">{tableError}</span>
-                )}
-              </div>
-              <div className="form-group">
-                <label htmlFor="tableDescription">Description (Optional):</label>
-                <input
-                  type="text"
-                  id="tableDescription"
-                  value={newTableDescription}
-                  onChange={(e) => setNewTableDescription(e.target.value)}
-                  placeholder="Brief description of this code table"
-                  maxLength={100}
-                />
-              </div>
-              <div className="form-actions">
-                <button
-                  className="btn btn-primary btn-md"
-                  onClick={handleAddTable}
-                  disabled={!newTableName.trim()}
-                >
-                  Add Table
-                </button>
-                <button
-                  className="btn btn-secondary btn-md"
-                  onClick={() => {
-                    setShowAddTable(false);
-                    setNewTableName('');
-                    setNewTableDescription('');
-                    setTableError('');
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Current Table Items */}

@@ -151,7 +151,7 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
             <tr>
               <th className="action-column">
                 <div className="action-header">
-                  <span>Role Name</span>
+                  <span>Actions & Permissions</span>
                   <small>{filteredActions.length} actions</small>
                 </div>
               </th>
@@ -159,13 +159,12 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
                 <th key={role.id} className="role-column">
                   <div className="role-header" style={{ backgroundColor: role.color }}>
                     <span className="role-name">{role.displayName}</span>
-                    <small className="role-description">{role.description}</small>
                     <button
                       className="role-summary-button"
                       onClick={() => handleShowRoleSummary(role.id)}
                       title={`View permission summary for ${role.displayName}`}
                     >
-                      More
+                      Details
                     </button>
                   </div>
                 </th>

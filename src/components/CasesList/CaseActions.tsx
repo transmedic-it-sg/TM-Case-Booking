@@ -60,23 +60,6 @@ const CaseActions: React.FC<CaseActionsProps> = ({
           </Tooltip>
         )}
         
-        {caseItem.status === 'Pending Preparation' && (
-          <Tooltip
-            content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.ORDER_PROCESSED) ? 'Mark as Order Processed' : 'You do not have permission to mark orders as processed'}
-            disabled={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.ORDER_PROCESSED)}
-          >
-            <button
-              onClick={() => onOrderProcessed(caseItem.id)}
-              className={`case-action-button process-button ${
-                !hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.ORDER_PROCESSED) 
-                  ? 'disabled' : ''
-              }`}
-              disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.ORDER_PROCESSED)}
-            >
-              Order Processed
-            </button>
-          </Tooltip>
-        )}
         
         {caseItem.status === 'Order Prepared' && (
           <Tooltip

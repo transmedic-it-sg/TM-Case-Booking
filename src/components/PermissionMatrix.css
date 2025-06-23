@@ -127,6 +127,8 @@
 .role-name {
   font-weight: 600;
   font-size: 11px;
+  margin-bottom: 4px;
+  display: block;
 }
 
 /* Remove role-description elements - hide them */

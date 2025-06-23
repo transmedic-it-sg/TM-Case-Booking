@@ -1,7 +1,6 @@
 export type CaseStatus = 
   | 'Case Booked'
   | 'Order Preparation'
-  | 'Pending Preparation'
   | 'Order Prepared'
   | 'Pending Delivery (Hospital)'
   | 'Delivered (Hospital)'
