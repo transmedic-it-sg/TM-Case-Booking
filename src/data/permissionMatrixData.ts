@@ -80,6 +80,12 @@ export const permissionActions: PermissionAction[] = [
     description: 'Remove cases from system',
     category: 'Case Management'
   },
+  {
+    id: 'edit-sets',
+    name: 'Edit Sets',
+    description: 'Manage surgery sets and implant boxes for procedure types',
+    category: 'Case Management'
+  },
   
   // Status Transitions
   {
@@ -185,6 +191,12 @@ export const permissionActions: PermissionAction[] = [
     category: 'System Settings'
   },
   {
+    id: 'code-table-setup',
+    name: 'Code Table Setup',
+    description: 'Manage system code tables and reference data',
+    category: 'System Settings'
+  },
+  {
     id: 'backup-restore',
     name: 'Backup & Restore',
     description: 'Manage system backups and restoration',
@@ -242,6 +254,7 @@ export const permissions: Permission[] = [
   { actionId: 'view-cases', roleId: 'operation-manager', allowed: true },
   { actionId: 'amend-case', roleId: 'operation-manager', allowed: true },
   { actionId: 'delete-case', roleId: 'operation-manager', allowed: true },
+  { actionId: 'edit-sets', roleId: 'operation-manager', allowed: true },
   { actionId: 'process-order', roleId: 'operation-manager', allowed: true },
   { actionId: 'order-processed', roleId: 'operation-manager', allowed: true },
   { actionId: 'upload-files', roleId: 'operation-manager', allowed: true },
@@ -283,12 +296,14 @@ export const permissions: Permission[] = [
   
   // IT - System management and technical support + user management
   { actionId: 'view-cases', roleId: 'it', allowed: true },
+  { actionId: 'edit-sets', roleId: 'it', allowed: true },
   { actionId: 'view-users', roleId: 'it', allowed: true },
   { actionId: 'create-user', roleId: 'it', allowed: true },
   { actionId: 'edit-user', roleId: 'it', allowed: true },
   { actionId: 'delete-user', roleId: 'it', allowed: true },
   { actionId: 'enable-disable-user', roleId: 'it', allowed: true },
   { actionId: 'system-settings', roleId: 'it', allowed: true },
+  { actionId: 'code-table-setup', roleId: 'it', allowed: true },
   { actionId: 'backup-restore', roleId: 'it', allowed: true },
   { actionId: 'audit-logs', roleId: 'it', allowed: true },
   { actionId: 'import-data', roleId: 'it', allowed: true },

@@ -5,6 +5,7 @@ import CasesList from './components/CasesList';
 import ProcessOrderPage from './components/ProcessOrderPage';
 import UserManagement from './components/UserManagement';
 import EditSets from './components/EditSets';
+import CodeTableSetup from './components/CodeTableSetup';
 import WelcomePopup from './components/WelcomePopup';
 import PermissionMatrixPage from './components/PermissionMatrixPage';
 import LogoutConfirmation from './components/LogoutConfirmation';
@@ -12,6 +13,7 @@ import { User, CaseBooking } from './types';
 import { getCurrentUser, logout } from './utils/auth';
 import { updateCaseStatus } from './utils/storage';
 import { hasPermission, PERMISSION_ACTIONS } from './utils/permissions';
+import { initializeCodeTables } from './utils/codeTable';
 import { SoundProvider, useSound } from './contexts/SoundContext';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { ToastProvider, useToast } from './components/ToastContainer';
@@ -19,8 +21,9 @@ import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
 import StatusLegend from './components/StatusLegend';
 import './App.css';
+import './components/CodeTableSetup.css';
 
-type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'permissions';
+type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'permissions' | 'codetables';
 
 const getCountryAbbreviation = (country: string): string => {
   const abbreviations: { [key: string]: string } = {
@@ -67,11 +70,15 @@ const AppContent: React.FC = () => {
   const [processingCase, setProcessingCase] = useState<CaseBooking | null>(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
+  const [adminPanelExpanded, setAdminPanelExpanded] = useState(false);
   const { isEnabled, toggleSound, playSound } = useSound();
   const { addNotification } = useNotifications();
   const { showSuccess, showError, showInfo } = useToast();
 
   useEffect(() => {
+    // Initialize code tables first
+    initializeCodeTables();
+    
     const currentUser = getCurrentUser();
     if (currentUser) {
       setUser(currentUser);
@@ -143,6 +150,20 @@ const AppContent: React.FC = () => {
     playSound.click();
   };
 
+  // Helper function to check if user has admin access
+  const hasAdminAccess = (user: User | null): boolean => {
+    if (!user) return false;
+    return user.role === 'admin' || 
+           hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) ||
+           (user.role === 'it');
+  };
+
+  // Helper function to toggle admin panel
+  const toggleAdminPanel = () => {
+    setAdminPanelExpanded(!adminPanelExpanded);
+    playSound.click();
+  };
+
   if (!user) {
     return <Login onLogin={handleLogin} />;
   }
@@ -165,29 +186,64 @@ const AppContent: React.FC = () => {
                     </span>
                   </>
                 )}
+                {/* Admin Panel in Header */}
+                {hasAdminAccess(user) && (
+                  <div className="header-admin-panel">
+                    <button
+                      className={`header-admin-toggle ${adminPanelExpanded ? 'expanded' : ''}`}
+                      onClick={toggleAdminPanel}
+                      title="Admin Panel"
+                    >
+                      <span className="admin-icon">👑</span>
+                      <span className="admin-label">Admin</span>
+                      <span className={`chevron ${adminPanelExpanded ? 'down' : 'right'}`}>
+                        {adminPanelExpanded ? '▼' : '▶'}
+                      </span>
+                    </button>
+                    
+                    {adminPanelExpanded && (
+                      <div className="header-admin-submenu">
+                        {(user.role === 'admin' || user.role === 'it') && (
+                          <button
+                            onClick={() => {
+                              setActivePage('codetables');
+                              playSound.click();
+                              setAdminPanelExpanded(false);
+                            }}
+                            className={`header-admin-item ${activePage === 'codetables' ? 'active' : ''}`}
+                          >
+                            📊 Code Table Setup
+                          </button>
+                        )}
+                        {user.role === 'admin' && (
+                          <button
+                            onClick={() => {
+                              setActivePage('permissions');
+                              playSound.click();
+                              setAdminPanelExpanded(false);
+                            }}
+                            className={`header-admin-item ${activePage === 'permissions' ? 'active' : ''}`}
+                          >
+                            🔐 Permissions
+                          </button>
+                        )}
+                        {hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) && (
+                          <button
+                            onClick={() => {
+                              setActivePage('users');
+                              playSound.click();
+                              setAdminPanelExpanded(false);
+                            }}
+                            className={`header-admin-item ${activePage === 'users' ? 'active' : ''}`}
+                          >
+                            👥 User Management
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              {hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) && (
-                <button
-                  onClick={() => {
-                    setActivePage('users');
-                    playSound.click();
-                  }}
-                  className={`user-management-button ${activePage === 'users' ? 'active' : ''}`}
-                >
-                  👥 User Management
-                </button>
-              )}
-              {user.role === 'admin' && (
-                <button
-                  onClick={() => {
-                    setActivePage('permissions');
-                    playSound.click();
-                  }}
-                  className={`permissions-button ${activePage === 'permissions' ? 'active' : ''}`}
-                >
-                  🔐 Permissions
-                </button>
-              )}
             </div>
           </div>
           <div className="header-right">
@@ -296,6 +352,10 @@ const AppContent: React.FC = () => {
         
         {activePage === 'sets' && (user.role === 'admin' || user.role === 'operation-manager') && (
           <EditSets />
+        )}
+        
+        {activePage === 'codetables' && (user.role === 'admin' || user.role === 'it') && (
+          <CodeTableSetup />
         )}
       </main>
 

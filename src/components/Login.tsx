@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { authenticate } from '../utils/auth';
 import { User, COUNTRIES } from '../types';
+import { getCountries, initializeCodeTables } from '../utils/codeTable';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -13,7 +14,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const countrySelectRef = useRef<HTMLSelectElement>(null);
+
+  // Initialize code tables and load countries
+  useEffect(() => {
+    initializeCodeTables();
+    const countries = getCountries();
+    setAvailableCountries(countries);
+  }, []);
 
   // Set custom validation message for country select
   useEffect(() => {
@@ -100,8 +109,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="login-right">
           <div className="login-form-container">
             <div className="form-header">
-              <h3>Welcome Back</h3>
-              <p>Please sign in to your account</p>
+              <h3 className="welcome-title">Welcome Back</h3>
+              <p className="welcome-subtitle">Please sign in to your account</p>
             </div>
 
             <form onSubmit={handleSubmit} className="modern-login-form">
@@ -153,7 +162,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   required
                 >
                   <option value="" disabled hidden></option>
-                  {COUNTRIES.map((countryOption) => (
+                  {availableCountries.map((countryOption) => (
                     <option key={countryOption} value={countryOption}>
                       {countryOption}
                     </option>

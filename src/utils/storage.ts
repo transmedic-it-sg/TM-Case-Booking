@@ -213,6 +213,10 @@ export const filterCases = (cases: CaseBooking[], filters: FilterOptions): CaseB
       return false;
     }
     
+    if (filters.country && caseItem.country !== filters.country) {
+      return false;
+    }
+    
     return true;
   });
 };

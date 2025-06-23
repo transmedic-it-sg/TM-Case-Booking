@@ -203,7 +203,7 @@ const Settings: React.FC = () => {
                         className="volume-slider"
                       />
                       <span className="volume-percentage">
-                        {Math.round(tempVolume * 100)}%
+                        {Math.round(tempVolume * 00)}%
                       </span>
                     </div>
                   </div>

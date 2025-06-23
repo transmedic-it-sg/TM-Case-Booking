@@ -20,7 +20,10 @@
       "Bash(ssh-keygen:*)",
       "Bash(ssh:*)",
       "Bash(rm:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(npx tsc:*)",
+      "Bash(timeout 60 npm run build)",
+      "Bash(git checkout:*)"
     ],
     "deny": []
   }

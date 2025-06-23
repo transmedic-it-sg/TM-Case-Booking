@@ -67,6 +67,7 @@ export const PERMISSION_ACTIONS = {
   VIEW_CASES: 'view-cases',
   AMEND_CASE: 'amend-case',
   DELETE_CASE: 'delete-case',
+  EDIT_SETS: 'edit-sets',
   
   // Status Transitions
   PROCESS_ORDER: 'process-order',

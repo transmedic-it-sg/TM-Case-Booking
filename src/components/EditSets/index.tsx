@@ -40,7 +40,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
   const { playSound } = useSound();
   
   const currentUser = getCurrentUser();
-  const canManageProcedureTypes = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) : false;
+  const canManageProcedureTypes = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_SETS) : false;
 
   // Load all procedure types on component mount
   useEffect(() => {

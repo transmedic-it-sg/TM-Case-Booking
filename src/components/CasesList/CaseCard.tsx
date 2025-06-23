@@ -5,7 +5,7 @@ import CaseActions from './CaseActions';
 import { getCurrentUser } from '../../utils/auth';
 import { DEPARTMENTS, PROCEDURE_TYPES } from '../../types';
 import { getAllProcedureTypes } from '../../utils/storage';
-import DatePicker from '../common/DatePicker';
+import { getDepartments, initializeCodeTables } from '../../utils/codeTable';
 import TimePicker from '../common/TimePicker';
 
 const CaseCard: React.FC<CaseCardProps> = ({
@@ -55,11 +55,17 @@ const CaseCard: React.FC<CaseCardProps> = ({
   onNavigateToPermissions
 }) => {
   const [availableProcedureTypes, setAvailableProcedureTypes] = useState<string[]>([]);
+  const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
 
-  // Load dynamic procedure types on component mount
+  // Load dynamic procedure types and departments on component mount
   useEffect(() => {
+    initializeCodeTables();
     const allTypes = getAllProcedureTypes();
     setAvailableProcedureTypes(allTypes);
+    
+    // Load departments from code tables
+    const departments = getDepartments();
+    setAvailableDepartments(departments);
   }, []);
 
   const canAmendCase = (caseItem: any): boolean => {
@@ -78,6 +84,22 @@ const CaseCard: React.FC<CaseCardProps> = ({
     return canAmend && notAmended;
   };
 
+  // Helper function to check if a field has been changed and show original value
+  const getOriginalValueDisplay = (fieldName: string, currentValue: string | undefined, originalValue: string | undefined) => {
+    // Check if case has original values and the specific field has an original value
+    if (!caseItem.originalValues || !originalValue) return null;
+    
+    // Ensure current value exists and is different from original
+    if (currentValue && currentValue.trim() !== originalValue.trim()) {
+      return (
+        <div className="original-value-display">
+          <span className="original-value-label">Original Value:</span> {originalValue}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div 
       className="case-card"
@@ -86,6 +108,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
       <div className="case-summary" onClick={() => onToggleExpansion(caseItem.id)}>
         <div className="case-main-info">
           <div className="case-title">
+            <span className="case-title-label">Case Title:</span>
             <strong>{caseItem.procedureType}</strong>
             <span className="case-reference">#{caseItem.caseReferenceNumber}</span>
           </div>
@@ -105,13 +128,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
             <div className="pending-indicator">
               <span className="pending-icon">⏳</span>
               <span 
-                className="pending-text clickable-pending"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onNavigateToPermissions) {
-                    onNavigateToPermissions();
-                  }
-                }}
+                className="pending-text"
                 title="Click to view Role-Based Permission Matrix"
               >
                 Awaiting: {getNextResponsibleRole(caseItem.status)}
@@ -158,6 +175,48 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <div className="detail-item full-width">
                 <strong>Special Instructions:</strong>
                 <p>{caseItem.specialInstruction}</p>
+              </div>
+            )}
+            {caseItem.isAmended && caseItem.originalValues && (
+              <div className="detail-item full-width amendment-history">
+                <strong>Original Values (Before Amendment):</strong>
+                <div className="original-values-grid">
+                  {caseItem.originalValues.hospital && (
+                    <div className="original-value-item">
+                      <span className="original-label">Hospital:</span> {caseItem.originalValues.hospital}
+                    </div>
+                  )}
+                  {caseItem.originalValues.department && (
+                    <div className="original-value-item">
+                      <span className="original-label">Department:</span> {caseItem.originalValues.department}
+                    </div>
+                  )}
+                  {caseItem.originalValues.dateOfSurgery && (
+                    <div className="original-value-item">
+                      <span className="original-label">Surgery Date:</span> {new Date(caseItem.originalValues.dateOfSurgery).toLocaleDateString()}
+                    </div>
+                  )}
+                  {caseItem.originalValues.procedureType && (
+                    <div className="original-value-item">
+                      <span className="original-label">Procedure Type:</span> {caseItem.originalValues.procedureType}
+                    </div>
+                  )}
+                  {caseItem.originalValues.doctorName && (
+                    <div className="original-value-item">
+                      <span className="original-label">Doctor Name:</span> {caseItem.originalValues.doctorName}
+                    </div>
+                  )}
+                  {caseItem.originalValues.timeOfProcedure && (
+                    <div className="original-value-item">
+                      <span className="original-label">Time of Procedure:</span> {caseItem.originalValues.timeOfProcedure}
+                    </div>
+                  )}
+                  {caseItem.originalValues.specialInstruction && (
+                    <div className="original-value-item">
+                      <span className="original-label">Special Instructions:</span> {caseItem.originalValues.specialInstruction}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             {caseItem.processedBy && (
@@ -217,7 +276,15 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                         <div>
                                           <strong>Delivery Details:</strong> {parsedDetails.deliveryDetails}
                                           {parsedDetails.deliveryImage && (
-                                            <div className="delivery-image-note">📷 Image attached</div>
+                                            <div className="delivery-image-container">
+                                              <div className="delivery-image-note">📷 Delivery Image:</div>
+                                              <img 
+                                                src={parsedDetails.deliveryImage} 
+                                                alt="Delivery confirmation" 
+                                                className="delivery-image"
+                                                style={{ maxWidth: '200px', maxHeight: '150px', borderRadius: '4px', border: '1px solid #ddd' }}
+                                              />
+                                            </div>
                                           )}
                                         </div>
                                       );
@@ -270,7 +337,15 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                         <div>
                                           <strong>Delivery Details:</strong> {parsedDetails.deliveryDetails}
                                           {parsedDetails.deliveryImage && (
-                                            <div className="delivery-image-note">📷 Image attached</div>
+                                            <div className="delivery-image-container">
+                                              <div className="delivery-image-note">📷 Delivery Image:</div>
+                                              <img 
+                                                src={parsedDetails.deliveryImage} 
+                                                alt="Delivery confirmation" 
+                                                className="delivery-image"
+                                                style={{ maxWidth: '200px', maxHeight: '150px', borderRadius: '4px', border: '1px solid #ddd' }}
+                                              />
+                                            </div>
                                           )}
                                         </div>
                                       );
@@ -318,11 +393,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                     value={amendmentData.hospital || ''}
                     onChange={(e) => onAmendmentDataChange({ ...amendmentData, hospital: e.target.value })}
                   />
-                  {caseItem.originalValues?.hospital && (
-                    <small className="original-value">
-                      Original: {caseItem.originalValues.hospital}
-                    </small>
-                  )}
+                  {getOriginalValueDisplay('hospital', amendmentData.hospital, caseItem.originalValues?.hospital)}
                 </div>
                 <div className="form-group">
                   <label>Department:</label>
@@ -331,29 +402,22 @@ const CaseCard: React.FC<CaseCardProps> = ({
                     onChange={(e) => onAmendmentDataChange({ ...amendmentData, department: e.target.value })}
                   >
                     <option value="">Select Department</option>
-                    {DEPARTMENTS.map(dept => (
+                    {availableDepartments.map(dept => (
                       <option key={dept} value={dept}>{dept}</option>
                     ))}
                   </select>
-                  {caseItem.originalValues?.department && (
-                    <small className="original-value">
-                      Original: {caseItem.originalValues.department}
-                    </small>
-                  )}
+                  {getOriginalValueDisplay('department', amendmentData.department, caseItem.originalValues?.department)}
                 </div>
                 <div className="form-group">
                   <label>Date of Surgery:</label>
-                  <DatePicker
+                  <input
+                    type="date"
                     value={amendmentData.dateOfSurgery || ''}
-                    onChange={(value) => onAmendmentDataChange({ ...amendmentData, dateOfSurgery: value })}
-                    placeholder="Select surgery date"
+                    onChange={(e) => onAmendmentDataChange({ ...amendmentData, dateOfSurgery: e.target.value })}
+                    min={new Date().toISOString().split('T')[0]}
                     required
                   />
-                  {caseItem.originalValues?.dateOfSurgery && (
-                    <small className="original-value">
-                      Original: {new Date(caseItem.originalValues.dateOfSurgery).toLocaleDateString()}
-                    </small>
-                  )}
+                  {getOriginalValueDisplay('dateOfSurgery', amendmentData.dateOfSurgery, caseItem.originalValues?.dateOfSurgery)}
                 </div>
                 <div className="form-group">
                   <label>Procedure Type:</label>
@@ -366,11 +430,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                       <option key={type} value={type}>{type}</option>
                     ))}
                   </select>
-                  {caseItem.originalValues?.procedureType && (
-                    <small className="original-value">
-                      Original: {caseItem.originalValues.procedureType}
-                    </small>
-                  )}
+                  {getOriginalValueDisplay('procedureType', amendmentData.procedureType, caseItem.originalValues?.procedureType)}
                 </div>
                 <div className="form-group">
                   <label>Doctor Name:</label>
@@ -379,11 +439,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                     value={amendmentData.doctorName || ''}
                     onChange={(e) => onAmendmentDataChange({ ...amendmentData, doctorName: e.target.value })}
                   />
-                  {caseItem.originalValues?.doctorName && (
-                    <small className="original-value">
-                      Original: {caseItem.originalValues.doctorName}
-                    </small>
-                  )}
+                  {getOriginalValueDisplay('doctorName', amendmentData.doctorName, caseItem.originalValues?.doctorName)}
                 </div>
                 <div className="form-group">
                   <label>Time of Procedure:</label>
@@ -393,11 +449,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                     placeholder="Select procedure time"
                     step={15}
                   />
-                  {caseItem.originalValues?.timeOfProcedure && (
-                    <small className="original-value">
-                      Original: {caseItem.originalValues.timeOfProcedure}
-                    </small>
-                  )}
+                  {getOriginalValueDisplay('timeOfProcedure', amendmentData.timeOfProcedure, caseItem.originalValues?.timeOfProcedure)}
                 </div>
                 <div className="form-group full-width">
                   <label>Special Instructions:</label>
@@ -406,11 +458,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                     onChange={(e) => onAmendmentDataChange({ ...amendmentData, specialInstruction: e.target.value })}
                     rows={3}
                   />
-                  {caseItem.originalValues?.specialInstruction && (
-                    <small className="original-value">
-                      Original: {caseItem.originalValues.specialInstruction}
-                    </small>
-                  )}
+                  {getOriginalValueDisplay('specialInstruction', amendmentData.specialInstruction, caseItem.originalValues?.specialInstruction)}
                 </div>
               </div>
               <div className="amendment-actions">

@@ -5,6 +5,7 @@ import { useNotifications } from '../contexts/NotificationContext';
 import { useToast } from './ToastContainer';
 import { useSound } from '../contexts/SoundContext';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
+import { getCountries, getDepartments, initializeCodeTables } from '../utils/codeTable';
 import MultiSelectDropdown from './MultiSelectDropdown';
 
 const UserManagement: React.FC = () => {
@@ -27,6 +28,8 @@ const UserManagement: React.FC = () => {
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(10);
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+  const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
   const isAdmin = currentUser?.role === 'admin';
   const canCreateUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CREATE_USER) : false;
   const canEditUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_USER) : false;
@@ -38,7 +41,12 @@ const UserManagement: React.FC = () => {
   const { playSound } = useSound();
 
   useEffect(() => {
+    initializeCodeTables();
     loadUsers();
+    
+    // Load countries and departments from code tables
+    setAvailableCountries(getCountries());
+    setAvailableDepartments(getDepartments());
   }, []);
 
   const loadUsers = () => {
@@ -326,7 +334,9 @@ const UserManagement: React.FC = () => {
                   placeholder="user@example.com"
                 />
               </div>
+            </div>
 
+            <div className="form-row">
               <div className="form-group">
                 <label htmlFor="newRole" className="required">Role</label>
                 <select
@@ -348,7 +358,7 @@ const UserManagement: React.FC = () => {
                 <MultiSelectDropdown
                   id="newDepartments"
                   label="Departments"
-                  options={DEPARTMENTS}
+                  options={availableDepartments}
                   value={newUser.departments}
                   onChange={(values) => setNewUser(prev => ({ ...prev, departments: values }))}
                   placeholder="Select departments..."
@@ -358,15 +368,17 @@ const UserManagement: React.FC = () => {
             </div>
 
             <div className="form-row">
-              <MultiSelectDropdown
-                id="newCountries"
-                label="Countries"
-                options={COUNTRIES}
-                value={newUser.countries}
-                onChange={(values) => setNewUser(prev => ({ ...prev, countries: values }))}
-                placeholder="Select countries..."
-                required={false}
-              />
+              <div className="form-group">
+                <MultiSelectDropdown
+                  id="newCountries"
+                  label="Countries"
+                  options={availableCountries}
+                  value={newUser.countries}
+                  onChange={(values) => setNewUser(prev => ({ ...prev, countries: values }))}
+                  placeholder="Select countries..."
+                  required={false}
+                />
+              </div>
               
               <div className="form-group">
                 <label htmlFor="userEnabled">User Status</label>
@@ -393,15 +405,15 @@ const UserManagement: React.FC = () => {
             {error && <div className="error-message">{error}</div>}
 
             <div className="form-actions">
-              <button type="submit" className="btn btn-primary btn-md submit-button">
-                {editingUser ? 'Update User' : 'Add User'}
-              </button>
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="btn btn-outline-secondary btn-md cancel-button"
+                className="btn btn-outline-secondary btn-lg cancel-button"
               >
                 Cancel
+              </button>
+              <button type="submit" className="btn btn-primary btn-lg submit-button">
+                {editingUser ? 'Update User' : 'Add User'}
               </button>
             </div>
           </form>

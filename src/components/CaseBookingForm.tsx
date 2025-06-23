@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { CaseBooking, SURGERY_SETS, IMPLANT_BOXES, PROCEDURE_TYPES, PROCEDURE_TYPE_MAPPINGS, DEPARTMENTS } from '../types';
 import { saveCase, generateCaseReferenceNumber, getCategorizedSets, getAllProcedureTypes } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';
+import { getHospitals, getDepartments, initializeCodeTables } from '../utils/codeTable';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import TimePicker from './common/TimePicker';
 
@@ -31,11 +32,17 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [availableProcedureTypes, setAvailableProcedureTypes] = useState<string[]>([]);
+  const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);
 
-  // Load dynamic procedure types on component mount
+  // Load dynamic procedure types and initialize code tables on component mount
   useEffect(() => {
+    initializeCodeTables();
     const allTypes = getAllProcedureTypes();
     setAvailableProcedureTypes(allTypes);
+    
+    // Load hospitals from code tables
+    const hospitals = getHospitals();
+    setAvailableHospitals(hospitals);
   }, []);
 
   const surgerySetOptions = useMemo(() => {
@@ -73,21 +80,16 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
   const availableDepartments = useMemo(() => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
-      return [...DEPARTMENTS];
+      return getDepartments();
     }
     
     // Admin and IT users can access all departments
     if (currentUser.role === 'admin' || currentUser.role === 'it') {
-      return [...DEPARTMENTS];
+      return getDepartments();
     }
     
     // Other users are restricted to their assigned departments
-    if (currentUser.departments && currentUser.departments.length > 0) {
-      return currentUser.departments.filter(dept => DEPARTMENTS.includes(dept as any));
-    }
-    
-    // Fallback to all departments if user has no department restrictions
-    return [...DEPARTMENTS];
+    return getDepartments(currentUser.departments);
   }, []);
 
   const validateForm = () => {
@@ -212,13 +214,19 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="hospital" className="required">Hospital</label>
-            <input
-              type="text"
+            <select
               id="hospital"
               value={formData.hospital}
               onChange={(e) => setFormData(prev => ({ ...prev, hospital: e.target.value }))}
               className={errors.hospital ? 'error' : ''}
-            />
+            >
+              <option value="">Select Hospital</option>
+              {availableHospitals.map((hospital) => (
+                <option key={hospital} value={hospital}>
+                  {hospital}
+                </option>
+              ))}
+            </select>
             {errors.hospital && <span className="error-text">{errors.hospital}</span>}
           </div>
 
@@ -382,7 +390,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             <button 
               type="button" 
               onClick={handleClearForm}
-              className="btn btn-outline-secondary btn-md clear-button"
+              className="btn btn-outline-secondary btn-lg clear-button"
             >
               🗑️ Clear Inputs
             </button>

@@ -84,7 +84,7 @@ const PermissionMatrixPage: React.FC = () => {
       <div className="page-header">
         <div className="header-content">
           <h1>Permission Management</h1>
-          <p>Configure role-based access control for the Case Booking Application</p>
+          <p>Configure role-based access control<br />for the Case Booking Application</p>
         </div>
         
         <div className="header-actions">
