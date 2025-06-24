@@ -1,0 +1,11 @@
+.modern-login-container {
+  min-height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+.login-split-screen {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}

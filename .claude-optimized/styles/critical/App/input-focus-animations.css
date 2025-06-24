@@ -1,0 +1,7 @@
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+.amendment-input:focus {
+  transform: scale(1.02);
+  transition: transform 0.2s ease;
+}

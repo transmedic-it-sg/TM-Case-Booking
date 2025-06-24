@@ -1,0 +1,31 @@
+.collapsible-section {
+  margin-bottom: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 16px 24px;
+  background: var(--background-light);
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+  margin-bottom: 16px;
+}
+
+.section-header:hover {
+  background: var(--border-light);
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.expand-icon {
+  font-size: 14px;
+  color: var(--text-secondary);
+}

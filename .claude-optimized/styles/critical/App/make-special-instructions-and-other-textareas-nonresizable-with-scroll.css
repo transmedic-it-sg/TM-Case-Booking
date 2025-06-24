@@ -1,0 +1,9 @@
+.form-group textarea,
+#specialInstruction,
+.received-details-input,
+.summary-input,
+.process-details-input {
+  resize: none !important;
+  overflow-y: auto;
+  min-height: 80px;
+}

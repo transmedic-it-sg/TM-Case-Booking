@@ -1,0 +1,46 @@
+.test-sound-button,
+.notification-permission-button,
+.reset-settings-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.test-sound-button:hover,
+.notification-permission-button:hover {
+  background: #0056b3;
+}
+
+.reset-settings-button {
+  background: #ffc107;
+  color: #333;
+}
+
+.reset-settings-button:hover {
+  background: #e0a800;
+}
+
+.notification-permission-button {
+  background: #17a2b8;
+  width: 100%;
+  justify-content: center;
+}
+
+.notification-permission-button:hover {
+  background: #138496;
+}
+
+.notification-control {
+  display: flex;
+  align-items: center;
+  min-width: 80px;
+}

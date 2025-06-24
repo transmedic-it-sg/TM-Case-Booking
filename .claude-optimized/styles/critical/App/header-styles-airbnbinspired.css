@@ -1,0 +1,22 @@
+.app-header {
+  background: var(--white);
+  border-bottom: 1px solid var(--border-light);
+  padding: 16px 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: var(--shadow-light);
+}
+
+.role-country-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.info-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}

@@ -1,0 +1,10 @@
+.status-success-popup,
+  .success-checkmark,
+  .checkmark-circle,
+  .checkmark-stem,
+  .checkmark-kick,
+  .auto-close-bar {
+    animation-duration: revert !important;
+    animation-iteration-count: revert !important;
+  }
+}

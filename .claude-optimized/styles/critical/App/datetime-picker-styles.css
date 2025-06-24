@@ -1,0 +1,286 @@
+.date-picker-container,
+.time-picker-container {
+  position: relative;
+  width: 100%;
+}
+
+.date-picker-input,
+.time-picker-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 2px solid var(--border-light);
+  border-radius: 6px;
+  background: var(--white);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.date-picker-input:hover:not(.disabled),
+.time-picker-input:hover:not(.disabled) {
+  border-color: var(--primary-color);
+}
+
+.date-picker-input.open,
+.time-picker-input.open {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
+}
+
+.date-picker-input.disabled,
+.time-picker-input.disabled {
+  background: var(--background-light);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.date-display-input,
+.time-display-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: none !important;
+  background: transparent;
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+}
+
+.date-display-input:disabled,
+.time-display-input:disabled {
+  cursor: not-allowed;
+}
+
+.date-picker-icons,
+.time-picker-icons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+}
+
+.date-clear-button,
+.time-clear-button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  font-size: 12px;
+  transition: color 0.2s ease;
+}
+
+.date-clear-button:hover,
+.time-clear-button:hover {
+  color: var(--danger-color);
+  background: rgba(231, 76, 60, 0.1);
+}
+
+.date-picker-icon,
+.time-picker-icon {
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+
+.date-picker-dropdown,
+.time-picker-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--white);
+  border: 2px solid var(--primary-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-medium);
+  z-index: 1000;
+  animation: slideDown 0.2s ease;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.date-picker-header,
+.time-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--primary-light);
+}
+
+.date-picker-header h4,
+.time-picker-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.date-picker-close,
+.time-picker-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.date-picker-close:hover,
+.time-picker-close:hover {
+  color: var(--danger-color);
+  background: rgba(231, 76, 60, 0.1);
+}
+
+.native-date-input,
+.native-time-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 14px;
+  background: var(--white);
+}
+
+.native-date-input:focus,
+.native-time-input:focus {
+  outline: none;
+  background: var(--primary-light);
+}
+
+.date-picker-shortcuts {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  flex-wrap: wrap;
+}
+
+.date-shortcut-button {
+  padding: 6px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  background: var(--white);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.date-shortcut-button:hover {
+  background: var(--primary-color);
+  color: var(--white);
+  border-color: var(--primary-color);
+}
+
+.time-input-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.time-input-section label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.time-shortcuts-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.time-shortcuts-section h5 {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.time-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 8px;
+}
+
+.time-shortcut-button {
+  padding: 8px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 12px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.time-shortcut-button:hover {
+  background: var(--primary-light);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.time-shortcut-button.selected {
+  background: var(--primary-color);
+  color: var(--white);
+  border-color: var(--primary-color);
+}
+
+.time-options-section {
+  padding: 16px;
+}
+
+.time-options-section h5 {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.time-options-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.time-option-button {
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 11px;
+  text-align: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.time-option-button:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.time-option-button.selected {
+  background: var(--primary-color);
+  color: var(--white);
+}
+
+@media (max-width: 768px) {
+  .date-picker-dropdown,
+  .time-picker-dropdown {
+    max-height: 300px;
+  }
+
+  .time-shortcuts {
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  }
+
+  .time-options-list {
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  }
+}

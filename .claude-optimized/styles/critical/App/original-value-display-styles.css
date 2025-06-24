@@ -1,0 +1,18 @@
+.original-value-display {
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%);
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #856404;
+  font-style: italic;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.original-value-label {
+  font-weight: 600;
+  color: #6c5214;
+  font-style: normal;
+  margin-right: 4px;
+}

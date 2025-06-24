@@ -1,0 +1,3 @@
+.add-input[maxlength]:after {
+  content: attr(maxlength);
+}

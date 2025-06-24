@@ -1,0 +1,15 @@
+.login-container {
+  animation: pageZoomIn 0.6s ease-out;
+}
+
+.login-form-container {
+  animation: pageSlideUp 0.7s ease-out 0.2s both;
+}
+
+.floating-input-group {
+  transition: all 0.3s ease;
+}
+
+.floating-input-group:focus-within {
+  transform: scale(1.02);
+}

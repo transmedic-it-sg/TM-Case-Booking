@@ -1,0 +1,25 @@
+@media (max-width: 480px) {
+  .toast-container {
+    left: 16px;
+    right: 16px;
+    top: 16px;
+    max-width: none;
+  }
+  
+  .toast-notification {
+    min-width: 0;
+    max-width: 100%;
+  }
+  
+  .toast-content {
+    padding: 12px;
+  }
+  
+  .toast-title {
+    font-size: 13px;
+  }
+  
+  .toast-message {
+    font-size: 12px;
+  }
+}

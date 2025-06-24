@@ -1,0 +1,10 @@
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.user-actions .btn {
+  min-width: 60px;
+}

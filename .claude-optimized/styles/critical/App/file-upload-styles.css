@@ -1,0 +1,87 @@
+.file-upload-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px dashed var(--border-light);
+  border-radius: var(--border-radius);
+  background: var(--background-light);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.file-upload-input:hover {
+  border-color: var(--primary-color);
+  background: rgba(32, 178, 170, 0.05);
+}
+
+.file-upload-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
+}
+
+.attachment-list {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--background-light);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-light);
+}
+
+.attachment-list p {
+  margin: 0 0 8px 0;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.attachment-item:last-child {
+  margin-bottom: 0;
+}
+
+.file-name {
+  flex: 1;
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-right: 8px;
+  word-break: break-word;
+}
+
+.file-size {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-right: 8px;
+}
+
+.remove-attachment {
+  background: var(--secondary-color);
+  color: var(--white);
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.remove-attachment:hover {
+  background: #dc3545;
+  transform: scale(1.1);
+}

@@ -1,0 +1,2 @@
+.case-item:nth-child(odd) { animation: pageSlideUp 0.5s ease 0.1s both; }
+.case-item:nth-child(even) { animation: pageSlideUp 0.5s ease 0.2s both; }

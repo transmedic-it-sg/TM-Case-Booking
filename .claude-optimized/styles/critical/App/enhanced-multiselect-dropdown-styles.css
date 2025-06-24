@@ -1,0 +1,34 @@
+.dropdown-header {
+  padding: 8px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--background-light);
+}
+
+.search-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(32, 178, 170, 0.1);
+}
+
+.select-all-btn {
+  white-space: nowrap;
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.options-container {
+  max-height: calc(5 * 52px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}

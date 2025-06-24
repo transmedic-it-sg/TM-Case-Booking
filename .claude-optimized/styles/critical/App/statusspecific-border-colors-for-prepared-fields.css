@@ -1,0 +1,20 @@
+.detail-item.prepared-by,
+.detail-item.prepared-at {
+  border-left-color: #e91e63;
+}
+
+.detail-item.prepared-order-details {
+  border-left-color: #9c27b0;
+}
+
+.detail-item strong {
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.detail-item ul {
+  margin-left: 16px;
+  color: var(--text-secondary);
+}

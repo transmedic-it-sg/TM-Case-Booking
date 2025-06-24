@@ -1,0 +1,28 @@
+.app-info {
+  width: 100%;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 12px;
+}
+
+.info-row:first-child {
+  padding-top: 0;
+}
+
+.info-row:last-child {
+  padding-bottom: 0;
+}
+
+.info-row span:first-child {
+  color: #666;
+  font-weight: 500;
+}
+
+.info-row span:last-child {
+  color: #333;
+}

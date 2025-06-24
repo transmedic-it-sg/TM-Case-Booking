@@ -1,0 +1,125 @@
+.settings-container {
+  position: relative;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.settings-button {
+  background: transparent;
+  border: 2px solid #ddd;
+  color: #666;
+  padding: 8px 12px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+}
+
+.settings-button:hover {
+  border-color: #007bff;
+  color: #007bff;
+  transform: scale(1.05);
+}
+
+.settings-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-large);
+  width: 350px;
+  max-height: 500px;
+  z-index: 1000;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+  background: #f8f9fa;
+}
+
+.settings-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.settings-close {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.settings-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #666;
+}
+
+.settings-content {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.settings-section {
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.settings-section:last-child {
+  border-bottom: none;
+}
+
+.settings-section h4 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: #333;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.settings-item:last-child {
+  margin-bottom: 0;
+}
+
+.settings-item-info {
+  flex: 1;
+}
+
+.settings-item-info label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.settings-item-info small {
+  color: #666;
+  font-size: 12px;
+}

@@ -1,0 +1,134 @@
+.set-item {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.set-item.dragging {
+  opacity: 0.5;
+  transform: scale(1.02);
+  z-index: 1000;
+}
+
+.set-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: var(--border-radius);
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.set-display:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
+}
+
+.drag-handle {
+  color: #666;
+  cursor: grab;
+  font-size: 14px;
+  line-height: 1;
+  user-select: none;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  min-width: 32px;
+  min-height: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.drag-handle:hover {
+  color: var(--primary-color);
+  background: rgba(32, 178, 170, 0.15);
+  border-color: rgba(32, 178, 170, 0.3);
+  transform: scale(1.05);
+  box-shadow: 0 2px 6px rgba(32, 178, 170, 0.2);
+}
+
+.drag-handle svg {
+  transition: all 0.2s ease;
+}
+
+.drag-handle:hover svg {
+  transform: scale(1.1);
+}
+
+.set-item[draggable="true"]:active .drag-handle {
+  cursor: grabbing;
+  background: rgba(32, 178, 170, 0.15);
+  transform: scale(0.95);
+}
+
+.set-name {
+  flex: 1;
+  font-weight: 500;
+  color: #333;
+}
+
+.set-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.arrow-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.arrow-button {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  color: #495057;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  transition: all 0.2s ease;
+  min-width: 20px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arrow-button:hover:not(:disabled) {
+  background: #007bff;
+  border-color: #007bff;
+  color: white;
+}
+
+.arrow-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.edit-button-small {
+  background: none;
+  border: 1px solid #dee2e6;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+}
+
+.edit-button-small:hover {
+  background: #007bff;
+  border-color: #007bff;
+  color: white;
+}

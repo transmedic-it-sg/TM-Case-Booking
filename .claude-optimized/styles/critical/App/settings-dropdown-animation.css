@@ -1,0 +1,4 @@
+.settings-dropdown {
+  animation: slideDown 0.2s ease-out;
+  transform-origin: top right;
+}

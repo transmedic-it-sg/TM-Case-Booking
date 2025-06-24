@@ -1,0 +1,24 @@
+.navigation-tabs .tab-button {
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.navigation-tabs .tab-button::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 3px;
+  background: var(--primary-color);
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.navigation-tabs .tab-button.active::after {
+  width: 100%;
+}
+
+.navigation-tabs .tab-button:hover {
+  transform: translateY(-2px);
+}

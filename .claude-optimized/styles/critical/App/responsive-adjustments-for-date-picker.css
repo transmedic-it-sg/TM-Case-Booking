@@ -1,0 +1,14 @@
+@media (max-width: 768px) {
+  .date-picker-input-wrapper {
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+  
+  .date-display {
+    font-size: 13px;
+  }
+  
+  .date-picker-icon {
+    font-size: 16px;
+  }
+}

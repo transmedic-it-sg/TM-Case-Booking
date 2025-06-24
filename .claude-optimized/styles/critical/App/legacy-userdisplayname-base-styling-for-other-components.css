@@ -1,0 +1,95 @@
+.user-display-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.role-badge {
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.country-badge {
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: white;
+  color: black;
+  border: 1px solid #ccc;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.country-badge-enhanced {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  position: relative;
+  z-index: 300;
+  min-width: fit-content;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.country-badge-enhanced:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.6);
+}
+
+.country-flag {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.country-name {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.selection-indicator {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border-left: 3px solid var(--primary-color);
+  font-size: 13px;
+}
+
+.indicator-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.selected-item {
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.selected-items-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.selected-item-badge {
+  display: inline-block;
+  background: var(--primary-color);
+  color: var(--white);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}

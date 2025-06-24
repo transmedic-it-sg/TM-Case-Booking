@@ -1,0 +1,160 @@
+.hidden-procedure-types-section {
+  margin-top: 24px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.hidden-procedure-types-section h4 {
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.hidden-procedure-types-section .section-description {
+  margin: 0 0 16px 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.hidden-types-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hidden-type-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.hidden-type-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.hidden-type-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.restore-procedure-type-button {
+  background: var(--success-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.restore-procedure-type-button:hover {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+.add-procedure-type-form {
+  background: var(--white);
+  border: 2px solid var(--primary-color);
+  border-radius: var(--border-radius);
+  margin-top: 20px;
+  box-shadow: var(--shadow-medium);
+  animation: slideDown 0.3s ease;
+}
+
+.add-procedure-type-form .form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--primary-light);
+  border-bottom: 1px solid var(--border-light);
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.add-procedure-type-form .form-header h4 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.close-form-button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.close-form-button:hover {
+  color: var(--danger-color);
+  background: rgba(231, 76, 60, 0.1);
+}
+
+.add-procedure-type-form .form-content {
+  padding: 20px;
+}
+
+.add-procedure-type-form .form-group {
+  margin-bottom: 20px;
+}
+
+.add-procedure-type-form .form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.add-procedure-type-form .form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--border-light);
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.add-procedure-type-form .form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
+}
+
+.add-procedure-type-form .form-group .error-message {
+  display: block;
+  color: var(--danger-color);
+  font-size: 12px;
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+.add-procedure-type-form .form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.add-procedure-type-form .form-actions .btn {
+  min-width: 120px;
+}

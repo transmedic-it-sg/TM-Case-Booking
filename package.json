@@ -26,7 +26,12 @@
     "claude-help": "source scripts/claude-helpers.sh && show_menu",
     "component-summary": "source scripts/claude-helpers.sh && component_summary",
     "ts-check": "source scripts/claude-helpers.sh && ts_check",
-    "size-analysis": "source scripts/claude-helpers.sh && size_analysis"
+    "size-analysis": "source scripts/claude-helpers.sh && size_analysis",
+    "claude-optimize": "chmod +x scripts/token-optimizer.sh && ./scripts/token-optimizer.sh && node scripts/claude-speed-optimizer.js",
+    "claude-overview": "node scripts/claude-speed-optimizer.js --overview-only",
+    "claude-analyze": "find src -name '*.tsx' -o -name '*.ts' -o -name '*.css' | xargs wc -c | sort -nr",
+    "claude-clean": "rm -rf .claude-optimized",
+    "claude-report": "cat .claude-optimized/size-report.md 2>/dev/null || echo 'Run npm run claude-optimize first'"
   },
   "eslintConfig": {
     "extends": [

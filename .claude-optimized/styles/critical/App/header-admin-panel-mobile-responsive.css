@@ -1,0 +1,131 @@
+.header-admin-panel {
+    margin-left: 8px;
+  }
+
+  .header-admin-toggle {
+    padding: 6px 12px;
+    min-width: 100px;
+    font-size: 11px;
+  }
+
+  .header-admin-toggle .admin-label {
+    font-size: 10px;
+  }
+
+  .header-admin-submenu {
+    min-width: 160px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .header-admin-item {
+    padding: 6px 12px;
+    font-size: 10px;
+  }
+
+  .app-nav {
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px 16px;
+  }
+
+  .nav-sections {
+    gap: 16px;
+  }
+
+  .nav-buttons {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .admin-panel-toggle {
+    padding: 14px 20px;
+    font-size: 14px;
+    min-width: auto;
+    width: 100%;
+  }
+
+  .admin-submenu {
+    padding: 12px;
+    gap: 6px;
+  }
+
+  .admin-submenu-item {
+    padding: 10px 16px;
+    font-size: 13px;
+    border-radius: 15px;
+    width: 100%;
+  }
+
+  .app-nav button {
+    padding: 18px 24px;
+    font-size: 16px;
+    border-radius: 25px;
+    width: 100%;
+    min-height: 56px;
+    text-align: center;
+  }
+
+  .app-nav button:hover {
+    transform: translateY(-2px) scale(1.01);
+  }
+
+  .app-nav button.active {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(32, 178, 170, 0.3);
+  }
+
+  .role-country-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .logged-in-info {
+    align-items: flex-start;
+    margin-right: 0;
+  }
+
+  .app-main {
+    padding: 24px 16px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .case-summary {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .case-meta {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .case-actions {
+    flex-direction: column;
+  }
+
+  .filters-row {
+    grid-template-columns: 1fr;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .multi-select-container {
+    grid-template-columns: 1fr;
+  }
+
+  .login-form {
+    padding: 32px 24px;
+  }
+
+  .card-content {
+    padding: 24px 16px;
+  }
+}

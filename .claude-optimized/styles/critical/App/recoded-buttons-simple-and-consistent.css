@@ -1,0 +1,121 @@
+.process-order-button,
+.case-action-button {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  min-width: 140px;
+  text-align: center;
+}
+
+.case-action-button.process-order-button {
+  background-color: #2196f3;
+  color: white;
+}
+
+.case-action-button.process-button {
+  background-color: #ff9800;
+  color: white;
+}
+
+.case-action-button.deliver-button {
+  background-color: #9c27b0;
+  color: white;
+}
+
+.case-action-button.received-button {
+  background-color: #4caf50;
+  color: white;
+}
+
+.case-action-button.complete-button {
+  background-color: #795548;
+  color: white;
+}
+
+.case-action-button.office-deliver-button {
+  background-color: #607d8b;
+  color: white;
+}
+
+.case-action-button.billing-button {
+  background-color: #e91e63;
+  color: white;
+}
+
+.case-action-button.amend-button {
+  background-color: #2196f3;
+  color: white;
+}
+
+.case-action-button.delete-button {
+  background-color: #f44336;
+  color: white;
+}
+
+.case-action-button:hover:not(.disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.case-action-button.disabled {
+  background-color: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+}
+
+.amend-button,
+.delete-button {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  min-width: 140px;
+  text-align: center;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.process-order-button {
+  background-color: #667eea;
+  color: white;
+}
+
+.process-order-button:hover {
+  background-color: #5a6fd8;
+}
+
+.amend-button {
+  background-color: #2196f3;
+  color: white;
+}
+
+.amend-button:hover {
+  background-color: #1976d2;
+}
+
+.delete-button {
+  background-color: #f44336;
+  color: white;
+}
+
+.delete-button:hover {
+  background-color: #d32f2f;
+}
+
+.process-order-button:disabled,
+.amend-button:disabled,
+.delete-button:disabled {
+  background-color: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+}

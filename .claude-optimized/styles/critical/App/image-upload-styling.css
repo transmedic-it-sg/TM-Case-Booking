@@ -1,0 +1,40 @@
+.image-upload {
+  width: 100%;
+  padding: 12px;
+  border: 2px dashed var(--border-light);
+  border-radius: var(--border-radius);
+  background: rgba(32, 178, 170, 0.02);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.image-upload:hover {
+  border-color: var(--primary-color);
+  background: rgba(32, 178, 170, 0.05);
+}
+
+.image-upload:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-color: var(--primary-color);
+}
+
+.image-preview {
+  margin-top: 12px;
+  text-align: center;
+  padding: 12px;
+  background: var(--white);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-light);
+}
+
+.image-preview img {
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-light);
+  transition: transform 0.2s ease;
+}
+
+.image-preview img:hover {
+  transform: scale(1.05);
+}

@@ -1,0 +1,57 @@
+@media (max-width: 1024px) {
+  .login-split-screen {
+    flex-direction: column;
+  }
+  
+  .login-left {
+    min-height: 40vh;
+    padding: 40px 20px;
+  }
+  
+  .login-right {
+    min-height: 60vh;
+    padding: 40px 20px;
+  }
+  
+  .logo-image {
+    max-width: 220px;
+  }
+  
+  .brand-subtitle {
+    font-size: 20px;
+  }
+  
+  .feature-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+  }
+  
+  .feature-item {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .login-left {
+    min-height: 30vh;
+    padding: 30px 15px;
+  }
+  
+  .login-right {
+    padding: 30px 15px;
+  }
+  
+  .logo-image {
+    max-width: 180px;
+  }
+  
+  .brand-subtitle {
+    font-size: 18px;
+  }
+  
+  .form-header h3 {
+    font-size: 28px;
+  }
+}

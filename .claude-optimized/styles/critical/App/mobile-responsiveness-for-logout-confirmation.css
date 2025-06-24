@@ -1,0 +1,32 @@
+@media (max-width: 768px) {
+  .logout-confirmation-modal {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .logout-confirmation-header {
+    padding: 16px 20px;
+  }
+  
+  .logout-confirmation-header h3 {
+    font-size: 16px;
+  }
+  
+  .logout-confirmation-content {
+    padding: 20px;
+  }
+  
+  .logout-confirmation-content p {
+    font-size: 15px;
+  }
+  
+  .logout-confirmation-actions {
+    flex-direction: column;
+    padding: 16px 20px;
+  }
+  
+  .logout-cancel-button,
+  .logout-confirm-button {
+    flex: none;
+  }
+}
