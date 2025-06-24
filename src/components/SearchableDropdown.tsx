@@ -1,11 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './SearchableDropdown.css';
 
+interface DropdownOption {
+  value: string;
+  label: string;
+}
+
 interface SearchableDropdownProps {
   id?: string;
   value: string;
   onChange: (value: string) => void;
-  options: string[];
+  options: string[] | DropdownOption[];
   placeholder?: string;
   className?: string;
   required?: boolean;
@@ -28,11 +33,18 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Normalize options to consistent format
+  const normalizedOptions: DropdownOption[] = options.map(option => 
+    typeof option === 'string' 
+      ? { value: option, label: option }
+      : option
+  );
+
   // Filter options based on search term (fuzzy search)
-  const filteredOptions = options.filter(option =>
-    option.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredOptions = normalizedOptions.filter(option =>
+    option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
     searchTerm.toLowerCase().split('').every(char => 
-      option.toLowerCase().includes(char)
+      option.label.toLowerCase().includes(char)
     )
   );
 
@@ -95,8 +107,8 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     }
   };
 
-  const handleSelect = (option: string) => {
-    onChange(option);
+  const handleSelect = (option: DropdownOption) => {
+    onChange(option.value);
     setIsOpen(false);
     setSearchTerm('');
     setFocusedIndex(-1);
@@ -119,7 +131,9 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     setFocusedIndex(-1);
   };
 
-  const displayValue = value || '';
+  // Find the display label for the current value
+  const selectedOption = normalizedOptions.find(option => option.value === value);
+  const displayValue = selectedOption ? selectedOption.label : '';
 
   return (
     <div 
@@ -165,21 +179,21 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
               )}
               {filteredOptions.map((option, index) => (
                 <div
-                  key={option}
-                  className={`dropdown-option ${index === focusedIndex ? 'focused' : ''} ${value === option ? 'selected' : ''}`}
+                  key={option.value}
+                  className={`dropdown-option ${index === focusedIndex ? 'focused' : ''} ${value === option.value ? 'selected' : ''}`}
                   onClick={() => handleSelect(option)}
                   onMouseEnter={() => setFocusedIndex(index)}
                 >
                   {/* Highlight matching characters */}
                   {searchTerm ? (
                     <span dangerouslySetInnerHTML={{
-                      __html: option.replace(
+                      __html: option.label.replace(
                         new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
                         '<mark>$1</mark>'
                       )
                     }} />
                   ) : (
-                    option
+                    option.label
                   )}
                 </div>
               ))}

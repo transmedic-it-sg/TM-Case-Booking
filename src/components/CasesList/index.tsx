@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CaseBooking, FilterOptions, CaseStatus, User } from '../../types';
+import { CaseBooking, FilterOptions, CaseStatus } from '../../types';
 import { getCases, filterCases, updateCaseStatus, amendCase, cleanupProcessOrderDetails } from '../../utils/storage';
 import { getCurrentUser, getUserEmail } from '../../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
@@ -9,9 +9,12 @@ import { CasesListProps } from './types';
 import CasesFilter from './CasesFilter';
 import CaseCard from './CaseCard';
 import StatusChangeSuccessPopup from '../StatusChangeSuccessPopup';
+import CustomModal from '../CustomModal';
+import { useModal } from '../../hooks/useModal';
 
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
+  const { modal, closeModal, showConfirm } = useModal();
   const [cases, setCases] = useState<CaseBooking[]>([]);
   const [filteredCases, setFilteredCases] = useState<CaseBooking[]>([]);
   const [availableSubmitters, setAvailableSubmitters] = useState<string[]>([]);
@@ -26,8 +29,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
   const [amendmentData, setAmendmentData] = useState<Partial<CaseBooking>>({});
   const [processingCase, setProcessingCase] = useState<string | null>(null);
   const [processDetails, setProcessDetails] = useState('');
-  const [deliveryCase, setDeliveryCase] = useState<string | null>(null);
-  const [deliveryDetails, setDeliveryDetails] = useState('');
+  const [deliveryCase] = useState<string | null>(null);
+  const [deliveryDetails] = useState('');
   const [receivedCase, setReceivedCase] = useState<string | null>(null);
   const [receivedDetails, setReceivedDetails] = useState('');
   const [receivedImage, setReceivedImage] = useState('');
@@ -67,7 +70,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
     // Clean up any corrupted data on component mount
     cleanupProcessOrderDetails();
     loadCases();
-  }, [currentUser]);
+  }, [currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -202,12 +205,15 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
     try {
       const isAdmin = currentUser.role === 'admin';
       amendCase(caseId, amendmentData, currentUser.name, isAdmin);
-      alert('Case amended successfully!');
       setAmendingCase(null);
       setAmendmentData({});
       loadCases();
+      
+      // Show success popup
+      setSuccessMessage('Case amended successfully!');
+      setShowSuccessPopup(true);
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to amend case');
+      console.error('Failed to amend case:', error);
     }
   };
 
@@ -223,13 +229,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
 
   const handleSaveProcessDetails = (caseId: string) => {
     if (!processDetails.trim()) {
-      alert('Please enter process details before continuing.');
       return;
     }
 
     const currentUser = getCurrentUser();
     if (!currentUser) {
-      alert('You must be logged in to process orders.');
       return;
     }
 
@@ -257,32 +261,29 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
         if (submitterEmail && currentUser.email) {
           try {
             // Ask user if they want to create a calendar invite
-            const createCalendarInvite = window.confirm(
-              `Case ${caseItem.caseReferenceNumber} has been prepared!\n\n` +
-              `Would you like to create a calendar invite for the surgery procedure?\n` +
-              `This will open Outlook with a pre-filled calendar event to send to ${caseItem.submittedBy} (${submitterEmail}).`
-            );
-            
-            if (createCalendarInvite) {
-              // Open Outlook calendar invite
-              openOutlookCalendarInvite(caseItem, submitterEmail, currentUser);
-              
-              // Also offer to download ICS file as backup
-              const downloadICS = window.confirm(
-                'Calendar invite opened in Outlook!\n\n' +
-                'Would you also like to download a calendar file (.ics) as backup?'
-              );
-              
-              if (downloadICS) {
-                generateICSFile(caseItem, submitterEmail, currentUser);
+            showConfirm(
+              'Create Calendar Invite',
+              `Case ${caseItem.caseReferenceNumber} has been prepared!\n\nWould you like to create a calendar invite for the surgery procedure?\n\nThis will open Outlook with a pre-filled calendar event to send to ${caseItem.submittedBy} (${submitterEmail}).`,
+              () => {
+                // Open Outlook calendar invite
+                openOutlookCalendarInvite(caseItem, submitterEmail, currentUser);
+                
+                // Also offer to download ICS file as backup
+                showConfirm(
+                  'Download Calendar File',
+                  'Calendar invite opened in Outlook!\n\nWould you also like to download a calendar file (.ics) as backup?',
+                  () => {
+                    generateICSFile(caseItem, submitterEmail, currentUser);
+                  }
+                );
+                
+                addNotification({
+                  title: 'Calendar Invite Created',
+                  message: `Outlook calendar invite created for case ${caseItem.caseReferenceNumber} surgery procedure`,
+                  type: 'success'
+                });
               }
-              
-              addNotification({
-                title: 'Calendar Invite Created',
-                message: `Outlook calendar invite created for case ${caseItem.caseReferenceNumber} surgery procedure`,
-                type: 'success'
-              });
-            }
+            );
           } catch (calendarError) {
             console.error('Failed to create calendar invite:', calendarError);
             addNotification({
@@ -307,7 +308,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
         }
       }
     } catch (error) {
-      alert('Failed to update case status');
+      console.error('Failed to update case status:', error);
     }
   };
 
@@ -320,7 +321,6 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
   const handleOrderDelivered = (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.PENDING_DELIVERY_HOSPITAL)) {
-      alert('You do not have permission to mark orders as pending delivery to hospital.');
       return;
     }
     try {
@@ -339,7 +339,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
         type: 'success'
       });
     } catch (error) {
-      alert('Failed to update case status');
+      console.error('Failed to update case status:', error);
     }
   };
 
@@ -353,11 +353,9 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
   const handleSaveOrderReceived = (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.DELIVERED_HOSPITAL)) {
-      alert('You do not have permission to mark orders as delivered to hospital.');
       return;
     }
     if (!receivedDetails.trim()) {
-      alert('Please enter delivery details.');
       return;
     }
     try {
@@ -383,7 +381,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
         type: 'success'
       });
     } catch (error) {
-      alert('Failed to update case status');
+      console.error('Failed to update case status:', error);
     }
   };
 
@@ -398,11 +396,9 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
   const handleSaveCaseCompleted = (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.CASE_COMPLETED)) {
-      alert('You do not have permission to mark cases as completed.');
       return;
     }
     if (!orderSummary.trim() || !doNumber.trim()) {
-      alert('Please fill in all required fields: Order Summary and DO Number.');
       return;
     }
     try {
@@ -430,7 +426,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
         type: 'success'
       });
     } catch (error) {
-      alert('Failed to update case status');
+      console.error('Failed to update case status:', error);
     }
   };
 
@@ -438,7 +434,6 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
   const handleOrderDeliveredOffice = (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.DELIVERED_OFFICE)) {
-      alert('You do not have permission to mark orders as delivered to office.');
       return;
     }
     try {
@@ -457,7 +452,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
         type: 'success'
       });
     } catch (error) {
-      alert('Failed to update case status');
+      console.error('Failed to update case status:', error);
     }
   };
 
@@ -465,7 +460,6 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
   const handleToBeBilled = (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
-      alert('You must be logged in to update case status.');
       return;
     }
     try {
@@ -484,7 +478,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
         type: 'success'
       });
     } catch (error) {
-      alert('Failed to update case status');
+      console.error('Failed to update case status:', error);
     }
   };
 
@@ -492,14 +486,13 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
   const handleCancelCase = (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
-      alert('You must be logged in to cancel cases.');
       return;
     }
     
     const caseItem = cases.find(c => c.id === caseId);
     const confirmMessage = `Are you sure you want to cancel case "${caseItem?.caseReferenceNumber}"?\n\nThis action will mark the case as cancelled and cannot be undone.`;
     
-    if (window.confirm(confirmMessage)) {
+    showConfirm('Cancel Case', confirmMessage, () => {
       try {
         updateCaseStatus(caseId, 'Case Cancelled', currentUser.name, 'Case cancelled by user request');
         loadCases();
@@ -515,9 +508,9 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
           type: 'warning'
         });
       } catch (error) {
-        alert('Failed to cancel case');
+        console.error('Failed to cancel case:', error);
       }
-    }
+    });
   };
 
   const handleCancelReceived = () => {
@@ -536,13 +529,12 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
   const handleDeleteCase = (caseId: string, caseItem: CaseBooking) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.DELETE_CASE)) {
-      alert('You do not have permission to delete cases.');
       return;
     }
 
     const confirmMessage = `Are you sure you want to delete case "${caseItem.caseReferenceNumber}"?\n\nCase Details:\n- Hospital: ${caseItem.hospital}\n- Procedure: ${caseItem.procedureType}\n- Status: ${caseItem.status}\n\nThis action cannot be undone.`;
     
-    if (confirm(confirmMessage)) {
+    showConfirm('Delete Case', confirmMessage, () => {
       try {
         // Get all cases from localStorage
         const allCases = getCases();
@@ -553,11 +545,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
         
         // Reload cases to update the UI
         loadCases();
-        alert(`Case "${caseItem.caseReferenceNumber}" has been deleted successfully.`);
+        // Success handled by UI update
       } catch (error) {
-        alert('Failed to delete case. Please try again.');
+        console.error('Delete failed:', error);
       }
-    }
+    });
   };
 
   // Pagination helpers for cases
@@ -728,6 +720,26 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
         message={successMessage}
         isVisible={showSuccessPopup}
         onClose={() => setShowSuccessPopup(false)}
+      />
+      
+      <CustomModal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+        actions={modal.type === 'confirm' ? [
+          {
+            label: 'Cancel',
+            onClick: closeModal,
+            style: 'secondary'
+          },
+          {
+            label: 'Delete',
+            onClick: modal.onConfirm || closeModal,
+            style: 'danger'
+          }
+        ] : undefined}
       />
     </div>
   );

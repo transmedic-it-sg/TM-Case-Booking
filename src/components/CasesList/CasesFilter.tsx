@@ -3,6 +3,7 @@ import { FilterOptions, COUNTRIES } from '../../types';
 import DatePicker from '../DatePicker';
 import { statusOptions } from './utils';
 import { getCurrentUser } from '../../utils/auth';
+import SearchableDropdown from '../SearchableDropdown';
 
 interface CasesFilterProps {
   filters: FilterOptions;
@@ -58,18 +59,18 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
                 <div className="modern-filter-group">
                   <label>Submitter</label>
                   <div className="filter-input-wrapper">
-                    <select
+                    <SearchableDropdown
+                      options={[
+                        { value: '', label: 'All Submitters' },
+                        ...availableSubmitters.map(submitter => ({
+                          value: submitter,
+                          label: submitter
+                        }))
+                      ]}
                       value={tempFilters.submitter || ''}
-                      onChange={(e) => onFilterChange('submitter', e.target.value)}
-                      className="modern-filter-input"
-                    >
-                      <option value="">All Submitters</option>
-                      {availableSubmitters.map((submitter) => (
-                        <option key={submitter} value={submitter}>
-                          {submitter}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(value) => onFilterChange('submitter', value)}
+                      placeholder="All Submitters"
+                    />
                     <span className="filter-icon">👤</span>
                   </div>
                 </div>
@@ -77,18 +78,18 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
                 <div className="modern-filter-group">
                   <label>Hospital</label>
                   <div className="filter-input-wrapper">
-                    <select
+                    <SearchableDropdown
+                      options={[
+                        { value: '', label: 'All Hospitals' },
+                        ...availableHospitals.map(hospital => ({
+                          value: hospital,
+                          label: hospital
+                        }))
+                      ]}
                       value={tempFilters.hospital || ''}
-                      onChange={(e) => onFilterChange('hospital', e.target.value)}
-                      className="modern-filter-input"
-                    >
-                      <option value="">All Hospitals</option>
-                      {availableHospitals.map((hospital) => (
-                        <option key={hospital} value={hospital}>
-                          {hospital}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(value) => onFilterChange('hospital', value)}
+                      placeholder="All Hospitals"
+                    />
                     <span className="filter-icon">🏥</span>
                   </div>
                 </div>
@@ -97,18 +98,18 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
                   <div className="modern-filter-group">
                     <label>Country</label>
                     <div className="filter-input-wrapper">
-                      <select
+                      <SearchableDropdown
+                        options={[
+                          { value: '', label: 'All Countries' },
+                          ...COUNTRIES.map(country => ({
+                            value: country,
+                            label: country
+                          }))
+                        ]}
                         value={tempFilters.country || ''}
-                        onChange={(e) => onFilterChange('country', e.target.value)}
-                        className="modern-filter-input"
-                      >
-                        <option value="">All Countries</option>
-                        {COUNTRIES.map((country) => (
-                          <option key={country} value={country}>
-                            {country}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(value) => onFilterChange('country', value)}
+                        placeholder="All Countries"
+                      />
                       <span className="filter-icon">🌍</span>
                     </div>
                   </div>
@@ -123,19 +124,18 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
                 <div className="modern-filter-group full-width">
                   <label>Case Status</label>
                   <div className="status-filter-wrapper">
-                    <select
+                    <SearchableDropdown
+                      options={[
+                        { value: '', label: 'All Statuses' },
+                        ...statusOptions.map(status => ({
+                          value: status,
+                          label: status
+                        }))
+                      ]}
                       value={tempFilters.status || ''}
-                      onChange={(e) => onFilterChange('status', e.target.value)}
-                      className="modern-filter-select"
-                    >
-                      <option value="">All Statuses</option>
-                      {statusOptions.map(status => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="select-arrow">▼</div>
+                      onChange={(value) => onFilterChange('status', value)}
+                      placeholder="All Statuses"
+                    />
                   </div>
                 </div>
               </div>

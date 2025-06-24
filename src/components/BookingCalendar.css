@@ -93,7 +93,7 @@
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
-  min-width: 140px;
+  min-width: 100px;
   text-align: center;
 }
 

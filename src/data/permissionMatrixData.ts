@@ -130,6 +130,12 @@ export const permissionActions: PermissionAction[] = [
     description: 'Final billing status transition',
     category: 'Status Transitions'
   },
+  {
+    id: 'cancel-case',
+    name: 'Cancel Case',
+    description: 'Cancel cases in Process Order, Order Processed, Pending Delivery, or Delivered status',
+    category: 'Case Management'
+  },
   
   // Data Operations
   {
@@ -267,6 +273,7 @@ export const permissions: Permission[] = [
   { actionId: 'upload-files', roleId: 'admin', allowed: true },
   { actionId: 'download-files', roleId: 'admin', allowed: true },
   { actionId: 'delete-files', roleId: 'admin', allowed: true },
+  { actionId: 'cancel-case', roleId: 'admin', allowed: true },
   
   // Operations - Order processing and case management
   { actionId: 'create-case', roleId: 'operations', allowed: true },
@@ -291,6 +298,7 @@ export const permissions: Permission[] = [
   { actionId: 'download-files', roleId: 'operation-manager', allowed: true },
   { actionId: 'view-reports', roleId: 'operation-manager', allowed: true },
   { actionId: 'export-data', roleId: 'operation-manager', allowed: true },
+  { actionId: 'cancel-case', roleId: 'operation-manager', allowed: true },
   
   // Sales - Case completion and office delivery
   { actionId: 'create-case', roleId: 'sales', allowed: true },

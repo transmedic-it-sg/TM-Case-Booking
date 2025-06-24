@@ -1,10 +1,8 @@
 import { Permission } from '../components/PermissionMatrix';
+import { permissions as defaultPermissions } from '../data/permissionMatrixData';
 
 // Storage key for runtime permissions
 const RUNTIME_PERMISSIONS_KEY = 'app_runtime_permissions';
-
-// Default permissions - these will be used if no runtime permissions are set
-import { permissions as defaultPermissions } from '../data/permissionMatrixData';
 
 // Get current runtime permissions (from localStorage or default)
 export const getRuntimePermissions = (): Permission[] => {
@@ -80,6 +78,7 @@ export const PERMISSION_ACTIONS = {
   VIEW_CASES: 'view-cases',
   AMEND_CASE: 'amend-case',
   DELETE_CASE: 'delete-case',
+  CANCEL_CASE: 'cancel-case',
   EDIT_SETS: 'edit-sets',
   BOOKING_CALENDAR: 'booking-calendar',
   

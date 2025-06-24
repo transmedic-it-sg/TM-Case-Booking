@@ -1,0 +1,237 @@
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.custom-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  min-width: 320px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
+  position: relative;
+}
+
+.custom-modal-header {
+  display: flex;
+  align-items: center;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.custom-modal-icon {
+  font-size: 24px;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.custom-modal-title {
+  flex: 1;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.custom-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-modal-close:hover {
+  color: #374151;
+  background: #e5e7eb;
+}
+
+.custom-modal-body {
+  padding: 20px 24px;
+}
+
+.custom-modal-message {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #4b5563;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.custom-modal-footer {
+  padding: 16px 24px 20px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.custom-modal-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid;
+  min-width: 80px;
+}
+
+.custom-modal-btn-primary {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.custom-modal-btn-primary:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.custom-modal-btn-secondary {
+  background: white;
+  color: #6b7280;
+  border-color: #d1d5db;
+}
+
+.custom-modal-btn-secondary:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.custom-modal-btn-danger {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}
+
+.custom-modal-btn-danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.custom-modal-btn-success {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+}
+
+.custom-modal-btn-success:hover {
+  background: #059669;
+  border-color: #059669;
+}
+
+/* Modal type specific styling */
+.custom-modal-success .custom-modal-header {
+  background: #f0fdf4;
+  border-bottom-color: #bbf7d0;
+}
+
+.custom-modal-error .custom-modal-header {
+  background: #fef2f2;
+  border-bottom-color: #fecaca;
+}
+
+.custom-modal-warning .custom-modal-header {
+  background: #fffbeb;
+  border-bottom-color: #fed7aa;
+}
+
+.custom-modal-confirm .custom-modal-header {
+  background: #fef3c7;
+  border-bottom-color: #fde68a;
+}
+
+.custom-modal-info .custom-modal-header {
+  background: #eff6ff;
+  border-bottom-color: #bfdbfe;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .custom-modal {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .custom-modal-header,
+  .custom-modal-body,
+  .custom-modal-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  
+  .custom-modal-footer {
+    flex-direction: column;
+  }
+  
+  .custom-modal-btn {
+    width: 100%;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .custom-modal-overlay,
+  .custom-modal {
+    animation: none;
+  }
+}
+
+.custom-modal:focus {
+  outline: none;
+}
+
+.custom-modal-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}

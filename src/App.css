@@ -1945,6 +1945,55 @@ body {
   width: 100%;
 }
 
+/* Dropdown Input Group for SearchableDropdown */
+.dropdown-input-group {
+  position: relative;
+  margin-bottom: 30px;
+  z-index: 10;
+}
+
+.dropdown-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  transition: color 0.3s ease;
+}
+
+.dropdown-label.required::after {
+  content: " *";
+  color: var(--error-color, #ef4444);
+  font-weight: bold;
+}
+
+.login-dropdown {
+  width: 100%;
+  z-index: 20;
+}
+
+.login-dropdown .dropdown-input {
+  padding: 16px 12px;
+  font-size: 16px;
+  border: 2px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--white);
+  transition: all 0.3s ease;
+}
+
+.login-dropdown .dropdown-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
+}
+
+.login-dropdown .dropdown-options {
+  z-index: 1000;
+  max-height: 200px;
+  border: 2px solid var(--primary-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
 /* Password Toggle */
 .password-input-group {
   position: relative;

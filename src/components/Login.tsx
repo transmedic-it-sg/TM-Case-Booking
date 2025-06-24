@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { authenticate } from '../utils/auth';
-import { User, COUNTRIES } from '../types';
+import { User } from '../types';
 import { getCountries, initializeCodeTables } from '../utils/codeTable';
+import SearchableDropdown from './SearchableDropdown';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -151,25 +152,20 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <div className="input-underline"></div>
               </div>
 
-              <div className="floating-input-group">
-                <select
-                  ref={countrySelectRef}
+              <div className="dropdown-input-group">
+                <label htmlFor="country" className="dropdown-label required">Country</label>
+                <SearchableDropdown
                   id="country"
+                  options={availableCountries.map(countryOption => ({
+                    value: countryOption,
+                    label: countryOption
+                  }))}
                   value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className={`standard-select ${country ? 'has-value' : ''}`}
+                  onChange={(value) => setCountry(value)}
+                  placeholder="Select Country"
                   disabled={isLoading}
-                  required
-                >
-                  <option value="" disabled hidden></option>
-                  {availableCountries.map((countryOption) => (
-                    <option key={countryOption} value={countryOption}>
-                      {countryOption}
-                    </option>
-                  ))}
-                </select>
-                <label htmlFor="country" className="required">Country</label>
-                <div className="input-underline"></div>
+                  className="login-dropdown"
+                />
               </div>
 
               {error && (

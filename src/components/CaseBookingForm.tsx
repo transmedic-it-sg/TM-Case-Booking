@@ -1,17 +1,20 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { CaseBooking, SURGERY_SETS, IMPLANT_BOXES, PROCEDURE_TYPES, PROCEDURE_TYPE_MAPPINGS, DEPARTMENTS } from '../types';
+import { CaseBooking, SURGERY_SETS, IMPLANT_BOXES, PROCEDURE_TYPE_MAPPINGS } from '../types';
 import { saveCase, generateCaseReferenceNumber, getCategorizedSets, getAllProcedureTypes } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';
 import { getHospitals, getDepartments, initializeCodeTables } from '../utils/codeTable';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import TimePicker from './common/TimePicker';
 import SearchableDropdown from './SearchableDropdown';
+import CustomModal from './CustomModal';
+import { useModal } from '../hooks/useModal';
 
 interface CaseBookingFormProps {
   onCaseSubmitted: () => void;
 }
 
 const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) => {
+  const { modal, closeModal, showConfirm, showSuccess, showError } = useModal();
   const getDefaultDate = () => {
     const today = new Date();
     today.setDate(today.getDate() + 3);
@@ -59,7 +62,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     
     // Fallback to static mapping
     const mapping = PROCEDURE_TYPE_MAPPINGS[formData.procedureType as keyof typeof PROCEDURE_TYPE_MAPPINGS];
-    return mapping ? mapping.surgerySets.sort() : [...SURGERY_SETS].sort();
+    return mapping ? [...mapping.surgerySets].sort() : [...SURGERY_SETS].sort();
   }, [formData.procedureType]);
 
   const implantBoxOptions = useMemo(() => {
@@ -75,7 +78,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     
     // Fallback to static mapping
     const mapping = PROCEDURE_TYPE_MAPPINGS[formData.procedureType as keyof typeof PROCEDURE_TYPE_MAPPINGS];
-    return mapping ? mapping.implantBoxes.sort() : [...IMPLANT_BOXES].sort();
+    return mapping ? [...mapping.implantBoxes].sort() : [...IMPLANT_BOXES].sort();
   }, [formData.procedureType]);
 
   const availableDepartments = useMemo(() => {
@@ -128,36 +131,30 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleMultiSelectChange = (field: 'surgerySetSelection' | 'implantBox', value: string) => {
-    setFormData(prev => {
-      const currentValues = prev[field];
-      const newValues = currentValues.includes(value)
-        ? currentValues.filter(v => v !== value)
-        : [...currentValues, value];
-      
-      return { ...prev, [field]: newValues };
-    });
-  };
 
   const handleClearForm = () => {
-    if (confirm('Are you sure you want to clear all inputs? This action cannot be undone.')) {
-      setFormData({
-        hospital: '',
-        department: '',
-        dateOfSurgery: getDefaultDate(),
-        procedureType: '',
-        procedureName: '',
-        doctorName: '',
-        timeOfProcedure: '',
-        surgerySetSelection: [],
-        implantBox: [],
-        specialInstruction: ''
-      });
-      setErrors({});
-      
-      // Show success popup
-      alert('✅ All inputs have been successfully cleared!');
-    }
+    showConfirm(
+      'Clear Form',
+      'Are you sure you want to clear all inputs? This action cannot be undone.',
+      () => {
+        setFormData({
+          hospital: '',
+          department: '',
+          dateOfSurgery: getDefaultDate(),
+          procedureType: '',
+          procedureName: '',
+          doctorName: '',
+          timeOfProcedure: '',
+          surgerySetSelection: [],
+          implantBox: [],
+          specialInstruction: ''
+        });
+        setErrors({});
+        
+        // Show success popup
+        showSuccess('All inputs have been successfully cleared!');
+      }
+    );
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -169,7 +166,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
     const currentUser = getCurrentUser();
     if (!currentUser) {
-      alert('You must be logged in to submit a case');
+      showError('You must be logged in to submit a case');
       return;
     }
 
@@ -389,6 +386,27 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           </div>
         </form>
       </div>
+      <CustomModal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+        actions={modal.type === 'confirm' ? [
+          {
+            label: 'Cancel',
+            onClick: closeModal,
+            style: 'secondary'
+          },
+          {
+            label: 'Confirm',
+            onClick: modal.onConfirm || closeModal,
+            style: 'danger'
+          }
+        ] : undefined}
+        autoClose={modal.autoClose}
+        autoCloseDelay={modal.autoCloseDelay}
+      />
     </div>
   );
 };

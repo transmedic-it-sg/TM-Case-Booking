@@ -29,7 +29,10 @@
       "Bash(PORT=3001 npm start)",
       "Bash(grep:*)",
       "Bash(git add:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(chmod:*)",
+      "Bash(source:*)",
+      "Bash(component_summary)"
     ],
     "deny": []
   }

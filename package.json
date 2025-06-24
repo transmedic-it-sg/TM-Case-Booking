@@ -1,22 +1,38 @@
 {
   "name": "case-booking-app",
   "version": "1.1.2",
-  "description": "Transmedic Case Booking App",
-  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/react": "^13.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.11.41",
+    "@types/react": "^18.0.14",
+    "@types/react-dom": "^18.0.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "typescript": "^4.7.4",
+    "web-vitals": "^2.1.4"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "typecheck": "npx tsc --noEmit",
+    "quick-build": "npm run build 2>&1 | head -20",
+    "claude-help": "source scripts/claude-helpers.sh && show_menu",
+    "component-summary": "source scripts/claude-helpers.sh && component_summary",
+    "ts-check": "source scripts/claude-helpers.sh && ts_check",
+    "size-analysis": "source scripts/claude-helpers.sh && size_analysis"
   },
-  "dependencies": {
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "lucide-react": "^0.263.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-scripts": "^5.0.1",
-    "typescript": "^4.9.5"
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
   },
   "browserslist": {
     "production": [

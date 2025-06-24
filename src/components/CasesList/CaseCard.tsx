@@ -3,7 +3,6 @@ import { CaseCardProps } from './types';
 import { getStatusColor, getNextResponsibleRole, formatDateTime } from './utils';
 import CaseActions from './CaseActions';
 import { getCurrentUser } from '../../utils/auth';
-import { DEPARTMENTS, PROCEDURE_TYPES } from '../../types';
 import { getAllProcedureTypes } from '../../utils/storage';
 import { getDepartments, initializeCodeTables } from '../../utils/codeTable';
 import TimePicker from '../common/TimePicker';

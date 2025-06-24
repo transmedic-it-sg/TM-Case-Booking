@@ -1,7 +1,6 @@
 import React from 'react';
 import { CaseActionsProps } from './types';
-import { getTooltipMessage, formatDateTime } from './utils';
-import { getCurrentUser } from '../../utils/auth';
+import { formatDateTime } from './utils';
 import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
 import Tooltip from '../Tooltip';
 
@@ -22,7 +21,8 @@ const CaseActions: React.FC<CaseActionsProps> = ({
 }) => {
   return (
     <div className="case-actions">
-      {/* Status transition buttons */}
+      {/* Status transition buttons - hide for cancelled cases */}
+      {caseItem.status !== 'Case Cancelled' && (
       <div className="case-buttons">
         {caseItem.status === 'Case Booked' && (
           <Tooltip
@@ -146,8 +146,9 @@ const CaseActions: React.FC<CaseActionsProps> = ({
           </Tooltip>
         )}
       </div>
+      )}
       
-      {canAmendCase(caseItem) && hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.AMEND_CASE) && (
+      {canAmendCase(caseItem) && hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.AMEND_CASE) && caseItem.status !== 'Case Cancelled' && (
         <Tooltip
           content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.AMEND_CASE) ? 'Amend Case' : 'You do not have permission to amend cases'}
           disabled={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.AMEND_CASE)}
@@ -161,7 +162,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
         </Tooltip>
       )}
       
-      {hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.DELETE_CASE) && (
+      {hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.DELETE_CASE) && caseItem.status !== 'Case Cancelled' && (
         <Tooltip
           content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.DELETE_CASE) ? 'Delete Case' : 'You do not have permission to delete cases'}
           disabled={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.DELETE_CASE)}
@@ -176,14 +177,17 @@ const CaseActions: React.FC<CaseActionsProps> = ({
       )}
       
       {/* Cancel Case button - only show for specific statuses */}
-      {(['Case Booked', 'Order Preparation', 'Order Prepared'].includes(caseItem.status)) && (
+      {(['Order Preparation', 'Order Prepared', 'Pending Delivery (Hospital)', 'Delivered (Hospital)'].includes(caseItem.status)) && hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE) && (
         <Tooltip
-          content="Cancel this case - will mark as cancelled"
-          disabled={true}
+          content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE) ? 'Cancel this case - will mark as cancelled' : 'You do not have permission to cancel cases'}
+          disabled={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE)}
         >
           <button
             onClick={() => onCancelCase(caseItem.id)}
-            className="case-action-button cancel-button"
+            className={`case-action-button cancel-button ${
+              !hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE) ? 'disabled' : ''
+            }`}
+            disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE)}
           >
             ❌ Cancel Case
           </button>

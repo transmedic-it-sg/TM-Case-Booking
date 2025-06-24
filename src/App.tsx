@@ -12,7 +12,6 @@ import PermissionMatrixPage from './components/PermissionMatrixPage';
 import LogoutConfirmation from './components/LogoutConfirmation';
 import { User, CaseBooking } from './types';
 import { getCurrentUser, logout } from './utils/auth';
-import { updateCaseStatus } from './utils/storage';
 import { hasPermission, PERMISSION_ACTIONS } from './utils/permissions';
 import { initializeCodeTables } from './utils/codeTable';
 import './utils/resetPermissions'; // Debug utility
@@ -32,44 +31,8 @@ import './components/CodeTableSetup.css';
 
 type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'calendar' | 'permissions' | 'codetables';
 
-const getCountryAbbreviation = (country: string): string => {
-  const abbreviations: { [key: string]: string } = {
-    'Singapore': 'SG',
-    'Malaysia': 'MY',
-    'Philippines': 'PH',
-    'Indonesia': 'ID',
-    'Vietnam': 'VN',
-    'Hongkong': 'HK',
-    'Thailand': 'TH'
-  };
-  return abbreviations[country] || country.slice(0, 2).toUpperCase();
-};
 
-const getCountryFlag = (country: string): string => {
-  const flags: { [key: string]: string } = {
-    'Singapore': '🇸🇬',
-    'Malaysia': '🇲🇾',
-    'Philippines': '🇵🇭',
-    'Indonesia': '🇮🇩',
-    'Vietnam': '🇻🇳',
-    'Hongkong': '🇭🇰',
-    'Thailand': '🇹🇭'
-  };
-  return flags[country] || '🌍';
-};
 
-const getCountryColor = (country: string): string => {
-  const colors: { [key: string]: string } = {
-    'Singapore': '#d63384',
-    'Malaysia': '#fd7e14',
-    'Philippines': '#0d6efd',
-    'Indonesia': '#dc3545',
-    'Vietnam': '#198754',
-    'Hongkong': '#6f42c1',
-    'Thailand': '#20c997'
-  };
-  return colors[country] || '#6c757d';
-};
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -78,9 +41,9 @@ const AppContent: React.FC = () => {
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
   const [adminPanelExpanded, setAdminPanelExpanded] = useState(false);
-  const { isEnabled, toggleSound, playSound } = useSound();
+  const { playSound } = useSound();
   const { addNotification } = useNotifications();
-  const { showSuccess, showError, showInfo } = useToast();
+  const { showSuccess } = useToast();
 
   useEffect(() => {
     // Initialize code tables first
@@ -155,6 +118,13 @@ const AppContent: React.FC = () => {
     setProcessingCase(null);
     setActivePage('cases');
     playSound.click();
+  };
+
+  const handleCalendarCaseClick = (caseId: string) => {
+    setActivePage('cases');
+    playSound.click();
+    // Pass the case ID to the CasesList component to highlight/filter it
+    // This will be handled by the CasesList component
   };
 
   // Helper function to check if user has admin access
@@ -369,7 +339,7 @@ const AppContent: React.FC = () => {
         )}
         
         {activePage === 'calendar' && hasPermission(user.role, 'booking-calendar') && (
-          <BookingCalendar />
+          <BookingCalendar onCaseClick={handleCalendarCaseClick} />
         )}
         
         {activePage === 'sets' && (user.role === 'admin' || user.role === 'operation-manager') && (

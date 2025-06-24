@@ -6,9 +6,11 @@ import { CaseBooking } from '../types';
 import SearchableDropdown from './SearchableDropdown';
 import './BookingCalendar.css';
 
-interface BookingCalendarProps {}
+interface BookingCalendarProps {
+  onCaseClick?: (caseId: string) => void;
+}
 
-const BookingCalendar: React.FC<BookingCalendarProps> = () => {
+const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [departments, setDepartments] = useState<string[]>([]);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -121,6 +123,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = () => {
                 key={`${caseItem.id}-${index}`} 
                 className="booking-item"
                 title={`${caseItem.caseReferenceNumber} - ${caseItem.procedureName} - ${caseItem.doctorName} - Status: ${caseItem.status}`}
+                onClick={() => onCaseClick?.(caseItem.id)}
               >
                 <div className="booking-time">{caseItem.timeOfProcedure || 'TBD'}</div>
                 <div className="booking-title">{caseItem.procedureName}</div>

@@ -229,25 +229,3 @@
   }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .dropdown-input {
-    background: var(--background-dark, #2a2a2a);
-    color: var(--text-light, #ffffff);
-    border-color: var(--border-dark, #444);
-  }
-  
-  .dropdown-options {
-    background: var(--background-dark, #2a2a2a);
-    border-color: var(--primary-color);
-  }
-  
-  .dropdown-option {
-    color: var(--text-light, #ffffff);
-  }
-  
-  .search-info {
-    background: var(--background-darker, #1a1a1a);
-    color: var(--text-secondary-dark, #ccc);
-  }
-}

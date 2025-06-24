@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, COUNTRIES, DEPARTMENTS } from '../types';
+import { User } from '../types';
 import { getUsers, addUser, getCurrentUser } from '../utils/auth';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useToast } from './ToastContainer';
@@ -7,6 +7,7 @@ import { useSound } from '../contexts/SoundContext';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getCountries, getDepartments, initializeCodeTables } from '../utils/codeTable';
 import MultiSelectDropdown from './MultiSelectDropdown';
+import SearchableDropdown from './SearchableDropdown';
 
 const UserManagement: React.FC = () => {
   const currentUser = getCurrentUser();
@@ -30,7 +31,6 @@ const UserManagement: React.FC = () => {
   const [usersPerPage] = useState(10);
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
-  const isAdmin = currentUser?.role === 'admin';
   const canCreateUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CREATE_USER) : false;
   const canEditUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_USER) : false;
   const canDeleteUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.DELETE_USER) : false;
@@ -47,7 +47,7 @@ const UserManagement: React.FC = () => {
     // Load countries and departments from code tables
     setAvailableCountries(getCountries());
     setAvailableDepartments(getDepartments());
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadUsers = () => {
     const allUsers = getUsers();
@@ -339,19 +339,20 @@ const UserManagement: React.FC = () => {
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="newRole" className="required">Role</label>
-                <select
-                  id="newRole"
+                <SearchableDropdown
+                  options={[
+                    ...(currentUser?.role === 'admin' ? [{ value: 'admin', label: 'Admin' }] : []),
+                    { value: 'operations', label: 'Operations' },
+                    { value: 'operation-manager', label: 'Operation Manager' },
+                    { value: 'sales', label: 'Sales' },
+                    { value: 'sales-manager', label: 'Sales Manager' },
+                    { value: 'driver', label: 'Driver' },
+                    { value: 'it', label: 'IT' }
+                  ]}
                   value={newUser.role}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value as 'admin' | 'operations' | 'operation-manager' | 'sales' | 'sales-manager' | 'driver' | 'it' }))}
-                >
-                  {currentUser?.role === 'admin' && <option value="admin">Admin</option>}
-                  <option value="operations">Operations</option>
-                  <option value="operation-manager">Operation Manager</option>
-                  <option value="sales">Sales</option>
-                  <option value="sales-manager">Sales Manager</option>
-                  <option value="driver">Driver</option>
-                  <option value="it">IT</option>
-                </select>
+                  onChange={(value) => setNewUser(prev => ({ ...prev, role: value as 'admin' | 'operations' | 'operation-manager' | 'sales' | 'sales-manager' | 'driver' | 'it' }))}
+                  placeholder="Select Role"
+                />
               </div>
 
               <div className="form-group">

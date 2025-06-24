@@ -12,14 +12,14 @@ import {
   getCategorizedSets, 
   getAllProcedureTypes, 
   addCustomProcedureType, 
-  removeCustomProcedureType, 
-  getCustomProcedureTypes,
-  getHiddenProcedureTypesList,
-  restoreProcedureType
+  removeCustomProcedureType
 } from '../../utils/storage';
 import SetsList from './SetsList';
+import CustomModal from '../CustomModal';
+import { useModal } from '../../hooks/useModal';
 
 const EditSets: React.FC<EditSetsProps> = () => {
+  const { modal, closeModal, showConfirm } = useModal();
   const [categorizedSets, setCategorizedSets] = useState<CategorizedSets>({});
   const [selectedProcedureType, setSelectedProcedureType] = useState<string>(PROCEDURE_TYPES[0]);
   const [showAddSurgerySet, setShowAddSurgerySet] = useState(false);
@@ -34,7 +34,6 @@ const EditSets: React.FC<EditSetsProps> = () => {
   const [surgerySetError, setSurgerySetError] = useState('');
   const [implantBoxError, setImplantBoxError] = useState('');
   const [allProcedureTypes, setAllProcedureTypes] = useState<string[]>([]);
-  const [hiddenProcedureTypes, setHiddenProcedureTypes] = useState<string[]>([]);
   const [showAddProcedureType, setShowAddProcedureType] = useState(false);
   const [newProcedureTypeName, setNewProcedureTypeName] = useState('');
   const [procedureTypeError, setProcedureTypeError] = useState('');
@@ -48,15 +47,13 @@ const EditSets: React.FC<EditSetsProps> = () => {
   // Load all procedure types on component mount
   useEffect(() => {
     const allTypes = getAllProcedureTypes();
-    const hidden = getHiddenProcedureTypesList();
     setAllProcedureTypes(allTypes);
-    setHiddenProcedureTypes(hidden);
     
     // Update selected procedure type if it doesn't exist in the loaded types
     if (!allTypes.includes(selectedProcedureType)) {
       setSelectedProcedureType(allTypes[0] || PROCEDURE_TYPES[0]);
     }
-  }, []);
+  }, [selectedProcedureType]);
 
   // Initialize categorized sets on component mount
   useEffect(() => {
@@ -132,26 +129,20 @@ const EditSets: React.FC<EditSetsProps> = () => {
   };
 
   const handleDeleteProcedureType = (typeName: string) => {
-    const isBaseType = PROCEDURE_TYPES.includes(typeName as any);
-    const actionWord = isBaseType ? 'hide' : 'delete';
-    const confirmMessage = `Are you sure you want to ${actionWord} "${typeName}"?\n\n${isBaseType ? 'This will hide the procedure type from the list. You can restore it later.' : 'This will remove all associated surgery sets and implant boxes.'} This action ${isBaseType ? 'can be undone' : 'cannot be undone'}.`;
+    const confirmMessage = `Are you sure you want to delete "${typeName}"?\n\nThis will remove all associated surgery sets and implant boxes. This action cannot be undone.`;
     
-    if (confirm(confirmMessage)) {
+    showConfirm('Delete Procedure Type', confirmMessage, () => {
       if (removeCustomProcedureType(typeName)) {
         // Update local state
         const updatedTypes = getAllProcedureTypes();
-        const updatedHidden = getHiddenProcedureTypesList();
         setAllProcedureTypes(updatedTypes);
-        setHiddenProcedureTypes(updatedHidden);
         
-        // Remove from categorized sets if it's a custom type
-        if (!isBaseType) {
-          setCategorizedSets(prev => {
-            const newSets = { ...prev };
-            delete newSets[typeName];
-            return newSets;
-          });
-        }
+        // Remove from categorized sets for all types (base and custom)
+        setCategorizedSets(prev => {
+          const newSets = { ...prev };
+          delete newSets[typeName];
+          return newSets;
+        });
         
         // Switch to first available procedure type if current one was deleted
         if (selectedProcedureType === typeName) {
@@ -160,33 +151,15 @@ const EditSets: React.FC<EditSetsProps> = () => {
         
         playSound.delete();
         showSuccess(
-          isBaseType ? 'Procedure Type Hidden' : 'Procedure Type Deleted', 
-          `"${typeName}" has been ${isBaseType ? 'hidden' : 'removed'}`
+          'Procedure Type Deleted', 
+          `"${typeName}" has been removed`
         );
       } else {
-        showError(`${actionWord.charAt(0).toUpperCase() + actionWord.slice(1)} Failed`, `Failed to ${actionWord} procedure type`);
+        showError('Delete Failed', `Failed to delete procedure type`);
       }
-    }
+    });
   };
 
-  const handleRestoreProcedureType = (typeName: string) => {
-    const confirmMessage = `Are you sure you want to restore "${typeName}"?\n\nThis will make the procedure type available again in the procedure types list.`;
-    
-    if (confirm(confirmMessage)) {
-      if (restoreProcedureType(typeName)) {
-        // Update local state
-        const updatedTypes = getAllProcedureTypes();
-        const updatedHidden = getHiddenProcedureTypesList();
-        setAllProcedureTypes(updatedTypes);
-        setHiddenProcedureTypes(updatedHidden);
-        
-        playSound.success();
-        showSuccess('Procedure Type Restored', `"${typeName}" has been restored to the procedure types list`);
-      } else {
-        showError('Restore Failed', 'Failed to restore procedure type');
-      }
-    }
-  };
 
   const handleAddSurgerySet = () => {
     const validation = validateItemName(
@@ -317,7 +290,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
   const handleDeleteSurgerySet = (name: string) => {
     const confirmMessage = `Are you sure you want to delete "${name}"?\n\nThis action cannot be undone and may affect existing case bookings that reference this surgery set.`;
     
-    if (confirm(confirmMessage)) {
+    showConfirm('Delete Surgery Set', confirmMessage, () => {
       setCategorizedSets(prev => ({
         ...prev,
         [selectedProcedureType]: {
@@ -328,13 +301,13 @@ const EditSets: React.FC<EditSetsProps> = () => {
       
       playSound.delete();
       showSuccess('Surgery Set Deleted', `"${name}" has been removed from ${selectedProcedureType}`);
-    }
+    });
   };
 
   const handleDeleteImplantBox = (name: string) => {
     const confirmMessage = `Are you sure you want to delete "${name}"?\n\nThis action cannot be undone and may affect existing case bookings that reference this implant box.`;
     
-    if (confirm(confirmMessage)) {
+    showConfirm('Delete Implant Box', confirmMessage, () => {
       setCategorizedSets(prev => ({
         ...prev,
         [selectedProcedureType]: {
@@ -345,7 +318,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
       
       playSound.delete();
       showSuccess('Implant Box Deleted', `"${name}" has been removed from ${selectedProcedureType}`);
-    }
+    });
   };
 
   const startEditSurgerySet = (name: string) => {
@@ -526,27 +499,6 @@ const EditSets: React.FC<EditSetsProps> = () => {
           </div>
         )}
 
-        {/* Hidden Procedure Types Section */}
-        {canManageProcedureTypes && hiddenProcedureTypes.length > 0 && (
-          <div className="hidden-procedure-types-section">
-            <h4>Hidden Procedure Types</h4>
-            <p className="section-description">These base procedure types have been hidden. Click restore to make them available again.</p>
-            <div className="hidden-types-grid">
-              {hiddenProcedureTypes.map((hiddenType) => (
-                <div key={hiddenType} className="hidden-type-item">
-                  <span className="hidden-type-name">{hiddenType}</span>
-                  <button
-                    className="restore-procedure-type-button"
-                    onClick={() => handleRestoreProcedureType(hiddenType)}
-                    title={`Restore ${hiddenType}`}
-                  >
-                    ↻ Restore
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="sets-grid">
@@ -622,6 +574,26 @@ const EditSets: React.FC<EditSetsProps> = () => {
           onEditValueChange={setEditImplantBoxValue}
         />
       </div>
+      
+      <CustomModal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+        actions={modal.type === 'confirm' ? [
+          {
+            label: 'Cancel',
+            onClick: closeModal,
+            style: 'secondary'
+          },
+          {
+            label: 'Delete',
+            onClick: modal.onConfirm || closeModal,
+            style: 'danger'
+          }
+        ] : undefined}
+      />
     </div>
   );
 };

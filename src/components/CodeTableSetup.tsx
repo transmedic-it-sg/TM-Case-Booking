@@ -10,10 +10,13 @@ import {
   initializeCodeTables,
   CodeTable 
 } from '../utils/codeTable';
+import CustomModal from './CustomModal';
+import { useModal } from '../hooks/useModal';
 
 interface CodeTableSetupProps {}
 
 const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
+  const { modal, closeModal, showConfirm } = useModal();
   const [codeTables, setCodeTables] = useState<CodeTable[]>([]);
   const [selectedTable, setSelectedTable] = useState<string>('');
   const [showAddTable, setShowAddTable] = useState(false);
@@ -198,7 +201,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
 
     const confirmMessage = `Are you sure you want to delete "${itemName}" from ${currentTable.name}?\n\nThis action cannot be undone.`;
     
-    if (confirm(confirmMessage)) {
+    showConfirm('Delete Item', confirmMessage, () => {
       setCodeTables(prev => prev.map(table => 
         table.id === selectedTable 
           ? { ...table, items: table.items.filter(item => item !== itemName) }
@@ -207,7 +210,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       
       playSound.delete();
       showSuccess('Item Deleted', `"${itemName}" has been removed from ${currentTable.name}`);
-    }
+    });
   };
 
   const startEditItem = (itemName: string) => {
@@ -393,6 +396,26 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
           </div>
         </div>
       )}
+      
+      <CustomModal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+        actions={modal.type === 'confirm' ? [
+          {
+            label: 'Cancel',
+            onClick: closeModal,
+            style: 'secondary'
+          },
+          {
+            label: 'Delete',
+            onClick: modal.onConfirm || closeModal,
+            style: 'danger'
+          }
+        ] : undefined}
+      />
     </div>
   );
 };
