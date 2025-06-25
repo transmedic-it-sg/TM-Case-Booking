@@ -45,6 +45,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   const [processComments, setProcessComments] = useState('');
   const [hospitalDeliveryAttachments, setHospitalDeliveryAttachments] = useState<string[]>([]);
   const [hospitalDeliveryComments, setHospitalDeliveryComments] = useState('');
+  const [hospitalDeliveryCase, setHospitalDeliveryCase] = useState<string | null>(null);
   const [officeDeliveryCase, setOfficeDeliveryCase] = useState<string | null>(null);
   const [officeDeliveryAttachments, setOfficeDeliveryAttachments] = useState<string[]>([]);
   const [officeDeliveryComments, setOfficeDeliveryComments] = useState('');
@@ -383,6 +384,16 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   // Pending Delivery (Hospital) workflow
+  const handleOpenHospitalDeliveryModal = (caseId: string) => {
+    setHospitalDeliveryCase(caseId);
+  };
+
+  const handleCancelHospitalDelivery = () => {
+    setHospitalDeliveryCase(null);
+    setHospitalDeliveryAttachments([]);
+    setHospitalDeliveryComments('');
+  };
+
   const handleOrderDelivered = (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.PENDING_DELIVERY_HOSPITAL)) {
@@ -395,6 +406,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         comments: hospitalDeliveryComments
       };
       updateCaseStatus(caseId, 'Pending Delivery (Hospital)', currentUser.name, JSON.stringify(additionalData));
+      setHospitalDeliveryCase(null);
       setHospitalDeliveryAttachments([]);
       setHospitalDeliveryComments('');
       loadCases();
@@ -431,9 +443,23 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
     try {
       const caseItem = cases.find(c => c.id === caseId);
+      
+      // Convert single image to attachments array for standardization
+      const attachments = [];
+      if (receivedImage) {
+        // Create a file object for the image
+        const imageFile = {
+          name: `delivery-image-${caseId}-${Date.now()}.png`,
+          type: 'image/png',
+          size: Math.round(receivedImage.length * 0.75), // Estimate size from base64 length
+          data: receivedImage
+        };
+        attachments.push(JSON.stringify(imageFile));
+      }
+      
       const additionalData = {
-        deliveryDetails: receivedDetails,
-        deliveryImage: receivedImage
+        comments: receivedDetails,
+        attachments: attachments
       };
       updateCaseStatus(caseId, 'Delivered (Hospital)', currentUser.name, JSON.stringify(additionalData));
       setReceivedCase(null);
@@ -781,6 +807,9 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
                     processComments={processComments}
                     deliveryCase={deliveryCase}
                     deliveryDetails={deliveryDetails}
+                    hospitalDeliveryCase={hospitalDeliveryCase}
+                    hospitalDeliveryAttachments={hospitalDeliveryAttachments}
+                    hospitalDeliveryComments={hospitalDeliveryComments}
                     receivedCase={receivedCase}
                     receivedDetails={receivedDetails}
                     receivedImage={receivedImage}
@@ -804,7 +833,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
                     onOrderProcessed={handleOrderProcessed}
                     onSaveProcessDetails={handleSaveProcessDetails}
                     onCancelProcessing={handleCancelProcessing}
-                    onOrderDelivered={handleOrderDelivered}
+                    onOrderDelivered={handleOpenHospitalDeliveryModal}
                     onOrderReceived={handleOrderReceived}
                     onSaveOrderReceived={handleSaveOrderReceived}
                     onCancelReceived={handleCancelReceived}
@@ -827,6 +856,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
                     onProcessDetailsChange={setProcessDetails}
                     onProcessAttachmentsChange={setProcessAttachments}
                     onProcessCommentsChange={setProcessComments}
+                    onSaveHospitalDelivery={handleOrderDelivered}
+                    onCancelHospitalDelivery={handleCancelHospitalDelivery}
+                    onHospitalDeliveryAttachmentsChange={setHospitalDeliveryAttachments}
+                    onHospitalDeliveryCommentsChange={setHospitalDeliveryComments}
                     onReceivedDetailsChange={setReceivedDetails}
                     onReceivedImageChange={setReceivedImage}
                     onOrderSummaryChange={setOrderSummary}

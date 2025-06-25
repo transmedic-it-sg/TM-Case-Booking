@@ -347,6 +347,7 @@
   padding: 20px 24px;
   border-bottom: 1px solid var(--border-light);
   background: var(--bg-secondary);
+  position: relative;
 }
 
 .more-cases-header h3 {
@@ -370,6 +371,9 @@
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  position: absolute;
+  top: 20px;
+  right: 24px;
 }
 
 .close-button:hover {
@@ -379,8 +383,15 @@
 
 .more-cases-content {
   padding: 16px 24px 24px;
-  max-height: 400px;
+  max-height: 500px;
   overflow-y: auto;
+}
+
+.more-cases-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .more-case-item {
@@ -389,10 +400,10 @@
   padding: 12px 16px;
   border: 1px solid var(--border-light);
   border-radius: 12px;
-  margin-bottom: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
   background: white;
+  min-height: 100px;
 }
 
 .more-case-item:hover {
@@ -446,4 +457,74 @@
   color: white;
   display: inline-block;
   font-weight: 500;
+}
+
+/* More Cases Pagination */
+.more-cases-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+  margin-top: 16px;
+}
+
+.more-cases-pagination .pagination-info {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.more-cases-pagination .pagination-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.more-cases-pagination .btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  background: white;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.more-cases-pagination .btn:hover:not(:disabled) {
+  background: var(--background-light);
+  border-color: var(--primary-color);
+}
+
+.more-cases-pagination .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.more-cases-pagination .btn-primary {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.more-cases-pagination .pagination-ellipsis {
+  padding: 0 8px;
+  color: var(--text-secondary);
+}
+
+/* Responsive Grid */
+@media (max-width: 768px) {
+  .more-cases-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .more-cases-pagination {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .more-cases-pagination .pagination-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }

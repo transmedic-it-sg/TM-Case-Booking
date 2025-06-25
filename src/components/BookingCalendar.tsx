@@ -19,6 +19,8 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
   const [cases, setCases] = useState<CaseBooking[]>([]);
   const [showMoreCasesPopup, setShowMoreCasesPopup] = useState(false);
   const [moreCasesData, setMoreCasesData] = useState<{date: string, cases: CaseBooking[]}>({date: '', cases: []});
+  const [moreCasesCurrentPage, setMoreCasesCurrentPage] = useState(1);
+  const moreCasesPerPage = 10;
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
   const [selectedCountry, setSelectedCountry] = useState<string>('');
 
@@ -77,6 +79,19 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
 
   const getMonthName = (date: Date): string => {
     return getMonthYearDisplay(date);
+  };
+
+  // Pagination logic for more cases modal
+  const getCurrentPageCases = () => {
+    const indexOfLastCase = moreCasesCurrentPage * moreCasesPerPage;
+    const indexOfFirstCase = indexOfLastCase - moreCasesPerPage;
+    return moreCasesData.cases.slice(indexOfFirstCase, indexOfLastCase);
+  };
+
+  const totalMoreCasesPages = Math.ceil(moreCasesData.cases.length / moreCasesPerPage);
+
+  const handleMoreCasesPageChange = (pageNumber: number) => {
+    setMoreCasesCurrentPage(pageNumber);
   };
 
   const navigateMonth = (direction: 'prev' | 'next'): void => {
@@ -188,6 +203,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
                           date: dateStr,
                           cases: remainingCases
                         });
+                        setMoreCasesCurrentPage(1);
                         setShowMoreCasesPopup(true);
                       }}
                     >
@@ -298,35 +314,78 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
               </button>
             </div>
             <div className="more-cases-content">
-              {moreCasesData.cases.map((caseItem, index) => (
-                <div 
-                  key={`more-${caseItem.id}-${index}`} 
-                  className="more-case-item"
-                  style={{
-                    backgroundColor: getStatusColor(caseItem.status),
-                    color: 'white'
-                  }}
-                  onClick={() => {
-                    onCaseClick?.(caseItem.id);
-                    setShowMoreCasesPopup(false);
-                  }}
-                >
-                  <div className="more-case-time" style={{color: 'white', fontWeight: 'bold'}}>{caseItem.timeOfProcedure || 'TBD'}</div>
-                  <div className="more-case-info">
-                    <div className="more-case-hospital" style={{fontWeight: 'bold', color: 'white', fontSize: '12px'}}>
-                      {caseItem.hospital}
+              <div className="more-cases-grid">
+                {getCurrentPageCases().map((caseItem, index) => (
+                  <div 
+                    key={`more-${caseItem.id}-${index}`} 
+                    className="more-case-item"
+                    style={{
+                      backgroundColor: getStatusColor(caseItem.status),
+                      color: 'white'
+                    }}
+                    onClick={() => {
+                      onCaseClick?.(caseItem.id);
+                      setShowMoreCasesPopup(false);
+                    }}
+                  >
+                    <div className="more-case-time" style={{color: 'white', fontWeight: 'bold'}}>{caseItem.timeOfProcedure || 'TBD'}</div>
+                    <div className="more-case-info">
+                      <div className="more-case-hospital" style={{fontWeight: 'bold', color: 'white', fontSize: '12px'}}>
+                        {caseItem.hospital}
+                      </div>
+                      <div className="more-case-procedure" style={{fontWeight: '500', fontSize: '13px', color: 'white'}}>
+                        {caseItem.procedureType}
+                      </div>
+                      <div className="more-case-details">
+                        <span style={{color: 'white'}}>Dr. {caseItem.doctorName || 'TBD'}</span>
+                        <span className="case-ref" style={{color: 'white', opacity: 0.9}}>{caseItem.caseReferenceNumber}</span>
+                      </div>
+                      <div className="more-case-status" style={{color: 'white', fontWeight: 'bold'}}>{caseItem.status}</div>
                     </div>
-                    <div className="more-case-procedure" style={{fontWeight: '500', fontSize: '13px', color: 'white'}}>
-                      {caseItem.procedureType}
-                    </div>
-                    <div className="more-case-details">
-                      <span style={{color: 'white'}}>Dr. {caseItem.doctorName || 'TBD'}</span>
-                      <span className="case-ref" style={{color: 'white', opacity: 0.9}}>{caseItem.caseReferenceNumber}</span>
-                    </div>
-                    <div className="more-case-status" style={{color: 'white', fontWeight: 'bold'}}>{caseItem.status}</div>
+                  </div>
+                ))}
+              </div>
+              
+              {totalMoreCasesPages > 1 && (
+                <div className="more-cases-pagination">
+                  <div className="pagination-info">
+                    Showing {((moreCasesCurrentPage - 1) * moreCasesPerPage) + 1} to {Math.min(moreCasesCurrentPage * moreCasesPerPage, moreCasesData.cases.length)} of {moreCasesData.cases.length} cases
+                  </div>
+                  <div className="pagination-controls">
+                    <button
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => handleMoreCasesPageChange(moreCasesCurrentPage - 1)}
+                      disabled={moreCasesCurrentPage === 1}
+                    >
+                      Previous
+                    </button>
+                    {[...Array(totalMoreCasesPages)].map((_, index) => {
+                      const pageNumber = index + 1;
+                      if (pageNumber === 1 || pageNumber === totalMoreCasesPages || (pageNumber >= moreCasesCurrentPage - 1 && pageNumber <= moreCasesCurrentPage + 1)) {
+                        return (
+                          <button
+                            key={pageNumber}
+                            className={`btn btn-sm ${pageNumber === moreCasesCurrentPage ? 'btn-primary' : 'btn-outline-secondary'}`}
+                            onClick={() => handleMoreCasesPageChange(pageNumber)}
+                          >
+                            {pageNumber}
+                          </button>
+                        );
+                      } else if (pageNumber === moreCasesCurrentPage - 2 || pageNumber === moreCasesCurrentPage + 2) {
+                        return <span key={pageNumber} className="pagination-ellipsis">...</span>;
+                      }
+                      return null;
+                    })}
+                    <button
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => handleMoreCasesPageChange(moreCasesCurrentPage + 1)}
+                      disabled={moreCasesCurrentPage === totalMoreCasesPages}
+                    >
+                      Next
+                    </button>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

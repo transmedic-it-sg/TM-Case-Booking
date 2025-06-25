@@ -20,6 +20,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
   processDetails,
   processAttachments,
   processComments,
+  hospitalDeliveryCase,
+  hospitalDeliveryAttachments,
+  hospitalDeliveryComments,
   receivedCase,
   receivedDetails,
   receivedImage,
@@ -66,6 +69,10 @@ const CaseCard: React.FC<CaseCardProps> = ({
   onProcessDetailsChange,
   onProcessAttachmentsChange,
   onProcessCommentsChange,
+  onSaveHospitalDelivery,
+  onCancelHospitalDelivery,
+  onHospitalDeliveryAttachmentsChange,
+  onHospitalDeliveryCommentsChange,
   onReceivedDetailsChange,
   onReceivedImageChange,
   onOrderSummaryChange,
@@ -326,32 +333,103 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                 {(() => {
                                   try {
                                     const parsedDetails = JSON.parse(historyItem.details);
-                                    if (parsedDetails.deliveryDetails) {
+                                    if (parsedDetails.deliveryDetails || (parsedDetails.comments && !parsedDetails.orderSummary && !parsedDetails.processDetails)) {
+                                      // Handle both old format (deliveryDetails/deliveryImage) and new format (comments/attachments) for Delivered (Hospital)
+                                      const isOldFormat = parsedDetails.deliveryDetails;
+                                      const comments = isOldFormat ? parsedDetails.deliveryDetails : parsedDetails.comments;
+                                      const attachments = isOldFormat ? 
+                                        (parsedDetails.deliveryImage ? [JSON.stringify({
+                                          name: 'delivery-image.png',
+                                          type: 'image/png',
+                                          data: parsedDetails.deliveryImage
+                                        })] : []) : 
+                                        (parsedDetails.attachments || []);
+
                                       return (
                                         <div>
-                                          <strong>Delivery Details:</strong> {parsedDetails.deliveryDetails}
-                                          {parsedDetails.deliveryImage && (
-                                            <div className="delivery-image-container">
-                                              <div className="delivery-image-note">📷 Delivery Image:</div>
-                                              <img 
-                                                src={parsedDetails.deliveryImage} 
-                                                alt="Delivery confirmation" 
-                                                className="delivery-image clickable-image"
-                                                style={{ maxWidth: '200px', maxHeight: '150px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
-                                                onClick={() => {
-                                                  const modal = document.createElement('div');
-                                                  modal.className = 'image-modal';
-                                                  modal.innerHTML = `
-                                                    <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                                                      <img src="${parsedDetails.deliveryImage}" alt="Delivery confirmation" style="max-width: 90%; max-height: 90%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
-                                                    </div>
-                                                  `;
-                                                  document.body.appendChild(modal);
-                                                  modal.addEventListener('click', () => {
-                                                    document.body.removeChild(modal);
-                                                  });
-                                                }}
-                                              />
+                                          <strong>Delivery Details:</strong> {comments}
+                                          {attachments && attachments.length > 0 && (
+                                            <div>
+                                              <strong>Attachments ({attachments.length}):</strong>
+                                              <div className="attachment-preview-grid">
+                                                {attachments.map((attachment: string, index: number) => {
+                                                  try {
+                                                    const fileData = JSON.parse(attachment);
+                                                    const isImage = fileData.type.startsWith('image/');
+                                                    
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        {isImage ? (
+                                                          <div className="image-attachment">
+                                                            <img 
+                                                              src={fileData.data} 
+                                                              alt={fileData.name}
+                                                              className="attachment-thumbnail clickable-image"
+                                                              style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
+                                                              onClick={() => {
+                                                                const modal = document.createElement('div');
+                                                                modal.className = 'image-modal';
+                                                                modal.innerHTML = `
+                                                                  <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                                                    <div style="position: relative; max-width: 90%; max-height: 90%;">
+                                                                      <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                                                                      <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
+                                                                        <button onclick="event.stopPropagation(); const link = document.createElement('a'); link.href = '${fileData.data}'; link.download = '${fileData.name}'; link.click();" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">📥 Download</button>
+                                                                        <button onclick="document.body.removeChild(this.closest('.image-modal'));" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✕ Close</button>
+                                                                      </div>
+                                                                    </div>
+                                                                  </div>
+                                                                `;
+                                                                document.body.appendChild(modal);
+                                                                modal.addEventListener('click', (e) => {
+                                                                  if (e.target === modal.querySelector('.image-modal-backdrop')) {
+                                                                    document.body.removeChild(modal);
+                                                                  }
+                                                                });
+                                                              }}
+                                                            />
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                          </div>
+                                                        ) : (
+                                                          <div className="file-attachment">
+                                                            <div className="file-icon">📄</div>
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                            <button
+                                                              onClick={() => {
+                                                                const link = document.createElement('a');
+                                                                link.href = fileData.data;
+                                                                link.download = fileData.name;
+                                                                link.click();
+                                                              }}
+                                                              className="download-button"
+                                                              title="Download file"
+                                                            >
+                                                              📥
+                                                            </button>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    );
+                                                  } catch {
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        <div className="file-attachment error">
+                                                          <div className="file-icon">❌</div>
+                                                          <div className="attachment-info">
+                                                            <div className="file-name">Invalid file data</div>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                  }
+                                                })}
+                                              </div>
                                             </div>
                                           )}
                                         </div>
@@ -366,12 +444,377 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                             <div><strong>DO Number:</strong> {parsedDetails.doNumber}</div>
                                           )}
                                           {parsedDetails.attachments && parsedDetails.attachments.length > 0 && (
-                                            <div><strong>Attachments:</strong> {parsedDetails.attachments.length} file(s)</div>
+                                            <div>
+                                              <strong>Attachments ({parsedDetails.attachments.length}):</strong>
+                                              <div className="attachment-preview-grid">
+                                                {parsedDetails.attachments.map((attachment: string, index: number) => {
+                                                  try {
+                                                    const fileData = JSON.parse(attachment);
+                                                    const isImage = fileData.type.startsWith('image/');
+                                                    
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        {isImage ? (
+                                                          <div className="image-attachment">
+                                                            <img 
+                                                              src={fileData.data} 
+                                                              alt={fileData.name}
+                                                              className="attachment-thumbnail clickable-image"
+                                                              style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
+                                                              onClick={() => {
+                                                                const modal = document.createElement('div');
+                                                                modal.className = 'image-modal';
+                                                                modal.innerHTML = `
+                                                                  <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                                                    <div style="position: relative; max-width: 90%; max-height: 90%;">
+                                                                      <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                                                                      <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
+                                                                        <button onclick="event.stopPropagation(); const link = document.createElement('a'); link.href = '${fileData.data}'; link.download = '${fileData.name}'; link.click();" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">📥 Download</button>
+                                                                        <button onclick="document.body.removeChild(this.closest('.image-modal'));" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✕ Close</button>
+                                                                      </div>
+                                                                    </div>
+                                                                  </div>
+                                                                `;
+                                                                document.body.appendChild(modal);
+                                                                modal.addEventListener('click', (e) => {
+                                                                  if (e.target === modal.querySelector('.image-modal-backdrop')) {
+                                                                    document.body.removeChild(modal);
+                                                                  }
+                                                                });
+                                                              }}
+                                                            />
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                          </div>
+                                                        ) : (
+                                                          <div className="file-attachment">
+                                                            <div className="file-icon">📄</div>
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                            <button
+                                                              onClick={() => {
+                                                                const link = document.createElement('a');
+                                                                link.href = fileData.data;
+                                                                link.download = fileData.name;
+                                                                link.click();
+                                                              }}
+                                                              className="download-button"
+                                                              title="Download file"
+                                                            >
+                                                              📥
+                                                            </button>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    );
+                                                  } catch {
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        <div className="file-attachment error">
+                                                          <div className="file-icon">❌</div>
+                                                          <div className="attachment-info">
+                                                            <div className="file-name">Invalid file data</div>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                  }
+                                                })}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    } else if (parsedDetails.processDetails) {
+                                      return (
+                                        <div>
+                                          <strong>Process Details:</strong> {parsedDetails.processDetails}
+                                          {parsedDetails.attachments && parsedDetails.attachments.length > 0 && (
+                                            <div>
+                                              <strong>Attachments ({parsedDetails.attachments.length}):</strong>
+                                              <div className="attachment-preview-grid">
+                                                {parsedDetails.attachments.map((attachment: string, index: number) => {
+                                                  try {
+                                                    const fileData = JSON.parse(attachment);
+                                                    const isImage = fileData.type.startsWith('image/');
+                                                    
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        {isImage ? (
+                                                          <div className="image-attachment">
+                                                            <img 
+                                                              src={fileData.data} 
+                                                              alt={fileData.name}
+                                                              className="attachment-thumbnail clickable-image"
+                                                              style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
+                                                              onClick={() => {
+                                                                const modal = document.createElement('div');
+                                                                modal.className = 'image-modal';
+                                                                modal.innerHTML = `
+                                                                  <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                                                    <div style="position: relative; max-width: 90%; max-height: 90%;">
+                                                                      <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                                                                      <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
+                                                                        <button onclick="event.stopPropagation(); const link = document.createElement('a'); link.href = '${fileData.data}'; link.download = '${fileData.name}'; link.click();" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">📥 Download</button>
+                                                                        <button onclick="document.body.removeChild(this.closest('.image-modal'));" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✕ Close</button>
+                                                                      </div>
+                                                                    </div>
+                                                                  </div>
+                                                                `;
+                                                                document.body.appendChild(modal);
+                                                                modal.addEventListener('click', (e) => {
+                                                                  if (e.target === modal.querySelector('.image-modal-backdrop')) {
+                                                                    document.body.removeChild(modal);
+                                                                  }
+                                                                });
+                                                              }}
+                                                            />
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                          </div>
+                                                        ) : (
+                                                          <div className="file-attachment">
+                                                            <div className="file-icon">📄</div>
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                            <button
+                                                              onClick={() => {
+                                                                const link = document.createElement('a');
+                                                                link.href = fileData.data;
+                                                                link.download = fileData.name;
+                                                                link.click();
+                                                              }}
+                                                              className="download-button"
+                                                              title="Download file"
+                                                            >
+                                                              📥
+                                                            </button>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    );
+                                                  } catch {
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        <div className="file-attachment error">
+                                                          <div className="file-icon">❌</div>
+                                                          <div className="attachment-info">
+                                                            <div className="file-name">Invalid file data</div>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                  }
+                                                })}
+                                              </div>
+                                            </div>
+                                          )}
+                                          {parsedDetails.comments && (
+                                            <div><strong>Comments:</strong> {parsedDetails.comments}</div>
+                                          )}
+                                        </div>
+                                      );
+                                    } else if (parsedDetails.attachments || parsedDetails.comments) {
+                                      return (
+                                        <div>
+                                          {parsedDetails.comments && (
+                                            <div><strong>Comments:</strong> {parsedDetails.comments}</div>
+                                          )}
+                                          {parsedDetails.attachments && parsedDetails.attachments.length > 0 && (
+                                            <div>
+                                              <strong>Attachments ({parsedDetails.attachments.length}):</strong>
+                                              <div className="attachment-preview-grid">
+                                                {parsedDetails.attachments.map((attachment: string, index: number) => {
+                                                  try {
+                                                    const fileData = JSON.parse(attachment);
+                                                    const isImage = fileData.type.startsWith('image/');
+                                                    
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        {isImage ? (
+                                                          <div className="image-attachment">
+                                                            <img 
+                                                              src={fileData.data} 
+                                                              alt={fileData.name}
+                                                              className="attachment-thumbnail clickable-image"
+                                                              style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
+                                                              onClick={() => {
+                                                                const modal = document.createElement('div');
+                                                                modal.className = 'image-modal';
+                                                                modal.innerHTML = `
+                                                                  <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                                                    <div style="position: relative; max-width: 90%; max-height: 90%;">
+                                                                      <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                                                                      <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
+                                                                        <button onclick="event.stopPropagation(); const link = document.createElement('a'); link.href = '${fileData.data}'; link.download = '${fileData.name}'; link.click();" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">📥 Download</button>
+                                                                        <button onclick="document.body.removeChild(this.closest('.image-modal'));" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✕ Close</button>
+                                                                      </div>
+                                                                    </div>
+                                                                  </div>
+                                                                `;
+                                                                document.body.appendChild(modal);
+                                                                modal.addEventListener('click', (e) => {
+                                                                  if (e.target === modal.querySelector('.image-modal-backdrop')) {
+                                                                    document.body.removeChild(modal);
+                                                                  }
+                                                                });
+                                                              }}
+                                                            />
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                          </div>
+                                                        ) : (
+                                                          <div className="file-attachment">
+                                                            <div className="file-icon">📄</div>
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                            <button
+                                                              onClick={() => {
+                                                                const link = document.createElement('a');
+                                                                link.href = fileData.data;
+                                                                link.download = fileData.name;
+                                                                link.click();
+                                                              }}
+                                                              className="download-button"
+                                                              title="Download file"
+                                                            >
+                                                              📥
+                                                            </button>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    );
+                                                  } catch {
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        <div className="file-attachment error">
+                                                          <div className="file-icon">❌</div>
+                                                          <div className="attachment-info">
+                                                            <div className="file-name">Invalid file data</div>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                  }
+                                                })}
+                                              </div>
+                                            </div>
                                           )}
                                         </div>
                                       );
                                     } else {
-                                      return <div>{JSON.stringify(parsedDetails, null, 2)}</div>;
+                                      // For any other structured data, show it in a readable format
+                                      return (
+                                        <div>
+                                          {Object.entries(parsedDetails).map(([key, value]) => (
+                                            <div key={key}>
+                                              <strong>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</strong>
+                                              {key === 'attachments' && Array.isArray(value) && value.length > 0 ? (
+                                                <div>
+                                                  <strong> ({value.length}):</strong>
+                                                  <div className="attachment-preview-grid">
+                                                    {value.map((attachment: string, index: number) => {
+                                                      try {
+                                                        const fileData = JSON.parse(attachment);
+                                                        const isImage = fileData.type.startsWith('image/');
+                                                        
+                                                        return (
+                                                          <div key={index} className="attachment-preview-item">
+                                                            {isImage ? (
+                                                              <div className="image-attachment">
+                                                                <img 
+                                                                  src={fileData.data} 
+                                                                  alt={fileData.name}
+                                                                  className="attachment-thumbnail clickable-image"
+                                                                  style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
+                                                                  onClick={() => {
+                                                                    const modal = document.createElement('div');
+                                                                    modal.className = 'image-modal';
+                                                                    modal.innerHTML = `
+                                                                      <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                                                        <div style="position: relative; max-width: 90%; max-height: 90%;">
+                                                                          <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                                                                          <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
+                                                                            <button onclick="event.stopPropagation(); const link = document.createElement('a'); link.href = '${fileData.data}'; link.download = '${fileData.name}'; link.click();" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">📥 Download</button>
+                                                                            <button onclick="document.body.removeChild(this.closest('.image-modal'));" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✕ Close</button>
+                                                                          </div>
+                                                                        </div>
+                                                                      </div>
+                                                                    `;
+                                                                    document.body.appendChild(modal);
+                                                                    modal.addEventListener('click', (e) => {
+                                                                      if (e.target === modal.querySelector('.image-modal-backdrop')) {
+                                                                        document.body.removeChild(modal);
+                                                                      }
+                                                                    });
+                                                                  }}
+                                                                />
+                                                                <div className="attachment-info">
+                                                                  <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                                  <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                                </div>
+                                                              </div>
+                                                            ) : (
+                                                              <div className="file-attachment">
+                                                                <div className="file-icon">📄</div>
+                                                                <div className="attachment-info">
+                                                                  <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                                  <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                                </div>
+                                                                <button
+                                                                  onClick={() => {
+                                                                    const link = document.createElement('a');
+                                                                    link.href = fileData.data;
+                                                                    link.download = fileData.name;
+                                                                    link.click();
+                                                                  }}
+                                                                  className="download-button"
+                                                                  title="Download file"
+                                                                >
+                                                                  📥
+                                                                </button>
+                                                              </div>
+                                                            )}
+                                                          </div>
+                                                        );
+                                                      } catch {
+                                                        return (
+                                                          <div key={index} className="attachment-preview-item">
+                                                            <div className="file-attachment error">
+                                                              <div className="file-icon">❌</div>
+                                                              <div className="attachment-info">
+                                                                <div className="file-name">Invalid file data</div>
+                                                              </div>
+                                                            </div>
+                                                          </div>
+                                                        );
+                                                      }
+                                                    })}
+                                                  </div>
+                                                </div>
+                                              ) : (
+                                                <span> {
+                                                  typeof value === 'object' ? 
+                                                    (Array.isArray(value) ? `${value.length} item(s)` : JSON.stringify(value)) :
+                                                    String(value)
+                                                }</span>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      );
                                     }
                                   } catch {
                                     return <div>{historyItem.details}</div>;
@@ -400,32 +843,103 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                 {(() => {
                                   try {
                                     const parsedDetails = JSON.parse(historyItem.details);
-                                    if (parsedDetails.deliveryDetails) {
+                                    if (parsedDetails.deliveryDetails || (parsedDetails.comments && !parsedDetails.orderSummary && !parsedDetails.processDetails)) {
+                                      // Handle both old format (deliveryDetails/deliveryImage) and new format (comments/attachments) for Delivered (Hospital)
+                                      const isOldFormat = parsedDetails.deliveryDetails;
+                                      const comments = isOldFormat ? parsedDetails.deliveryDetails : parsedDetails.comments;
+                                      const attachments = isOldFormat ? 
+                                        (parsedDetails.deliveryImage ? [JSON.stringify({
+                                          name: 'delivery-image.png',
+                                          type: 'image/png',
+                                          data: parsedDetails.deliveryImage
+                                        })] : []) : 
+                                        (parsedDetails.attachments || []);
+
                                       return (
                                         <div>
-                                          <strong>Delivery Details:</strong> {parsedDetails.deliveryDetails}
-                                          {parsedDetails.deliveryImage && (
-                                            <div className="delivery-image-container">
-                                              <div className="delivery-image-note">📷 Delivery Image:</div>
-                                              <img 
-                                                src={parsedDetails.deliveryImage} 
-                                                alt="Delivery confirmation" 
-                                                className="delivery-image clickable-image"
-                                                style={{ maxWidth: '200px', maxHeight: '150px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
-                                                onClick={() => {
-                                                  const modal = document.createElement('div');
-                                                  modal.className = 'image-modal';
-                                                  modal.innerHTML = `
-                                                    <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                                                      <img src="${parsedDetails.deliveryImage}" alt="Delivery confirmation" style="max-width: 90%; max-height: 90%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
-                                                    </div>
-                                                  `;
-                                                  document.body.appendChild(modal);
-                                                  modal.addEventListener('click', () => {
-                                                    document.body.removeChild(modal);
-                                                  });
-                                                }}
-                                              />
+                                          <strong>Delivery Details:</strong> {comments}
+                                          {attachments && attachments.length > 0 && (
+                                            <div>
+                                              <strong>Attachments ({attachments.length}):</strong>
+                                              <div className="attachment-preview-grid">
+                                                {attachments.map((attachment: string, index: number) => {
+                                                  try {
+                                                    const fileData = JSON.parse(attachment);
+                                                    const isImage = fileData.type.startsWith('image/');
+                                                    
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        {isImage ? (
+                                                          <div className="image-attachment">
+                                                            <img 
+                                                              src={fileData.data} 
+                                                              alt={fileData.name}
+                                                              className="attachment-thumbnail clickable-image"
+                                                              style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
+                                                              onClick={() => {
+                                                                const modal = document.createElement('div');
+                                                                modal.className = 'image-modal';
+                                                                modal.innerHTML = `
+                                                                  <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                                                    <div style="position: relative; max-width: 90%; max-height: 90%;">
+                                                                      <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                                                                      <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
+                                                                        <button onclick="event.stopPropagation(); const link = document.createElement('a'); link.href = '${fileData.data}'; link.download = '${fileData.name}'; link.click();" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">📥 Download</button>
+                                                                        <button onclick="document.body.removeChild(this.closest('.image-modal'));" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✕ Close</button>
+                                                                      </div>
+                                                                    </div>
+                                                                  </div>
+                                                                `;
+                                                                document.body.appendChild(modal);
+                                                                modal.addEventListener('click', (e) => {
+                                                                  if (e.target === modal.querySelector('.image-modal-backdrop')) {
+                                                                    document.body.removeChild(modal);
+                                                                  }
+                                                                });
+                                                              }}
+                                                            />
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                          </div>
+                                                        ) : (
+                                                          <div className="file-attachment">
+                                                            <div className="file-icon">📄</div>
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                            <button
+                                                              onClick={() => {
+                                                                const link = document.createElement('a');
+                                                                link.href = fileData.data;
+                                                                link.download = fileData.name;
+                                                                link.click();
+                                                              }}
+                                                              className="download-button"
+                                                              title="Download file"
+                                                            >
+                                                              📥
+                                                            </button>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    );
+                                                  } catch {
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        <div className="file-attachment error">
+                                                          <div className="file-icon">❌</div>
+                                                          <div className="attachment-info">
+                                                            <div className="file-name">Invalid file data</div>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                  }
+                                                })}
+                                              </div>
                                             </div>
                                           )}
                                         </div>
@@ -440,12 +954,377 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                             <div><strong>DO Number:</strong> {parsedDetails.doNumber}</div>
                                           )}
                                           {parsedDetails.attachments && parsedDetails.attachments.length > 0 && (
-                                            <div><strong>Attachments:</strong> {parsedDetails.attachments.length} file(s)</div>
+                                            <div>
+                                              <strong>Attachments ({parsedDetails.attachments.length}):</strong>
+                                              <div className="attachment-preview-grid">
+                                                {parsedDetails.attachments.map((attachment: string, index: number) => {
+                                                  try {
+                                                    const fileData = JSON.parse(attachment);
+                                                    const isImage = fileData.type.startsWith('image/');
+                                                    
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        {isImage ? (
+                                                          <div className="image-attachment">
+                                                            <img 
+                                                              src={fileData.data} 
+                                                              alt={fileData.name}
+                                                              className="attachment-thumbnail clickable-image"
+                                                              style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
+                                                              onClick={() => {
+                                                                const modal = document.createElement('div');
+                                                                modal.className = 'image-modal';
+                                                                modal.innerHTML = `
+                                                                  <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                                                    <div style="position: relative; max-width: 90%; max-height: 90%;">
+                                                                      <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                                                                      <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
+                                                                        <button onclick="event.stopPropagation(); const link = document.createElement('a'); link.href = '${fileData.data}'; link.download = '${fileData.name}'; link.click();" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">📥 Download</button>
+                                                                        <button onclick="document.body.removeChild(this.closest('.image-modal'));" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✕ Close</button>
+                                                                      </div>
+                                                                    </div>
+                                                                  </div>
+                                                                `;
+                                                                document.body.appendChild(modal);
+                                                                modal.addEventListener('click', (e) => {
+                                                                  if (e.target === modal.querySelector('.image-modal-backdrop')) {
+                                                                    document.body.removeChild(modal);
+                                                                  }
+                                                                });
+                                                              }}
+                                                            />
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                          </div>
+                                                        ) : (
+                                                          <div className="file-attachment">
+                                                            <div className="file-icon">📄</div>
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                            <button
+                                                              onClick={() => {
+                                                                const link = document.createElement('a');
+                                                                link.href = fileData.data;
+                                                                link.download = fileData.name;
+                                                                link.click();
+                                                              }}
+                                                              className="download-button"
+                                                              title="Download file"
+                                                            >
+                                                              📥
+                                                            </button>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    );
+                                                  } catch {
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        <div className="file-attachment error">
+                                                          <div className="file-icon">❌</div>
+                                                          <div className="attachment-info">
+                                                            <div className="file-name">Invalid file data</div>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                  }
+                                                })}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    } else if (parsedDetails.processDetails) {
+                                      return (
+                                        <div>
+                                          <strong>Process Details:</strong> {parsedDetails.processDetails}
+                                          {parsedDetails.attachments && parsedDetails.attachments.length > 0 && (
+                                            <div>
+                                              <strong>Attachments ({parsedDetails.attachments.length}):</strong>
+                                              <div className="attachment-preview-grid">
+                                                {parsedDetails.attachments.map((attachment: string, index: number) => {
+                                                  try {
+                                                    const fileData = JSON.parse(attachment);
+                                                    const isImage = fileData.type.startsWith('image/');
+                                                    
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        {isImage ? (
+                                                          <div className="image-attachment">
+                                                            <img 
+                                                              src={fileData.data} 
+                                                              alt={fileData.name}
+                                                              className="attachment-thumbnail clickable-image"
+                                                              style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
+                                                              onClick={() => {
+                                                                const modal = document.createElement('div');
+                                                                modal.className = 'image-modal';
+                                                                modal.innerHTML = `
+                                                                  <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                                                    <div style="position: relative; max-width: 90%; max-height: 90%;">
+                                                                      <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                                                                      <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
+                                                                        <button onclick="event.stopPropagation(); const link = document.createElement('a'); link.href = '${fileData.data}'; link.download = '${fileData.name}'; link.click();" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">📥 Download</button>
+                                                                        <button onclick="document.body.removeChild(this.closest('.image-modal'));" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✕ Close</button>
+                                                                      </div>
+                                                                    </div>
+                                                                  </div>
+                                                                `;
+                                                                document.body.appendChild(modal);
+                                                                modal.addEventListener('click', (e) => {
+                                                                  if (e.target === modal.querySelector('.image-modal-backdrop')) {
+                                                                    document.body.removeChild(modal);
+                                                                  }
+                                                                });
+                                                              }}
+                                                            />
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                          </div>
+                                                        ) : (
+                                                          <div className="file-attachment">
+                                                            <div className="file-icon">📄</div>
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                            <button
+                                                              onClick={() => {
+                                                                const link = document.createElement('a');
+                                                                link.href = fileData.data;
+                                                                link.download = fileData.name;
+                                                                link.click();
+                                                              }}
+                                                              className="download-button"
+                                                              title="Download file"
+                                                            >
+                                                              📥
+                                                            </button>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    );
+                                                  } catch {
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        <div className="file-attachment error">
+                                                          <div className="file-icon">❌</div>
+                                                          <div className="attachment-info">
+                                                            <div className="file-name">Invalid file data</div>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                  }
+                                                })}
+                                              </div>
+                                            </div>
+                                          )}
+                                          {parsedDetails.comments && (
+                                            <div><strong>Comments:</strong> {parsedDetails.comments}</div>
+                                          )}
+                                        </div>
+                                      );
+                                    } else if (parsedDetails.attachments || parsedDetails.comments) {
+                                      return (
+                                        <div>
+                                          {parsedDetails.comments && (
+                                            <div><strong>Comments:</strong> {parsedDetails.comments}</div>
+                                          )}
+                                          {parsedDetails.attachments && parsedDetails.attachments.length > 0 && (
+                                            <div>
+                                              <strong>Attachments ({parsedDetails.attachments.length}):</strong>
+                                              <div className="attachment-preview-grid">
+                                                {parsedDetails.attachments.map((attachment: string, index: number) => {
+                                                  try {
+                                                    const fileData = JSON.parse(attachment);
+                                                    const isImage = fileData.type.startsWith('image/');
+                                                    
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        {isImage ? (
+                                                          <div className="image-attachment">
+                                                            <img 
+                                                              src={fileData.data} 
+                                                              alt={fileData.name}
+                                                              className="attachment-thumbnail clickable-image"
+                                                              style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
+                                                              onClick={() => {
+                                                                const modal = document.createElement('div');
+                                                                modal.className = 'image-modal';
+                                                                modal.innerHTML = `
+                                                                  <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                                                    <div style="position: relative; max-width: 90%; max-height: 90%;">
+                                                                      <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                                                                      <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
+                                                                        <button onclick="event.stopPropagation(); const link = document.createElement('a'); link.href = '${fileData.data}'; link.download = '${fileData.name}'; link.click();" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">📥 Download</button>
+                                                                        <button onclick="document.body.removeChild(this.closest('.image-modal'));" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✕ Close</button>
+                                                                      </div>
+                                                                    </div>
+                                                                  </div>
+                                                                `;
+                                                                document.body.appendChild(modal);
+                                                                modal.addEventListener('click', (e) => {
+                                                                  if (e.target === modal.querySelector('.image-modal-backdrop')) {
+                                                                    document.body.removeChild(modal);
+                                                                  }
+                                                                });
+                                                              }}
+                                                            />
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                          </div>
+                                                        ) : (
+                                                          <div className="file-attachment">
+                                                            <div className="file-icon">📄</div>
+                                                            <div className="attachment-info">
+                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                            </div>
+                                                            <button
+                                                              onClick={() => {
+                                                                const link = document.createElement('a');
+                                                                link.href = fileData.data;
+                                                                link.download = fileData.name;
+                                                                link.click();
+                                                              }}
+                                                              className="download-button"
+                                                              title="Download file"
+                                                            >
+                                                              📥
+                                                            </button>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    );
+                                                  } catch {
+                                                    return (
+                                                      <div key={index} className="attachment-preview-item">
+                                                        <div className="file-attachment error">
+                                                          <div className="file-icon">❌</div>
+                                                          <div className="attachment-info">
+                                                            <div className="file-name">Invalid file data</div>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                  }
+                                                })}
+                                              </div>
+                                            </div>
                                           )}
                                         </div>
                                       );
                                     } else {
-                                      return <div>{JSON.stringify(parsedDetails, null, 2)}</div>;
+                                      // For any other structured data, show it in a readable format
+                                      return (
+                                        <div>
+                                          {Object.entries(parsedDetails).map(([key, value]) => (
+                                            <div key={key}>
+                                              <strong>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</strong>
+                                              {key === 'attachments' && Array.isArray(value) && value.length > 0 ? (
+                                                <div>
+                                                  <strong> ({value.length}):</strong>
+                                                  <div className="attachment-preview-grid">
+                                                    {value.map((attachment: string, index: number) => {
+                                                      try {
+                                                        const fileData = JSON.parse(attachment);
+                                                        const isImage = fileData.type.startsWith('image/');
+                                                        
+                                                        return (
+                                                          <div key={index} className="attachment-preview-item">
+                                                            {isImage ? (
+                                                              <div className="image-attachment">
+                                                                <img 
+                                                                  src={fileData.data} 
+                                                                  alt={fileData.name}
+                                                                  className="attachment-thumbnail clickable-image"
+                                                                  style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
+                                                                  onClick={() => {
+                                                                    const modal = document.createElement('div');
+                                                                    modal.className = 'image-modal';
+                                                                    modal.innerHTML = `
+                                                                      <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                                                        <div style="position: relative; max-width: 90%; max-height: 90%;">
+                                                                          <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                                                                          <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
+                                                                            <button onclick="event.stopPropagation(); const link = document.createElement('a'); link.href = '${fileData.data}'; link.download = '${fileData.name}'; link.click();" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">📥 Download</button>
+                                                                            <button onclick="document.body.removeChild(this.closest('.image-modal'));" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✕ Close</button>
+                                                                          </div>
+                                                                        </div>
+                                                                      </div>
+                                                                    `;
+                                                                    document.body.appendChild(modal);
+                                                                    modal.addEventListener('click', (e) => {
+                                                                      if (e.target === modal.querySelector('.image-modal-backdrop')) {
+                                                                        document.body.removeChild(modal);
+                                                                      }
+                                                                    });
+                                                                  }}
+                                                                />
+                                                                <div className="attachment-info">
+                                                                  <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                                  <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                                </div>
+                                                              </div>
+                                                            ) : (
+                                                              <div className="file-attachment">
+                                                                <div className="file-icon">📄</div>
+                                                                <div className="attachment-info">
+                                                                  <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
+                                                                  <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                                                </div>
+                                                                <button
+                                                                  onClick={() => {
+                                                                    const link = document.createElement('a');
+                                                                    link.href = fileData.data;
+                                                                    link.download = fileData.name;
+                                                                    link.click();
+                                                                  }}
+                                                                  className="download-button"
+                                                                  title="Download file"
+                                                                >
+                                                                  📥
+                                                                </button>
+                                                              </div>
+                                                            )}
+                                                          </div>
+                                                        );
+                                                      } catch {
+                                                        return (
+                                                          <div key={index} className="attachment-preview-item">
+                                                            <div className="file-attachment error">
+                                                              <div className="file-icon">❌</div>
+                                                              <div className="attachment-info">
+                                                                <div className="file-name">Invalid file data</div>
+                                                              </div>
+                                                            </div>
+                                                          </div>
+                                                        );
+                                                      }
+                                                    })}
+                                                  </div>
+                                                </div>
+                                              ) : (
+                                                <span> {
+                                                  typeof value === 'object' ? 
+                                                    (Array.isArray(value) ? `${value.length} item(s)` : JSON.stringify(value)) :
+                                                    String(value)
+                                                }</span>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      );
                                     }
                                   } catch {
                                     return <div>{historyItem.details}</div>;
@@ -651,6 +1530,100 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 <button 
                   onClick={onCancelProcessing}
                   className="btn btn-outline-secondary btn-md cancel-process-button"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Hospital Delivery Form */}
+          {hospitalDeliveryCase === caseItem.id && (
+            <div className="hospital-delivery-form">
+              <h4>Pending Delivery to Hospital</h4>
+              <div className="form-group">
+                <label>Attachments (Optional):</label>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files) {
+                      Array.from(files).forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const fileData = {
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            data: reader.result as string
+                          };
+                          onHospitalDeliveryAttachmentsChange([...hospitalDeliveryAttachments, JSON.stringify(fileData)]);
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                    }
+                  }}
+                  className="file-upload-input"
+                />
+                {hospitalDeliveryAttachments.length > 0 && (
+                  <div className="attachment-list">
+                    <p>Uploaded files ({hospitalDeliveryAttachments.length}):</p>
+                    {hospitalDeliveryAttachments.map((attachment, index) => {
+                      try {
+                        const fileData = JSON.parse(attachment);
+                        return (
+                          <div key={index} className="attachment-item">
+                            <span className="file-name">{fileData.name}</span>
+                            <span className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</span>
+                            <button
+                              onClick={() => onHospitalDeliveryAttachmentsChange(hospitalDeliveryAttachments.filter((_, i) => i !== index))}
+                              className="remove-attachment"
+                              type="button"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      } catch {
+                        return (
+                          <div key={index} className="attachment-item">
+                            <span className="file-name">Invalid file data</span>
+                            <button
+                              onClick={() => onHospitalDeliveryAttachmentsChange(hospitalDeliveryAttachments.filter((_, i) => i !== index))}
+                              className="remove-attachment"
+                              type="button"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="form-group">
+                <label>Comments (Optional):</label>
+                <textarea
+                  value={hospitalDeliveryComments}
+                  onChange={(e) => onHospitalDeliveryCommentsChange(e.target.value)}
+                  placeholder="Add any delivery notes or special instructions..."
+                  rows={3}
+                  className="form-control"
+                />
+              </div>
+              <div className="hospital-delivery-actions">
+                <button 
+                  onClick={() => onSaveHospitalDelivery(caseItem.id)}
+                  className="btn btn-primary btn-md save-hospital-delivery-button"
+                >
+                  Mark as Pending Delivery
+                </button>
+                <button 
+                  onClick={onCancelHospitalDelivery}
+                  className="btn btn-outline-secondary btn-md cancel-hospital-delivery-button"
                 >
                   Cancel
                 </button>

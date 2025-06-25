@@ -9,6 +9,7 @@ import BookingCalendar from './components/BookingCalendar';
 import CodeTableSetup from './components/CodeTableSetup';
 import WelcomePopup from './components/WelcomePopup';
 import PermissionMatrixPage from './components/PermissionMatrixPage';
+import AuditLogs from './components/AuditLogs';
 import LogoutConfirmation from './components/LogoutConfirmation';
 import { User, CaseBooking } from './types';
 import { getCurrentUser, logout } from './utils/auth';
@@ -28,8 +29,9 @@ import Settings from './components/Settings';
 import StatusLegend from './components/StatusLegend';
 import './App.css';
 import './components/CodeTableSetup.css';
+import './components/AuditLogs.css';
 
-type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'calendar' | 'permissions' | 'codetables';
+type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs';
 
 
 
@@ -216,6 +218,18 @@ const AppContent: React.FC = () => {
                             👥 User Management
                           </button>
                         )}
+                        {hasPermission(user.role, PERMISSION_ACTIONS.AUDIT_LOGS) && (
+                          <button
+                            onClick={() => {
+                              setActivePage('audit-logs');
+                              playSound.click();
+                              setAdminPanelExpanded(false);
+                            }}
+                            className={`header-admin-item ${activePage === 'audit-logs' ? 'active' : ''}`}
+                          >
+                            📊 Audit Logs
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -334,6 +348,10 @@ const AppContent: React.FC = () => {
         
         {activePage === 'users' && hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) && (
           <UserManagement />
+        )}
+        
+        {activePage === 'audit-logs' && hasPermission(user.role, PERMISSION_ACTIONS.AUDIT_LOGS) && (
+          <AuditLogs />
         )}
         
         {activePage === 'permissions' && user.role === 'admin' && (

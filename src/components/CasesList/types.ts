@@ -22,6 +22,9 @@ export interface CaseCardProps {
   processComments: string;
   deliveryCase: string | null;
   deliveryDetails: string;
+  hospitalDeliveryCase: string | null;
+  hospitalDeliveryAttachments: string[];
+  hospitalDeliveryComments: string;
   receivedCase: string | null;
   receivedDetails: string;
   receivedImage: string;
@@ -46,6 +49,8 @@ export interface CaseCardProps {
   onSaveProcessDetails: (caseId: string) => void;
   onCancelProcessing: () => void;
   onOrderDelivered: (caseId: string) => void;
+  onSaveHospitalDelivery: (caseId: string) => void;
+  onCancelHospitalDelivery: () => void;
   onOrderReceived: (caseId: string) => void;
   onSaveOrderReceived: (caseId: string) => void;
   onCancelReceived: () => void;
@@ -68,6 +73,8 @@ export interface CaseCardProps {
   onProcessDetailsChange: (details: string) => void;
   onProcessAttachmentsChange: (attachments: string[]) => void;
   onProcessCommentsChange: (comments: string) => void;
+  onHospitalDeliveryAttachmentsChange: (attachments: string[]) => void;
+  onHospitalDeliveryCommentsChange: (comments: string) => void;
   onReceivedDetailsChange: (details: string) => void;
   onReceivedImageChange: (image: string) => void;
   onOrderSummaryChange: (summary: string) => void;

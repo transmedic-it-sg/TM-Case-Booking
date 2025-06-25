@@ -303,14 +303,16 @@ const UserManagement: React.FC = () => {
     <div className="user-management">
       <div className="user-management-header">
         <h2>User Access Matrix</h2>
-        {canCreateUsers && (
-          <button
-            onClick={() => showAddUser ? handleCancelEdit() : setShowAddUser(true)}
-            className="btn btn-primary btn-md add-user-button"
-          >
-            {showAddUser ? 'Cancel' : 'Add New User'}
-          </button>
-        )}
+        <div className="admin-panel-buttons">
+          {canCreateUsers && (
+            <button
+              onClick={() => showAddUser ? handleCancelEdit() : setShowAddUser(true)}
+              className="btn btn-primary btn-md add-user-button"
+            >
+              {showAddUser ? 'Cancel' : 'Add New User'}
+            </button>
+          )}
+        </div>
       </div>
 
       {showAddUser && (

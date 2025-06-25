@@ -15,6 +15,7 @@ const StatusLegend: React.FC = () => {
     { status: 'Pending Delivery (Office)', description: 'Pending office delivery' },
     { status: 'Delivered (Office)', description: 'Equipment returned to office' },
     { status: 'To be billed', description: 'Ready for billing' },
+    { status: 'Case Closed', description: 'Case finalized and closed' },
     { status: 'Case Cancelled', description: 'Case cancelled' }
   ];
 

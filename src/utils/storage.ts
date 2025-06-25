@@ -22,9 +22,12 @@ export const saveCase = (caseData: CaseBooking): void => {
   const existingIndex = cases.findIndex(c => c.id === caseData.id);
   
   if (existingIndex >= 0) {
-    cases[existingIndex] = caseData;
+    // Update existing case - move to front
+    cases.splice(existingIndex, 1);
+    cases.unshift(caseData);
   } else {
-    cases.push(caseData);
+    // New case - add to front
+    cases.unshift(caseData);
   }
   
   localStorage.setItem(CASES_KEY, JSON.stringify(cases));
@@ -90,6 +93,11 @@ export const updateCaseStatus = (caseId: string, status: CaseBooking['status'], 
         }
       }
     }
+    
+    // Move updated case to front for better visibility
+    cases.splice(caseIndex, 1);
+    cases.unshift(caseData);
+    
     localStorage.setItem(CASES_KEY, JSON.stringify(cases));
   }
 };
