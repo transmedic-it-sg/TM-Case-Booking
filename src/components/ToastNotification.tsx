@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSound } from '../contexts/SoundContext';
 
 export interface ToastData {
@@ -22,6 +22,13 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onClose })
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const { playSound } = useSound();
+
+  const handleClose = useCallback(() => {
+    setIsLeaving(true);
+    setTimeout(() => {
+      onClose(toast.id);
+    }, 300); // Animation duration
+  }, [onClose, toast.id]);
 
   useEffect(() => {
     // Trigger entrance animation
@@ -48,14 +55,7 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onClose })
     }, duration);
 
     return () => clearTimeout(autoCloseTimer);
-  }, [toast, playSound]);
-
-  const handleClose = () => {
-    setIsLeaving(true);
-    setTimeout(() => {
-      onClose(toast.id);
-    }, 300); // Animation duration
-  };
+  }, [toast, playSound, handleClose]);
 
   const getToastIcon = () => {
     switch (toast.type) {

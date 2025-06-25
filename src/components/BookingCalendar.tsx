@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { getDepartments } from '../utils/codeTable';
 import { getCurrentUser } from '../utils/auth';
 import { getCases } from '../utils/storage';
-import { CaseBooking } from '../types';
+import { CaseBooking, COUNTRIES } from '../types';
 import SearchableDropdown from './SearchableDropdown';
+import { getMonthYearDisplay } from '../utils/dateFormat';
+import { getStatusColor } from './CasesList/utils';
 import './BookingCalendar.css';
 
 interface BookingCalendarProps {
@@ -15,11 +17,25 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
   const [departments, setDepartments] = useState<string[]>([]);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [cases, setCases] = useState<CaseBooking[]>([]);
+  const [showMoreCasesPopup, setShowMoreCasesPopup] = useState(false);
+  const [moreCasesData, setMoreCasesData] = useState<{date: string, cases: CaseBooking[]}>({date: '', cases: []});
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
+  const [selectedCountry, setSelectedCountry] = useState<string>('');
+
+  // Determine the active country (Admin selected country or user's country)
+  const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
+  const isAdmin = currentUser?.role === 'admin';
+  const activeCountry = isAdmin && selectedCountry ? selectedCountry : userCountry;
 
   useEffect(() => {
     const user = getCurrentUser();
     setCurrentUser(user);
+    
+    // Initialize selected country for Admin users
+    if (user?.role === 'admin' && !selectedCountry) {
+      const defaultCountry = user?.selectedCountry || user?.countries?.[0] || COUNTRIES[0];
+      setSelectedCountry(defaultCountry);
+    }
     
     // Get departments filtered by user's assigned departments
     const userDepartments = getDepartments(user?.departments);
@@ -27,19 +43,20 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
     if (userDepartments.length > 0) {
       setSelectedDepartment(userDepartments[0]);
     }
-    
-    // Load and filter cases by user's country and departments
+  }, [selectedCountry]);
+
+  // Load and filter cases whenever active country changes
+  useEffect(() => {
     const allCases = getCases();
     const filteredCases = allCases.filter(caseItem => {
-      // Filter by user's country
-      const userCountry = user?.selectedCountry || user?.countries?.[0];
-      if (userCountry && caseItem.country !== userCountry) {
+      // Filter by active country
+      if (activeCountry && caseItem.country !== activeCountry) {
         return false;
       }
       
       // Filter by user's assigned departments (unless admin/IT)
-      if (user?.role !== 'admin' && user?.role !== 'it') {
-        if (user?.departments && !user.departments.includes(caseItem.department)) {
+      if (currentUser?.role !== 'admin' && currentUser?.role !== 'it') {
+        if (currentUser?.departments && !currentUser.departments.includes(caseItem.department)) {
           return false;
         }
       }
@@ -47,7 +64,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
       return true;
     });
     setCases(filteredCases);
-  }, []);
+  }, [activeCountry, currentUser]);
 
   // Calendar helper functions
   const getDaysInMonth = (date: Date): number => {
@@ -59,7 +76,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
   };
 
   const getMonthName = (date: Date): string => {
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return getMonthYearDisplay(date);
   };
 
   const navigateMonth = (direction: 'prev' | 'next'): void => {
@@ -78,12 +95,16 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
   const getCasesForDay = (day: number): CaseBooking[] => {
     if (!selectedDepartment) return [];
     
-    const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
-      .toISOString().split('T')[0];
+    // Create date string without timezone issues
+    const year = currentDate.getFullYear();
+    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+    const dayStr = day.toString().padStart(2, '0');
+    const dateStr = `${year}-${month}-${dayStr}`;
     
     return cases.filter(caseItem => 
       caseItem.dateOfSurgery === dateStr && 
-      caseItem.department === selectedDepartment
+      caseItem.department === selectedDepartment &&
+      caseItem.status !== 'Case Cancelled'  // Exclude cancelled cases
     );
   };
 
@@ -118,20 +139,64 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
         <div key={day} className={dayClass}>
           <div className="calendar-day-number">{day}</div>
           <div className="calendar-day-content">
-            {dayCases.map((caseItem, index) => (
-              <div 
-                key={`${caseItem.id}-${index}`} 
-                className="booking-item"
-                title={`${caseItem.caseReferenceNumber} - ${caseItem.procedureName} - ${caseItem.doctorName} - Status: ${caseItem.status}`}
-                onClick={() => onCaseClick?.(caseItem.id)}
-              >
-                <div className="booking-time">{caseItem.timeOfProcedure || 'TBD'}</div>
-                <div className="booking-title">{caseItem.procedureName}</div>
-                <div className="booking-doctor" style={{fontSize: '9px', opacity: 0.8}}>
-                  Dr. {caseItem.doctorName}
-                </div>
-              </div>
-            ))}
+            {(() => {
+              // Sort cases by time, showing earliest first
+              const sortedCases = dayCases.sort((a, b) => {
+                const timeA = a.timeOfProcedure || '23:59';
+                const timeB = b.timeOfProcedure || '23:59';
+                return timeA.localeCompare(timeB);
+              });
+              
+              const displayCases = sortedCases.slice(0, 2);
+              const remainingCases = sortedCases.slice(2);
+              
+              return (
+                <>
+                  {displayCases.map((caseItem, index) => (
+                    <div 
+                      key={`${caseItem.id}-${index}`} 
+                      className="booking-item"
+                      style={{
+                        backgroundColor: getStatusColor(caseItem.status),
+                        color: 'white'
+                      }}
+                      title={`${caseItem.caseReferenceNumber} - ${caseItem.procedureType} at ${caseItem.hospital} - Dr. ${caseItem.doctorName} - Status: ${caseItem.status}`}
+                      onClick={() => onCaseClick?.(caseItem.id)}
+                    >
+                      <div className="booking-time" style={{color: 'white', fontWeight: 'bold'}}>{caseItem.timeOfProcedure || 'TBD'}</div>
+                      <div className="booking-hospital" style={{fontSize: '9px', fontWeight: 'bold', color: 'white'}}>
+                        {caseItem.hospital}
+                      </div>
+                      <div className="booking-procedure" style={{fontSize: '10px', fontWeight: '500', color: 'white'}}>
+                        {caseItem.procedureType}
+                      </div>
+                      <div className="booking-doctor" style={{fontSize: '9px', color: 'white', opacity: 0.9}}>
+                        Dr. {caseItem.doctorName || 'TBD'}
+                      </div>
+                    </div>
+                  ))}
+                  {remainingCases.length > 0 && (
+                    <div 
+                      className="more-cases-button"
+                      onClick={() => {
+                        // Create date string without timezone issues
+                        const year = currentDate.getFullYear();
+                        const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+                        const dayStr = day.toString().padStart(2, '0');
+                        const dateStr = `${dayStr}/${month}/${year}`;
+                        setMoreCasesData({
+                          date: dateStr,
+                          cases: remainingCases
+                        });
+                        setShowMoreCasesPopup(true);
+                      }}
+                    >
+                      +{remainingCases.length} More Case{remainingCases.length > 1 ? 's' : ''}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       );
@@ -148,11 +213,26 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
   return (
     <div className="booking-calendar">
       <div className="booking-calendar-header">
-        <h2>📅 Booking Calendar</h2>
-        <p>View and manage case bookings by department 
-          {currentUser?.selectedCountry && (
-            <span> • Country: <strong>{currentUser.selectedCountry}</strong></span>
+        <div className="calendar-title-row">
+          <h2>📅 Booking Calendar</h2>
+          {isAdmin && (
+            <div className="admin-country-selector">
+              <label htmlFor="calendar-country-select">Country:</label>
+              <select
+                id="calendar-country-select"
+                value={selectedCountry || ''}
+                onChange={(e) => setSelectedCountry(e.target.value)}
+                className="country-select"
+              >
+                {COUNTRIES.map(country => (
+                  <option key={country} value={country}>{country}</option>
+                ))}
+              </select>
+            </div>
           )}
+        </div>
+        <p>View and manage case bookings by department 
+          <span> • Country: <strong>{activeCountry}</strong></span>
           {currentUser?.role !== 'admin' && currentUser?.role !== 'it' && (
             <span> • Filtered by your assigned departments</span>
           )}
@@ -203,6 +283,54 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
           </div>
         )}
       </div>
+
+      {/* More Cases Popup */}
+      {showMoreCasesPopup && (
+        <div className="more-cases-modal-overlay" onClick={() => setShowMoreCasesPopup(false)}>
+          <div className="more-cases-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="more-cases-header">
+              <h3>Additional Cases for {moreCasesData.date}</h3>
+              <button 
+                className="close-button"
+                onClick={() => setShowMoreCasesPopup(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="more-cases-content">
+              {moreCasesData.cases.map((caseItem, index) => (
+                <div 
+                  key={`more-${caseItem.id}-${index}`} 
+                  className="more-case-item"
+                  style={{
+                    backgroundColor: getStatusColor(caseItem.status),
+                    color: 'white'
+                  }}
+                  onClick={() => {
+                    onCaseClick?.(caseItem.id);
+                    setShowMoreCasesPopup(false);
+                  }}
+                >
+                  <div className="more-case-time" style={{color: 'white', fontWeight: 'bold'}}>{caseItem.timeOfProcedure || 'TBD'}</div>
+                  <div className="more-case-info">
+                    <div className="more-case-hospital" style={{fontWeight: 'bold', color: 'white', fontSize: '12px'}}>
+                      {caseItem.hospital}
+                    </div>
+                    <div className="more-case-procedure" style={{fontWeight: '500', fontSize: '13px', color: 'white'}}>
+                      {caseItem.procedureType}
+                    </div>
+                    <div className="more-case-details">
+                      <span style={{color: 'white'}}>Dr. {caseItem.doctorName || 'TBD'}</span>
+                      <span className="case-ref" style={{color: 'white', opacity: 0.9}}>{caseItem.caseReferenceNumber}</span>
+                    </div>
+                    <div className="more-case-status" style={{color: 'white', fontWeight: 'bold'}}>{caseItem.status}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

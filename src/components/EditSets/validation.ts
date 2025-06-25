@@ -39,7 +39,7 @@ export const validateItemName = (
   }
 
   // Special characters validation
-  const validNamePattern = /^[a-zA-Z0-9\s\-\(\)]+$/;
+  const validNamePattern = /^[a-zA-Z0-9\s\-()]+$/;
   if (!validNamePattern.test(trimmedName)) {
     return {
       isValid: false,

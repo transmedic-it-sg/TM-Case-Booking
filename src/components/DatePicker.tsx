@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDate } from '../utils/dateFormat';
 
 interface DatePickerProps {
   id?: string;
@@ -39,13 +40,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const formatDisplayDate = (dateString: string) => {
     if (!dateString) return '';
     try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
+      return formatDate(dateString);
     } catch {
       return dateString;
     }

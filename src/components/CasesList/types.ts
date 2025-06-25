@@ -3,6 +3,8 @@ import { CaseBooking, CaseStatus, User } from '../../types';
 export interface CasesListProps {
   onProcessCase: (caseData: CaseBooking) => void;
   currentUser: User | null;
+  highlightedCaseId?: string | null;
+  onClearHighlight?: () => void;
   onNavigateToPermissions?: () => void;
 }
 
@@ -11,10 +13,13 @@ export interface CaseCardProps {
   currentUser: User | null;
   expandedCases: Set<string>;
   expandedStatusHistory: Set<string>;
+  expandedAmendmentHistory: Set<string>;
   amendingCase: string | null;
   amendmentData: Partial<CaseBooking>;
   processingCase: string | null;
   processDetails: string;
+  processAttachments: string[];
+  processComments: string;
   deliveryCase: string | null;
   deliveryDetails: string;
   receivedCase: string | null;
@@ -24,8 +29,15 @@ export interface CaseCardProps {
   attachments: string[];
   orderSummary: string;
   doNumber: string;
+  pendingOfficeCase: string | null;
+  pendingOfficeAttachments: string[];
+  pendingOfficeComments: string;
+  officeDeliveryCase: string | null;
+  officeDeliveryAttachments: string[];
+  officeDeliveryComments: string;
   onToggleExpansion: (caseId: string) => void;
   onToggleStatusHistory: (caseId: string) => void;
+  onToggleAmendmentHistory: (caseId: string) => void;
   onStatusChange: (caseId: string, newStatus: CaseStatus) => void;
   onAmendCase: (caseItem: CaseBooking) => void;
   onSaveAmendment: (caseId: string) => void;
@@ -40,6 +52,12 @@ export interface CaseCardProps {
   onCaseCompleted: (caseId: string) => void;
   onSaveCaseCompleted: (caseId: string) => void;
   onCancelCompleted: () => void;
+  onPendingDeliveryOffice: (caseId: string) => void;
+  onSavePendingOffice: (caseId: string) => void;
+  onCancelPendingOffice: () => void;
+  onOfficeDelivery: (caseId: string) => void;
+  onSaveOfficeDelivery: (caseId: string) => void;
+  onCancelOfficeDelivery: () => void;
   onOrderDeliveredOffice: (caseId: string) => void;
   onToBeBilled: (caseId: string) => void;
   onDeleteCase: (caseId: string, caseItem: CaseBooking) => void;
@@ -48,10 +66,16 @@ export interface CaseCardProps {
   onRemoveAttachment: (index: number) => void;
   onAmendmentDataChange: (data: Partial<CaseBooking>) => void;
   onProcessDetailsChange: (details: string) => void;
+  onProcessAttachmentsChange: (attachments: string[]) => void;
+  onProcessCommentsChange: (comments: string) => void;
   onReceivedDetailsChange: (details: string) => void;
   onReceivedImageChange: (image: string) => void;
   onOrderSummaryChange: (summary: string) => void;
   onDoNumberChange: (doNumber: string) => void;
+  onPendingOfficeAttachmentsChange: (attachments: string[]) => void;
+  onPendingOfficeCommentsChange: (comments: string) => void;
+  onOfficeDeliveryAttachmentsChange: (attachments: string[]) => void;
+  onOfficeDeliveryCommentsChange: (comments: string) => void;
   onNavigateToPermissions?: () => void;
 }
 
@@ -65,6 +89,8 @@ export interface CaseActionsProps {
   onOrderDelivered: (caseId: string) => void;
   onOrderReceived: (caseId: string) => void;
   onCaseCompleted: (caseId: string) => void;
+  onPendingDeliveryOffice: (caseId: string) => void;
+  onOfficeDelivery: (caseId: string) => void;
   onOrderDeliveredOffice: (caseId: string) => void;
   onToBeBilled: (caseId: string) => void;
   onCancelCase: (caseId: string) => void;

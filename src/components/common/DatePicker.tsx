@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { formatDate, formatDateForInput, getTodayForInput, addDaysForInput } from '../../utils/dateFormat';
 
 interface DatePickerProps {
   id?: string;
@@ -35,12 +36,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
     if (value) {
       const date = new Date(value);
       if (!isNaN(date.getTime())) {
-        setDisplayValue(date.toLocaleDateString('en-US', {
-          weekday: 'short',
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        }));
+        setDisplayValue(formatDate(date));
       }
     } else {
       setDisplayValue('');
@@ -93,17 +89,13 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const getMinDate = () => {
     if (min) return min;
     // Default to today for surgery dates to prevent past dates
-    const today = new Date();
-    today.setDate(today.getDate() - 1); // Allow yesterday
-    return today.toISOString().split('T')[0];
+    return addDaysForInput(-1); // Allow yesterday
   };
 
   const getMaxDate = () => {
     if (max) return max;
     // Default to 2 years from now
-    const maxDate = new Date();
-    maxDate.setFullYear(maxDate.getFullYear() + 2);
-    return maxDate.toISOString().split('T')[0];
+    return addDaysForInput(730); // Approximately 2 years
   };
 
   return (
@@ -168,8 +160,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
             <button
               type="button"
               onClick={() => {
-                const today = new Date().toISOString().split('T')[0];
-                onChange(today);
+                onChange(getTodayForInput());
                 setIsOpen(false);
               }}
               className="date-shortcut-button"
@@ -179,9 +170,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
             <button
               type="button"
               onClick={() => {
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                onChange(tomorrow.toISOString().split('T')[0]);
+                onChange(addDaysForInput(1));
                 setIsOpen(false);
               }}
               className="date-shortcut-button"
@@ -191,9 +180,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
             <button
               type="button"
               onClick={() => {
-                const nextWeek = new Date();
-                nextWeek.setDate(nextWeek.getDate() + 7);
-                onChange(nextWeek.toISOString().split('T')[0]);
+                onChange(addDaysForInput(7));
                 setIsOpen(false);
               }}
               className="date-shortcut-button"

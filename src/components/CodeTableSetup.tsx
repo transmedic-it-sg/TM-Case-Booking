@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission } from '../data/permissionMatrixData';
 import { useToast } from './ToastContainer';
@@ -6,7 +6,6 @@ import { useSound } from '../contexts/SoundContext';
 import { 
   getCodeTables, 
   saveCodeTables, 
-  getDefaultCodeTables, 
   initializeCodeTables,
   CodeTable 
 } from '../utils/codeTable';
@@ -19,38 +18,20 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
   const { modal, closeModal, showConfirm } = useModal();
   const [codeTables, setCodeTables] = useState<CodeTable[]>([]);
   const [selectedTable, setSelectedTable] = useState<string>('');
-  const [showAddTable, setShowAddTable] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
-  const [newTableName, setNewTableName] = useState('');
-  const [newTableDescription, setNewTableDescription] = useState('');
   const [newItemName, setNewItemName] = useState('');
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editItemValue, setEditItemValue] = useState('');
-  const [tableError, setTableError] = useState('');
   const [itemError, setItemError] = useState('');
 
-  const { showError, showSuccess } = useToast();
+  const { showSuccess } = useToast();
   const { playSound } = useSound();
   
   const currentUser = getCurrentUser();
   const canManageCodeTables = currentUser ? hasPermission(currentUser.role, 'code-table-setup') : false;
 
-  // Load code tables from localStorage
-  useEffect(() => {
-    initializeCodeTables();
-    const tables = getCodeTables();
-    
-    // Filter tables based on user's country access
-    const filteredTables = getFilteredTablesForUser(tables);
-    setCodeTables(filteredTables);
-    
-    if (filteredTables.length > 0 && !selectedTable) {
-      setSelectedTable(filteredTables[0].id);
-    }
-  }, []);
-
   // Filter code tables based on user's country access (VIEW ONLY - don't modify original data)
-  const getFilteredTablesForUser = (tables: CodeTable[]): CodeTable[] => {
+  const getFilteredTablesForUser = useCallback((tables: CodeTable[]): CodeTable[] => {
     if (!currentUser) return tables;
     
     // Admin and IT can see and modify all tables
@@ -69,7 +50,21 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       }
       return table;
     });
-  };
+  }, [currentUser]);
+
+  // Load code tables from localStorage
+  useEffect(() => {
+    initializeCodeTables();
+    const tables = getCodeTables();
+    
+    // Filter tables based on user's country access
+    const filteredTables = getFilteredTablesForUser(tables);
+    setCodeTables(filteredTables);
+    
+    if (filteredTables.length > 0 && !selectedTable) {
+      setSelectedTable(filteredTables[0].id);
+    }
+  }, [getFilteredTablesForUser, selectedTable]);
 
   // Save code tables to localStorage whenever they change
   useEffect(() => {
@@ -85,42 +80,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     return codeTables.find(table => table.id === selectedTable);
   };
 
-  const handleAddTable = () => {
-    const trimmedName = newTableName.trim();
-    const trimmedDescription = newTableDescription.trim();
-    
-    if (!trimmedName) {
-      setTableError('Table name is required');
-      return;
-    }
-    
-    if (codeTables.some(table => table.name.toLowerCase() === trimmedName.toLowerCase())) {
-      setTableError('A table with this name already exists');
-      return;
-    }
-    
-    if (trimmedName.length < 2) {
-      setTableError('Table name must be at least 2 characters');
-      return;
-    }
-
-    const newTable: CodeTable = {
-      id: trimmedName.toLowerCase().replace(/[^a-z0-9]/g, '-'),
-      name: trimmedName,
-      description: trimmedDescription || 'Custom code table',
-      items: []
-    };
-
-    setCodeTables(prev => [...prev, newTable]);
-    setSelectedTable(newTable.id);
-    setNewTableName('');
-    setNewTableDescription('');
-    setShowAddTable(false);
-    setTableError('');
-    
-    playSound.success();
-    showSuccess('Code Table Added', `"${trimmedName}" has been created successfully`);
-  };
 
 
   const handleAddItem = () => {

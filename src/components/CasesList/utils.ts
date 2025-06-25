@@ -1,4 +1,5 @@
 import { CaseStatus } from '../../types';
+import { formatDateTime as formatDateTimeUtil } from '../../utils/dateFormat';
 
 export const statusOptions: CaseStatus[] = [
   'Case Booked',
@@ -7,8 +8,10 @@ export const statusOptions: CaseStatus[] = [
   'Pending Delivery (Hospital)',
   'Delivered (Hospital)',
   'Case Completed',
+  'Pending Delivery (Office)',
   'Delivered (Office)',
   'To be billed',
+  'Case Closed',
   'Case Cancelled'
 ];
 
@@ -25,8 +28,12 @@ export const getNextResponsibleRole = (status: CaseStatus): string | null => {
     case 'Delivered (Hospital)':
       return 'Sales Team';
     case 'Case Completed':
+      return 'Sales / Driver';
+    case 'Pending Delivery (Office)':
       return 'Driver / Sales';
     case 'Delivered (Office)':
+      return 'Admin / System';
+    case 'To be billed':
       return 'Admin / System';
     default:
       return null;
@@ -52,7 +59,7 @@ export const getTooltipMessage = (requiredRoles: string[], action: string): stri
 };
 
 export const formatDateTime = (dateTime: string) => {
-  return new Date(dateTime).toLocaleString();
+  return formatDateTimeUtil(dateTime);
 };
 
 export const getStatusColor = (status: CaseStatus): string => {
@@ -63,8 +70,10 @@ export const getStatusColor = (status: CaseStatus): string => {
     case 'Pending Delivery (Hospital)': return '#4caf50';
     case 'Delivered (Hospital)': return '#00bcd4';
     case 'Case Completed': return '#8bc34a';
+    case 'Pending Delivery (Office)': return '#03a9f4';
     case 'Delivered (Office)': return '#607d8b';
     case 'To be billed': return '#795548';
+    case 'Case Closed': return '#4caf50';
     case 'Case Cancelled': return '#f44336';
     default: return '#757575';
   }

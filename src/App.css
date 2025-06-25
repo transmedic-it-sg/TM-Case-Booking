@@ -2635,6 +2635,21 @@ body {
   position: relative;
 }
 
+.case-card.highlighted-case {
+  animation: highlightPulse 2s ease-in-out;
+  box-shadow: 0 4px 20px rgba(32, 178, 170, 0.3);
+  transform: scale(1.02);
+}
+
+@keyframes highlightPulse {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(32, 178, 170, 0.1);
+  }
+  50% {
+    box-shadow: 0 8px 30px rgba(32, 178, 170, 0.4);
+  }
+}
+
 .case-card:hover {
   box-shadow: var(--shadow-medium);
   transform: translateY(-2px);
@@ -4143,31 +4158,6 @@ textarea:focus {
 }
 
 
-/* Amendment info styles */
-.amendment-info {
-  margin-top: 12px;
-  padding: 8px 12px;
-  background: rgba(255, 152, 0, 0.1);
-  border-radius: var(--border-radius);
-  border-left: 4px solid #ff9800;
-}
-
-.amendment-badge {
-  background: #ff9800;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: bold;
-  display: inline-block;
-  margin-bottom: 4px;
-}
-
-.amendment-info small {
-  display: block;
-  color: var(--text-secondary);
-  font-size: 12px;
-}
 
 /* Procedure Type Selector Styles */
 .procedure-type-selector {
@@ -4201,6 +4191,7 @@ textarea:focus {
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
+  text-align: center;
 }
 
 .procedure-tab:hover {
@@ -5074,36 +5065,67 @@ textarea:focus {
 
 .arrow-controls {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .arrow-button {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  color: #495057;
-  padding: 2px 6px;
-  border-radius: 3px;
+  background: #e3f2fd;
+  border: 1px solid #2196f3;
+  color: #1976d2;
+  padding: 6px 8px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 14px;
+  font-weight: 500;
   line-height: 1;
   transition: all 0.2s ease;
-  min-width: 20px;
-  height: 16px;
+  min-width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
 }
 
 .arrow-button:hover:not(:disabled) {
-  background: #007bff;
-  border-color: #007bff;
+  background: #2196f3;
+  border-color: #2196f3;
   color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
 }
 
 .arrow-button:disabled {
-  opacity: 0.3;
+  opacity: 0.4;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Special styling for move-to-top and move-to-bottom buttons */
+.arrow-button.move-to-top {
+  background: linear-gradient(135deg, #4caf50, #45a049);
+  border-color: #4caf50;
+  color: white;
+}
+
+.arrow-button.move-to-top:hover:not(:disabled) {
+  background: linear-gradient(135deg, #45a049, #3d8b40);
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.arrow-button.move-to-bottom {
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  border-color: #ff9800;
+  color: white;
+}
+
+.arrow-button.move-to-bottom:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f57c00, #ef6c00);
+  box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);
 }
 
 .edit-button-small {
@@ -7273,6 +7295,31 @@ textarea:focus {
   transform: scale(1.05);
 }
 
+/* Pending Delivery (Office) Button Color */
+.pending-office-button {
+  background-color: #03a9f4 !important;
+  color: white !important;
+  border: none !important;
+}
+
+.pending-office-button:hover {
+  background-color: #0288d1 !important;
+}
+
+/* Amendment History Header */
+.amendment-header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.expand-amendment-button {
+  margin-left: 15px;
+  font-size: 12px !important;
+  padding: 4px 12px !important;
+}
+
 /* Staggered List Item Animations */
 .case-item:nth-child(odd) { animation: pageSlideUp 0.5s ease 0.1s both; }
 .case-item:nth-child(even) { animation: pageSlideUp 0.5s ease 0.2s both; }
@@ -7315,4 +7362,104 @@ textarea:focus {
   color: #6c5214;
   font-style: normal;
   margin-right: 4px;
+}
+
+/* Amendment History Styling */
+/* New amendment layout - removed amendment-header, now using amendment-content */
+.detail-item.amendment-history {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.amendment-content {
+  flex: 1;
+  padding: 12px;
+  background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%);
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.amendment-badge {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(255, 107, 107, 0.3);
+  flex-shrink: 0;
+}
+
+.amendment-metadata {
+  align-self: flex-end;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.amendment-metadata div {
+  margin-bottom: 2px;
+  font-size: 12px;
+  color: #666;
+}
+
+/* EditSets Admin Country Selector */
+.edit-sets-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.admin-country-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--background-light);
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+}
+
+.admin-country-selector label {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.admin-country-selector .country-select {
+  padding: 6px 12px;
+  border: 2px solid var(--border-light);
+  border-radius: 6px;
+  font-size: 14px;
+  min-width: 140px;
+  background: white;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.admin-country-selector .country-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
+}
+
+@media (max-width: 768px) {
+  .edit-sets-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .admin-country-selector {
+    align-self: stretch;
+    justify-content: space-between;
+  }
 }

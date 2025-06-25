@@ -88,8 +88,10 @@ export const PERMISSION_ACTIONS = {
   PENDING_DELIVERY_HOSPITAL: 'pending-delivery-hospital',
   DELIVERED_HOSPITAL: 'delivered-hospital',
   CASE_COMPLETED: 'case-completed',
+  PENDING_DELIVERY_OFFICE: 'pending-delivery-office',
   DELIVERED_OFFICE: 'delivered-office',
   TO_BE_BILLED: 'to-be-billed',
+  CASE_CLOSED: 'case-closed',
   
   // User Management
   CREATE_USER: 'create-user',

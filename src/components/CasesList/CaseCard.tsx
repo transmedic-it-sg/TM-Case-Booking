@@ -6,16 +6,20 @@ import { getCurrentUser } from '../../utils/auth';
 import { getAllProcedureTypes } from '../../utils/storage';
 import { getDepartments, initializeCodeTables } from '../../utils/codeTable';
 import TimePicker from '../common/TimePicker';
+import { formatDate, getTodayForInput } from '../../utils/dateFormat';
 
 const CaseCard: React.FC<CaseCardProps> = ({
   caseItem,
   currentUser,
   expandedCases,
   expandedStatusHistory,
+  expandedAmendmentHistory,
   amendingCase,
   amendmentData,
   processingCase,
   processDetails,
+  processAttachments,
+  processComments,
   receivedCase,
   receivedDetails,
   receivedImage,
@@ -23,8 +27,15 @@ const CaseCard: React.FC<CaseCardProps> = ({
   attachments,
   orderSummary,
   doNumber,
+  pendingOfficeCase,
+  pendingOfficeAttachments,
+  pendingOfficeComments,
+  officeDeliveryCase,
+  officeDeliveryAttachments,
+  officeDeliveryComments,
   onToggleExpansion,
   onToggleStatusHistory,
+  onToggleAmendmentHistory,
   onStatusChange,
   onAmendCase,
   onSaveAmendment,
@@ -39,6 +50,12 @@ const CaseCard: React.FC<CaseCardProps> = ({
   onCaseCompleted,
   onSaveCaseCompleted,
   onCancelCompleted,
+  onPendingDeliveryOffice,
+  onSavePendingOffice,
+  onCancelPendingOffice,
+  onOfficeDelivery,
+  onSaveOfficeDelivery,
+  onCancelOfficeDelivery,
   onOrderDeliveredOffice,
   onToBeBilled,
   onDeleteCase,
@@ -47,10 +64,16 @@ const CaseCard: React.FC<CaseCardProps> = ({
   onRemoveAttachment,
   onAmendmentDataChange,
   onProcessDetailsChange,
+  onProcessAttachmentsChange,
+  onProcessCommentsChange,
   onReceivedDetailsChange,
   onReceivedImageChange,
   onOrderSummaryChange,
   onDoNumberChange,
+  onPendingOfficeAttachmentsChange,
+  onPendingOfficeCommentsChange,
+  onOfficeDeliveryAttachmentsChange,
+  onOfficeDeliveryCommentsChange,
   onNavigateToPermissions
 }) => {
   const [availableProcedureTypes, setAvailableProcedureTypes] = useState<string[]>([]);
@@ -59,7 +82,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
   // Load dynamic procedure types and departments on component mount
   useEffect(() => {
     initializeCodeTables();
-    const allTypes = getAllProcedureTypes();
+    const currentUser = getCurrentUser();
+    const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
+    const allTypes = getAllProcedureTypes(userCountry);
     setAvailableProcedureTypes(allTypes);
     
     // Load departments from code tables
@@ -91,8 +116,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
     // Ensure current value exists and is different from original
     if (currentValue && currentValue.trim() !== originalValue.trim()) {
       return (
-        <div className="original-value-display">
-          <span className="original-value-label">Original Value:</span> {originalValue}
+        <div className="detail-item">
+          <span className="detail-label">Original Value: </span>
+          <span className="detail-value">{originalValue}</span>
         </div>
       );
     }
@@ -101,19 +127,20 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
   return (
     <div 
+      id={`case-${caseItem.id}`}
       className="case-card"
       style={{ '--status-color': getStatusColor(caseItem.status) } as React.CSSProperties}
     >
       <div className="case-summary" onClick={() => onToggleExpansion(caseItem.id)}>
         <div className="case-main-info">
           <div className="case-title">
-            <span className="case-title-label">Case Title:</span>
-            <strong>{caseItem.procedureType}</strong>
+            <span className="case-title-label">Submitted by:</span>
+            <strong>{caseItem.submittedBy}</strong>
             <span className="case-reference">#{caseItem.caseReferenceNumber}</span>
           </div>
           <div className="case-meta">
-            <span>Submitted by: {caseItem.submittedBy}</span>
-            <span>Date: {new Date(caseItem.submittedAt).toLocaleDateString()}</span>
+            <span>Case Title: {caseItem.procedureType}</span>
+            <span>Surgery Date: {formatDate(caseItem.dateOfSurgery)}</span>
             <span>Hospital: {caseItem.hospital}</span>
             <span>Department: {caseItem.department}</span>
             {currentUser?.role === 'admin' && (
@@ -144,27 +171,34 @@ const CaseCard: React.FC<CaseCardProps> = ({
         <div className="case-details">
           <div className="details-grid">
             <div className="detail-item">
-              <strong>Surgery Date:</strong> {caseItem.dateOfSurgery}
+              <span className="detail-label">Submission Date: </span>
+              <span className="detail-value">{formatDate(caseItem.submittedAt)}</span>
             </div>
             <div className="detail-item">
-              <strong>Time of Procedure:</strong> {caseItem.timeOfProcedure || 'Not specified'}
+              <span className="detail-label">Surgery Date: </span>
+              <span className="detail-value">{formatDate(caseItem.dateOfSurgery)}</span>
+            </div>
+            <div className="detail-item">
+              <span className="detail-label">Time of Procedure: </span>
+              <span className="detail-value">{caseItem.timeOfProcedure || 'Not specified'}</span>
             </div>
             {caseItem.doctorName && (
               <div className="detail-item">
-                <strong>Doctor Name:</strong> {caseItem.doctorName}
+                <span className="detail-label">Doctor Name: </span>
+                <span className="detail-value">{caseItem.doctorName}</span>
               </div>
             )}
             <div className="detail-item">
-              <strong>Surgery Set Selection:</strong>
-              <ul>
+              <span className="detail-label">Surgery Set Selection: </span>
+              <ul className="detail-value">
                 {caseItem.surgerySetSelection.map(set => (
                   <li key={set}>{set}</li>
                 ))}
               </ul>
             </div>
             <div className="detail-item">
-              <strong>Implant Box:</strong>
-              <ul>
+              <span className="detail-label">Implant Box: </span>
+              <ul className="detail-value">
                 {caseItem.implantBox.map(box => (
                   <li key={box}>{box}</li>
                 ))}
@@ -172,50 +206,72 @@ const CaseCard: React.FC<CaseCardProps> = ({
             </div>
             {caseItem.specialInstruction && (
               <div className="detail-item full-width">
-                <strong>Special Instructions:</strong>
-                <p>{caseItem.specialInstruction}</p>
+                <span className="detail-label">Special Instructions: </span>
+                <p className="detail-value">{caseItem.specialInstruction}</p>
               </div>
             )}
             {caseItem.isAmended && caseItem.originalValues && (
               <div className="detail-item full-width amendment-history">
-                <strong>Original Values (Before Amendment):</strong>
-                <div className="original-values-grid">
-                  {caseItem.originalValues.hospital && (
-                    <div className="original-value-item">
-                      <span className="original-label">Hospital:</span> {caseItem.originalValues.hospital}
-                    </div>
-                  )}
-                  {caseItem.originalValues.department && (
-                    <div className="original-value-item">
-                      <span className="original-label">Department:</span> {caseItem.originalValues.department}
-                    </div>
-                  )}
-                  {caseItem.originalValues.dateOfSurgery && (
-                    <div className="original-value-item">
-                      <span className="original-label">Surgery Date:</span> {new Date(caseItem.originalValues.dateOfSurgery).toLocaleDateString()}
-                    </div>
-                  )}
-                  {caseItem.originalValues.procedureType && (
-                    <div className="original-value-item">
-                      <span className="original-label">Procedure Type:</span> {caseItem.originalValues.procedureType}
-                    </div>
-                  )}
-                  {caseItem.originalValues.doctorName && (
-                    <div className="original-value-item">
-                      <span className="original-label">Doctor Name:</span> {caseItem.originalValues.doctorName}
-                    </div>
-                  )}
-                  {caseItem.originalValues.timeOfProcedure && (
-                    <div className="original-value-item">
-                      <span className="original-label">Time of Procedure:</span> {caseItem.originalValues.timeOfProcedure}
-                    </div>
-                  )}
-                  {caseItem.originalValues.specialInstruction && (
-                    <div className="original-value-item">
-                      <span className="original-label">Special Instructions:</span> {caseItem.originalValues.specialInstruction}
-                    </div>
-                  )}
+                <div className="amendment-header-container">
+                  <span className="amendment-badge">AMENDED</span>
+                  <button
+                    onClick={() => onToggleAmendmentHistory(caseItem.id)}
+                    className="btn btn-outline-secondary btn-sm expand-amendment-button"
+                  >
+                    {expandedAmendmentHistory.has(caseItem.id) 
+                      ? 'Hide Amendment History' 
+                      : 'View Amendment History'
+                    }
+                  </button>
                 </div>
+                {expandedAmendmentHistory.has(caseItem.id) && (
+                  <div className="amendment-content">
+                    <div style={{marginBottom: '12px'}}>
+                      <strong>Original Values (Before Amendment):</strong>
+                    </div>
+                    <div className="original-values-grid">
+                      {caseItem.originalValues.hospital && (
+                        <div className="original-value-item">
+                          <span className="original-label">Hospital:</span> {caseItem.originalValues.hospital}
+                        </div>
+                      )}
+                      {caseItem.originalValues.department && (
+                        <div className="original-value-item">
+                          <span className="original-label">Department:</span> {caseItem.originalValues.department}
+                        </div>
+                      )}
+                      {caseItem.originalValues.dateOfSurgery && (
+                        <div className="original-value-item">
+                          <span className="original-label">Surgery Date:</span> {formatDate(caseItem.originalValues.dateOfSurgery)}
+                        </div>
+                      )}
+                      {caseItem.originalValues.procedureType && (
+                        <div className="original-value-item">
+                          <span className="original-label">Procedure Type:</span> {caseItem.originalValues.procedureType}
+                        </div>
+                      )}
+                      {caseItem.originalValues.doctorName && (
+                        <div className="original-value-item">
+                          <span className="original-label">Doctor Name:</span> {caseItem.originalValues.doctorName}
+                        </div>
+                      )}
+                      {caseItem.originalValues.timeOfProcedure && (
+                        <div className="original-value-item">
+                          <span className="original-label">Time of Procedure:</span> {caseItem.originalValues.timeOfProcedure}
+                        </div>
+                      )}
+                      {caseItem.originalValues.specialInstruction && (
+                        <div className="original-value-item">
+                          <span className="original-label">Special Instructions:</span> {caseItem.originalValues.specialInstruction}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{fontSize: '12px', color: '#666', textAlign: 'right', marginTop: '15px', border: 'none', background: 'none'}}>
+                      <div>Amended by: {caseItem.amendedBy || 'Unknown'}</div>
+                      <div>Amended at: {caseItem.amendedAt ? formatDateTime(caseItem.amendedAt) : 'N/A'}</div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {caseItem.processedBy && (
@@ -280,8 +336,21 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                               <img 
                                                 src={parsedDetails.deliveryImage} 
                                                 alt="Delivery confirmation" 
-                                                className="delivery-image"
-                                                style={{ maxWidth: '200px', maxHeight: '150px', borderRadius: '4px', border: '1px solid #ddd' }}
+                                                className="delivery-image clickable-image"
+                                                style={{ maxWidth: '200px', maxHeight: '150px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
+                                                onClick={() => {
+                                                  const modal = document.createElement('div');
+                                                  modal.className = 'image-modal';
+                                                  modal.innerHTML = `
+                                                    <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                                      <img src="${parsedDetails.deliveryImage}" alt="Delivery confirmation" style="max-width: 90%; max-height: 90%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                                                    </div>
+                                                  `;
+                                                  document.body.appendChild(modal);
+                                                  modal.addEventListener('click', () => {
+                                                    document.body.removeChild(modal);
+                                                  });
+                                                }}
                                               />
                                             </div>
                                           )}
@@ -341,8 +410,21 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                               <img 
                                                 src={parsedDetails.deliveryImage} 
                                                 alt="Delivery confirmation" 
-                                                className="delivery-image"
-                                                style={{ maxWidth: '200px', maxHeight: '150px', borderRadius: '4px', border: '1px solid #ddd' }}
+                                                className="delivery-image clickable-image"
+                                                style={{ maxWidth: '200px', maxHeight: '150px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
+                                                onClick={() => {
+                                                  const modal = document.createElement('div');
+                                                  modal.className = 'image-modal';
+                                                  modal.innerHTML = `
+                                                    <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                                      <img src="${parsedDetails.deliveryImage}" alt="Delivery confirmation" style="max-width: 90%; max-height: 90%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+                                                    </div>
+                                                  `;
+                                                  document.body.appendChild(modal);
+                                                  modal.addEventListener('click', () => {
+                                                    document.body.removeChild(modal);
+                                                  });
+                                                }}
                                               />
                                             </div>
                                           )}
@@ -413,7 +495,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                     type="date"
                     value={amendmentData.dateOfSurgery || ''}
                     onChange={(e) => onAmendmentDataChange({ ...amendmentData, dateOfSurgery: e.target.value })}
-                    min={new Date().toISOString().split('T')[0]}
+                    min={getTodayForInput()}
                     required
                   />
                   {getOriginalValueDisplay('dateOfSurgery', amendmentData.dateOfSurgery, caseItem.originalValues?.dateOfSurgery)}
@@ -490,6 +572,73 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   rows={4}
                   className="process-details-input"
                 />
+              </div>
+              <div className="form-group">
+                <label>Attachments (Optional):</label>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files) {
+                      const newAttachments: string[] = [];
+                      Array.from(files).forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const fileData = {
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            data: reader.result as string
+                          };
+                          newAttachments.push(JSON.stringify(fileData));
+                          if (newAttachments.length === files.length) {
+                            onProcessAttachmentsChange([...processAttachments, ...newAttachments]);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                    }
+                  }}
+                  className="file-upload-input"
+                />
+                {processAttachments.length > 0 && (
+                  <div className="attachment-list">
+                    <p>Uploaded files ({processAttachments.length}):</p>
+                    {processAttachments.map((attachment, index) => {
+                      try {
+                        const fileData = JSON.parse(attachment);
+                        return (
+                          <div key={index} className="attachment-item">
+                            <span className="file-name">{fileData.name}</span>
+                            <span className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</span>
+                            <button
+                              onClick={() => onProcessAttachmentsChange(processAttachments.filter((_, i) => i !== index))}
+                              className="remove-attachment"
+                              type="button"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      } catch {
+                        return (
+                          <div key={index} className="attachment-item">
+                            <span className="file-name">Invalid file data</span>
+                            <button
+                              onClick={() => onProcessAttachmentsChange(processAttachments.filter((_, i) => i !== index))}
+                              className="remove-attachment"
+                              type="button"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                )}
               </div>
               <div className="processing-actions">
                 <button 
@@ -650,6 +799,202 @@ const CaseCard: React.FC<CaseCardProps> = ({
             </div>
           )}
 
+          {/* Pending Delivery (Office) Form */}
+          {pendingOfficeCase === caseItem.id && (
+            <div className="pending-office-form">
+              <h4>Pending Delivery to Office</h4>
+              <div className="form-group">
+                <label>Attachments (Optional):</label>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files) {
+                      const newAttachments: string[] = [];
+                      Array.from(files).forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const fileData = {
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            data: reader.result as string
+                          };
+                          newAttachments.push(JSON.stringify(fileData));
+                          if (newAttachments.length === files.length) {
+                            onPendingOfficeAttachmentsChange([...pendingOfficeAttachments, ...newAttachments]);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                    }
+                  }}
+                  className="file-upload-input"
+                />
+                {pendingOfficeAttachments.length > 0 && (
+                  <div className="attachment-list">
+                    <p>Uploaded files ({pendingOfficeAttachments.length}):</p>
+                    {pendingOfficeAttachments.map((attachment, index) => {
+                      try {
+                        const fileData = JSON.parse(attachment);
+                        return (
+                          <div key={index} className="attachment-item">
+                            <span className="file-name">{fileData.name}</span>
+                            <span className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</span>
+                            <button
+                              onClick={() => onPendingOfficeAttachmentsChange(pendingOfficeAttachments.filter((_, i) => i !== index))}
+                              className="remove-attachment"
+                              type="button"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      } catch {
+                        return (
+                          <div key={index} className="attachment-item">
+                            <span className="file-name">Invalid file data</span>
+                            <button
+                              onClick={() => onPendingOfficeAttachmentsChange(pendingOfficeAttachments.filter((_, i) => i !== index))}
+                              className="remove-attachment"
+                              type="button"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="form-group">
+                <label>Comments (Optional):</label>
+                <textarea
+                  value={pendingOfficeComments}
+                  onChange={(e) => onPendingOfficeCommentsChange(e.target.value)}
+                  placeholder="Add any additional comments or notes..."
+                  rows={3}
+                  className="comments-input"
+                />
+              </div>
+              <div className="pending-office-actions">
+                <button 
+                  onClick={() => onSavePendingOffice(caseItem.id)}
+                  className="btn btn-primary btn-md save-pending-office-button"
+                >
+                  Mark as Pending Delivery (Office)
+                </button>
+                <button 
+                  onClick={onCancelPendingOffice}
+                  className="btn btn-outline-secondary btn-md cancel-pending-office-button"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Office Delivery Form */}
+          {officeDeliveryCase === caseItem.id && (
+            <div className="office-delivery-form">
+              <h4>Delivery to Office</h4>
+              <div className="form-group">
+                <label>Attachments (Optional):</label>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files) {
+                      const newAttachments: string[] = [];
+                      Array.from(files).forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const fileData = {
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            data: reader.result as string
+                          };
+                          newAttachments.push(JSON.stringify(fileData));
+                          if (newAttachments.length === files.length) {
+                            onOfficeDeliveryAttachmentsChange([...officeDeliveryAttachments, ...newAttachments]);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                    }
+                  }}
+                  className="file-upload-input"
+                />
+                {officeDeliveryAttachments.length > 0 && (
+                  <div className="attachment-list">
+                    <p>Uploaded files ({officeDeliveryAttachments.length}):</p>
+                    {officeDeliveryAttachments.map((attachment, index) => {
+                      try {
+                        const fileData = JSON.parse(attachment);
+                        return (
+                          <div key={index} className="attachment-item">
+                            <span className="file-name">{fileData.name}</span>
+                            <span className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</span>
+                            <button
+                              onClick={() => onOfficeDeliveryAttachmentsChange(officeDeliveryAttachments.filter((_, i) => i !== index))}
+                              className="remove-attachment"
+                              type="button"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      } catch {
+                        return (
+                          <div key={index} className="attachment-item">
+                            <span className="file-name">Invalid file data</span>
+                            <button
+                              onClick={() => onOfficeDeliveryAttachmentsChange(officeDeliveryAttachments.filter((_, i) => i !== index))}
+                              className="remove-attachment"
+                              type="button"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="form-group">
+                <label>Comments (Optional):</label>
+                <textarea
+                  value={officeDeliveryComments}
+                  onChange={(e) => onOfficeDeliveryCommentsChange(e.target.value)}
+                  placeholder="Add any delivery notes or special instructions..."
+                  rows={3}
+                  className="comments-input"
+                />
+              </div>
+              <div className="office-delivery-actions">
+                <button 
+                  onClick={() => onSaveOfficeDelivery(caseItem.id)}
+                  className="btn btn-primary btn-md save-office-delivery-button"
+                >
+                  Mark as Delivered (Office)
+                </button>
+                <button 
+                  onClick={onCancelOfficeDelivery}
+                  className="btn btn-outline-secondary btn-md cancel-office-delivery-button"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           <CaseActions
             caseItem={caseItem}
             currentUser={currentUser}
@@ -660,6 +1005,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
             onOrderDelivered={onOrderDelivered}
             onOrderReceived={onOrderReceived}
             onCaseCompleted={onCaseCompleted}
+            onPendingDeliveryOffice={onPendingDeliveryOffice}
+            onOfficeDelivery={onOfficeDelivery}
             onOrderDeliveredOffice={onOrderDeliveredOffice}
             onToBeBilled={onToBeBilled}
             onCancelCase={onCancelCase}

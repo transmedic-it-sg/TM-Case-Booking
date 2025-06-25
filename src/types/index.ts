@@ -5,8 +5,10 @@ export type CaseStatus =
   | 'Pending Delivery (Hospital)'
   | 'Delivered (Hospital)'
   | 'Case Completed'
+  | 'Pending Delivery (Office)'
   | 'Delivered (Office)'
   | 'To be billed'
+  | 'Case Closed'
   | 'Case Cancelled';
 
 export const COUNTRIES = [

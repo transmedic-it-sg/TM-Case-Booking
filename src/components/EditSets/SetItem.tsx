@@ -63,7 +63,7 @@ const SetItem: React.FC<SetItemProps> = ({
                 onClick={() => onMove(type, index, 'up')}
                 className="arrow-button"
                 disabled={index === 0}
-                title="Move up"
+                title="Move up one position"
               >
                 ▲
               </button>
@@ -71,7 +71,7 @@ const SetItem: React.FC<SetItemProps> = ({
                 onClick={() => onMove(type, index, 'down')}
                 className="arrow-button"
                 disabled={index === totalItems - 1}
-                title="Move down"
+                title="Move down one position"
               >
                 ▼
               </button>

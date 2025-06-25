@@ -119,15 +119,27 @@ export const permissionActions: PermissionAction[] = [
     category: 'Status Transitions'
   },
   {
+    id: 'pending-delivery-office',
+    name: 'Pending Delivery (Office)',
+    description: 'Case Completed → Pending Delivery (Office)',
+    category: 'Status Transitions'
+  },
+  {
     id: 'delivered-office',
     name: 'Delivered (Office)',
-    description: 'Case Completed → Delivered (Office)',
+    description: 'Pending Delivery (Office) → Delivered (Office)',
     category: 'Status Transitions'
   },
   {
     id: 'to-be-billed',
     name: 'To be Billed',
-    description: 'Final billing status transition',
+    description: 'Delivered (Office) → To be Billed',
+    category: 'Status Transitions'
+  },
+  {
+    id: 'case-closed',
+    name: 'Case Closed',
+    description: 'To be Billed → Case Closed',
     category: 'Status Transitions'
   },
   {
@@ -256,8 +268,10 @@ export const permissions: Permission[] = [
   { actionId: 'pending-delivery-hospital', roleId: 'admin', allowed: true },
   { actionId: 'delivered-hospital', roleId: 'admin', allowed: true },
   { actionId: 'case-completed', roleId: 'admin', allowed: true },
+  { actionId: 'pending-delivery-office', roleId: 'admin', allowed: true },
   { actionId: 'delivered-office', roleId: 'admin', allowed: true },
   { actionId: 'to-be-billed', roleId: 'admin', allowed: true },
+  { actionId: 'case-closed', roleId: 'admin', allowed: true },
   { actionId: 'export-data', roleId: 'admin', allowed: true },
   { actionId: 'import-data', roleId: 'admin', allowed: true },
   { actionId: 'view-reports', roleId: 'admin', allowed: true },
@@ -281,6 +295,7 @@ export const permissions: Permission[] = [
   { actionId: 'amend-case', roleId: 'operations', allowed: true },
   { actionId: 'process-order', roleId: 'operations', allowed: true },
   { actionId: 'order-processed', roleId: 'operations', allowed: true },
+  { actionId: 'pending-delivery-hospital', roleId: 'operations', allowed: true },
   { actionId: 'upload-files', roleId: 'operations', allowed: true },
   { actionId: 'download-files', roleId: 'operations', allowed: true },
   { actionId: 'view-reports', roleId: 'operations', allowed: true },
@@ -294,6 +309,7 @@ export const permissions: Permission[] = [
   { actionId: 'booking-calendar', roleId: 'operation-manager', allowed: true },
   { actionId: 'process-order', roleId: 'operation-manager', allowed: true },
   { actionId: 'order-processed', roleId: 'operation-manager', allowed: true },
+  { actionId: 'pending-delivery-hospital', roleId: 'operation-manager', allowed: true },
   { actionId: 'upload-files', roleId: 'operation-manager', allowed: true },
   { actionId: 'download-files', roleId: 'operation-manager', allowed: true },
   { actionId: 'view-reports', roleId: 'operation-manager', allowed: true },
@@ -306,8 +322,10 @@ export const permissions: Permission[] = [
   { actionId: 'amend-case', roleId: 'sales', allowed: true },
   { actionId: 'booking-calendar', roleId: 'sales', allowed: true },
   { actionId: 'case-completed', roleId: 'sales', allowed: true },
+  { actionId: 'pending-delivery-office', roleId: 'sales', allowed: true },
   { actionId: 'delivered-office', roleId: 'sales', allowed: true },
   { actionId: 'to-be-billed', roleId: 'sales', allowed: true },
+  { actionId: 'case-closed', roleId: 'sales', allowed: true },
   { actionId: 'upload-files', roleId: 'sales', allowed: true },
   { actionId: 'download-files', roleId: 'sales', allowed: true },
   { actionId: 'view-reports', roleId: 'sales', allowed: true },
@@ -318,8 +336,10 @@ export const permissions: Permission[] = [
   { actionId: 'amend-case', roleId: 'sales-manager', allowed: true },
   { actionId: 'booking-calendar', roleId: 'sales-manager', allowed: true },
   { actionId: 'case-completed', roleId: 'sales-manager', allowed: true },
+  { actionId: 'pending-delivery-office', roleId: 'sales-manager', allowed: true },
   { actionId: 'delivered-office', roleId: 'sales-manager', allowed: true },
   { actionId: 'to-be-billed', roleId: 'sales-manager', allowed: true },
+  { actionId: 'case-closed', roleId: 'sales-manager', allowed: true },
   { actionId: 'upload-files', roleId: 'sales-manager', allowed: true },
   { actionId: 'download-files', roleId: 'sales-manager', allowed: true },
   { actionId: 'view-reports', roleId: 'sales-manager', allowed: true },
@@ -329,8 +349,10 @@ export const permissions: Permission[] = [
   { actionId: 'view-cases', roleId: 'driver', allowed: true },
   { actionId: 'pending-delivery-hospital', roleId: 'driver', allowed: true },
   { actionId: 'delivered-hospital', roleId: 'driver', allowed: true },
+  { actionId: 'pending-delivery-office', roleId: 'driver', allowed: true },
   { actionId: 'delivered-office', roleId: 'driver', allowed: true },
   { actionId: 'to-be-billed', roleId: 'driver', allowed: true },
+  { actionId: 'case-closed', roleId: 'driver', allowed: true },
   { actionId: 'upload-files', roleId: 'driver', allowed: true },
   { actionId: 'download-files', roleId: 'driver', allowed: true },
   

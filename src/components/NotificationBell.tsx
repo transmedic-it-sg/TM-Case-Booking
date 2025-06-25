@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useSound } from '../contexts/SoundContext';
+import { formatDate } from '../utils/dateFormat';
 
 const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -69,7 +70,7 @@ const NotificationBell: React.FC = () => {
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays}d ago`;
     
-    return notificationTime.toLocaleDateString();
+    return formatDate(notificationTime);
   }, []);
 
   const getNotificationIcon = useCallback((type: string) => {

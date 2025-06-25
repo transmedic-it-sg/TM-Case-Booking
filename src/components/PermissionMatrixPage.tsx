@@ -67,20 +67,6 @@ const PermissionMatrixPage: React.FC = () => {
     alert('Permissions saved successfully!');
   };
 
-  const getPermissionSummary = () => {
-    const summary = roles.map(role => {
-      const rolePermissions = permissions.filter(p => p.roleId === role.id && p.allowed);
-      return {
-        role: role.displayName,
-        permissionCount: rolePermissions.length,
-        permissions: rolePermissions.map(p => {
-          const action = permissionActions.find(a => a.id === p.actionId);
-          return action?.name || p.actionId;
-        })
-      };
-    });
-    return summary;
-  };
 
   const exportPermissions = () => {
     const dataStr = JSON.stringify(permissions, null, 2);

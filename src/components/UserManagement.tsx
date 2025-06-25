@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { User } from '../types';
 import { getUsers, addUser, getCurrentUser } from '../utils/auth';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -32,6 +32,9 @@ const UserManagement: React.FC = () => {
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
   const canCreateUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CREATE_USER) : false;
+  
+  // Ref for the add user form to handle click outside
+  const addUserFormRef = useRef<HTMLDivElement>(null);
   const canEditUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_USER) : false;
   const canDeleteUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.DELETE_USER) : false;
   const canEnableDisableUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.ENABLE_DISABLE_USER) : false;
@@ -48,6 +51,58 @@ const UserManagement: React.FC = () => {
     setAvailableCountries(getCountries());
     setAvailableDepartments(getDepartments());
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cancel edit handler - defined before useEffect to avoid dependency issues
+  const handleCancelEdit = useCallback(() => {
+    setEditingUser(null);
+    setShowAddUser(false);
+    setNewUser({
+      username: '',
+      password: '',
+      name: '',
+      role: currentUser?.role === 'admin' ? 'admin' : 'operations',
+      departments: [],
+      countries: [],
+      email: '',
+      enabled: true
+    });
+    setError('');
+  }, [currentUser?.role]);
+
+  // Handle click outside to close add user form
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showAddUser && 
+          addUserFormRef.current && 
+          !addUserFormRef.current.contains(event.target as Node)) {
+        // Don't close if clicking on dropdowns or their portals
+        const target = event.target as HTMLElement;
+        if (target.closest('.searchable-dropdown-container') || 
+            target.closest('.multi-select-dropdown-container') ||
+            target.closest('.dropdown-portal')) {
+          return;
+        }
+        
+        handleCancelEdit();
+      }
+    };
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && showAddUser) {
+        handleCancelEdit();
+      }
+    };
+
+    if (showAddUser) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [showAddUser, handleCancelEdit]);
 
   const loadUsers = () => {
     const allUsers = getUsers();
@@ -138,22 +193,6 @@ const UserManagement: React.FC = () => {
         type: newStatus ? 'success' : 'warning'
       });
     }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingUser(null);
-    setShowAddUser(false);
-    setNewUser({
-      username: '',
-      password: '',
-      name: '',
-      role: currentUser?.role === 'admin' ? 'admin' : 'operations',
-      departments: [],
-      countries: [],
-      email: '',
-      enabled: true
-    });
-    setError('');
   };
 
   const handleAddUser = (e: React.FormEvent) => {
@@ -275,7 +314,7 @@ const UserManagement: React.FC = () => {
       </div>
 
       {showAddUser && (
-        <div className="add-user-form">
+        <div className="add-user-form" ref={addUserFormRef}>
           <h3>{editingUser ? 'Edit User' : 'Add New User'}</h3>
           <form onSubmit={handleAddUser}>
             <div className="form-row">

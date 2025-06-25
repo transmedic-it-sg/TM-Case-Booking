@@ -12,7 +12,7 @@ import StatusChangeSuccessPopup from '../StatusChangeSuccessPopup';
 import CustomModal from '../CustomModal';
 import { useModal } from '../../hooks/useModal';
 
-const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNavigateToPermissions }) => {
+const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
   const { modal, closeModal, showConfirm } = useModal();
   const [cases, setCases] = useState<CaseBooking[]>([]);
@@ -23,6 +23,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
   const [tempFilters, setTempFilters] = useState<FilterOptions>({});
   const [expandedCases, setExpandedCases] = useState<Set<string>>(new Set());
   const [expandedStatusHistory, setExpandedStatusHistory] = useState<Set<string>>(new Set());
+  const [expandedAmendmentHistory, setExpandedAmendmentHistory] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const [showAllCases, setShowAllCases] = useState(true);
   const [amendingCase, setAmendingCase] = useState<string | null>(null);
@@ -38,6 +39,19 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
   const [attachments, setAttachments] = useState<string[]>([]);
   const [orderSummary, setOrderSummary] = useState('');
   const [doNumber, setDoNumber] = useState('');
+  
+  // State for new comment and attachment fields for status transitions
+  const [processAttachments, setProcessAttachments] = useState<string[]>([]);
+  const [processComments, setProcessComments] = useState('');
+  const [hospitalDeliveryAttachments, setHospitalDeliveryAttachments] = useState<string[]>([]);
+  const [hospitalDeliveryComments, setHospitalDeliveryComments] = useState('');
+  const [officeDeliveryCase, setOfficeDeliveryCase] = useState<string | null>(null);
+  const [officeDeliveryAttachments, setOfficeDeliveryAttachments] = useState<string[]>([]);
+  const [officeDeliveryComments, setOfficeDeliveryComments] = useState('');
+  const [pendingOfficeCase, setPendingOfficeCase] = useState<string | null>(null);
+  const [pendingOfficeAttachments, setPendingOfficeAttachments] = useState<string[]>([]);
+  const [pendingOfficeComments, setPendingOfficeComments] = useState('');
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [casesPerPage] = useState(5);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -92,6 +106,38 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
     
     setFilteredCases(filteredResults);
   }, [cases, filters]);
+
+  // Handle highlighted case from calendar
+  useEffect(() => {
+    if (highlightedCaseId) {
+      // Find which page the highlighted case is on
+      const caseIndex = filteredCases.findIndex(c => c.id === highlightedCaseId);
+      if (caseIndex !== -1) {
+        const targetPage = Math.ceil((caseIndex + 1) / casesPerPage);
+        setCurrentPage(targetPage);
+      }
+      
+      // Auto-expand the highlighted case
+      setExpandedCases(prev => new Set([...Array.from(prev), highlightedCaseId]));
+      
+      // Scroll to the case after a small delay to ensure it's rendered
+      setTimeout(() => {
+        const caseElement = document.getElementById(`case-${highlightedCaseId}`);
+        if (caseElement) {
+          caseElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+          // Add highlight effect
+          caseElement.classList.add('highlighted-case');
+          setTimeout(() => {
+            caseElement.classList.remove('highlighted-case');
+            onClearHighlight?.();
+          }, 3000);
+        }
+      }, 100);
+    }
+  }, [highlightedCaseId, onClearHighlight, filteredCases, casesPerPage]);
 
   const loadCases = () => {
     const allCases = getCases();
@@ -165,6 +211,18 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
     });
   };
 
+  const toggleAmendmentHistoryExpansion = (caseId: string) => {
+    setExpandedAmendmentHistory(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(caseId)) {
+        newSet.delete(caseId);
+      } else {
+        newSet.add(caseId);
+      }
+      return newSet;
+    });
+  };
+
   const handleStatusChange = (caseId: string, newStatus: CaseStatus) => {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
@@ -225,6 +283,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
   const handleOrderProcessed = (caseId: string) => {
     setProcessingCase(caseId);
     setProcessDetails('');
+    setProcessAttachments([]);
   };
 
   const handleSaveProcessDetails = (caseId: string) => {
@@ -239,9 +298,14 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
 
     try {
       const caseItem = cases.find(c => c.id === caseId);
-      updateCaseStatus(caseId, 'Order Prepared', currentUser.name, processDetails);
+      const additionalData = {
+        processDetails,
+        attachments: processAttachments
+      };
+      updateCaseStatus(caseId, 'Order Prepared', currentUser.name, JSON.stringify(additionalData));
       setProcessingCase(null);
       setProcessDetails('');
+      setProcessAttachments([]);
       loadCases();
       
       // Show success popup
@@ -315,6 +379,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
   const handleCancelProcessing = () => {
     setProcessingCase(null);
     setProcessDetails('');
+    setProcessAttachments([]);
   };
 
   // Pending Delivery (Hospital) workflow
@@ -325,7 +390,13 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
     }
     try {
       const caseItem = cases.find(c => c.id === caseId);
-      updateCaseStatus(caseId, 'Pending Delivery (Hospital)', currentUser.name);
+      const additionalData = {
+        attachments: hospitalDeliveryAttachments,
+        comments: hospitalDeliveryComments
+      };
+      updateCaseStatus(caseId, 'Pending Delivery (Hospital)', currentUser.name, JSON.stringify(additionalData));
+      setHospitalDeliveryAttachments([]);
+      setHospitalDeliveryComments('');
       loadCases();
       
       // Show success popup
@@ -482,6 +553,96 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
     }
   };
 
+  // Pending Delivery (Office) workflow handlers
+  const handlePendingDeliveryOffice = (caseId: string) => {
+    setPendingOfficeCase(caseId);
+    setPendingOfficeAttachments([]);
+    setPendingOfficeComments('');
+  };
+
+  const handleSavePendingOffice = (caseId: string) => {
+    const currentUser = getCurrentUser();
+    if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.PENDING_DELIVERY_OFFICE)) {
+      return;
+    }
+    try {
+      const caseItem = cases.find(c => c.id === caseId);
+      const additionalData = {
+        attachments: pendingOfficeAttachments,
+        comments: pendingOfficeComments
+      };
+      updateCaseStatus(caseId, 'Pending Delivery (Office)', currentUser.name, JSON.stringify(additionalData));
+      setPendingOfficeCase(null);
+      setPendingOfficeAttachments([]);
+      setPendingOfficeComments('');
+      loadCases();
+      
+      // Show success popup
+      setSuccessMessage('Case marked as pending delivery to office');
+      setShowSuccessPopup(true);
+      
+      // Add notification for status change
+      addNotification({
+        title: 'Pending Delivery to Office',
+        message: `Case ${caseItem?.caseReferenceNumber || caseId} is now pending delivery to office - updated by ${currentUser.name}`,
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Failed to update case status:', error);
+    }
+  };
+
+  const handleCancelPendingOffice = () => {
+    setPendingOfficeCase(null);
+    setPendingOfficeAttachments([]);
+    setPendingOfficeComments('');
+  };
+
+  // Enhanced Office Delivery workflow handlers
+  const handleOfficeDelivery = (caseId: string) => {
+    setOfficeDeliveryCase(caseId);
+    setOfficeDeliveryAttachments([]);
+    setOfficeDeliveryComments('');
+  };
+
+  const handleSaveOfficeDelivery = (caseId: string) => {
+    const currentUser = getCurrentUser();
+    if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.DELIVERED_OFFICE)) {
+      return;
+    }
+    try {
+      const caseItem = cases.find(c => c.id === caseId);
+      const additionalData = {
+        attachments: officeDeliveryAttachments,
+        comments: officeDeliveryComments
+      };
+      updateCaseStatus(caseId, 'Delivered (Office)', currentUser.name, JSON.stringify(additionalData));
+      setOfficeDeliveryCase(null);
+      setOfficeDeliveryAttachments([]);
+      setOfficeDeliveryComments('');
+      loadCases();
+      
+      // Show success popup
+      setSuccessMessage('Order successfully delivered to office');
+      setShowSuccessPopup(true);
+      
+      // Add notification for status change
+      addNotification({
+        title: 'Delivered to Office',
+        message: `Case ${caseItem?.caseReferenceNumber || caseId} has been delivered to office by ${currentUser.name}`,
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Failed to update case status:', error);
+    }
+  };
+
+  const handleCancelOfficeDelivery = () => {
+    setOfficeDeliveryCase(null);
+    setOfficeDeliveryAttachments([]);
+    setOfficeDeliveryComments('');
+  };
+
   // Cancel case workflow
   const handleCancelCase = (caseId: string) => {
     const currentUser = getCurrentUser();
@@ -611,10 +772,13 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
                     currentUser={currentUser}
                     expandedCases={expandedCases}
                     expandedStatusHistory={expandedStatusHistory}
+                    expandedAmendmentHistory={expandedAmendmentHistory}
                     amendingCase={amendingCase}
                     amendmentData={amendmentData}
                     processingCase={processingCase}
                     processDetails={processDetails}
+                    processAttachments={processAttachments}
+                    processComments={processComments}
                     deliveryCase={deliveryCase}
                     deliveryDetails={deliveryDetails}
                     receivedCase={receivedCase}
@@ -624,8 +788,15 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
                     attachments={attachments}
                     orderSummary={orderSummary}
                     doNumber={doNumber}
+                    pendingOfficeCase={pendingOfficeCase}
+                    pendingOfficeAttachments={pendingOfficeAttachments}
+                    pendingOfficeComments={pendingOfficeComments}
+                    officeDeliveryCase={officeDeliveryCase}
+                    officeDeliveryAttachments={officeDeliveryAttachments}
+                    officeDeliveryComments={officeDeliveryComments}
                     onToggleExpansion={toggleCaseExpansion}
                     onToggleStatusHistory={toggleStatusHistoryExpansion}
+                    onToggleAmendmentHistory={toggleAmendmentHistoryExpansion}
                     onStatusChange={handleStatusChange}
                     onAmendCase={handleAmendCase}
                     onSaveAmendment={handleSaveAmendment}
@@ -640,6 +811,12 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
                     onCaseCompleted={handleCaseCompleted}
                     onSaveCaseCompleted={handleSaveCaseCompleted}
                     onCancelCompleted={handleCancelCompleted}
+                    onPendingDeliveryOffice={handlePendingDeliveryOffice}
+                    onSavePendingOffice={handleSavePendingOffice}
+                    onCancelPendingOffice={handleCancelPendingOffice}
+                    onOfficeDelivery={handleOfficeDelivery}
+                    onSaveOfficeDelivery={handleSaveOfficeDelivery}
+                    onCancelOfficeDelivery={handleCancelOfficeDelivery}
                     onOrderDeliveredOffice={handleOrderDeliveredOffice}
                     onToBeBilled={handleToBeBilled}
                     onDeleteCase={handleDeleteCase}
@@ -648,10 +825,16 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, onNav
                     onRemoveAttachment={removeAttachment}
                     onAmendmentDataChange={setAmendmentData}
                     onProcessDetailsChange={setProcessDetails}
+                    onProcessAttachmentsChange={setProcessAttachments}
+                    onProcessCommentsChange={setProcessComments}
                     onReceivedDetailsChange={setReceivedDetails}
                     onReceivedImageChange={setReceivedImage}
                     onOrderSummaryChange={setOrderSummary}
                     onDoNumberChange={setDoNumber}
+                    onPendingOfficeAttachmentsChange={setPendingOfficeAttachments}
+                    onPendingOfficeCommentsChange={setPendingOfficeComments}
+                    onOfficeDeliveryAttachmentsChange={setOfficeDeliveryAttachments}
+                    onOfficeDeliveryCommentsChange={setOfficeDeliveryComments}
                     onNavigateToPermissions={onNavigateToPermissions}
                   />
                 ))

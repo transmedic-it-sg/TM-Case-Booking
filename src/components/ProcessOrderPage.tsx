@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CaseBooking } from '../types';
 import { updateCaseStatus } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';
+import { formatDateTime } from '../utils/dateFormat';
 
 interface ProcessOrderPageProps {
   caseData: CaseBooking;
@@ -51,9 +52,6 @@ const ProcessOrderPage: React.FC<ProcessOrderPageProps> = ({
     }
   };
 
-  const formatDateTime = (dateTime: string) => {
-    return new Date(dateTime).toLocaleString();
-  };
 
   return (
     <div className="process-order-page">

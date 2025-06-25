@@ -146,6 +146,7 @@ const TimePicker: React.FC<TimePickerProps> = ({
           required={required}
           aria-expanded={isOpen}
           aria-haspopup="listbox"
+          aria-controls="time-options-list"
           role="combobox"
         />
         <div className="time-picker-icons">
@@ -209,7 +210,7 @@ const TimePicker: React.FC<TimePickerProps> = ({
           {/* All time options in a scrollable list */}
           <div className="time-options-section">
             <h5>All Times:</h5>
-            <div className="time-options-list">
+            <div className="time-options-list" id="time-options-list">
               {timeOptions.map((time) => (
                 <button
                   key={time.value}

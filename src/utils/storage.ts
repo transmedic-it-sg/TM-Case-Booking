@@ -229,62 +229,120 @@ export interface CategorizedSets {
   };
 }
 
-export const saveCategorizedSets = (categorizedSets: CategorizedSets): void => {
-  localStorage.setItem('categorized-sets', JSON.stringify(categorizedSets));
+// Country-specific categorized sets storage
+export const saveCategorizedSets = (categorizedSets: CategorizedSets, country?: string): void => {
+  if (country) {
+    // Save country-specific sets
+    localStorage.setItem(`categorized-sets-${country}`, JSON.stringify(categorizedSets));
+  } else {
+    // Legacy support - save global sets
+    localStorage.setItem('categorized-sets', JSON.stringify(categorizedSets));
+  }
 };
 
-export const getCategorizedSets = (): CategorizedSets => {
-  const stored = localStorage.getItem('categorized-sets');
-  if (stored) {
-    return JSON.parse(stored);
+export const getCategorizedSets = (country?: string): CategorizedSets => {
+  if (country) {
+    // Try to get country-specific sets first
+    const countryStored = localStorage.getItem(`categorized-sets-${country}`);
+    if (countryStored) {
+      return JSON.parse(countryStored);
+    }
+  }
+  
+  // Fallback to legacy global sets for migration
+  const globalStored = localStorage.getItem('categorized-sets');
+  if (globalStored) {
+    const globalSets = JSON.parse(globalStored);
+    
+    // If we have a country and global sets exist, migrate them to country-specific
+    if (country && Object.keys(globalSets).length > 0) {
+      saveCategorizedSets(globalSets, country);
+      return globalSets;
+    }
+    
+    return globalSets;
   }
   
   // Return empty object if no categorized sets found
   return {};
 };
 
-// Dynamic Procedure Types Management
+// Dynamic Procedure Types Management - Country-specific
 const CUSTOM_PROCEDURE_TYPES_KEY = 'custom_procedure_types';
 const HIDDEN_PROCEDURE_TYPES_KEY = 'hidden_procedure_types';
 
-export const getCustomProcedureTypes = (): string[] => {
+export const getCustomProcedureTypes = (country?: string): string[] => {
   try {
-    const stored = localStorage.getItem(CUSTOM_PROCEDURE_TYPES_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const key = country ? `${CUSTOM_PROCEDURE_TYPES_KEY}_${country}` : CUSTOM_PROCEDURE_TYPES_KEY;
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+    
+    // Fallback to global custom types for migration
+    if (country) {
+      const globalStored = localStorage.getItem(CUSTOM_PROCEDURE_TYPES_KEY);
+      if (globalStored) {
+        const globalTypes = JSON.parse(globalStored);
+        // Migrate to country-specific
+        saveCustomProcedureTypes(globalTypes, country);
+        return globalTypes;
+      }
+    }
+    
+    return [];
   } catch (error) {
     console.error('Error loading custom procedure types:', error);
     return [];
   }
 };
 
-export const saveCustomProcedureTypes = (types: string[]): void => {
+export const saveCustomProcedureTypes = (types: string[], country?: string): void => {
   try {
-    localStorage.setItem(CUSTOM_PROCEDURE_TYPES_KEY, JSON.stringify(types));
+    const key = country ? `${CUSTOM_PROCEDURE_TYPES_KEY}_${country}` : CUSTOM_PROCEDURE_TYPES_KEY;
+    localStorage.setItem(key, JSON.stringify(types));
   } catch (error) {
     console.error('Error saving custom procedure types:', error);
   }
 };
 
-export const getHiddenProcedureTypes = (): string[] => {
+export const getHiddenProcedureTypes = (country?: string): string[] => {
   try {
-    const stored = localStorage.getItem(HIDDEN_PROCEDURE_TYPES_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const key = country ? `${HIDDEN_PROCEDURE_TYPES_KEY}_${country}` : HIDDEN_PROCEDURE_TYPES_KEY;
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+    
+    // Fallback to global hidden types for migration
+    if (country) {
+      const globalStored = localStorage.getItem(HIDDEN_PROCEDURE_TYPES_KEY);
+      if (globalStored) {
+        const globalTypes = JSON.parse(globalStored);
+        // Migrate to country-specific
+        saveHiddenProcedureTypes(globalTypes, country);
+        return globalTypes;
+      }
+    }
+    
+    return [];
   } catch (error) {
     console.error('Error loading hidden procedure types:', error);
     return [];
   }
 };
 
-export const saveHiddenProcedureTypes = (types: string[]): void => {
+export const saveHiddenProcedureTypes = (types: string[], country?: string): void => {
   try {
-    localStorage.setItem(HIDDEN_PROCEDURE_TYPES_KEY, JSON.stringify(types));
+    const key = country ? `${HIDDEN_PROCEDURE_TYPES_KEY}_${country}` : HIDDEN_PROCEDURE_TYPES_KEY;
+    localStorage.setItem(key, JSON.stringify(types));
   } catch (error) {
     console.error('Error saving hidden procedure types:', error);
   }
 };
 
-export const addCustomProcedureType = (typeName: string): boolean => {
-  const customTypes = getCustomProcedureTypes();
+export const addCustomProcedureType = (typeName: string, country?: string): boolean => {
+  const customTypes = getCustomProcedureTypes(country);
   const trimmedName = typeName.trim();
   
   if (!trimmedName || customTypes.includes(trimmedName)) {
@@ -292,27 +350,27 @@ export const addCustomProcedureType = (typeName: string): boolean => {
   }
   
   const updatedTypes = [...customTypes, trimmedName];
-  saveCustomProcedureTypes(updatedTypes);
+  saveCustomProcedureTypes(updatedTypes, country);
   return true;
 };
 
-export const removeCustomProcedureType = (typeName: string): boolean => {
-  const customTypes = getCustomProcedureTypes();
+export const removeCustomProcedureType = (typeName: string, country?: string): boolean => {
+  const customTypes = getCustomProcedureTypes(country);
   
   // Check if it's a custom type first
   const isCustom = customTypes.includes(typeName);
   if (isCustom) {
     const updatedTypes = customTypes.filter(type => type !== typeName);
-    saveCustomProcedureTypes(updatedTypes);
+    saveCustomProcedureTypes(updatedTypes, country);
     return true;
   }
   
   // If it's a base type, add it to the hidden/removed types list
   const baseProcedureTypes = ['Knee', 'Head', 'Hip', 'Hands', 'Neck', 'Spine'];
   if (baseProcedureTypes.includes(typeName)) {
-    const hiddenTypes = getHiddenProcedureTypes();
+    const hiddenTypes = getHiddenProcedureTypes(country);
     if (!hiddenTypes.includes(typeName)) {
-      saveHiddenProcedureTypes([...hiddenTypes, typeName]);
+      saveHiddenProcedureTypes([...hiddenTypes, typeName], country);
       return true;
     }
   }
@@ -320,32 +378,32 @@ export const removeCustomProcedureType = (typeName: string): boolean => {
   return false; // Type not found
 };
 
-export const restoreProcedureType = (typeName: string): boolean => {
-  const hiddenTypes = getHiddenProcedureTypes();
+export const restoreProcedureType = (typeName: string, country?: string): boolean => {
+  const hiddenTypes = getHiddenProcedureTypes(country);
   const updatedHiddenTypes = hiddenTypes.filter(type => type !== typeName);
   
   if (updatedHiddenTypes.length === hiddenTypes.length) {
     return false; // Type not found in hidden list
   }
   
-  saveHiddenProcedureTypes(updatedHiddenTypes);
+  saveHiddenProcedureTypes(updatedHiddenTypes, country);
   return true;
 };
 
-export const getAllProcedureTypes = (): string[] => {
+export const getAllProcedureTypes = (country?: string): string[] => {
   // Import the base types from types file
   const baseProcedureTypes = ['Knee', 'Head', 'Hip', 'Hands', 'Neck', 'Spine'];
-  const customTypes = getCustomProcedureTypes();
-  const hiddenTypes = getHiddenProcedureTypes();
+  const customTypes = getCustomProcedureTypes(country);
+  const hiddenTypes = getHiddenProcedureTypes(country);
   
   // Filter out hidden base types and combine with custom types
   const visibleBaseTypes = baseProcedureTypes.filter(type => !hiddenTypes.includes(type));
   return [...visibleBaseTypes, ...customTypes];
 };
 
-export const getHiddenProcedureTypesList = (): string[] => {
+export const getHiddenProcedureTypesList = (country?: string): string[] => {
   const baseProcedureTypes = ['Knee', 'Head', 'Hip', 'Hands', 'Neck', 'Spine'];
-  const hiddenTypes = getHiddenProcedureTypes();
+  const hiddenTypes = getHiddenProcedureTypes(country);
   
   // Only return hidden types that are actually base types
   return hiddenTypes.filter(type => baseProcedureTypes.includes(type));

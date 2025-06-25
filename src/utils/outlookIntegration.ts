@@ -1,4 +1,5 @@
 import { CaseBooking, User } from '../types';
+import { formatDateTime } from './dateFormat';
 
 /**
  * Generates an Outlook calendar invite URL for a case preparation
@@ -46,7 +47,7 @@ ${caseItem.specialInstruction ? `- Special Instructions: ${caseItem.specialInstr
 
 Order Status: Case Prepared
 Prepared by: ${preparedBy.name}
-Prepared at: ${new Date().toLocaleString()}
+Prepared at: ${formatDateTime(new Date())}
 
 Surgery Set Selection:
 ${caseItem.surgerySetSelection.map(set => `• ${set}`).join('\n')}
@@ -138,7 +139,7 @@ export const generateICSFile = (
     (caseItem.specialInstruction ? `Special Instructions: ${caseItem.specialInstruction}\\n` : '') +
     `\\nOrder Status: Case Prepared\\n` +
     `Prepared by: ${preparedBy.name}\\n` +
-    `Prepared at: ${new Date().toLocaleString()}\\n` +
+    `Prepared at: ${formatDateTime(new Date())}\\n` +
     `\\nSurgery Set Selection:\\n` +
     caseItem.surgerySetSelection.map(set => `• ${set}`).join('\\n') +
     `\\n\\nImplant Box:\\n` +

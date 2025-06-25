@@ -35,7 +35,13 @@
       "Bash(component_summary)",
       "Bash(./scripts/token-optimizer.sh:*)",
       "Bash(node:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(timeout 10s npm start)",
+      "Bash(hostname)",
+      "Bash(ss:*)",
+      "Bash(pkill:*)",
+      "Bash(serve:*)",
+      "Bash(zip:*)"
     ],
     "deny": []
   }

@@ -41,6 +41,7 @@ const AppContent: React.FC = () => {
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
   const [adminPanelExpanded, setAdminPanelExpanded] = useState(false);
+  const [highlightedCaseId, setHighlightedCaseId] = useState<string | null>(null);
   const { playSound } = useSound();
   const { addNotification } = useNotifications();
   const { showSuccess } = useToast();
@@ -121,10 +122,9 @@ const AppContent: React.FC = () => {
   };
 
   const handleCalendarCaseClick = (caseId: string) => {
+    setHighlightedCaseId(caseId);
     setActivePage('cases');
     playSound.click();
-    // Pass the case ID to the CasesList component to highlight/filter it
-    // This will be handled by the CasesList component
   };
 
   // Helper function to check if user has admin access
@@ -315,6 +315,8 @@ const AppContent: React.FC = () => {
           <CasesList 
             onProcessCase={handleProcessCase} 
             currentUser={user} 
+            highlightedCaseId={highlightedCaseId}
+            onClearHighlight={() => setHighlightedCaseId(null)}
             onNavigateToPermissions={() => {
               setActivePage('permissions');
               playSound.click();

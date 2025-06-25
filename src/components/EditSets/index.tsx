@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PROCEDURE_TYPES } from '../../types';
+import { PROCEDURE_TYPES, COUNTRIES } from '../../types';
 import { useToast } from '../ToastContainer';
 import { useSound } from '../../contexts/SoundContext';
 import { getCurrentUser } from '../../utils/auth';
@@ -37,42 +37,55 @@ const EditSets: React.FC<EditSetsProps> = () => {
   const [showAddProcedureType, setShowAddProcedureType] = useState(false);
   const [newProcedureTypeName, setNewProcedureTypeName] = useState('');
   const [procedureTypeError, setProcedureTypeError] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState<string>('');
 
   const { showError, showSuccess } = useToast();
   const { playSound } = useSound();
   
   const currentUser = getCurrentUser();
   const canManageProcedureTypes = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_SETS) : false;
+  const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
+  const isAdmin = currentUser?.role === 'admin';
+  
+  // Use selected country for Admin, otherwise use user's country
+  const activeCountry = isAdmin && selectedCountry ? selectedCountry : userCountry;
+
+  // Initialize selected country for Admin users
+  useEffect(() => {
+    if (isAdmin && !selectedCountry) {
+      setSelectedCountry(userCountry || COUNTRIES[0]);
+    }
+  }, [isAdmin, selectedCountry, userCountry]);
 
   // Load all procedure types on component mount
   useEffect(() => {
-    const allTypes = getAllProcedureTypes();
+    const allTypes = getAllProcedureTypes(activeCountry);
     setAllProcedureTypes(allTypes);
     
     // Update selected procedure type if it doesn't exist in the loaded types
     if (!allTypes.includes(selectedProcedureType)) {
       setSelectedProcedureType(allTypes[0] || PROCEDURE_TYPES[0]);
     }
-  }, [selectedProcedureType]);
+  }, [selectedProcedureType, activeCountry]);
 
   // Initialize categorized sets on component mount
   useEffect(() => {
-    const storedSets = getCategorizedSets();
+    const storedSets = getCategorizedSets(activeCountry);
     if (Object.keys(storedSets).length > 0) {
       setCategorizedSets(storedSets);
     } else {
       const initialSets = initializeCategorizedSets();
       setCategorizedSets(initialSets);
-      saveCategorizedSets(initialSets);
+      saveCategorizedSets(initialSets, activeCountry);
     }
-  }, []);
+  }, [activeCountry]);
 
   // Save categorized sets to localStorage whenever they change
   useEffect(() => {
     if (Object.keys(categorizedSets).length > 0) {
-      saveCategorizedSets(categorizedSets);
+      saveCategorizedSets(categorizedSets, activeCountry);
     }
-  }, [categorizedSets]);
+  }, [categorizedSets, activeCountry]);
 
   // Procedure Type Management Functions
   const handleAddProcedureType = () => {
@@ -99,9 +112,9 @@ const EditSets: React.FC<EditSetsProps> = () => {
     }
     
     // Add to localStorage
-    if (addCustomProcedureType(trimmedName)) {
+    if (addCustomProcedureType(trimmedName, activeCountry)) {
       // Update local state
-      const updatedTypes = getAllProcedureTypes();
+      const updatedTypes = getAllProcedureTypes(activeCountry);
       setAllProcedureTypes(updatedTypes);
       
       // Initialize empty sets for the new procedure type
@@ -132,9 +145,9 @@ const EditSets: React.FC<EditSetsProps> = () => {
     const confirmMessage = `Are you sure you want to delete "${typeName}"?\n\nThis will remove all associated surgery sets and implant boxes. This action cannot be undone.`;
     
     showConfirm('Delete Procedure Type', confirmMessage, () => {
-      if (removeCustomProcedureType(typeName)) {
+      if (removeCustomProcedureType(typeName, activeCountry)) {
         // Update local state
-        const updatedTypes = getAllProcedureTypes();
+        const updatedTypes = getAllProcedureTypes(activeCountry);
         setAllProcedureTypes(updatedTypes);
         
         // Remove from categorized sets for all types (base and custom)
@@ -376,18 +389,31 @@ const EditSets: React.FC<EditSetsProps> = () => {
       ? categorizedSets[selectedProcedureType]?.surgerySets || []
       : categorizedSets[selectedProcedureType]?.implantBoxes || [];
 
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    let newIndex: number;
     
-    if (newIndex < 0 || newIndex >= currentArray.length) return;
+    switch (direction) {
+      case 'up':
+        newIndex = index - 1;
+        break;
+      case 'down':
+        newIndex = index + 1;
+        break;
+      default:
+        return;
+    }
+    
+    // Check if move is valid
+    if (newIndex < 0 || newIndex >= currentArray.length || newIndex === index) return;
 
     setCategorizedSets(prev => {
       const newSets = { ...prev };
-      const swappedItems = swapItems(currentArray, index, newIndex);
+      // Use simple swap for up/down moves
+      const reorderedItems = swapItems(currentArray, index, newIndex);
 
       if (type === 'surgery') {
-        newSets[selectedProcedureType].surgerySets = swappedItems;
+        newSets[selectedProcedureType].surgerySets = reorderedItems;
       } else {
-        newSets[selectedProcedureType].implantBoxes = swappedItems;
+        newSets[selectedProcedureType].implantBoxes = reorderedItems;
       }
 
       return newSets;
@@ -397,8 +423,27 @@ const EditSets: React.FC<EditSetsProps> = () => {
   return (
     <div className="edit-sets-container">
       <div className="edit-sets-header">
-        <h2>Edit Surgery Sets & Implant Boxes</h2>
-        <p>Manage available surgery sets and implant boxes for case bookings, organized by procedure type</p>
+        <div className="edit-sets-title-row">
+          <h2>Edit Surgery Sets & Implant Boxes</h2>
+          {isAdmin && (
+            <div className="admin-country-selector">
+              <label htmlFor="admin-country-select">Country:</label>
+              <select
+                id="admin-country-select"
+                value={selectedCountry || ''}
+                onChange={(e) => setSelectedCountry(e.target.value)}
+                className="country-select"
+              >
+                {COUNTRIES.map(country => (
+                  <option key={country} value={country}>{country}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+        <p>Manage available surgery sets and implant boxes for case bookings, organized by procedure type
+          <span> • <strong>Country: {activeCountry}</strong></span>
+        </p>
       </div>
 
       {/* Procedure Type Selector */}
@@ -447,16 +492,6 @@ const EditSets: React.FC<EditSetsProps> = () => {
           <div className="add-procedure-type-form">
             <div className="form-header">
               <h4>Add New Procedure Type</h4>
-              <button
-                className="close-form-button"
-                onClick={() => {
-                  setShowAddProcedureType(false);
-                  setNewProcedureTypeName('');
-                  setProcedureTypeError('');
-                }}
-              >
-                ✕
-              </button>
             </div>
             <div className="form-content">
               <div className="form-group">

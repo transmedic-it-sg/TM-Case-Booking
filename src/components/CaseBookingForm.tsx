@@ -8,6 +8,7 @@ import TimePicker from './common/TimePicker';
 import SearchableDropdown from './SearchableDropdown';
 import CustomModal from './CustomModal';
 import { useModal } from '../hooks/useModal';
+import { addDaysForInput, getTodayForInput } from '../utils/dateFormat';
 
 interface CaseBookingFormProps {
   onCaseSubmitted: () => void;
@@ -16,9 +17,7 @@ interface CaseBookingFormProps {
 const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) => {
   const { modal, closeModal, showConfirm, showSuccess, showError } = useModal();
   const getDefaultDate = () => {
-    const today = new Date();
-    today.setDate(today.getDate() + 3);
-    return today.toISOString().split('T')[0];
+    return addDaysForInput(3);
   };
 
   const [formData, setFormData] = useState({
@@ -41,7 +40,9 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
   // Load dynamic procedure types and initialize code tables on component mount
   useEffect(() => {
     initializeCodeTables();
-    const allTypes = getAllProcedureTypes();
+    const currentUser = getCurrentUser();
+    const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
+    const allTypes = getAllProcedureTypes(userCountry);
     setAvailableProcedureTypes(allTypes.sort());
     
     // Load hospitals from code tables
@@ -55,7 +56,9 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     }
     
     // Try to get from categorized sets first
-    const categorizedSets = getCategorizedSets();
+    const currentUser = getCurrentUser();
+    const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
+    const categorizedSets = getCategorizedSets(userCountry);
     if (categorizedSets[formData.procedureType]?.surgerySets?.length > 0) {
       return categorizedSets[formData.procedureType].surgerySets.sort();
     }
@@ -71,7 +74,9 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     }
     
     // Try to get from categorized sets first
-    const categorizedSets = getCategorizedSets();
+    const currentUser = getCurrentUser();
+    const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
+    const categorizedSets = getCategorizedSets(userCountry);
     if (categorizedSets[formData.procedureType]?.implantBoxes?.length > 0) {
       return categorizedSets[formData.procedureType].implantBoxes.sort();
     }
@@ -248,7 +253,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               value={formData.dateOfSurgery}
               onChange={(e) => setFormData(prev => ({ ...prev, dateOfSurgery: e.target.value }))}
               className={errors.dateOfSurgery ? 'error' : ''}
-              min={new Date().toISOString().split('T')[0]}
+              min={getTodayForInput()}
               required
             />
             {errors.dateOfSurgery && <span className="error-text">{errors.dateOfSurgery}</span>}
