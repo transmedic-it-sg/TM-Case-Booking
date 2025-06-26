@@ -92,7 +92,9 @@ export interface StatusHistory {
   status: CaseStatus;
   timestamp: string;
   processedBy: string;
+  user?: string;
   details?: string;
+  attachments?: string[];
 }
 
 export interface AmendmentHistory {
@@ -168,4 +170,15 @@ export interface FilterOptions {
   country?: string;
   dateFrom?: string;
   dateTo?: string;
+  search?: string;
+}
+
+export interface Notification {
+  id: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  title: string;
+  message: string;
+  timestamp: string;
+  read?: boolean;
+  duration?: number;
 }

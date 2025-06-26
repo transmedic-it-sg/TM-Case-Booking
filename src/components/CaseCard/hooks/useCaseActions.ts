@@ -7,6 +7,7 @@ import { useCallback } from 'react';
 import { CaseBooking, CaseStatus } from '../../../types';
 import { useCurrentUser, useNotifications } from '../../../hooks';
 import { caseService } from '../../../services';
+import { CASE_STATUSES } from '../../../constants';
 
 export const useCaseActions = (caseItem: CaseBooking) => {
   const { user } = useCurrentUser();
@@ -23,14 +24,14 @@ export const useCaseActions = (caseItem: CaseBooking) => {
     }
 
     try {
-      const success = caseService.updateCaseStatus(
+      const updateResult = caseService.updateCaseStatus(
         caseItem.id,
         newStatus,
         details,
         attachments
       );
 
-      if (success) {
+      if (updateResult) {
         success(
           'Status Updated',
           `Case ${caseItem.caseReferenceNumber} updated to ${newStatus}`
@@ -47,16 +48,16 @@ export const useCaseActions = (caseItem: CaseBooking) => {
   }, [caseItem.id, caseItem.caseReferenceNumber, user, success, error]);
 
   const processOrder = useCallback(async (details: string, attachments: File[]) => {
-    return updateCaseStatus('Order Preparation', details);
+    return updateCaseStatus(CASE_STATUSES.ORDER_PREPARATION, details);
   }, [updateCaseStatus]);
 
   const markAsDelivered = useCallback(async (details: string, attachments: File[]) => {
-    return updateCaseStatus('Order Delivered', details);
+    return updateCaseStatus(CASE_STATUSES.DELIVERED_HOSPITAL, details);
   }, [updateCaseStatus]);
 
   const markAsReceived = useCallback(async (details: string, image?: string) => {
     const attachments = image ? [image] : undefined;
-    return updateCaseStatus('Order Received', details, attachments);
+    return updateCaseStatus(CASE_STATUSES.DELIVERED_HOSPITAL, details, attachments);
   }, [updateCaseStatus]);
 
   const markAsCompleted = useCallback(async (
@@ -65,18 +66,18 @@ export const useCaseActions = (caseItem: CaseBooking) => {
     attachments: File[]
   ) => {
     const details = `Summary: ${summary}\nDO Number: ${doNumber}`;
-    return updateCaseStatus('Case Completed', details);
+    return updateCaseStatus(CASE_STATUSES.CASE_COMPLETED, details);
   }, [updateCaseStatus]);
 
   const markAsDeliveredToOffice = useCallback(async (
     details: string,
     attachments: File[]
   ) => {
-    return updateCaseStatus('Order Delivered (Office)', details);
+    return updateCaseStatus(CASE_STATUSES.DELIVERED_OFFICE, details);
   }, [updateCaseStatus]);
 
   const markAsToBeBilled = useCallback(async () => {
-    return updateCaseStatus('To be billed');
+    return updateCaseStatus(CASE_STATUSES.TO_BE_BILLED);
   }, [updateCaseStatus]);
 
   const amendCase = useCallback(async (amendmentData: any) => {
@@ -89,8 +90,8 @@ export const useCaseActions = (caseItem: CaseBooking) => {
         amendedAt: new Date().toISOString()
       };
 
-      const success = caseService.saveCase(updatedCase);
-      if (success) {
+      const saveResult = caseService.saveCase(updatedCase);
+      if (saveResult) {
         success('Case Amended', `Case ${caseItem.caseReferenceNumber} has been amended`);
         return true;
       } else {

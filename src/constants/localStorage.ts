@@ -209,7 +209,7 @@ export class StorageManager {
     // Remove temporary data older than 1 hour
     const tempKeys = this.getKeys().filter(key => key.startsWith(STORAGE_PREFIXES.TEMP));
     tempKeys.forEach(key => {
-      const data = this.get(key);
+      const data = this.get<{timestamp?: number}>(key);
       if (data && data.timestamp && Date.now() - data.timestamp > 60 * 60 * 1000) {
         this.remove(key);
       }
@@ -218,17 +218,18 @@ export class StorageManager {
 
   // Migration helper
   static migrate(): void {
-    const currentVersion = this.get(STORAGE_KEYS.SYSTEM_SETTINGS)?.version;
+    const systemSettings = this.get<{version?: string}>(STORAGE_KEYS.SYSTEM_SETTINGS);
+    const currentVersion = systemSettings?.version;
     
     if (!currentVersion || currentVersion !== DATA_VERSION.CURRENT) {
       console.log('Migrating localStorage data...');
       
       // Perform any necessary data migrations here
       // For now, just update the version
-      const systemSettings = this.get(STORAGE_KEYS.SYSTEM_SETTINGS) || {};
-      systemSettings.version = DATA_VERSION.CURRENT;
-      systemSettings.lastMigration = new Date().toISOString();
-      this.set(STORAGE_KEYS.SYSTEM_SETTINGS, systemSettings);
+      const updatedSettings = this.get<{version?: string, lastMigration?: string}>(STORAGE_KEYS.SYSTEM_SETTINGS) || {};
+      updatedSettings.version = DATA_VERSION.CURRENT;
+      updatedSettings.lastMigration = new Date().toISOString();
+      this.set(STORAGE_KEYS.SYSTEM_SETTINGS, updatedSettings);
       
       console.log('localStorage migration completed');
     }

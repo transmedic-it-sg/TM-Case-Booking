@@ -168,12 +168,12 @@ const CaseCard: React.FC<CaseCardProps> = ({
             processingCase={processingCase}
             receivedCase={receivedCase}
             completedCase={completedCase}
-            onOrderProcessed={onOrderProcessed}
-            onOrderDelivered={onOrderDelivered}
-            onOrderReceived={onOrderReceived}
-            onCaseCompleted={onCaseCompleted}
-            onOrderDeliveredOffice={onOrderDeliveredOffice}
-            onToBeBilled={onToBeBilled}
+            onOrderProcessed={() => onOrderProcessed(caseItem.id)}
+            onOrderDelivered={() => onOrderDelivered(caseItem.id)}
+            onOrderReceived={() => onOrderReceived(caseItem.id)}
+            onCaseCompleted={() => onCaseCompleted(caseItem.id)}
+            onOrderDeliveredOffice={() => onOrderDeliveredOffice(caseItem.id)}
+            onToBeBilled={() => onToBeBilled(caseItem.id)}
           />
 
           {/* Attachment Manager (when needed) */}
@@ -193,7 +193,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
         <AmendmentForm
           caseItem={caseItem}
           amendmentData={amendmentData}
-          onSave={onSaveAmendment}
+          onSave={(amendmentData) => onSaveAmendment(caseItem.id, amendmentData)}
           onCancel={onCancelAmendment}
         />
       )}
@@ -227,7 +227,19 @@ const CaseCard: React.FC<CaseCardProps> = ({
           <CaseActions
             caseItem={caseItem}
             currentUser={user}
-            onStatusChange={handleStatusChange}
+            onStatusChange={(caseId, newStatus) => onStatusChange(caseId, newStatus)}
+            onAmendCase={(caseItem) => onAmendCase(caseItem.id)}
+            onDeleteCase={(caseId, caseItem) => {/* Handle delete */}}
+            onOrderProcessed={() => onOrderProcessed(caseItem.id)}
+            onOrderDelivered={() => onOrderDelivered(caseItem.id)}
+            onOrderReceived={() => onOrderReceived(caseItem.id)}
+            onCaseCompleted={() => onCaseCompleted(caseItem.id)}
+            onPendingDeliveryOffice={() => {/* Handle pending office delivery */}}
+            onOfficeDelivery={() => {/* Handle office delivery */}}
+            onOrderDeliveredOffice={() => onOrderDeliveredOffice(caseItem.id)}
+            onToBeBilled={() => onToBeBilled(caseItem.id)}
+            onCancelCase={() => {/* Handle cancel */}}
+            canAmendCase={(caseItem) => permissions.canEditCase && caseData.canBeAmended}
           />
         </div>
       </div>

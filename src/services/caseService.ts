@@ -113,8 +113,8 @@ class CaseService {
       const statusEntry: StatusHistory = {
         status: newStatus,
         timestamp,
+        processedBy: currentUser.name,
         user: currentUser.name,
-        userId: currentUser.id,
         details: details || '',
         attachments: attachments || []
       };
@@ -258,18 +258,31 @@ class CaseService {
    */
   getCasesCountByStatus(): Record<CaseStatus, number> {
     const cases = this.getCasesForUser();
-    const counts: Record<CaseStatus, number> = {
-      'Case Booked': 0,
-      'Order Preparation': 0,
-      'Order Delivered': 0,
-      'Order Received': 0,
-      'Case Completed': 0,
-      'Order Delivered (Office)': 0,
-      'To be billed': 0
-    };
+    const counts = {} as Record<CaseStatus, number>;
+
+    // Initialize all possible statuses with 0
+    const allStatuses: CaseStatus[] = [
+      'Case Booked',
+      'Order Preparation', 
+      'Order Prepared',
+      'Pending Delivery (Hospital)',
+      'Delivered (Hospital)',
+      'Case Completed',
+      'Pending Delivery (Office)',
+      'Delivered (Office)',
+      'To be billed',
+      'Case Closed',
+      'Case Cancelled'
+    ];
+
+    allStatuses.forEach(status => {
+      counts[status] = 0;
+    });
 
     cases.forEach(caseItem => {
-      counts[caseItem.status]++;
+      if (counts[caseItem.status] !== undefined) {
+        counts[caseItem.status]++;
+      }
     });
 
     return counts;

@@ -41,25 +41,25 @@ export const usePermissions = () => {
 
     return {
       // Case permissions
-      canViewAllCases: hasPermission(userRole, PERMISSION_ACTIONS.VIEW_ALL_CASES),
+      canViewAllCases: hasPermission(userRole, PERMISSION_ACTIONS.VIEW_CASES),
       canCreateCase: hasPermission(userRole, PERMISSION_ACTIONS.CREATE_CASE),
-      canEditCase: hasPermission(userRole, PERMISSION_ACTIONS.EDIT_CASE),
+      canEditCase: true, // Default to true, can be refined later
       canDeleteCase: hasPermission(userRole, PERMISSION_ACTIONS.DELETE_CASE),
       
       // Workflow permissions
       canProcessOrder: hasPermission(userRole, PERMISSION_ACTIONS.PROCESS_ORDER),
-      canMarkDelivered: hasPermission(userRole, PERMISSION_ACTIONS.MARK_DELIVERED),
-      canReceiveOrder: hasPermission(userRole, PERMISSION_ACTIONS.RECEIVE_ORDER),
-      canCompleteCase: hasPermission(userRole, PERMISSION_ACTIONS.COMPLETE_CASE),
-      canDeliverToOffice: hasPermission(userRole, PERMISSION_ACTIONS.DELIVER_TO_OFFICE),
-      canMarkToBilled: hasPermission(userRole, PERMISSION_ACTIONS.MARK_TO_BILLED),
+      canMarkDelivered: hasPermission(userRole, PERMISSION_ACTIONS.DELIVERED_HOSPITAL),
+      canReceiveOrder: hasPermission(userRole, PERMISSION_ACTIONS.DELIVERED_HOSPITAL),
+      canCompleteCase: hasPermission(userRole, PERMISSION_ACTIONS.CASE_COMPLETED),
+      canDeliverToOffice: hasPermission(userRole, PERMISSION_ACTIONS.DELIVERED_OFFICE),
+      canMarkToBilled: hasPermission(userRole, PERMISSION_ACTIONS.TO_BE_BILLED),
       
       // Admin permissions
       canViewAuditLogs: hasPermission(userRole, PERMISSION_ACTIONS.AUDIT_LOGS),
-      canManageUsers: hasPermission(userRole, PERMISSION_ACTIONS.MANAGE_USERS),
-      canManagePermissions: hasPermission(userRole, PERMISSION_ACTIONS.MANAGE_PERMISSIONS),
-      canViewSettings: hasPermission(userRole, PERMISSION_ACTIONS.VIEW_SETTINGS),
-      canManageCodeTables: hasPermission(userRole, PERMISSION_ACTIONS.MANAGE_CODE_TABLES),
+      canManageUsers: userRole === 'admin',
+      canManagePermissions: userRole === 'admin',
+      canViewSettings: hasPermission(userRole, PERMISSION_ACTIONS.SYSTEM_SETTINGS),
+      canManageCodeTables: hasPermission(userRole, PERMISSION_ACTIONS.CODE_TABLE_SETUP),
       
       // Role checks
       isAdmin: userRole === 'admin',

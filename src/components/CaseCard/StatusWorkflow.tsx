@@ -7,6 +7,7 @@ import React from 'react';
 import { StatusWorkflowProps } from './types';
 import { usePermissions } from '../../hooks';
 import { useCaseActions } from './hooks/useCaseActions';
+import { CASE_STATUSES } from '../../constants';
 
 const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
   caseItem,
@@ -29,7 +30,7 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
     const actions = [];
 
     switch (caseItem.status) {
-      case 'Case Booked':
+      case CASE_STATUSES.CASE_BOOKED:
         if (permissions.canProcessOrder) {
           actions.push({
             key: 'process',
@@ -41,7 +42,7 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
         }
         break;
 
-      case 'Order Preparation':
+      case CASE_STATUSES.ORDER_PREPARATION:
         if (permissions.canMarkDelivered) {
           actions.push({
             key: 'deliver',
@@ -53,7 +54,7 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
         }
         break;
 
-      case 'Order Delivered':
+      case CASE_STATUSES.DELIVERED_HOSPITAL:
         if (permissions.canReceiveOrder) {
           actions.push({
             key: 'receive',
@@ -65,19 +66,7 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
         }
         break;
 
-      case 'Order Received':
-        if (permissions.canCompleteCase) {
-          actions.push({
-            key: 'complete',
-            label: 'Mark Case as Completed',
-            action: onCaseCompleted,
-            className: 'btn btn-success btn-sm',
-            icon: '✅'
-          });
-        }
-        break;
-
-      case 'Case Completed':
+      case CASE_STATUSES.CASE_COMPLETED:
         if (permissions.canDeliverToOffice) {
           actions.push({
             key: 'office-delivery',
@@ -89,7 +78,7 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
         }
         break;
 
-      case 'Order Delivered (Office)':
+      case CASE_STATUSES.DELIVERED_OFFICE:
         if (permissions.canMarkToBilled) {
           actions.push({
             key: 'billing',
@@ -105,7 +94,7 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
     // All users can mark as "To be billed" from certain statuses
     if (
       permissions.canMarkToBilled &&
-      caseItem.status !== 'To be billed' &&
+      caseItem.status !== CASE_STATUSES.TO_BE_BILLED &&
       !actions.some(a => a.key === 'billing')
     ) {
       actions.push({
@@ -181,13 +170,15 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
 
 // Helper function to get workflow steps
 const getWorkflowSteps = () => [
-  { status: 'Case Booked', icon: '📝', label: 'Booked' },
-  { status: 'Order Preparation', icon: '📋', label: 'Preparing' },
-  { status: 'Order Delivered', icon: '🚚', label: 'Delivered' },
-  { status: 'Order Received', icon: '📦', label: 'Received' },
-  { status: 'Case Completed', icon: '✅', label: 'Completed' },
-  { status: 'Order Delivered (Office)', icon: '🏢', label: 'Office' },
-  { status: 'To be billed', icon: '💰', label: 'Billing' }
+  { status: CASE_STATUSES.CASE_BOOKED, icon: '📝', label: 'Booked' },
+  { status: CASE_STATUSES.ORDER_PREPARATION, icon: '📋', label: 'Preparing' },
+  { status: CASE_STATUSES.ORDER_PREPARED, icon: '✅', label: 'Prepared' },
+  { status: CASE_STATUSES.PENDING_DELIVERY_HOSPITAL, icon: '🚚', label: 'Pending' },
+  { status: CASE_STATUSES.DELIVERED_HOSPITAL, icon: '📦', label: 'Delivered' },
+  { status: CASE_STATUSES.CASE_COMPLETED, icon: '✅', label: 'Completed' },
+  { status: CASE_STATUSES.PENDING_DELIVERY_OFFICE, icon: '🚚', label: 'Office Pending' },
+  { status: CASE_STATUSES.DELIVERED_OFFICE, icon: '🏢', label: 'Office' },
+  { status: CASE_STATUSES.TO_BE_BILLED, icon: '💰', label: 'Billing' }
 ];
 
 // Helper function to get step className

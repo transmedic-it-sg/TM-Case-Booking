@@ -182,7 +182,8 @@ class NotificationService {
     this.addNotification({
       title,
       message,
-      type: 'success'
+      type: 'success',
+      timestamp: new Date().toISOString()
     });
   }
 
@@ -193,7 +194,8 @@ class NotificationService {
     this.addNotification({
       title,
       message,
-      type: 'error'
+      type: 'error',
+      timestamp: new Date().toISOString()
     });
   }
 
@@ -204,7 +206,8 @@ class NotificationService {
     this.addNotification({
       title,
       message,
-      type: 'warning'
+      type: 'warning',
+      timestamp: new Date().toISOString()
     });
   }
 
@@ -215,7 +218,8 @@ class NotificationService {
     this.addNotification({
       title,
       message,
-      type: 'info'
+      type: 'info',
+      timestamp: new Date().toISOString()
     });
   }
 
