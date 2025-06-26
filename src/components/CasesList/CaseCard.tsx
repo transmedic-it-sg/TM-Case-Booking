@@ -291,12 +291,6 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 <strong>Prepared at:</strong> {formatDateTime(caseItem.processedAt)}
               </div>
             )}
-            {caseItem.processOrderDetails && (
-              <div className="detail-item full-width prepared-order-details">
-                <strong>Prepared Order Details:</strong>
-                <p>{caseItem.processOrderDetails}</p>
-              </div>
-            )}
             {caseItem.statusHistory && caseItem.statusHistory.length > 0 && (
               <div className="detail-item full-width">
                 <div className="status-history-header-container">

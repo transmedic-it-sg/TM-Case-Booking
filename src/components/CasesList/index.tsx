@@ -232,6 +232,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     updateCaseStatus(caseId, newStatus, currentUser.name);
     loadCases();
     
+    // Reset to page 1 and expand the updated case
+    setCurrentPage(1);
+    setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
+    
     // Show success popup
     setSuccessMessage(`Case status successfully updated to "${newStatus}"`);
     setShowSuccessPopup(true);
@@ -267,6 +271,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setAmendingCase(null);
       setAmendmentData({});
       loadCases();
+      
+      // Reset to page 1 and expand the updated case
+      setCurrentPage(1);
+      setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
       
       // Show success popup
       setSuccessMessage('Case amended successfully!');
@@ -308,6 +316,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setProcessDetails('');
       setProcessAttachments([]);
       loadCases();
+      
+      // Reset to page 1 and expand the updated case
+      setCurrentPage(1);
+      setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
       
       // Show success popup
       setSuccessMessage('Order successfully marked as prepared');
@@ -411,6 +423,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setHospitalDeliveryComments('');
       loadCases();
       
+      // Reset to page 1 and expand the updated case
+      setCurrentPage(1);
+      setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
+      
       // Show success popup
       setSuccessMessage('Order marked as pending delivery to hospital');
       setShowSuccessPopup(true);
@@ -467,6 +483,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setReceivedImage('');
       loadCases();
       
+      // Reset to page 1 and expand the updated case
+      setCurrentPage(1);
+      setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
+      
       // Show success popup
       setSuccessMessage('Order successfully marked as delivered to hospital');
       setShowSuccessPopup(true);
@@ -512,6 +532,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setDoNumber('');
       loadCases();
       
+      // Reset to page 1 and expand the updated case
+      setCurrentPage(1);
+      setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
+      
       // Show success popup
       setSuccessMessage('Case successfully marked as completed');
       setShowSuccessPopup(true);
@@ -538,6 +562,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       updateCaseStatus(caseId, 'Delivered (Office)', currentUser.name);
       loadCases();
       
+      // Reset to page 1 and expand the updated case
+      setCurrentPage(1);
+      setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
+      
       // Show success popup
       setSuccessMessage('Order successfully delivered to office');
       setShowSuccessPopup(true);
@@ -563,6 +591,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       const caseItem = cases.find(c => c.id === caseId);
       updateCaseStatus(caseId, 'To be billed', currentUser.name);
       loadCases();
+      
+      // Reset to page 1 and expand the updated case
+      setCurrentPage(1);
+      setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
       
       // Show success popup
       setSuccessMessage('Case successfully marked as "To be billed"');
@@ -602,6 +634,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setPendingOfficeAttachments([]);
       setPendingOfficeComments('');
       loadCases();
+      
+      // Reset to page 1 and expand the updated case
+      setCurrentPage(1);
+      setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
       
       // Show success popup
       setSuccessMessage('Case marked as pending delivery to office');
@@ -648,6 +684,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setOfficeDeliveryComments('');
       loadCases();
       
+      // Reset to page 1 and expand the updated case
+      setCurrentPage(1);
+      setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
+      
       // Show success popup
       setSuccessMessage('Order successfully delivered to office');
       setShowSuccessPopup(true);
@@ -683,6 +723,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       try {
         updateCaseStatus(caseId, 'Case Cancelled', currentUser.name, 'Case cancelled by user request');
         loadCases();
+        
+        // Reset to page 1 and expand the updated case
+        setCurrentPage(1);
+        setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
         
         // Show success popup
         setSuccessMessage('Case successfully cancelled');
@@ -732,6 +776,9 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         
         // Reload cases to update the UI
         loadCases();
+        
+        // Reset to page 1 (case was deleted, so no need to expand)
+        setCurrentPage(1);
         // Success handled by UI update
       } catch (error) {
         console.error('Delete failed:', error);

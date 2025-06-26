@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getDepartments } from '../utils/codeTable';
 import { getCurrentUser } from '../utils/auth';
 import { getCases } from '../utils/storage';
@@ -23,6 +23,8 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
   const moreCasesPerPage = 10;
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
   const [selectedCountry, setSelectedCountry] = useState<string>('');
+  const [showDatePickers, setShowDatePickers] = useState(false);
+  const datePickerRef = useRef<HTMLDivElement>(null);
 
   // Determine the active country (Admin selected country or user's country)
   const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
@@ -68,6 +70,23 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
     setCases(filteredCases);
   }, [activeCountry, currentUser]);
 
+  // Close date picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node) && showDatePickers) {
+        setShowDatePickers(false);
+      }
+    };
+
+    if (showDatePickers) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDatePickers]);
+
   // Calendar helper functions
   const getDaysInMonth = (date: Date): number => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -104,6 +123,51 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
       }
       return newDate;
     });
+  };
+
+  // Generate month options
+  const getMonthOptions = () => {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months.map((month, index) => ({
+      value: index.toString(),
+      label: month
+    }));
+  };
+
+  // Generate year options (current year ± 5 years)
+  const getYearOptions = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+      years.push({
+        value: i.toString(),
+        label: i.toString()
+      });
+    }
+    return years;
+  };
+
+  const handleMonthChange = (monthValue: string) => {
+    setCurrentDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(parseInt(monthValue));
+      return newDate;
+    });
+  };
+
+  const handleYearChange = (yearValue: string) => {
+    setCurrentDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setFullYear(parseInt(yearValue));
+      return newDate;
+    });
+  };
+
+  const goToToday = () => {
+    setCurrentDate(new Date());
   };
 
   // Get cases for a specific day
@@ -269,19 +333,72 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
         </div>
         
         <div className="calendar-navigation">
-          <button 
-            onClick={() => navigateMonth('prev')}
-            className="nav-button"
-          >
-            ← Previous
-          </button>
-          <h3 className="current-month">{getMonthName(currentDate)}</h3>
-          <button 
-            onClick={() => navigateMonth('next')}
-            className="nav-button"
-          >
-            Next →
-          </button>
+          <div className="nav-arrows">
+            <button 
+              onClick={() => navigateMonth('prev')}
+              className="nav-button"
+              title="Previous Month"
+            >
+              ← Previous
+            </button>
+            <button 
+              onClick={() => navigateMonth('next')}
+              className="nav-button"
+              title="Next Month"
+            >
+              Next →
+            </button>
+          </div>
+          
+          <div className="month-year-display">
+            <h3 className="current-month" onClick={() => setShowDatePickers(!showDatePickers)}>
+              {getMonthName(currentDate)}
+              <span className="dropdown-indicator">{showDatePickers ? '▲' : '▼'}</span>
+            </h3>
+            
+            {showDatePickers && (
+              <div className="date-picker-controls" ref={datePickerRef}>
+                <div className="month-year-selectors">
+                  <div className="selector-group">
+                    <label>Month:</label>
+                    <SearchableDropdown
+                      options={getMonthOptions()}
+                      value={currentDate.getMonth().toString()}
+                      onChange={handleMonthChange}
+                      placeholder="Select Month"
+                      className="month-selector"
+                    />
+                  </div>
+                  <div className="selector-group">
+                    <label>Year:</label>
+                    <SearchableDropdown
+                      options={getYearOptions()}
+                      value={currentDate.getFullYear().toString()}
+                      onChange={handleYearChange}
+                      placeholder="Select Year"
+                      className="year-selector"
+                    />
+                  </div>
+                </div>
+                <div className="quick-actions">
+                  <button 
+                    onClick={goToToday}
+                    className="today-button"
+                    title="Go to current month"
+                  >
+                    📅 Today
+                  </button>
+                  <button 
+                    onClick={() => setShowDatePickers(false)}
+                    className="close-picker-button"
+                    title="Close date picker"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

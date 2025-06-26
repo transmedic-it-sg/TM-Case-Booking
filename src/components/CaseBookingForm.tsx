@@ -8,6 +8,7 @@ import TimePicker from './common/TimePicker';
 import SearchableDropdown from './SearchableDropdown';
 import CustomModal from './CustomModal';
 import { useModal } from '../hooks/useModal';
+import FilterDatePicker from './FilterDatePicker';
 import { addDaysForInput, getTodayForInput } from '../utils/dateFormat';
 
 interface CaseBookingFormProps {
@@ -247,14 +248,12 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="dateOfSurgery" className="required">Date of Surgery</label>
-            <input
-              type="date"
-              id="dateOfSurgery"
+            <FilterDatePicker
               value={formData.dateOfSurgery}
-              onChange={(e) => setFormData(prev => ({ ...prev, dateOfSurgery: e.target.value }))}
-              className={errors.dateOfSurgery ? 'error' : ''}
+              onChange={(value) => setFormData(prev => ({ ...prev, dateOfSurgery: value }))}
+              placeholder="Select surgery date"
               min={getTodayForInput()}
-              required
+              className={errors.dateOfSurgery ? 'error' : ''}
             />
             {errors.dateOfSurgery && <span className="error-text">{errors.dateOfSurgery}</span>}
           </div>

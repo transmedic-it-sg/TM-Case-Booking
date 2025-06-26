@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { useNotifications } from '../contexts/NotificationContext';
 import SearchableDropdown from './SearchableDropdown';
+import FilterDatePicker from './FilterDatePicker';
 
 interface AuditLogEntry {
   id: string;
@@ -23,6 +24,7 @@ const AuditLogs: React.FC = () => {
   const [filteredLogs, setFilteredLogs] = useState<AuditLogEntry[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [logsPerPage] = useState(20);
+  const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     category: '',
     action: '',
@@ -35,17 +37,7 @@ const AuditLogs: React.FC = () => {
   // Check permission
   const canViewAuditLogs = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.AUDIT_LOGS) : false;
 
-  useEffect(() => {
-    if (canViewAuditLogs) {
-      loadAuditLogs();
-    }
-  }, [canViewAuditLogs]);
-
-  useEffect(() => {
-    applyFilters();
-  }, [auditLogs, filters]);
-
-  const loadAuditLogs = () => {
+  const loadAuditLogs = useCallback(() => {
     // Convert notifications to audit logs and add system logs
     const systemLogs: AuditLogEntry[] = [
       {
@@ -90,27 +82,9 @@ const AuditLogs: React.FC = () => {
     );
 
     setAuditLogs(allLogs);
-  };
+  }, [notifications]);
 
-  const getActionCategory = (title: string): string => {
-    if (title.includes('User')) return 'User Management';
-    if (title.includes('Case')) return 'Case Management';
-    if (title.includes('Status')) return 'Status Change';
-    if (title.includes('Permission')) return 'Security';
-    return 'System';
-  };
-
-  const extractTarget = (message: string): string => {
-    const caseMatch = message.match(/TMC\d+/);
-    if (caseMatch) return caseMatch[0];
-    
-    const userMatch = message.match(/(\w+\s+\w+)\s*\(/);
-    if (userMatch) return userMatch[1];
-    
-    return 'System';
-  };
-
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = auditLogs;
 
     if (filters.category) {
@@ -147,6 +121,34 @@ const AuditLogs: React.FC = () => {
 
     setFilteredLogs(filtered);
     setCurrentPage(1);
+  }, [auditLogs, filters]);
+
+  useEffect(() => {
+    if (canViewAuditLogs) {
+      loadAuditLogs();
+    }
+  }, [canViewAuditLogs, loadAuditLogs]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
+
+  const getActionCategory = (title: string): string => {
+    if (title.includes('User')) return 'User Management';
+    if (title.includes('Case')) return 'Case Management';
+    if (title.includes('Status')) return 'Status Change';
+    if (title.includes('Permission')) return 'Security';
+    return 'System';
+  };
+
+  const extractTarget = (message: string): string => {
+    const caseMatch = message.match(/TMC\d+/);
+    if (caseMatch) return caseMatch[0];
+    
+    const userMatch = message.match(/(\w+\s+\w+)\s*\(/);
+    if (userMatch) return userMatch[1];
+    
+    return 'System';
   };
 
   const clearFilters = () => {
@@ -218,98 +220,195 @@ const AuditLogs: React.FC = () => {
       </div>
 
       {/* Advanced Filters */}
-      <div className="audit-filters">
-        <h3>🔍 Advanced Filtering</h3>
-        <div className="filters-grid">
-          <div className="filter-group">
-            <label>Category</label>
-            <SearchableDropdown
-              options={[
-                { value: '', label: 'All Categories' },
-                { value: 'User Management', label: 'User Management' },
-                { value: 'Case Management', label: 'Case Management' },
-                { value: 'Status Change', label: 'Status Change' },
-                { value: 'Security', label: 'Security' },
-                { value: 'System', label: 'System' }
-              ]}
-              value={filters.category}
-              onChange={(value) => setFilters(prev => ({ ...prev, category: value }))}
-              placeholder="Select Category"
-            />
+      <div className="modern-filters-section">
+        <div className="filters-header" onClick={() => setShowFilters(!showFilters)}>
+          <div className="filters-title">
+            <h3>🔍 Advanced Filters</h3>
+            <span className="active-filters-count">
+              {Object.values(filters).some(value => value) && `(${Object.values(filters).filter(value => value).length} active)`}
+            </span>
           </div>
-
-          <div className="filter-group">
-            <label>Status</label>
-            <SearchableDropdown
-              options={[
-                { value: '', label: 'All Statuses' },
-                { value: 'success', label: 'Success' },
-                { value: 'warning', label: 'Warning' },
-                { value: 'error', label: 'Error' }
-              ]}
-              value={filters.status}
-              onChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
-              placeholder="Select Status"
-            />
-          </div>
-
-          <div className="filter-group">
-            <label>User</label>
-            <input
-              type="text"
-              value={filters.user}
-              onChange={(e) => setFilters(prev => ({ ...prev, user: e.target.value }))}
-              placeholder="Search by user..."
-              className="form-control"
-            />
-          </div>
-
-          <div className="filter-group">
-            <label>Action</label>
-            <input
-              type="text"
-              value={filters.action}
-              onChange={(e) => setFilters(prev => ({ ...prev, action: e.target.value }))}
-              placeholder="Search by action..."
-              className="form-control"
-            />
-          </div>
-
-          <div className="filter-group">
-            <label>Date From</label>
-            <input
-              type="date"
-              value={filters.dateFrom}
-              onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
-              className="form-control"
-            />
-          </div>
-
-          <div className="filter-group">
-            <label>Date To</label>
-            <input
-              type="date"
-              value={filters.dateTo}
-              onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
-              className="form-control"
-            />
-          </div>
-        </div>
-
-        <div className="filter-actions">
-          <button
-            onClick={clearFilters}
-            className="btn btn-outline-secondary"
-          >
-            Clear Filters
-          </button>
-          <button
-            onClick={loadAuditLogs}
-            className="btn btn-primary"
-          >
-            Refresh Logs
+          <button className={`btn btn-outline-secondary btn-sm filters-toggle ${showFilters ? 'expanded' : ''}`}>
+            {showFilters ? '▲' : '▼'}
           </button>
         </div>
+        
+        {showFilters && (
+          <div className="filters-content">
+            <div className="filters-grid">
+              {/* Search Filters */}
+              <div className="filter-category">
+                <h4>🔎 Search</h4>
+                <div className="filter-row">
+                  <div className="modern-filter-group">
+                    <label>User</label>
+                    <div className="filter-input-wrapper">
+                      <SearchableDropdown
+                        options={[
+                          { value: '', label: 'All Users' },
+                          ...Array.from(new Set(auditLogs.map(log => log.user))).map(user => ({
+                            value: user,
+                            label: user
+                          }))
+                        ]}
+                        value={filters.user}
+                        onChange={(value) => setFilters(prev => ({ ...prev, user: value }))}
+                        placeholder="All Users"
+                      />
+                      <span className="filter-icon">👤</span>
+                    </div>
+                  </div>
+
+                  <div className="modern-filter-group">
+                    <label>Action</label>
+                    <div className="filter-input-wrapper">
+                      <SearchableDropdown
+                        options={[
+                          { value: '', label: 'All Actions' },
+                          ...Array.from(new Set(auditLogs.map(log => log.action))).map(action => ({
+                            value: action,
+                            label: action
+                          }))
+                        ]}
+                        value={filters.action}
+                        onChange={(value) => setFilters(prev => ({ ...prev, action: value }))}
+                        placeholder="All Actions"
+                      />
+                      <span className="filter-icon">⚡</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Filter */}
+              <div className="filter-category">
+                <h4>📊 Status & Category</h4>
+                <div className="filter-row">
+                  <div className="modern-filter-group">
+                    <label>Category</label>
+                    <div className="filter-input-wrapper">
+                      <SearchableDropdown
+                        options={[
+                          { value: '', label: 'All Categories' },
+                          { value: 'User Management', label: 'User Management' },
+                          { value: 'Case Management', label: 'Case Management' },
+                          { value: 'Status Change', label: 'Status Change' },
+                          { value: 'Security', label: 'Security' },
+                          { value: 'System', label: 'System' }
+                        ]}
+                        value={filters.category}
+                        onChange={(value) => setFilters(prev => ({ ...prev, category: value }))}
+                        placeholder="All Categories"
+                      />
+                      <span className="filter-icon">📁</span>
+                    </div>
+                  </div>
+
+                  <div className="modern-filter-group">
+                    <label>Status</label>
+                    <div className="filter-input-wrapper">
+                      <SearchableDropdown
+                        options={[
+                          { value: '', label: 'All Statuses' },
+                          { value: 'success', label: 'Success' },
+                          { value: 'warning', label: 'Warning' },
+                          { value: 'error', label: 'Error' }
+                        ]}
+                        value={filters.status}
+                        onChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+                        placeholder="All Statuses"
+                      />
+                      <span className="filter-icon">🎯</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Date Filters */}
+              <div className="filter-category">
+                <h4>📅 Date Range</h4>
+                <div className="filter-row">
+                  <div className="modern-filter-group">
+                    <label>Date</label>
+                    <div className="filter-input-wrapper">
+                      <FilterDatePicker
+                        value={filters.dateFrom}
+                        onChange={(value) => setFilters(prev => ({ ...prev, dateFrom: value }))}
+                        placeholder="Select start date"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="modern-filter-group">
+                    <label>Date</label>
+                    <div className="filter-input-wrapper">
+                      <FilterDatePicker
+                        value={filters.dateTo}
+                        onChange={(value) => setFilters(prev => ({ ...prev, dateTo: value }))}
+                        placeholder="Select end date"
+                        min={filters.dateFrom || undefined}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Actions */}
+            <div className="modern-filter-actions">
+              <div className="filter-stats">
+                Showing {filteredLogs.length} of {auditLogs.length} log entries
+              </div>
+              <div className="filter-buttons">
+                <button 
+                  onClick={clearFilters} 
+                  className="btn btn-outline-secondary btn-md modern-clear-button"
+                  disabled={!Object.values(filters).some(value => value)}
+                >
+                  🗑️ Clear All
+                </button>
+                <button 
+                  onClick={loadAuditLogs} 
+                  className="btn btn-primary btn-md modern-apply-button"
+                >
+                  🔄 Refresh
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Filter Presets */}
+            <div className="quick-filters">
+              <span className="quick-filters-label">Quick Filters:</span>
+              <button 
+                onClick={() => setFilters(prev => ({ ...prev, category: 'Case Management' }))}
+                className="btn btn-outline-secondary btn-sm quick-filter-button"
+              >
+                📋 Cases
+              </button>
+              <button 
+                onClick={() => setFilters(prev => ({ ...prev, category: 'User Management' }))}
+                className="btn btn-outline-secondary btn-sm quick-filter-button"
+              >
+                👥 Users
+              </button>
+              <button 
+                onClick={() => setFilters(prev => ({ ...prev, status: 'error' }))}
+                className="btn btn-outline-secondary btn-sm quick-filter-button"
+              >
+                ❌ Errors
+              </button>
+              <button 
+                onClick={() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  setFilters(prev => ({ ...prev, dateFrom: today, dateTo: today }));
+                }}
+                className="btn btn-outline-secondary btn-sm quick-filter-button"
+              >
+                📅 Today
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Audit Logs Table */}

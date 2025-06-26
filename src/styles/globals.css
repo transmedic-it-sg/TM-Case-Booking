@@ -1,0 +1,76 @@
+/* Global CSS Variables and Reset */
+:root {
+  --primary-color: #20b2aa;
+  --primary-dark: #008b8b;
+  --primary-light: #e0f7f7;
+  --secondary-color: #ff5a5f;
+  --success-color: #27ae60;
+  --danger-color: #e74c3c;
+  --warning-color: #f39c12;
+  --text-primary: #222222;
+  --text-secondary: #717171;
+  --border-light: #ebebeb;
+  --background-light: #f7f7f7;
+  --white: #ffffff;
+  --shadow-light: 0 2px 4px rgba(0,0,0,0.08);
+  --shadow-medium: 0 6px 16px rgba(0,0,0,0.12);
+  --shadow-large: 0 10px 28px rgba(0,0,0,0.25);
+  --border-radius: 8px;
+  --border-radius-large: 12px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--background-light);
+}
+
+/* Improved focus styles for accessibility */
+*:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Reduced motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Exception for status popup animations - allow them to show even with reduced motion */
+  .status-success-popup,
+  .status-error-popup,
+  .status-warning-popup {
+    animation-duration: 0.3s !important;
+    transition-duration: 0.3s !important;
+  }
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

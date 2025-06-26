@@ -1,23 +1,20 @@
 import React, { forwardRef } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import '../FilterDatePicker.css';
+import './FilterDatePicker.css';
 
-interface DatePickerProps {
-  id?: string;
+interface FilterDatePickerProps {
   value: string;
   onChange: (value: string) => void;
-  className?: string;
-  disabled?: boolean;
   placeholder?: string;
-  'aria-describedby'?: string;
-  required?: boolean;
   min?: string;
   max?: string;
+  disabled?: boolean;
+  className?: string;
 }
 
-// Custom input component for common date picker
-const CommonInput = forwardRef<HTMLInputElement, any>(({ value, onClick, placeholder, disabled }, ref) => (
+// Custom input component for filter date picker
+const FilterInput = forwardRef<HTMLInputElement, any>(({ value, onClick, placeholder, disabled }, ref) => (
   <input
     ref={ref}
     value={value}
@@ -29,19 +26,16 @@ const CommonInput = forwardRef<HTMLInputElement, any>(({ value, onClick, placeho
   />
 ));
 
-CommonInput.displayName = 'CommonInput';
+FilterInput.displayName = 'FilterInput';
 
-const CommonDatePicker: React.FC<DatePickerProps> = ({
-  id,
+const FilterDatePicker: React.FC<FilterDatePickerProps> = ({
   value,
   onChange,
-  className = '',
-  disabled = false,
-  placeholder = 'Select date',
-  'aria-describedby': ariaDescribedBy,
-  required = false,
+  placeholder = "Select date",
   min,
-  max
+  max,
+  disabled = false,
+  className = ""
 }) => {
   // Convert string value to Date object
   const selectedDate = value ? new Date(value) : null;
@@ -64,13 +58,13 @@ const CommonDatePicker: React.FC<DatePickerProps> = ({
     <DatePicker
       selected={selectedDate}
       onChange={handleDateChange}
-      customInput={<CommonInput disabled={disabled} />}
+      customInput={<FilterInput disabled={disabled} />}
       dateFormat="dd/MM/yyyy"
       minDate={minDate}
       maxDate={maxDate}
       disabled={disabled}
       placeholderText={placeholder}
-      className={`common-datepicker ${className}`}
+      className={`filter-datepicker ${className}`}
       calendarClassName="filter-calendar"
       popperClassName="filter-popper"
       showPopperArrow={false}
@@ -84,12 +78,8 @@ const CommonDatePicker: React.FC<DatePickerProps> = ({
       withPortal={window.innerWidth <= 768}
       // Keyboard navigation
       enableTabLoop={false}
-      // Accessibility
-      id={id}
-      aria-describedby={ariaDescribedBy}
-      required={required}
     />
   );
 };
 
-export default CommonDatePicker;
+export default FilterDatePicker;

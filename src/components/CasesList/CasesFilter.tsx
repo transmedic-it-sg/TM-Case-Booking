@@ -1,6 +1,6 @@
 import React from 'react';
 import { FilterOptions, COUNTRIES } from '../../types';
-import DatePicker from '../DatePicker';
+import FilterDatePicker from '../FilterDatePicker';
 import { statusOptions } from './utils';
 import { getCurrentUser } from '../../utils/auth';
 import SearchableDropdown from '../SearchableDropdown';
@@ -146,24 +146,26 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
               <h4>📅 Date Range</h4>
               <div className="filter-row">
                 <div className="modern-filter-group">
-                  <DatePicker
-                    label="From Date"
-                    value={tempFilters.dateFrom || ''}
-                    onChange={(value) => onFilterChange('dateFrom', value)}
-                    placeholder="Select start date"
-                    className="filter-date-picker"
-                  />
+                  <label>Start Date</label>
+                  <div className="filter-input-wrapper">
+                    <FilterDatePicker
+                      value={tempFilters.dateFrom || ''}
+                      onChange={(value) => onFilterChange('dateFrom', value)}
+                      placeholder="Select start date"
+                    />
+                  </div>
                 </div>
 
                 <div className="modern-filter-group">
-                  <DatePicker
-                    label="To Date"
-                    value={tempFilters.dateTo || ''}
-                    onChange={(value) => onFilterChange('dateTo', value)}
-                    placeholder="Select end date"
-                    min={tempFilters.dateFrom || undefined}
-                    className="filter-date-picker"
-                  />
+                  <label>End Date</label>
+                  <div className="filter-input-wrapper">
+                    <FilterDatePicker
+                      value={tempFilters.dateTo || ''}
+                      onChange={(value) => onFilterChange('dateTo', value)}
+                      placeholder="Select end date"
+                      min={tempFilters.dateFrom || undefined}
+                    />
+                  </div>
                 </div>
               </div>
             </div>

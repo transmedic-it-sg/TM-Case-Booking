@@ -42,7 +42,10 @@
       "Bash(pkill:*)",
       "Bash(serve:*)",
       "Bash(zip:*)",
-      "Bash(rg -B10 -A10 \"Delivered.*Hospital|Hospital.*delivered\" /mnt/c/Users/anrong.low/TM-Case-Booking/src/components/CasesList/index.tsx)"
+      "Bash(rg -B10 -A10 \"Delivered.*Hospital|Hospital.*delivered\" /mnt/c/Users/anrong.low/TM-Case-Booking/src/components/CasesList/index.tsx)",
+      "WebFetch(domain:reactdatepicker.com)",
+      "WebFetch(domain:mui.com)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": []
   }

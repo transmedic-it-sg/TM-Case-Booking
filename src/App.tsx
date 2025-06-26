@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Login from './components/Login';
 import CaseBookingForm from './components/CaseBookingForm';
 import CasesList from './components/CasesList';
@@ -44,6 +44,7 @@ const AppContent: React.FC = () => {
   const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
   const [adminPanelExpanded, setAdminPanelExpanded] = useState(false);
   const [highlightedCaseId, setHighlightedCaseId] = useState<string | null>(null);
+  const adminPanelRef = useRef<HTMLDivElement>(null);
   const { playSound } = useSound();
   const { addNotification } = useNotifications();
   const { showSuccess } = useToast();
@@ -57,6 +58,23 @@ const AppContent: React.FC = () => {
       setUser(currentUser);
     }
   }, []);
+
+  // Close admin panel when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (adminPanelRef.current && !adminPanelRef.current.contains(event.target as Node) && adminPanelExpanded) {
+        setAdminPanelExpanded(false);
+      }
+    };
+
+    if (adminPanelExpanded) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [adminPanelExpanded]);
 
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
@@ -167,7 +185,7 @@ const AppContent: React.FC = () => {
                 )}
                 {/* Admin Panel in Header */}
                 {hasAdminAccess(user) && (
-                  <div className="header-admin-panel">
+                  <div className="header-admin-panel" ref={adminPanelRef}>
                     <button
                       className={`header-admin-toggle ${adminPanelExpanded ? 'expanded' : ''}`}
                       onClick={toggleAdminPanel}
