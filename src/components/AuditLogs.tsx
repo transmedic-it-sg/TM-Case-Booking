@@ -329,23 +329,23 @@ const AuditLogs: React.FC = () => {
                 <h4>📅 Date Range</h4>
                 <div className="filter-row">
                   <div className="modern-filter-group">
-                    <label>Date</label>
+                    <label>Start Date</label>
                     <div className="filter-input-wrapper">
                       <FilterDatePicker
                         value={filters.dateFrom}
                         onChange={(value) => setFilters(prev => ({ ...prev, dateFrom: value }))}
-                        placeholder="Select start date"
+                        placeholder="Select start date 📅"
                       />
                     </div>
                   </div>
 
                   <div className="modern-filter-group">
-                    <label>Date</label>
+                    <label>End Date</label>
                     <div className="filter-input-wrapper">
                       <FilterDatePicker
                         value={filters.dateTo}
                         onChange={(value) => setFilters(prev => ({ ...prev, dateTo: value }))}
-                        placeholder="Select end date"
+                        placeholder="Select end date 📅"
                         min={filters.dateFrom || undefined}
                       />
                     </div>

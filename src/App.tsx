@@ -5,6 +5,7 @@ import CasesList from './components/CasesList';
 import ProcessOrderPage from './components/ProcessOrderPage';
 import UserManagement from './components/UserManagement';
 import EditSets from './components/EditSets';
+import Reports from './components/Reports';
 import BookingCalendar from './components/BookingCalendar';
 import CodeTableSetup from './components/CodeTableSetup';
 import WelcomePopup from './components/WelcomePopup';
@@ -31,7 +32,7 @@ import './App.css';
 import './components/CodeTableSetup.css';
 import './components/AuditLogs.css';
 
-type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs';
+type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs';
 
 
 
@@ -316,6 +317,17 @@ const AppContent: React.FC = () => {
               ⚙️ Edit Sets
             </button>
           )}
+          {hasPermission(user.role, PERMISSION_ACTIONS.VIEW_REPORTS) && (
+            <button
+              onClick={() => {
+                setActivePage('reports');
+                playSound.click();
+              }}
+              className={activePage === 'reports' ? 'active' : ''}
+            >
+              📊 Reports
+            </button>
+          )}
         </div>
       </nav>
 
@@ -382,6 +394,10 @@ const AppContent: React.FC = () => {
         
         {activePage === 'sets' && (user.role === 'admin' || user.role === 'operation-manager') && (
           <EditSets />
+        )}
+        
+        {activePage === 'reports' && hasPermission(user.role, PERMISSION_ACTIONS.VIEW_REPORTS) && (
+          <Reports />
         )}
         
         {activePage === 'codetables' && hasPermission(user.role, 'code-table-setup') && (

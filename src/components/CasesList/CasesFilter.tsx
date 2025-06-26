@@ -151,7 +151,7 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
                     <FilterDatePicker
                       value={tempFilters.dateFrom || ''}
                       onChange={(value) => onFilterChange('dateFrom', value)}
-                      placeholder="Select start date"
+                      placeholder="Select start date 📅"
                     />
                   </div>
                 </div>
@@ -162,7 +162,7 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
                     <FilterDatePicker
                       value={tempFilters.dateTo || ''}
                       onChange={(value) => onFilterChange('dateTo', value)}
-                      placeholder="Select end date"
+                      placeholder="Select end date 📅"
                       min={tempFilters.dateFrom || undefined}
                     />
                   </div>

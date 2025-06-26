@@ -2,9 +2,12 @@ import React, { useState, useRef, useEffect, useMemo, memo, useCallback } from '
 import { useNotifications } from '../contexts/NotificationContext';
 import { useSound } from '../contexts/SoundContext';
 import { formatDate } from '../utils/dateFormat';
+import NotificationSettings from './NotificationSettings';
+import './NotificationSettings.css';
 
 const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotification } = useNotifications();
   const { playSound } = useSound();
   const bellRef = useRef<HTMLDivElement>(null);
@@ -106,17 +109,30 @@ const NotificationBell: React.FC = () => {
         <div className="notification-dropdown">
           <div className="notification-header">
             <h3>Notifications</h3>
-            {notifications.length > 0 && (
+            <div className="notification-header-actions">
               <button
                 onClick={() => {
-                  markAllAsRead();
+                  setShowSettings(true);
+                  setIsOpen(false);
                   playSound.click();
                 }}
-                className="btn btn-outline-secondary btn-sm mark-all-read-button"
+                className="btn btn-outline-primary btn-sm settings-button"
+                title="Notification Settings"
               >
-                Mark all read
+                ⚙️ Settings
               </button>
-            )}
+              {notifications.length > 0 && (
+                <button
+                  onClick={() => {
+                    markAllAsRead();
+                    playSound.click();
+                  }}
+                  className="btn btn-outline-secondary btn-sm mark-all-read-button"
+                >
+                  Mark all read
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="notification-list">
@@ -163,6 +179,12 @@ const NotificationBell: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* Notification Settings Modal */}
+      <NotificationSettings
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </div>
   );
 };
