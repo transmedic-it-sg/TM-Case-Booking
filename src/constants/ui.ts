@@ -7,7 +7,7 @@
 export const APP_INFO = {
   NAME: 'Case Booking System',
   SHORT_NAME: 'CBS',
-  VERSION: '1.1.4',
+  VERSION: '1.1.5',
   DESCRIPTION: 'Medical case booking and workflow management system',
   AUTHOR: 'TM Medical',
   SUPPORT_EMAIL: 'support@tmmedical.com'
