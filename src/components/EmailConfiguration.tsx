@@ -4,6 +4,7 @@ import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { useSound } from '../contexts/SoundContext';
 import { useToast } from './ToastContainer';
+import MultiSelectDropdown from './MultiSelectDropdown';
 import './EmailConfiguration.css';
 
 interface EmailConfig {
@@ -27,6 +28,7 @@ interface NotificationRule {
   recipients: {
     roles: string[];
     specificEmails: string[];
+    includeSubmitter: boolean;
   };
   template: {
     subject: string;
@@ -57,7 +59,6 @@ const CollapsibleSection: React.FC<{
         alignItems: 'center', 
         justifyContent: 'space-between',
         padding: '0.5rem 0',
-        borderBottom: '1px solid #dee2e6',
         marginBottom: isCollapsed ? '0' : '1.5rem'
       }}
     >
@@ -107,6 +108,17 @@ const EmailConfiguration: React.FC = () => {
     notificationMatrix: false,
     configGuide: true
   });
+
+  // Individual notification rule collapse states
+  const [ruleCollapsedStates, setRuleCollapsedStates] = useState<Record<number, boolean>>({});
+
+  const toggleRuleCollapse = (ruleIndex: number) => {
+    setRuleCollapsedStates(prev => ({
+      ...prev,
+      [ruleIndex]: !prev[ruleIndex]
+    }));
+    playSound.click();
+  };
 
   // Check permission - Debug version
   const canConfigureEmail = currentUser ? (
@@ -174,11 +186,12 @@ const EmailConfiguration: React.FC = () => {
         enabled: false,
         recipients: {
           roles: [],
-          specificEmails: []
+          specificEmails: [],
+          includeSubmitter: false
         },
         template: {
           subject: `Case Status Update: ${status}`,
-          body: `A case has been updated to status: ${status}\n\nCase Reference: {{caseReference}}\nHospital: {{hospital}}\nDate: {{date}}\n\nBest regards,\nCase Booking System`
+          body: `A case has been updated to status: ${status}\n\nCase Reference: {{caseReference}}\nHospital: {{hospital}}\nDate: {{date}}\nSubmitted by: {{submitter}}\n\nBest regards,\nCase Booking System`
         }
       }))
     };
@@ -510,7 +523,7 @@ const EmailConfiguration: React.FC = () => {
                   <select
                     id="provider"
                     value={currentConfig.provider}
-                    onChange={(e) => handleConfigChange('provider', e.target.value)}
+                    onChange={(e) => handleConfigChange('provider', e.target.value as 'microsoft' | 'google' | 'custom')}
                     className="form-control"
                     required
                   >
@@ -665,7 +678,11 @@ const EmailConfiguration: React.FC = () => {
                     </p>
                   </div>
 
-                  {emailMatrixConfigs[selectedCountry].rules.map((rule, index) => (
+                  {emailMatrixConfigs[selectedCountry].rules.map((rule, index) => {
+                    const isRuleCollapsed = ruleCollapsedStates[index] || false;
+                    const availableRoles = ['admin', 'operations', 'operation-manager', 'sales', 'sales-manager', 'driver', 'it'];
+                    
+                    return (
                     <div key={rule.status} className="notification-rule" style={{
                       border: '1px solid #dee2e6',
                       borderRadius: '8px',
@@ -673,16 +690,42 @@ const EmailConfiguration: React.FC = () => {
                       padding: '1rem',
                       background: rule.enabled ? '#f8f9fa' : '#ffffff'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                      <div 
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between', 
+                          marginBottom: '1rem',
+                          cursor: rule.enabled ? 'pointer' : 'default'
+                        }}
+                        onClick={rule.enabled ? () => toggleRuleCollapse(index) : undefined}
+                      >
                         <h5 style={{ margin: '0', color: '#495057', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           📊 {rule.status}
+                          {rule.enabled && (
+                            <span style={{ 
+                              fontSize: '0.8rem', 
+                              transform: isRuleCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', 
+                              transition: 'transform 0.2s ease',
+                              color: '#6c757d',
+                              marginLeft: '0.5rem'
+                            }}>
+                              ▼
+                            </span>
+                          )}
                         </h5>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0', cursor: 'pointer' }}>
                           <input
                             type="checkbox"
                             checked={rule.enabled}
-                            onChange={(e) => updateNotificationRule(index, { enabled: e.target.checked })}
+                            onChange={(e) => {
+                              updateNotificationRule(index, { enabled: e.target.checked });
+                              if (e.target.checked && isRuleCollapsed) {
+                                setRuleCollapsedStates(prev => ({ ...prev, [index]: false }));
+                              }
+                            }}
                             style={{ transform: 'scale(1.2)' }}
+                            onClick={(e) => e.stopPropagation()}
                           />
                           <span style={{ fontWeight: '500', color: rule.enabled ? '#28a745' : '#6c757d' }}>
                             {rule.enabled ? 'Enabled' : 'Disabled'}
@@ -690,7 +733,7 @@ const EmailConfiguration: React.FC = () => {
                         </label>
                       </div>
 
-                      {rule.enabled && (
+                      {rule.enabled && !isRuleCollapsed && (
                         <div style={{ paddingLeft: '1rem', borderLeft: '3px solid #28a745' }}>
                           <div style={{ marginBottom: '1rem' }}>
                             <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#495057' }}>
@@ -724,31 +767,36 @@ const EmailConfiguration: React.FC = () => {
 
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                             <div>
-                              <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#495057' }}>
-                                👥 Notify User Roles
-                              </label>
-                              <select
-                                multiple
+                              <MultiSelectDropdown
+                                id={`roles-${index}`}
+                                label="👥 Notify User Roles"
+                                options={availableRoles}
                                 value={rule.recipients.roles}
-                                onChange={(e) => {
-                                  const selectedRoles = Array.from(e.target.selectedOptions, option => option.value);
+                                onChange={(selectedRoles: string[]) => {
                                   updateNotificationRule(index, {
                                     recipients: { ...rule.recipients, roles: selectedRoles }
                                   });
                                 }}
-                                className="form-control"
-                                size={4}
-                                style={{ minHeight: '100px' }}
-                              >
-                                <option value="admin">Admin</option>
-                                <option value="operations">Operations</option>
-                                <option value="operation-manager">Operation Manager</option>
-                                <option value="sales">Sales</option>
-                                <option value="sales-manager">Sales Manager</option>
-                                <option value="driver">Driver</option>
-                                <option value="it">IT</option>
-                              </select>
-                              <small style={{ color: '#6c757d', fontSize: '0.8rem' }}>Hold Ctrl/Cmd to select multiple roles</small>
+                                placeholder="Select user roles to notify..."
+                              />
+                              
+                              {/* Submitter Option */}
+                              <div style={{ marginTop: '1rem' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={rule.recipients.includeSubmitter}
+                                    onChange={(e) => updateNotificationRule(index, {
+                                      recipients: { ...rule.recipients, includeSubmitter: e.target.checked }
+                                    })}
+                                    style={{ transform: 'scale(1.1)' }}
+                                  />
+                                  <span style={{ fontWeight: '500', color: '#495057' }}>
+                                    📝 Include Case Submitter
+                                  </span>
+                                </label>
+                                <small style={{ color: '#6c757d', fontSize: '0.8rem', marginLeft: '1.5rem' }}>Automatically notify the person who submitted the case</small>
+                              </div>
                             </div>
 
                             <div>
@@ -773,7 +821,8 @@ const EmailConfiguration: React.FC = () => {
                         </div>
                       )}
                     </div>
-                  ))}
+                  );
+                  })}
 
                   <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem', paddingTop: '1rem', borderTop: '2px solid #dee2e6' }}>
                     <button
