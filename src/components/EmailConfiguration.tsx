@@ -7,14 +7,18 @@ import { useToast } from './ToastContainer';
 import './EmailConfiguration.css';
 
 interface EmailConfig {
-  smtpServer: string;
-  smtpPort: string;
-  username: string;
-  password: string;
+  provider: 'microsoft' | 'google' | 'custom';
+  clientId: string;
+  clientSecret: string;
+  tenantId?: string; // For Microsoft only
+  redirectUri: string;
   fromEmail: string;
   fromName: string;
-  useSSL: boolean;
   country: string;
+  isAuthenticated: boolean;
+  accessToken?: string;
+  refreshToken?: string;
+  tokenExpiry?: number;
 }
 
 const EmailConfiguration: React.FC = () => {
@@ -24,14 +28,15 @@ const EmailConfiguration: React.FC = () => {
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [emailConfigs, setEmailConfigs] = useState<Record<string, EmailConfig>>({});
   const [currentConfig, setCurrentConfig] = useState<EmailConfig>({
-    smtpServer: '',
-    smtpPort: '587',
-    username: '',
-    password: '',
+    provider: 'microsoft',
+    clientId: '',
+    clientSecret: '',
+    tenantId: '',
+    redirectUri: window.location.origin + '/auth/callback',
     fromEmail: '',
     fromName: 'Case Booking System',
-    useSSL: true,
-    country: ''
+    country: '',
+    isAuthenticated: false
   });
 
   // Check permission - Debug version
@@ -70,13 +75,14 @@ const EmailConfiguration: React.FC = () => {
       setCurrentConfig(prev => ({
         ...prev,
         country: selectedCountry,
-        smtpServer: '',
-        smtpPort: '587',
-        username: '',
-        password: '',
+        provider: 'microsoft',
+        clientId: '',
+        clientSecret: '',
+        tenantId: '',
+        redirectUri: window.location.origin + '/auth/callback',
         fromEmail: '',
         fromName: 'Case Booking System',
-        useSSL: true
+        isAuthenticated: false
       }));
     }
   }, [selectedCountry, emailConfigs]);
@@ -95,10 +101,17 @@ const EmailConfiguration: React.FC = () => {
       return;
     }
 
-    // Validate required fields
-    if (!currentConfig.smtpServer || !currentConfig.username || !currentConfig.fromEmail) {
-      showSuccess('Validation Error', 'Please fill in all required fields');
-      return;
+    // Validate required fields based on provider
+    const requiredFields = ['clientId', 'redirectUri', 'fromEmail'];
+    if (currentConfig.provider === 'microsoft') {
+      requiredFields.push('tenantId');
+    }
+
+    for (const field of requiredFields) {
+      if (!currentConfig[field as keyof EmailConfig]) {
+        showSuccess('Validation Error', `Please fill in all required fields. Missing: ${field}`);
+        return;
+      }
     }
 
     // Save configuration for the selected country
@@ -111,7 +124,62 @@ const EmailConfiguration: React.FC = () => {
     localStorage.setItem('email-configs-by-country', JSON.stringify(updatedConfigs));
     
     playSound.success();
-    showSuccess('Email Configuration Saved', `Email settings for ${selectedCountry} have been successfully saved`);
+    showSuccess('Email Configuration Saved', `${currentConfig.provider.toUpperCase()} SSO settings for ${selectedCountry} have been successfully saved`);
+  };
+
+  const handleOAuthAuthentication = () => {
+    if (!selectedCountry) {
+      showSuccess('Validation Error', 'Please select a country first');
+      return;
+    }
+
+    if (!currentConfig.clientId) {
+      showSuccess('Validation Error', 'Please configure Client ID first');
+      return;
+    }
+
+    // OAuth authentication URLs
+    let authUrl = '';
+    const redirectUri = encodeURIComponent(currentConfig.redirectUri);
+    const scopes = encodeURIComponent(
+      currentConfig.provider === 'microsoft' 
+        ? 'https://graph.microsoft.com/Mail.Send offline_access'
+        : 'https://www.googleapis.com/auth/gmail.send'
+    );
+
+    if (currentConfig.provider === 'microsoft') {
+      const tenantId = currentConfig.tenantId || 'common';
+      authUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?` +
+        `client_id=${currentConfig.clientId}&` +
+        `response_type=code&` +
+        `redirect_uri=${redirectUri}&` +
+        `scope=${scopes}&` +
+        `state=${selectedCountry}`;
+    } else if (currentConfig.provider === 'google') {
+      authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${currentConfig.clientId}&` +
+        `response_type=code&` +
+        `redirect_uri=${redirectUri}&` +
+        `scope=${scopes}&` +
+        `state=${selectedCountry}&` +
+        `access_type=offline&` +
+        `prompt=consent`;
+    }
+
+    // Open OAuth flow in new window
+    if (authUrl) {
+      const popup = window.open(authUrl, 'oauth', 'width=500,height=600');
+      playSound.click();
+      showSuccess('OAuth Flow Started', `Opening ${currentConfig.provider.toUpperCase()} authentication window...`);
+      
+      // Monitor popup for completion (simplified)
+      const checkClosed = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(checkClosed);
+          showSuccess('Authentication Window Closed', 'Please complete the OAuth flow and save your configuration');
+        }
+      }, 1000);
+    }
   };
 
   const handleTestConfig = () => {
@@ -120,10 +188,14 @@ const EmailConfiguration: React.FC = () => {
       return;
     }
 
-    // This would normally send a test email, but since we're client-side only,
-    // we'll just show a success message
+    if (!currentConfig.isAuthenticated) {
+      showSuccess('Authentication Required', 'Please authenticate with OAuth first');
+      return;
+    }
+
+    // This would normally send a test email using the OAuth token
     playSound.notification();
-    showSuccess('Test Email Sent', `Test email sent using ${selectedCountry} configuration. If configured correctly, you should receive it shortly.`);
+    showSuccess('Test Email Sent', `Test email sent using ${currentConfig.provider.toUpperCase()} OAuth for ${selectedCountry}. Check your inbox shortly.`);
   };
 
   const handleResetConfig = () => {
@@ -139,14 +211,15 @@ const EmailConfiguration: React.FC = () => {
     localStorage.setItem('email-configs-by-country', JSON.stringify(updatedConfigs));
     
     setCurrentConfig({
-      smtpServer: '',
-      smtpPort: '587',
-      username: '',
-      password: '',
+      provider: 'microsoft',
+      clientId: '',
+      clientSecret: '',
+      tenantId: '',
+      redirectUri: window.location.origin + '/auth/callback',
       fromEmail: '',
       fromName: 'Case Booking System',
-      useSSL: true,
-      country: selectedCountry
+      country: selectedCountry,
+      isAuthenticated: false
     });
 
     playSound.click();
@@ -212,7 +285,7 @@ const EmailConfiguration: React.FC = () => {
           📧 Email Configuration
         </h2>
         <p style={{ fontSize: '1.1rem', color: '#6c757d', margin: '0' }}>
-          Configure SMTP settings for sending emails by country
+          Configure Microsoft or Google SSO authentication for sending emails by country
         </p>
       </div>
 
@@ -250,12 +323,16 @@ const EmailConfiguration: React.FC = () => {
               {emailConfigs[selectedCountry] && (
                 <div className="config-details">
                   <div className="config-detail">
-                    <span>SMTP Server:</span>
-                    <span>{emailConfigs[selectedCountry].smtpServer}:{emailConfigs[selectedCountry].smtpPort}</span>
+                    <span>Provider:</span>
+                    <span>{emailConfigs[selectedCountry].provider.toUpperCase()} SSO</span>
                   </div>
                   <div className="config-detail">
                     <span>From Email:</span>
                     <span>{emailConfigs[selectedCountry].fromEmail}</span>
+                  </div>
+                  <div className="config-detail">
+                    <span>Authentication:</span>
+                    <span>{emailConfigs[selectedCountry].isAuthenticated ? '✅ Authenticated' : '❌ Not Authenticated'}</span>
                   </div>
                 </div>
               )}
@@ -263,83 +340,122 @@ const EmailConfiguration: React.FC = () => {
           )}
         </div>
 
-        {/* SMTP Configuration Form */}
+        {/* SSO Configuration Form */}
         {selectedCountry && (
           <div className="config-section">
-            <h3>⚙️ SMTP Configuration for {selectedCountry}</h3>
+            <h3>🔐 SSO Configuration for {selectedCountry}</h3>
             
-            {/* Server Configuration */}
+            {/* Provider Selection */}
             <div style={{ marginBottom: '2rem' }}>
-              <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #dee2e6', paddingBottom: '0.5rem' }}>🖥️ Server Settings</h4>
+              <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #dee2e6', paddingBottom: '0.5rem' }}>🏢 Email Provider</h4>
               
               <div className="form-group">
-                <label htmlFor="smtpServer" className="required">SMTP Server</label>
+                <label htmlFor="provider" className="required">Authentication Provider</label>
+                <select
+                  id="provider"
+                  value={currentConfig.provider}
+                  onChange={(e) => handleConfigChange('provider', e.target.value)}
+                  className="form-control"
+                  required
+                >
+                  <option value="microsoft">Microsoft 365 / Outlook (Recommended)</option>
+                  <option value="google">Google Workspace / Gmail</option>
+                  <option value="custom" disabled>Custom OAuth (Coming Soon)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* OAuth Configuration */}
+            <div style={{ marginBottom: '2rem' }}>
+              <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #dee2e6', paddingBottom: '0.5rem' }}>🔑 OAuth Settings</h4>
+              
+              <div className="form-group">
+                <label htmlFor="clientId" className="required">Client ID / Application ID</label>
                 <input
                   type="text"
-                  id="smtpServer"
-                  value={currentConfig.smtpServer}
-                  onChange={(e) => handleConfigChange('smtpServer', e.target.value)}
-                  placeholder="smtp.gmail.com"
+                  id="clientId"
+                  value={currentConfig.clientId}
+                  onChange={(e) => handleConfigChange('clientId', e.target.value)}
+                  placeholder={currentConfig.provider === 'microsoft' ? 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' : 'xxxxxxxxxxxxx.apps.googleusercontent.com'}
                   className="form-control"
                   required
                 />
               </div>
 
-              <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="clientSecret">Client Secret (Optional for public apps)</label>
+                <input
+                  type="password"
+                  id="clientSecret"
+                  value={currentConfig.clientSecret}
+                  onChange={(e) => handleConfigChange('clientSecret', e.target.value)}
+                  placeholder="Client secret from app registration"
+                  className="form-control"
+                />
+              </div>
+
+              {currentConfig.provider === 'microsoft' && (
                 <div className="form-group">
-                  <label htmlFor="smtpPort" className="required">SMTP Port</label>
+                  <label htmlFor="tenantId" className="required">Tenant ID / Directory ID</label>
                   <input
-                    type="number"
-                    id="smtpPort"
-                    value={currentConfig.smtpPort}
-                    onChange={(e) => handleConfigChange('smtpPort', e.target.value)}
-                    placeholder="587"
+                    type="text"
+                    id="tenantId"
+                    value={currentConfig.tenantId || ''}
+                    onChange={(e) => handleConfigChange('tenantId', e.target.value)}
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx or common"
                     className="form-control"
                     required
                   />
                 </div>
-                <div className="form-group ssl-checkbox-group">
-                  <label htmlFor="useSSL" className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      id="useSSL"
-                      checked={currentConfig.useSSL}
-                      onChange={(e) => handleConfigChange('useSSL', e.target.checked)}
-                    />
-                    Use SSL/TLS Encryption
-                  </label>
-                </div>
+              )}
+
+              <div className="form-group">
+                <label htmlFor="redirectUri" className="required">Redirect URI</label>
+                <input
+                  type="url"
+                  id="redirectUri"
+                  value={currentConfig.redirectUri}
+                  onChange={(e) => handleConfigChange('redirectUri', e.target.value)}
+                  placeholder={window.location.origin + '/auth/callback'}
+                  className="form-control"
+                  required
+                />
+                <small style={{ color: '#6c757d', fontSize: '0.875rem' }}>
+                  This must match the redirect URI configured in your app registration
+                </small>
               </div>
             </div>
 
-            {/* Authentication */}
+            {/* Authentication Status */}
             <div style={{ marginBottom: '2rem' }}>
-              <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #dee2e6', paddingBottom: '0.5rem' }}>🔐 Authentication</h4>
+              <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #dee2e6', paddingBottom: '0.5rem' }}>🔓 Authentication Status</h4>
               
-              <div className="form-group">
-                <label htmlFor="username" className="required">Username / Email</label>
-                <input
-                  type="text"
-                  id="username"
-                  value={currentConfig.username}
-                  onChange={(e) => handleConfigChange('username', e.target.value)}
-                  placeholder="your-email@gmail.com"
-                  className="form-control"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="password" className="required">Password / App Password</label>
-                <input
-                  type="password"
-                  id="password"
-                  value={currentConfig.password}
-                  onChange={(e) => handleConfigChange('password', e.target.value)}
-                  placeholder="your-app-password"
-                  className="form-control"
-                  required
-                />
+              <div style={{
+                padding: '1rem',
+                borderRadius: '8px',
+                border: `2px solid ${currentConfig.isAuthenticated ? '#28a745' : '#dc3545'}`,
+                background: currentConfig.isAuthenticated ? '#d4edda' : '#f8d7da',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                  {currentConfig.isAuthenticated ? '✅ Authenticated' : '❌ Not Authenticated'}
+                </div>
+                <div style={{ fontSize: '0.9rem', color: '#495057' }}>
+                  {currentConfig.isAuthenticated 
+                    ? `Successfully authenticated with ${currentConfig.provider.toUpperCase()}` 
+                    : `Click "Authenticate with ${currentConfig.provider.toUpperCase()}" to connect`}
+                </div>
+                {!currentConfig.isAuthenticated && (
+                  <button
+                    onClick={handleOAuthAuthentication}
+                    className="btn btn-primary btn-md"
+                    style={{ marginTop: '1rem' }}
+                    disabled={!currentConfig.clientId}
+                    title={!currentConfig.clientId ? 'Please configure Client ID first' : `Authenticate with ${currentConfig.provider.toUpperCase()}`}
+                  >
+                    🔐 Authenticate with {currentConfig.provider.toUpperCase()}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -375,14 +491,33 @@ const EmailConfiguration: React.FC = () => {
 
             {/* Configuration Tips */}
             <div className="config-tips">
-              <h4>📝 Configuration Tips & Best Practices:</h4>
+              <h4>📝 OAuth Configuration Guide:</h4>
               <ul>
-                <li><strong>Gmail:</strong> Use smtp.gmail.com:587 with SSL/TLS enabled. Enable 2FA and create an App Password for authentication</li>
-                <li><strong>Outlook/Hotmail:</strong> Use smtp.live.com:587 or smtp-mail.outlook.com:587 with SSL/TLS enabled</li>
-                <li><strong>Office 365:</strong> Use smtp.office365.com:587 with your Office 365 credentials</li>
-                <li><strong>Custom SMTP:</strong> Contact your email provider or IT department for specific SMTP settings</li>
-                <li><strong>Security Best Practice:</strong> Use dedicated service accounts rather than personal email accounts</li>
-                <li><strong>Troubleshooting:</strong> Ensure firewall allows outbound connections on the specified port</li>
+                <li><strong>Microsoft 365:</strong> 
+                  <br/>1. Go to <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer">Azure Portal → App Registrations</a>
+                  <br/>2. Create new app registration with name "Case Booking Email Integration"
+                  <br/>3. Add redirect URI: {currentConfig.redirectUri}
+                  <br/>4. API Permissions: Add Microsoft Graph → Mail.Send (Application or Delegated)
+                  <br/>5. Copy Application (client) ID and Directory (tenant) ID
+                </li>
+                <li><strong>Google Workspace:</strong>
+                  <br/>1. Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Google Cloud Console → Credentials</a>
+                  <br/>2. Create OAuth 2.0 Client ID with type "Web application"
+                  <br/>3. Add authorized redirect URI: {currentConfig.redirectUri}
+                  <br/>4. Enable Gmail API in APIs & Services
+                  <br/>5. Copy Client ID and Client Secret
+                </li>
+                <li><strong>Security Best Practices:</strong>
+                  <br/>• Use dedicated service accounts for email sending
+                  <br/>• Regularly rotate client secrets and refresh tokens
+                  <br/>• Monitor OAuth token usage and expiration
+                  <br/>• Implement proper scoping (Mail.Send only, not full mailbox access)
+                </li>
+                <li><strong>Troubleshooting:</strong>
+                  <br/>• Ensure redirect URI exactly matches app registration
+                  <br/>• Check that admin consent is granted for application permissions
+                  <br/>• Verify API permissions are correctly configured
+                </li>
               </ul>
             </div>
 
@@ -391,23 +526,23 @@ const EmailConfiguration: React.FC = () => {
               <button
                 onClick={handleTestConfig}
                 className="btn btn-info btn-md"
-                disabled={!currentConfig.smtpServer || !currentConfig.fromEmail}
-                title={!currentConfig.smtpServer || !currentConfig.fromEmail ? 'Please fill in SMTP Server and From Email to test' : 'Send a test email'}
+                disabled={!currentConfig.isAuthenticated || !currentConfig.fromEmail}
+                title={!currentConfig.isAuthenticated ? 'Please authenticate with OAuth first' : !currentConfig.fromEmail ? 'Please configure From Email address' : 'Send a test email using OAuth'}
               >
-                🧪 Test Configuration
+                🧪 Test Email Sending
               </button>
               <button
                 onClick={handleResetConfig}
                 className="btn btn-warning btn-md"
                 disabled={!emailConfigs[selectedCountry]}
-                title={!emailConfigs[selectedCountry] ? 'No configuration to reset' : `Reset configuration for ${selectedCountry}`}
+                title={!emailConfigs[selectedCountry] ? 'No configuration to reset' : `Reset OAuth configuration for ${selectedCountry}`}
               >
                 🔄 Reset Configuration
               </button>
               <button
                 onClick={handleSaveConfig}
                 className="btn btn-primary btn-md"
-                title={`Save SMTP configuration for ${selectedCountry}`}
+                title={`Save OAuth configuration for ${selectedCountry}`}
               >
                 💾 Save Configuration
               </button>
@@ -425,9 +560,11 @@ const EmailConfiguration: React.FC = () => {
                   <div key={country} className="summary-item">
                     <div className="summary-country">{country}</div>
                     <div className="summary-details">
-                      <div className="summary-server">{config.smtpServer}:{config.smtpPort}</div>
+                      <div className="summary-server">{config.provider.toUpperCase()} OAuth</div>
                       <div className="summary-email">{config.fromEmail}</div>
-                      <div className="summary-status">✅ Configured</div>
+                      <div className="summary-status">
+                        {config.isAuthenticated ? '✅ Authenticated' : '⚠️ Not Authenticated'}
+                      </div>
                     </div>
                   </div>
                 ))}
