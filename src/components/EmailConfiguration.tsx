@@ -168,7 +168,7 @@ const EmailConfiguration: React.FC = () => {
   };
 
   // Initialize default notification matrix for a country
-  const initializeNotificationMatrix = (country: string): EmailNotificationMatrix => {
+  const initializeNotificationMatrix = React.useCallback((country: string): EmailNotificationMatrix => {
     const statuses = [
       'Case Booked',
       'Order Prepared', 
@@ -195,7 +195,7 @@ const EmailConfiguration: React.FC = () => {
         }
       }))
     };
-  };
+  }, []);
 
   // Update current config when country selection changes
   useEffect(() => {
