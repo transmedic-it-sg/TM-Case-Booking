@@ -21,12 +21,73 @@ interface EmailConfig {
   tokenExpiry?: number;
 }
 
+interface NotificationRule {
+  status: string;
+  enabled: boolean;
+  recipients: {
+    roles: string[];
+    specificEmails: string[];
+  };
+  template: {
+    subject: string;
+    body: string;
+  };
+}
+
+interface EmailNotificationMatrix {
+  country: string;
+  rules: NotificationRule[];
+}
+
+// Collapsible Section Component
+const CollapsibleSection: React.FC<{
+  title: string;
+  icon: string;
+  isCollapsed: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}> = ({ title, icon, isCollapsed, onToggle, children }) => (
+  <div className="config-section">
+    <div 
+      className="section-header" 
+      onClick={onToggle}
+      style={{ 
+        cursor: 'pointer', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        padding: '0.5rem 0',
+        borderBottom: '1px solid #dee2e6',
+        marginBottom: isCollapsed ? '0' : '1.5rem'
+      }}
+    >
+      <h3 style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        {icon} {title}
+      </h3>
+      <span style={{ 
+        fontSize: '1.2rem', 
+        transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', 
+        transition: 'transform 0.2s ease',
+        color: '#6c757d'
+      }}>
+        ▼
+      </span>
+    </div>
+    {!isCollapsed && (
+      <div className="section-content" style={{ paddingTop: '1rem' }}>
+        {children}
+      </div>
+    )}
+  </div>
+);
+
 const EmailConfiguration: React.FC = () => {
   const currentUser = getCurrentUser();
   const { playSound } = useSound();
   const { showSuccess } = useToast();
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [emailConfigs, setEmailConfigs] = useState<Record<string, EmailConfig>>({});
+  const [emailMatrixConfigs, setEmailMatrixConfigs] = useState<Record<string, EmailNotificationMatrix>>({});
   const [currentConfig, setCurrentConfig] = useState<EmailConfig>({
     provider: 'microsoft',
     clientId: '',
@@ -37,6 +98,14 @@ const EmailConfiguration: React.FC = () => {
     fromName: 'Case Booking System',
     country: '',
     isAuthenticated: false
+  });
+
+  // Collapsible sections state
+  const [collapsedSections, setCollapsedSections] = useState({
+    oauthConfig: false,
+    emailDetails: false,
+    notificationMatrix: false,
+    configGuide: true
   });
 
   // Check permission - Debug version
@@ -65,7 +134,55 @@ const EmailConfiguration: React.FC = () => {
         console.error('Failed to load email configurations:', error);
       }
     }
+
+    const savedMatrixConfigs = localStorage.getItem('email-matrix-configs-by-country');
+    if (savedMatrixConfigs) {
+      try {
+        const matrixConfigs = JSON.parse(savedMatrixConfigs);
+        setEmailMatrixConfigs(matrixConfigs);
+      } catch (error) {
+        console.error('Failed to load email matrix configurations:', error);
+      }
+    }
   }, []);
+
+  // Helper function to toggle sections
+  const toggleSection = (section: keyof typeof collapsedSections) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+    playSound.click();
+  };
+
+  // Initialize default notification matrix for a country
+  const initializeNotificationMatrix = (country: string): EmailNotificationMatrix => {
+    const statuses = [
+      'Case Booked',
+      'Order Prepared', 
+      'Order Delivered (Hospital)',
+      'Order Received (Hospital)',
+      'Case Completed',
+      'Order Delivered (Office)',
+      'To be billed'
+    ];
+
+    return {
+      country,
+      rules: statuses.map(status => ({
+        status,
+        enabled: false,
+        recipients: {
+          roles: [],
+          specificEmails: []
+        },
+        template: {
+          subject: `Case Status Update: ${status}`,
+          body: `A case has been updated to status: ${status}\n\nCase Reference: {{caseReference}}\nHospital: {{hospital}}\nDate: {{date}}\n\nBest regards,\nCase Booking System`
+        }
+      }))
+    };
+  };
 
   // Update current config when country selection changes
   useEffect(() => {
@@ -84,8 +201,17 @@ const EmailConfiguration: React.FC = () => {
         fromName: 'Case Booking System',
         isAuthenticated: false
       }));
+
+      // Initialize notification matrix if it doesn't exist
+      if (!emailMatrixConfigs[selectedCountry]) {
+        const newMatrix = initializeNotificationMatrix(selectedCountry);
+        setEmailMatrixConfigs(prev => ({
+          ...prev,
+          [selectedCountry]: newMatrix
+        }));
+      }
     }
-  }, [selectedCountry, emailConfigs]);
+  }, [selectedCountry, emailConfigs, emailMatrixConfigs, initializeNotificationMatrix]);
 
   const handleCountryChange = (country: string) => {
     setSelectedCountry(country);
@@ -93,6 +219,31 @@ const EmailConfiguration: React.FC = () => {
 
   const handleConfigChange = (field: keyof EmailConfig, value: string | boolean) => {
     setCurrentConfig(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Handle notification matrix updates
+  const updateNotificationRule = (ruleIndex: number, updates: Partial<NotificationRule>) => {
+    if (!selectedCountry || !emailMatrixConfigs[selectedCountry]) return;
+
+    const updatedMatrix = {
+      ...emailMatrixConfigs[selectedCountry],
+      rules: emailMatrixConfigs[selectedCountry].rules.map((rule, index) =>
+        index === ruleIndex ? { ...rule, ...updates } : rule
+      )
+    };
+
+    setEmailMatrixConfigs(prev => ({
+      ...prev,
+      [selectedCountry]: updatedMatrix
+    }));
+  };
+
+  const saveNotificationMatrix = () => {
+    if (!selectedCountry) return;
+
+    localStorage.setItem('email-matrix-configs-by-country', JSON.stringify(emailMatrixConfigs));
+    playSound.success();
+    showSuccess('Notification Matrix Saved', `Email notification rules for ${selectedCountry} have been saved successfully`);
   };
 
   const handleSaveConfig = () => {
@@ -342,32 +493,37 @@ const EmailConfiguration: React.FC = () => {
 
         {/* SSO Configuration Form */}
         {selectedCountry && (
-          <div className="config-section">
-            <h3>🔐 SSO Configuration for {selectedCountry}</h3>
-            
-            {/* Provider Selection */}
-            <div style={{ marginBottom: '2rem' }}>
-              <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #dee2e6', paddingBottom: '0.5rem' }}>🏢 Email Provider</h4>
-              
-              <div className="form-group">
-                <label htmlFor="provider" className="required">Authentication Provider</label>
-                <select
-                  id="provider"
-                  value={currentConfig.provider}
-                  onChange={(e) => handleConfigChange('provider', e.target.value)}
-                  className="form-control"
-                  required
-                >
-                  <option value="microsoft">Microsoft 365 / Outlook (Recommended)</option>
-                  <option value="google">Google Workspace / Gmail</option>
-                  <option value="custom" disabled>Custom OAuth (Coming Soon)</option>
-                </select>
+          <>
+            {/* OAuth Configuration Section */}
+            <CollapsibleSection
+              title={`OAuth Configuration for ${selectedCountry}`}
+              icon="🔐"
+              isCollapsed={collapsedSections.oauthConfig}
+              onToggle={() => toggleSection('oauthConfig')}
+            >
+              {/* Provider Selection */}
+              <div style={{ marginBottom: '2rem' }}>
+                <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #dee2e6', paddingBottom: '0.5rem' }}>🏢 Email Provider</h4>
+                
+                <div className="form-group">
+                  <label htmlFor="provider" className="required">Authentication Provider</label>
+                  <select
+                    id="provider"
+                    value={currentConfig.provider}
+                    onChange={(e) => handleConfigChange('provider', e.target.value)}
+                    className="form-control"
+                    required
+                  >
+                    <option value="microsoft">Microsoft 365 / Outlook (Recommended)</option>
+                    <option value="google">Google Workspace / Gmail</option>
+                    <option value="custom" disabled>Custom OAuth (Coming Soon)</option>
+                  </select>
+                </div>
               </div>
-            </div>
 
-            {/* OAuth Configuration */}
-            <div style={{ marginBottom: '2rem' }}>
-              <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #dee2e6', paddingBottom: '0.5rem' }}>🔑 OAuth Settings</h4>
+              {/* OAuth Settings */}
+              <div style={{ marginBottom: '2rem' }}>
+                <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #dee2e6', paddingBottom: '0.5rem' }}>🔑 OAuth Settings</h4>
               
               <div className="form-group">
                 <label htmlFor="clientId" className="required">Client ID / Application ID</label>
@@ -426,43 +582,47 @@ const EmailConfiguration: React.FC = () => {
               </div>
             </div>
 
-            {/* Authentication Status */}
-            <div style={{ marginBottom: '2rem' }}>
-              <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #dee2e6', paddingBottom: '0.5rem' }}>🔓 Authentication Status</h4>
-              
-              <div style={{
-                padding: '1rem',
-                borderRadius: '8px',
-                border: `2px solid ${currentConfig.isAuthenticated ? '#28a745' : '#dc3545'}`,
-                background: currentConfig.isAuthenticated ? '#d4edda' : '#f8d7da',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                  {currentConfig.isAuthenticated ? '✅ Authenticated' : '❌ Not Authenticated'}
+              {/* Authentication Status */}
+              <div style={{ marginBottom: '2rem' }}>
+                <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #dee2e6', paddingBottom: '0.5rem' }}>🔓 Authentication Status</h4>
+                
+                <div style={{
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  border: `2px solid ${currentConfig.isAuthenticated ? '#28a745' : '#dc3545'}`,
+                  background: currentConfig.isAuthenticated ? '#d4edda' : '#f8d7da',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                    {currentConfig.isAuthenticated ? '✅ Authenticated' : '❌ Not Authenticated'}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#495057' }}>
+                    {currentConfig.isAuthenticated 
+                      ? `Successfully authenticated with ${currentConfig.provider.toUpperCase()}` 
+                      : `Click "Authenticate with ${currentConfig.provider.toUpperCase()}" to connect`}
+                  </div>
+                  {!currentConfig.isAuthenticated && (
+                    <button
+                      onClick={handleOAuthAuthentication}
+                      className="btn btn-primary btn-md"
+                      style={{ marginTop: '1rem' }}
+                      disabled={!currentConfig.clientId}
+                      title={!currentConfig.clientId ? 'Please configure Client ID first' : `Authenticate with ${currentConfig.provider.toUpperCase()}`}
+                    >
+                      🔐 Authenticate with {currentConfig.provider.toUpperCase()}
+                    </button>
+                  )}
                 </div>
-                <div style={{ fontSize: '0.9rem', color: '#495057' }}>
-                  {currentConfig.isAuthenticated 
-                    ? `Successfully authenticated with ${currentConfig.provider.toUpperCase()}` 
-                    : `Click "Authenticate with ${currentConfig.provider.toUpperCase()}" to connect`}
-                </div>
-                {!currentConfig.isAuthenticated && (
-                  <button
-                    onClick={handleOAuthAuthentication}
-                    className="btn btn-primary btn-md"
-                    style={{ marginTop: '1rem' }}
-                    disabled={!currentConfig.clientId}
-                    title={!currentConfig.clientId ? 'Please configure Client ID first' : `Authenticate with ${currentConfig.provider.toUpperCase()}`}
-                  >
-                    🔐 Authenticate with {currentConfig.provider.toUpperCase()}
-                  </button>
-                )}
               </div>
-            </div>
+            </CollapsibleSection>
 
-            {/* Email Details */}
-            <div style={{ marginBottom: '2rem' }}>
-              <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #dee2e6', paddingBottom: '0.5rem' }}>📧 Email Details</h4>
-              
+            {/* Email Details Section */}
+            <CollapsibleSection
+              title="Email Details"
+              icon="📧"
+              isCollapsed={collapsedSections.emailDetails}
+              onToggle={() => toggleSection('emailDetails')}
+            >
               <div className="form-group">
                 <label htmlFor="fromEmail" className="required">From Email Address</label>
                 <input
@@ -487,39 +647,184 @@ const EmailConfiguration: React.FC = () => {
                   className="form-control"
                 />
               </div>
-            </div>
+            </CollapsibleSection>
 
-            {/* Configuration Tips */}
-            <div className="config-tips">
-              <h4>📝 OAuth Configuration Guide:</h4>
-              <ul>
-                <li><strong>Microsoft 365:</strong> 
-                  <br/>1. Go to <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer">Azure Portal → App Registrations</a>
-                  <br/>2. Create new app registration with name "Case Booking Email Integration"
-                  <br/>3. Add redirect URI: {currentConfig.redirectUri}
-                  <br/>4. API Permissions: Add Microsoft Graph → Mail.Send (Application or Delegated)
-                  <br/>5. Copy Application (client) ID and Directory (tenant) ID
-                </li>
-                <li><strong>Google Workspace:</strong>
-                  <br/>1. Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Google Cloud Console → Credentials</a>
-                  <br/>2. Create OAuth 2.0 Client ID with type "Web application"
-                  <br/>3. Add authorized redirect URI: {currentConfig.redirectUri}
-                  <br/>4. Enable Gmail API in APIs & Services
-                  <br/>5. Copy Client ID and Client Secret
-                </li>
-                <li><strong>Security Best Practices:</strong>
-                  <br/>• Use dedicated service accounts for email sending
-                  <br/>• Regularly rotate client secrets and refresh tokens
-                  <br/>• Monitor OAuth token usage and expiration
-                  <br/>• Implement proper scoping (Mail.Send only, not full mailbox access)
-                </li>
-                <li><strong>Troubleshooting:</strong>
-                  <br/>• Ensure redirect URI exactly matches app registration
-                  <br/>• Check that admin consent is granted for application permissions
-                  <br/>• Verify API permissions are correctly configured
-                </li>
-              </ul>
-            </div>
+            {/* Email Notification Matrix Section */}
+            <CollapsibleSection
+              title="Email Notification Matrix"
+              icon="📮"
+              isCollapsed={collapsedSections.notificationMatrix}
+              onToggle={() => toggleSection('notificationMatrix')}
+            >
+              {emailMatrixConfigs[selectedCountry] && (
+                <div className="notification-matrix">
+                  <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#e3f2fd', borderRadius: '8px', border: '1px solid #2196f3' }}>
+                    <h4 style={{ color: '#1976d2', margin: '0 0 0.5rem 0' }}>📋 Notification Rules Configuration</h4>
+                    <p style={{ margin: '0', color: '#37474f', fontSize: '0.9rem' }}>
+                      Configure which status changes trigger email notifications and who receives them.
+                    </p>
+                  </div>
+
+                  {emailMatrixConfigs[selectedCountry].rules.map((rule, index) => (
+                    <div key={rule.status} className="notification-rule" style={{
+                      border: '1px solid #dee2e6',
+                      borderRadius: '8px',
+                      marginBottom: '1rem',
+                      padding: '1rem',
+                      background: rule.enabled ? '#f8f9fa' : '#ffffff'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                        <h5 style={{ margin: '0', color: '#495057', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          📊 {rule.status}
+                        </h5>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={rule.enabled}
+                            onChange={(e) => updateNotificationRule(index, { enabled: e.target.checked })}
+                            style={{ transform: 'scale(1.2)' }}
+                          />
+                          <span style={{ fontWeight: '500', color: rule.enabled ? '#28a745' : '#6c757d' }}>
+                            {rule.enabled ? 'Enabled' : 'Disabled'}
+                          </span>
+                        </label>
+                      </div>
+
+                      {rule.enabled && (
+                        <div style={{ paddingLeft: '1rem', borderLeft: '3px solid #28a745' }}>
+                          <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#495057' }}>
+                              📧 Email Subject
+                            </label>
+                            <input
+                              type="text"
+                              value={rule.template.subject}
+                              onChange={(e) => updateNotificationRule(index, {
+                                template: { ...rule.template, subject: e.target.value }
+                              })}
+                              className="form-control"
+                              placeholder="Email subject line"
+                            />
+                          </div>
+
+                          <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#495057' }}>
+                              📝 Email Body Template
+                            </label>
+                            <textarea
+                              value={rule.template.body}
+                              onChange={(e) => updateNotificationRule(index, {
+                                template: { ...rule.template, body: e.target.value }
+                              })}
+                              className="form-control"
+                              rows={4}
+                              placeholder="Email body template (use {{caseReference}}, {{hospital}}, {{date}} as placeholders)"
+                            />
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div>
+                              <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#495057' }}>
+                                👥 Notify User Roles
+                              </label>
+                              <select
+                                multiple
+                                value={rule.recipients.roles}
+                                onChange={(e) => {
+                                  const selectedRoles = Array.from(e.target.selectedOptions, option => option.value);
+                                  updateNotificationRule(index, {
+                                    recipients: { ...rule.recipients, roles: selectedRoles }
+                                  });
+                                }}
+                                className="form-control"
+                                size={4}
+                                style={{ minHeight: '100px' }}
+                              >
+                                <option value="admin">Admin</option>
+                                <option value="operations">Operations</option>
+                                <option value="operation-manager">Operation Manager</option>
+                                <option value="sales">Sales</option>
+                                <option value="sales-manager">Sales Manager</option>
+                                <option value="driver">Driver</option>
+                                <option value="it">IT</option>
+                              </select>
+                              <small style={{ color: '#6c757d', fontSize: '0.8rem' }}>Hold Ctrl/Cmd to select multiple roles</small>
+                            </div>
+
+                            <div>
+                              <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#495057' }}>
+                                📮 Additional Email Addresses
+                              </label>
+                              <textarea
+                                value={rule.recipients.specificEmails.join('\n')}
+                                onChange={(e) => {
+                                  const emails = e.target.value.split('\n').filter(email => email.trim());
+                                  updateNotificationRule(index, {
+                                    recipients: { ...rule.recipients, specificEmails: emails }
+                                  });
+                                }}
+                                className="form-control"
+                                rows={4}
+                                placeholder="Enter email addresses (one per line)&#10;example@company.com&#10;manager@company.com"
+                              />
+                              <small style={{ color: '#6c757d', fontSize: '0.8rem' }}>One email address per line</small>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem', paddingTop: '1rem', borderTop: '2px solid #dee2e6' }}>
+                    <button
+                      onClick={saveNotificationMatrix}
+                      className="btn btn-success btn-md"
+                      title="Save notification matrix configuration"
+                    >
+                      💾 Save Notification Rules
+                    </button>
+                  </div>
+                </div>
+              )}
+            </CollapsibleSection>
+
+            {/* Configuration Guide Section */}
+            <CollapsibleSection
+              title="Configuration Guide"
+              icon="📝"
+              isCollapsed={collapsedSections.configGuide}
+              onToggle={() => toggleSection('configGuide')}
+            >
+              <div className="config-tips">
+                <ul>
+                  <li><strong>Microsoft 365:</strong> 
+                    <br/>1. Go to <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer">Azure Portal → App Registrations</a>
+                    <br/>2. Create new app registration with name "Case Booking Email Integration"
+                    <br/>3. Add redirect URI: {currentConfig.redirectUri}
+                    <br/>4. API Permissions: Add Microsoft Graph → Mail.Send (Application or Delegated)
+                    <br/>5. Copy Application (client) ID and Directory (tenant) ID
+                  </li>
+                  <li><strong>Google Workspace:</strong>
+                    <br/>1. Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Google Cloud Console → Credentials</a>
+                    <br/>2. Create OAuth 2.0 Client ID with type "Web application"
+                    <br/>3. Add authorized redirect URI: {currentConfig.redirectUri}
+                    <br/>4. Enable Gmail API in APIs & Services
+                    <br/>5. Copy Client ID and Client Secret
+                  </li>
+                  <li><strong>Security Best Practices:</strong>
+                    <br/>• Use dedicated service accounts for email sending
+                    <br/>• Regularly rotate client secrets and refresh tokens
+                    <br/>• Monitor OAuth token usage and expiration
+                    <br/>• Implement proper scoping (Mail.Send only, not full mailbox access)
+                  </li>
+                  <li><strong>Troubleshooting:</strong>
+                    <br/>• Ensure redirect URI exactly matches app registration
+                    <br/>• Check that admin consent is granted for application permissions
+                    <br/>• Verify API permissions are correctly configured
+                  </li>
+                </ul>
+              </div>
+            </CollapsibleSection>
 
             {/* Action Buttons */}
             <div className="config-actions">
@@ -547,31 +852,9 @@ const EmailConfiguration: React.FC = () => {
                 💾 Save Configuration
               </button>
             </div>
-          </div>
+          </>
         )}
 
-        {/* Configuration Summary */}
-        {Object.keys(emailConfigs).length > 0 && (
-          <div className="config-section">
-            <h3>📊 Configuration Summary</h3>
-            <div className="config-summary">
-              <div className="summary-grid">
-                {Object.entries(emailConfigs).map(([country, config]) => (
-                  <div key={country} className="summary-item">
-                    <div className="summary-country">{country}</div>
-                    <div className="summary-details">
-                      <div className="summary-server">{config.provider.toUpperCase()} OAuth</div>
-                      <div className="summary-email">{config.fromEmail}</div>
-                      <div className="summary-status">
-                        {config.isAuthenticated ? '✅ Authenticated' : '⚠️ Not Authenticated'}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
