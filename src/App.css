@@ -58,8 +58,8 @@ html {
   }
 }
 
-/* Global Permission Denied Styles */
-.permission-denied {
+/* Global Permission Denied Styles - Only apply to permission denied containers, not legend icons */
+.permission-denied:not(.legend-icon) {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -6150,8 +6150,8 @@ textarea:focus {
   cursor: not-allowed;
 }
 
-/* Permission Denied Page */
-.permission-denied {
+/* Permission Denied Page - Only apply to permission denied containers, not legend icons */
+.permission-denied:not(.legend-icon) {
   position: fixed;
   top: 0;
   left: 0;
