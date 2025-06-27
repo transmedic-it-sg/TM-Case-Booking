@@ -6,6 +6,7 @@ import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getStatusColor } from './CasesList/utils';
 import { formatDate } from '../utils/dateFormat';
 import FilterDatePicker from './FilterDatePicker';
+import SearchableDropdown from './SearchableDropdown';
 import './Reports.css';
 
 interface ReportFilters {
@@ -34,7 +35,17 @@ const Reports: React.FC = () => {
   const [cases, setCases] = useState<CaseBooking[]>([]);
   const [filteredCases, setFilteredCases] = useState<CaseBooking[]>([]);
   const [currentUser] = useState(getCurrentUser());
+  const [showFilters, setShowFilters] = useState(true);
   const [filters, setFilters] = useState<ReportFilters>({
+    dateFrom: '',
+    dateTo: '',
+    status: '',
+    country: '',
+    department: '',
+    submitter: '',
+    reportType: 'overview'
+  });
+  const [tempFilters, setTempFilters] = useState<ReportFilters>({
     dateFrom: '',
     dateTo: '',
     status: '',
@@ -65,6 +76,11 @@ const Reports: React.FC = () => {
     setCases(userCases);
     setFilteredCases(userCases);
   }, [currentUser]);
+
+  // Initialize tempFilters with current filters
+  useEffect(() => {
+    setTempFilters({ ...filters });
+  }, [filters]);
 
   // Apply filters whenever filters change
   useEffect(() => {
@@ -182,12 +198,39 @@ const Reports: React.FC = () => {
     };
   }, [filteredCases]);
 
+  // Get available options for dropdowns
+  const availableSubmitters = useMemo(() => {
+    return Array.from(new Set(cases.map(c => c.submittedBy))).sort();
+  }, [cases]);
+
+  const availableCountries = useMemo(() => {
+    const userCountries = currentUser?.role === 'admin' || currentUser?.role === 'it' 
+      ? COUNTRIES 
+      : (currentUser?.countries || []);
+    return Array.from(new Set(cases.map(c => c.country).filter((country): country is typeof COUNTRIES[number] => 
+      userCountries.includes(country as typeof COUNTRIES[number])
+    ))).sort();
+  }, [cases, currentUser]);
+
+  const availableDepartments = useMemo(() => {
+    const userDepartments = currentUser?.role === 'admin' || currentUser?.role === 'it'
+      ? DEPARTMENTS
+      : (currentUser?.departments || []);
+    return Array.from(new Set(cases.map(c => c.department).filter((dept): dept is typeof DEPARTMENTS[number] => 
+      userDepartments.includes(dept as typeof DEPARTMENTS[number])
+    ))).sort();
+  }, [cases, currentUser]);
+
   const handleFilterChange = (key: keyof ReportFilters, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setTempFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const applyFilters = () => {
+    setFilters({ ...tempFilters });
   };
 
   const clearFilters = () => {
-    setFilters({
+    const defaultFilters: ReportFilters = {
       dateFrom: '',
       dateTo: '',
       status: '',
@@ -195,7 +238,9 @@ const Reports: React.FC = () => {
       department: '',
       submitter: '',
       reportType: 'overview'
-    });
+    };
+    setTempFilters(defaultFilters);
+    setFilters(defaultFilters);
   };
 
   const exportReport = () => {
@@ -277,114 +322,232 @@ const Reports: React.FC = () => {
       </div>
 
       {/* Filters Section */}
-      <div className="reports-filters">
-        <h3>🔍 Advanced Filters</h3>
-        <div className="filters-grid">
-          <div className="filter-group">
-            <label>Report Type</label>
-            <select
-              value={filters.reportType}
-              onChange={(e) => handleFilterChange('reportType', e.target.value)}
-              className="form-control"
-            >
-              <option value="overview">📊 Overview Dashboard</option>
-              <option value="workflow">⚡ Workflow Analysis</option>
-              <option value="performance">📈 Performance Metrics</option>
-              <option value="detailed">📋 Detailed Report</option>
-            </select>
+      <div className="modern-filters-section">
+        <div className="filters-header" onClick={() => setShowFilters(!showFilters)}>
+          <div className="filters-title">
+            <h3>🔍 Advanced Filters</h3>
+            <span className="active-filters-count">
+              {Object.values(tempFilters).filter(value => value && value !== 'overview').length > 0 && 
+                `(${Object.values(tempFilters).filter(value => value && value !== 'overview').length} active)`}
+            </span>
           </div>
+          <button className={`btn btn-outline-secondary btn-sm filters-toggle ${showFilters ? 'expanded' : ''}`}>
+            {showFilters ? '▲' : '▼'}
+          </button>
+        </div>
+        
+        {showFilters && (
+          <div className="filters-content">
+            <div className="filters-grid">
+              {/* Report Configuration */}
+              <div className="filter-category">
+                <h4>📊 Report Configuration</h4>
+                <div className="filter-row">
+                  <div className="modern-filter-group full-width">
+                    <label>Report Type</label>
+                    <div className="filter-input-wrapper">
+                      <SearchableDropdown
+                        options={[
+                          { value: 'overview', label: '📊 Overview Dashboard' },
+                          { value: 'workflow', label: '⚡ Workflow Analysis' },
+                          { value: 'performance', label: '📈 Performance Metrics' },
+                          { value: 'detailed', label: '📋 Detailed Report' }
+                        ]}
+                        value={tempFilters.reportType}
+                        onChange={(value) => handleFilterChange('reportType', value)}
+                        placeholder="Select Report Type"
+                      />
+                      <span className="filter-icon">📄</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-          <div className="filter-group">
-            <label>Date Range</label>
-            <div className="date-range-inputs">
-              <FilterDatePicker
-                value={filters.dateFrom}
-                onChange={(date) => handleFilterChange('dateFrom', date)}
-                placeholder="Start Date"
-                className="form-control"
-              />
-              <FilterDatePicker
-                value={filters.dateTo}
-                onChange={(date) => handleFilterChange('dateTo', date)}
-                placeholder="End Date"
-                className="form-control"
-              />
+              {/* Search Filters */}
+              <div className="filter-category">
+                <h4>🔎 Search</h4>
+                <div className="filter-row">
+                  <div className="modern-filter-group">
+                    <label>Submitter</label>
+                    <div className="filter-input-wrapper">
+                      <SearchableDropdown
+                        options={[
+                          { value: '', label: 'All Submitters' },
+                          ...availableSubmitters.map(submitter => ({
+                            value: submitter,
+                            label: submitter
+                          }))
+                        ]}
+                        value={tempFilters.submitter}
+                        onChange={(value) => handleFilterChange('submitter', value)}
+                        placeholder="All Submitters"
+                      />
+                      <span className="filter-icon">👤</span>
+                    </div>
+                  </div>
+
+                  {(currentUser?.role === 'admin' || currentUser?.role === 'it') && (
+                    <div className="modern-filter-group">
+                      <label>Country</label>
+                      <div className="filter-input-wrapper">
+                        <SearchableDropdown
+                          options={[
+                            { value: '', label: 'All Countries' },
+                            ...availableCountries.map(country => ({
+                              value: country,
+                              label: country
+                            }))
+                          ]}
+                          value={tempFilters.country}
+                          onChange={(value) => handleFilterChange('country', value)}
+                          placeholder="All Countries"
+                        />
+                        <span className="filter-icon">🌍</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="modern-filter-group">
+                    <label>Department</label>
+                    <div className="filter-input-wrapper">
+                      <SearchableDropdown
+                        options={[
+                          { value: '', label: 'All Departments' },
+                          ...availableDepartments.map(dept => ({
+                            value: dept,
+                            label: dept
+                          }))
+                        ]}
+                        value={tempFilters.department}
+                        onChange={(value) => handleFilterChange('department', value)}
+                        placeholder="All Departments"
+                      />
+                      <span className="filter-icon">🏥</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Filter */}
+              <div className="filter-category">
+                <h4>📊 Status</h4>
+                <div className="filter-row">
+                  <div className="modern-filter-group full-width">
+                    <label>Case Status</label>
+                    <div className="filter-input-wrapper">
+                      <SearchableDropdown
+                        options={[
+                          { value: '', label: 'All Statuses' },
+                          { value: 'Case Booked', label: 'Case Booked' },
+                          { value: 'Order Preparation', label: 'Order Preparation' },
+                          { value: 'Order Prepared', label: 'Order Prepared' },
+                          { value: 'Pending Delivery (Hospital)', label: 'Pending Delivery (Hospital)' },
+                          { value: 'Delivered (Hospital)', label: 'Delivered (Hospital)' },
+                          { value: 'Case Completed', label: 'Case Completed' },
+                          { value: 'Pending Delivery (Office)', label: 'Pending Delivery (Office)' },
+                          { value: 'Delivered (Office)', label: 'Delivered (Office)' },
+                          { value: 'To be billed', label: 'To be billed' },
+                          { value: 'Case Closed', label: 'Case Closed' },
+                          { value: 'Case Cancelled', label: 'Case Cancelled' }
+                        ]}
+                        value={tempFilters.status}
+                        onChange={(value) => handleFilterChange('status', value)}
+                        placeholder="All Statuses"
+                      />
+                      <span className="filter-icon">🔄</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Date Filters */}
+              <div className="filter-category">
+                <h4>📅 Date Range</h4>
+                <div className="filter-row">
+                  <div className="modern-filter-group">
+                    <label>Start Date</label>
+                    <div className="filter-input-wrapper">
+                      <FilterDatePicker
+                        value={tempFilters.dateFrom}
+                        onChange={(date) => handleFilterChange('dateFrom', date)}
+                        placeholder="Select start date"
+                      />
+                      <span className="filter-icon">📅</span>
+                    </div>
+                  </div>
+
+                  <div className="modern-filter-group">
+                    <label>End Date</label>
+                    <div className="filter-input-wrapper">
+                      <FilterDatePicker
+                        value={tempFilters.dateTo}
+                        onChange={(date) => handleFilterChange('dateTo', date)}
+                        placeholder="Select end date"
+                        min={tempFilters.dateFrom || undefined}
+                      />
+                      <span className="filter-icon">📅</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Actions */}
+            <div className="modern-filter-actions">
+              <div className="filter-stats">
+                Showing {filteredCases.length} of {cases.length} cases
+              </div>
+              <div className="filter-buttons">
+                <button 
+                  onClick={clearFilters}
+                  className="btn btn-outline-secondary btn-md modern-clear-button"
+                  disabled={Object.values(tempFilters).filter(value => value && value !== 'overview').length === 0}
+                >
+                  🗑️ Clear All
+                </button>
+                <button 
+                  onClick={applyFilters}
+                  className="btn btn-primary btn-md modern-apply-button"
+                >
+                  ✨ Apply Filters
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Filter Presets */}
+            <div className="quick-filters">
+              <span className="quick-filters-label">Quick Filters:</span>
+              <button 
+                onClick={() => handleFilterChange('reportType', 'overview')}
+                className="btn btn-outline-secondary btn-sm quick-filter-button"
+              >
+                📊 Overview
+              </button>
+              <button 
+                onClick={() => handleFilterChange('reportType', 'workflow')}
+                className="btn btn-outline-secondary btn-sm quick-filter-button"
+              >
+                ⚡ Workflow
+              </button>
+              <button 
+                onClick={() => handleFilterChange('reportType', 'performance')}
+                className="btn btn-outline-secondary btn-sm quick-filter-button"
+              >
+                📈 Performance
+              </button>
+              <button 
+                onClick={() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  handleFilterChange('dateFrom', today);
+                  handleFilterChange('dateTo', today);
+                }}
+                className="btn btn-outline-secondary btn-sm quick-filter-button"
+              >
+                📅 Today
+              </button>
             </div>
           </div>
-
-          <div className="filter-group">
-            <label>Status</label>
-            <select
-              value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="form-control"
-            >
-              <option value="">All Statuses</option>
-              <option value="Case Booked">Case Booked</option>
-              <option value="Order Preparation">Order Preparation</option>
-              <option value="Order Prepared">Order Prepared</option>
-              <option value="Pending Delivery (Hospital)">Pending Delivery (Hospital)</option>
-              <option value="Delivered (Hospital)">Delivered (Hospital)</option>
-              <option value="Case Completed">Case Completed</option>
-              <option value="Pending Delivery (Office)">Pending Delivery (Office)</option>
-              <option value="Delivered (Office)">Delivered (Office)</option>
-              <option value="To be billed">To be billed</option>
-              <option value="Case Closed">Case Closed</option>
-              <option value="Case Cancelled">Case Cancelled</option>
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>Country</label>
-            <select
-              value={filters.country}
-              onChange={(e) => handleFilterChange('country', e.target.value)}
-              className="form-control"
-            >
-              <option value="">All Countries</option>
-              {COUNTRIES.map(country => (
-                <option key={country} value={country}>{country}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>Department</label>
-            <select
-              value={filters.department}
-              onChange={(e) => handleFilterChange('department', e.target.value)}
-              className="form-control"
-            >
-              <option value="">All Departments</option>
-              {DEPARTMENTS.map(dept => (
-                <option key={dept} value={dept}>{dept}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>Submitter</label>
-            <input
-              type="text"
-              value={filters.submitter}
-              onChange={(e) => handleFilterChange('submitter', e.target.value)}
-              placeholder="Search by submitter name"
-              className="form-control"
-            />
-          </div>
-        </div>
-
-        <div className="filter-actions">
-          <button 
-            onClick={clearFilters}
-            className="btn btn-outline-secondary"
-          >
-            🗑️ Clear Filters
-          </button>
-          <span className="results-count">
-            Showing {filteredCases.length} of {cases.length} cases
-          </span>
-        </div>
+        )}
       </div>
 
       {/* Report Content */}

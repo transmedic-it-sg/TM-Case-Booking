@@ -250,7 +250,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
                         {caseItem.procedureType}
                       </div>
                       <div className="booking-doctor" style={{fontSize: '9px', color: 'white', opacity: 0.9}}>
-                        Dr. {caseItem.doctorName || 'TBD'}
+                        {caseItem.doctorName || 'TBD'}
                       </div>
                     </div>
                   ))}

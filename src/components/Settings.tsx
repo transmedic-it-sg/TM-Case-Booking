@@ -9,18 +9,8 @@ const Settings: React.FC = () => {
   const { showSuccess } = useToast();
   const settingsRef = useRef<HTMLDivElement>(null);
   const [tempVolume, setTempVolume] = useState(volume);
-  const [showEmailConfig, setShowEmailConfig] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-  const [emailConfig, setEmailConfig] = useState({
-    smtpServer: '',
-    smtpPort: '587',
-    username: '',
-    password: '',
-    fromEmail: '',
-    fromName: 'Case Booking System',
-    useSSL: true
-  });
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -36,21 +26,17 @@ const Settings: React.FC = () => {
     };
   }, []);
 
-  // ESC key support for settings dropdown and email config modal
+  // ESC key support for settings dropdown
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (showEmailConfig) {
-          setShowEmailConfig(false);
-        } else if (isOpen) {
-          setIsOpen(false);
-        }
+        setIsOpen(false);
       }
     };
 
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, showEmailConfig]);
+  }, [isOpen]);
 
   // Sync temp volume with actual volume when settings open
   useEffect(() => {
@@ -193,17 +179,6 @@ const Settings: React.FC = () => {
     return 'btn btn-primary btn-sm';
   };
 
-  // Load email configuration from localStorage
-  useEffect(() => {
-    const savedConfig = localStorage.getItem('email-config');
-    if (savedConfig) {
-      try {
-        setEmailConfig(JSON.parse(savedConfig));
-      } catch (error) {
-        console.error('Failed to load email configuration:', error);
-      }
-    }
-  }, []);
 
   // Load notification settings and check browser support
   useEffect(() => {
@@ -219,41 +194,6 @@ const Settings: React.FC = () => {
     }
   }, []);
 
-  const handleEmailConfigSave = () => {
-    // Validate required fields
-    if (!emailConfig.smtpServer || !emailConfig.username || !emailConfig.fromEmail) {
-      showSuccess('Validation Error', 'Please fill in all required fields');
-      return;
-    }
-
-    // Save to localStorage
-    localStorage.setItem('email-config', JSON.stringify(emailConfig));
-    setShowEmailConfig(false);
-    playSound.success();
-    showSuccess('Email Configuration Saved', 'Email settings have been successfully saved');
-  };
-
-  const handleEmailConfigTest = () => {
-    // This would normally send a test email, but since we're client-side only,
-    // we'll just show a success message
-    playSound.notification();
-    showSuccess('Test Email Sent', 'If configured correctly, you should receive a test email shortly');
-  };
-
-  const handleEmailConfigReset = () => {
-    setEmailConfig({
-      smtpServer: '',
-      smtpPort: '587',
-      username: '',
-      password: '',
-      fromEmail: '',
-      fromName: 'Case Booking System',
-      useSSL: true
-    });
-    localStorage.removeItem('email-config');
-    playSound.click();
-    showSuccess('Email Configuration Reset', 'Email settings have been cleared');
-  };
 
   return (
     <div className="settings-container" ref={settingsRef}>
@@ -331,43 +271,6 @@ const Settings: React.FC = () => {
               )}
             </div>
 
-            {/* Email Configuration Section */}
-            <div className="settings-section">
-              <h4>📧 Email Configuration</h4>
-              
-              <div className="settings-item">
-                <div className="settings-item-info">
-                  <label>Email Settings</label>
-                  <small>Configure SMTP settings for sending emails</small>
-                </div>
-                <button
-                  className="btn btn-primary btn-md"
-                  onClick={() => setShowEmailConfig(true)}
-                >
-                  Configure Email
-                </button>
-              </div>
-              
-              {emailConfig.smtpServer && (
-                <div className="settings-item">
-                  <div className="email-status">
-                    <div className="info-row">
-                      <span>SMTP Server:</span>
-                      <span>{emailConfig.smtpServer}:{emailConfig.smtpPort}</span>
-                    </div>
-                    <div className="info-row">
-                      <span>From Email:</span>
-                      <span>{emailConfig.fromEmail}</span>
-                    </div>
-                    <div className="info-row">
-                      <span>Status:</span>
-                      <span style={{ color: '#27ae60', fontWeight: 'bold' }}>Configured</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Notification Settings Section */}
             <div className="settings-section">
               <h4>🔔 Notification Settings</h4>
@@ -377,6 +280,8 @@ const Settings: React.FC = () => {
                   <label>Browser Notifications</label>
                   <small>Show desktop notifications for important updates</small>
                 </div>
+              </div>
+              <div className="settings-item">
                 <div className="notification-control">
                   <button
                     className={getNotificationButtonClass()}
@@ -389,11 +294,14 @@ const Settings: React.FC = () => {
               </div>
               
               {notificationsEnabled && notificationPermission === 'granted' && (
+              <>
                 <div className="settings-item">
                   <div className="settings-item-info">
                     <label>Notification Status</label>
                     <small>Your browser will show notifications for case updates</small>
                   </div>
+                </div>
+                <div className="settings-item">
                   <button
                     onClick={testNotification}
                     className="btn btn-info btn-sm"
@@ -401,6 +309,7 @@ const Settings: React.FC = () => {
                     🧪 Test Notification
                   </button>
                 </div>
+              </>
               )}
               
               {notificationPermission === 'denied' && (
@@ -456,140 +365,6 @@ const Settings: React.FC = () => {
         </div>
       )}
 
-      {/* Email Configuration Modal */}
-      {showEmailConfig && (
-        <div className="email-config-overlay" onClick={() => setShowEmailConfig(false)}>
-          <div className="email-config-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="email-config-header">
-              <h3>📧 Email Configuration</h3>
-              <button
-                onClick={() => setShowEmailConfig(false)}
-                className="btn btn-secondary btn-sm"
-                title="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="email-config-content">
-              <div className="form-group">
-                <label htmlFor="smtpServer" className="required">SMTP Server</label>
-                <input
-                  type="text"
-                  id="smtpServer"
-                  value={emailConfig.smtpServer}
-                  onChange={(e) => setEmailConfig(prev => ({ ...prev, smtpServer: e.target.value }))}
-                  placeholder="smtp.gmail.com"
-                  required
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="smtpPort" className="required">SMTP Port</label>
-                  <input
-                    type="number"
-                    id="smtpPort"
-                    value={emailConfig.smtpPort}
-                    onChange={(e) => setEmailConfig(prev => ({ ...prev, smtpPort: e.target.value }))}
-                    placeholder="587"
-                    required
-                  />
-                </div>
-                <div className="form-group ssl-checkbox-group">
-                  <label htmlFor="useSSL" className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      id="useSSL"
-                      checked={emailConfig.useSSL}
-                      onChange={(e) => setEmailConfig(prev => ({ ...prev, useSSL: e.target.checked }))}
-                    />
-                    <span>Use SSL/TLS</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="username" className="required">Username</label>
-                <input
-                  type="text"
-                  id="username"
-                  value={emailConfig.username}
-                  onChange={(e) => setEmailConfig(prev => ({ ...prev, username: e.target.value }))}
-                  placeholder="your-email@example.com"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="password" className="required">Password</label>
-                <input
-                  type="password"
-                  id="password"
-                  value={emailConfig.password}
-                  onChange={(e) => setEmailConfig(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Your email password or app password"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="fromEmail" className="required">From Email</label>
-                <input
-                  type="email"
-                  id="fromEmail"
-                  value={emailConfig.fromEmail}
-                  onChange={(e) => setEmailConfig(prev => ({ ...prev, fromEmail: e.target.value }))}
-                  placeholder="noreply@yourcompany.com"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="fromName">From Name</label>
-                <input
-                  type="text"
-                  id="fromName"
-                  value={emailConfig.fromName}
-                  onChange={(e) => setEmailConfig(prev => ({ ...prev, fromName: e.target.value }))}
-                  placeholder="Case Booking System"
-                />
-              </div>
-
-              <div className="email-config-info">
-                <h4>📝 Configuration Tips:</h4>
-                <ul>
-                  <li><strong>Gmail:</strong> Use smtp.gmail.com:587 and enable 2FA with app password</li>
-                  <li><strong>Outlook:</strong> Use smtp.live.com:587 or smtp-mail.outlook.com:587</li>
-                  <li><strong>Custom SMTP:</strong> Contact your email provider for SMTP settings</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="email-config-actions">
-              <button
-                onClick={handleEmailConfigTest}
-                className="btn btn-info btn-md"
-                disabled={!emailConfig.smtpServer || !emailConfig.fromEmail}
-              >
-                🧪 Test Configuration
-              </button>
-              <button
-                onClick={handleEmailConfigReset}
-                className="btn btn-warning btn-md"
-              >
-                🔄 Reset
-              </button>
-              <button
-                onClick={handleEmailConfigSave}
-                className="btn btn-primary btn-md"
-              >
-                💾 Save Configuration
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

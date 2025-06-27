@@ -71,7 +71,7 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
                       onChange={(value) => onFilterChange('submitter', value)}
                       placeholder="All Submitters"
                     />
-                    <span className="filter-icon">👤</span>
+                    <span className="filter-icon">👤  </span>
                   </div>
                 </div>
 
@@ -151,8 +151,9 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
                     <FilterDatePicker
                       value={tempFilters.dateFrom || ''}
                       onChange={(value) => onFilterChange('dateFrom', value)}
-                      placeholder="Select start date 📅"
+                      placeholder="Select start date"
                     />
+                    <span className="filter-icon">📅</span>
                   </div>
                 </div>
 
@@ -162,9 +163,10 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
                     <FilterDatePicker
                       value={tempFilters.dateTo || ''}
                       onChange={(value) => onFilterChange('dateTo', value)}
-                      placeholder="Select end date 📅"
+                      placeholder="Select end date"
                       min={tempFilters.dateFrom || undefined}
                     />
+                    <span className="filter-icon">📅</span>
                   </div>
                 </div>
               </div>

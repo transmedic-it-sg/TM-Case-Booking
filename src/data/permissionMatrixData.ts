@@ -209,6 +209,12 @@ export const permissionActions: PermissionAction[] = [
     category: 'System Settings'
   },
   {
+    id: 'email-config',
+    name: 'Email Configuration',
+    description: 'Configure SMTP settings and email notifications by country',
+    category: 'System Settings'
+  },
+  {
     id: 'code-table-setup',
     name: 'Code Table Setup',
     description: 'Manage system code tables and reference data',
@@ -281,6 +287,7 @@ export const permissions: Permission[] = [
   { actionId: 'view-users', roleId: 'admin', allowed: true },
   { actionId: 'enable-disable-user', roleId: 'admin', allowed: true },
   { actionId: 'system-settings', roleId: 'admin', allowed: true },
+  { actionId: 'email-config', roleId: 'admin', allowed: true },
   { actionId: 'code-table-setup', roleId: 'admin', allowed: true },
   { actionId: 'backup-restore', roleId: 'admin', allowed: true },
   { actionId: 'audit-logs', roleId: 'admin', allowed: true },
@@ -365,6 +372,7 @@ export const permissions: Permission[] = [
   { actionId: 'delete-user', roleId: 'it', allowed: true },
   { actionId: 'enable-disable-user', roleId: 'it', allowed: true },
   { actionId: 'system-settings', roleId: 'it', allowed: true },
+  { actionId: 'email-config', roleId: 'it', allowed: true },
   { actionId: 'code-table-setup', roleId: 'it', allowed: true },
   { actionId: 'backup-restore', roleId: 'it', allowed: true },
   { actionId: 'audit-logs', roleId: 'it', allowed: true },

@@ -277,10 +277,11 @@ const UserManagement: React.FC = () => {
   
   if (!canViewUsers) {
     return (
-      <div className="user-management">
-        <div className="access-denied">
-          <h2>Access Denied</h2>
+      <div className="permission-denied">
+        <div className="permission-denied-content">
+          <h2>🚫 Access Denied</h2>
           <p>You don't have permission to access user management.</p>
+          <p>Contact your administrator to request access.</p>
         </div>
       </div>
     );

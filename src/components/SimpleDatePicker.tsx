@@ -73,7 +73,7 @@ const SimpleDatePicker: React.FC<SimpleDatePickerProps> = ({
         selected={selectedDate}
         onChange={handleDateChange}
         customInput={<SimpleInput disabled={disabled} />}
-        dateFormat="dd/MM/yyyy"
+        dateFormat="eee, dd/MM/yyyy"
         minDate={minDate}
         maxDate={maxDate}
         disabled={disabled}

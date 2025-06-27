@@ -102,6 +102,7 @@ export const PERMISSION_ACTIONS = {
   
   // System Settings
   SYSTEM_SETTINGS: 'system-settings',
+  EMAIL_CONFIG: 'email-config',
   CODE_TABLE_SETUP: 'code-table-setup',
   BACKUP_RESTORE: 'backup-restore',
   AUDIT_LOGS: 'audit-logs',

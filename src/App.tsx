@@ -11,6 +11,7 @@ import CodeTableSetup from './components/CodeTableSetup';
 import WelcomePopup from './components/WelcomePopup';
 import PermissionMatrixPage from './components/PermissionMatrixPage';
 import AuditLogs from './components/AuditLogs';
+import EmailConfiguration from './components/EmailConfiguration';
 import LogoutConfirmation from './components/LogoutConfirmation';
 import { User, CaseBooking } from './types';
 import { getCurrentUser, logout } from './utils/auth';
@@ -32,7 +33,7 @@ import './App.css';
 import './components/CodeTableSetup.css';
 import './components/AuditLogs.css';
 
-type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs';
+type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config';
 
 
 
@@ -225,6 +226,18 @@ const AppContent: React.FC = () => {
                             🔐 Permissions
                           </button>
                         )}
+                        {hasPermission(user.role, PERMISSION_ACTIONS.EMAIL_CONFIG) && (
+                          <button
+                            onClick={() => {
+                              setActivePage('email-config');
+                              playSound.click();
+                              setAdminPanelExpanded(false);
+                            }}
+                            className={`header-admin-item ${activePage === 'email-config' ? 'active' : ''}`}
+                          >
+                            📧 Email Configuration
+                          </button>
+                        )}
                         {hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) && (
                           <button
                             onClick={() => {
@@ -386,6 +399,10 @@ const AppContent: React.FC = () => {
         
         {activePage === 'permissions' && user.role === 'admin' && (
           <PermissionMatrixPage />
+        )}
+        
+        {activePage === 'email-config' && hasPermission(user.role, PERMISSION_ACTIONS.EMAIL_CONFIG) && (
+          <EmailConfiguration />
         )}
         
         {activePage === 'calendar' && hasPermission(user.role, 'booking-calendar') && (

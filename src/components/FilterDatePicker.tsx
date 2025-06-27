@@ -59,7 +59,7 @@ const FilterDatePicker: React.FC<FilterDatePickerProps> = ({
       selected={selectedDate}
       onChange={handleDateChange}
       customInput={<FilterInput disabled={disabled} />}
-      dateFormat="dd/MM/yyyy"
+      dateFormat="eee, dd/MM/yyyy"
       minDate={minDate}
       maxDate={maxDate}
       disabled={disabled}

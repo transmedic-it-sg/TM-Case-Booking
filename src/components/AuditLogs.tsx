@@ -33,6 +33,14 @@ const AuditLogs: React.FC = () => {
     dateFrom: '',
     dateTo: ''
   });
+  const [tempFilters, setTempFilters] = useState({
+    category: '',
+    action: '',
+    user: '',
+    status: '',
+    dateFrom: '',
+    dateTo: ''
+  });
 
   // Check permission
   const canViewAuditLogs = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.AUDIT_LOGS) : false;
@@ -151,16 +159,31 @@ const AuditLogs: React.FC = () => {
     return 'System';
   };
 
+  const handleFilterChange = (key: string, value: string) => {
+    setTempFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const applyFiltersHandler = () => {
+    setFilters({ ...tempFilters });
+  };
+
   const clearFilters = () => {
-    setFilters({
+    const defaultFilters = {
       category: '',
       action: '',
       user: '',
       status: '',
       dateFrom: '',
       dateTo: ''
-    });
+    };
+    setTempFilters(defaultFilters);
+    setFilters(defaultFilters);
   };
+
+  // Initialize tempFilters with current filters
+  useEffect(() => {
+    setTempFilters({ ...filters });
+  }, [filters]);
 
   // Pagination
   const getCurrentPageLogs = () => {
@@ -185,13 +208,27 @@ const AuditLogs: React.FC = () => {
   };
 
   const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString();
+    // Import formatDateTime from utils if not already imported
+    const d = new Date(timestamp);
+    if (isNaN(d.getTime())) {
+      return 'Invalid Date';
+    }
+    
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayName = dayNames[d.getDay()];
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    const hours = d.getHours().toString().padStart(2, '0');
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    
+    return `${dayName}, ${day}/${month}/${year} ${hours}:${minutes}`;
   };
 
   if (!canViewAuditLogs) {
     return (
-      <div className="audit-logs">
-        <div className="access-denied">
+      <div className="permission-denied">
+        <div className="permission-denied-content">
           <h2>🚫 Access Denied</h2>
           <p>You don't have permission to view audit logs.</p>
           <p>Contact your system administrator for access.</p>
@@ -225,7 +262,7 @@ const AuditLogs: React.FC = () => {
           <div className="filters-title">
             <h3>🔍 Advanced Filters</h3>
             <span className="active-filters-count">
-              {Object.values(filters).some(value => value) && `(${Object.values(filters).filter(value => value).length} active)`}
+              {Object.values(tempFilters).some(value => value) && `(${Object.values(tempFilters).filter(value => value).length} active)`}
             </span>
           </div>
           <button className={`btn btn-outline-secondary btn-sm filters-toggle ${showFilters ? 'expanded' : ''}`}>
@@ -251,8 +288,8 @@ const AuditLogs: React.FC = () => {
                             label: user
                           }))
                         ]}
-                        value={filters.user}
-                        onChange={(value) => setFilters(prev => ({ ...prev, user: value }))}
+                        value={tempFilters.user}
+                        onChange={(value) => handleFilterChange('user', value)}
                         placeholder="All Users"
                       />
                       <span className="filter-icon">👤</span>
@@ -270,8 +307,8 @@ const AuditLogs: React.FC = () => {
                             label: action
                           }))
                         ]}
-                        value={filters.action}
-                        onChange={(value) => setFilters(prev => ({ ...prev, action: value }))}
+                        value={tempFilters.action}
+                        onChange={(value) => handleFilterChange('action', value)}
                         placeholder="All Actions"
                       />
                       <span className="filter-icon">⚡</span>
@@ -296,8 +333,8 @@ const AuditLogs: React.FC = () => {
                           { value: 'Security', label: 'Security' },
                           { value: 'System', label: 'System' }
                         ]}
-                        value={filters.category}
-                        onChange={(value) => setFilters(prev => ({ ...prev, category: value }))}
+                        value={tempFilters.category}
+                        onChange={(value) => handleFilterChange('category', value)}
                         placeholder="All Categories"
                       />
                       <span className="filter-icon">📁</span>
@@ -314,8 +351,8 @@ const AuditLogs: React.FC = () => {
                           { value: 'warning', label: 'Warning' },
                           { value: 'error', label: 'Error' }
                         ]}
-                        value={filters.status}
-                        onChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+                        value={tempFilters.status}
+                        onChange={(value) => handleFilterChange('status', value)}
                         placeholder="All Statuses"
                       />
                       <span className="filter-icon">🎯</span>
@@ -332,10 +369,11 @@ const AuditLogs: React.FC = () => {
                     <label>Start Date</label>
                     <div className="filter-input-wrapper">
                       <FilterDatePicker
-                        value={filters.dateFrom}
-                        onChange={(value) => setFilters(prev => ({ ...prev, dateFrom: value }))}
-                        placeholder="Select start date 📅"
+                        value={tempFilters.dateFrom}
+                        onChange={(value) => handleFilterChange('dateFrom', value)}
+                        placeholder="Select start date"
                       />
+                      <span className="filter-icon">📅</span>
                     </div>
                   </div>
 
@@ -343,11 +381,12 @@ const AuditLogs: React.FC = () => {
                     <label>End Date</label>
                     <div className="filter-input-wrapper">
                       <FilterDatePicker
-                        value={filters.dateTo}
-                        onChange={(value) => setFilters(prev => ({ ...prev, dateTo: value }))}
-                        placeholder="Select end date 📅"
-                        min={filters.dateFrom || undefined}
+                        value={tempFilters.dateTo}
+                        onChange={(value) => handleFilterChange('dateTo', value)}
+                        placeholder="Select end date"
+                        min={tempFilters.dateFrom || undefined}
                       />
+                      <span className="filter-icon">📅</span>
                     </div>
                   </div>
                 </div>
@@ -363,13 +402,19 @@ const AuditLogs: React.FC = () => {
                 <button 
                   onClick={clearFilters} 
                   className="btn btn-outline-secondary btn-md modern-clear-button"
-                  disabled={!Object.values(filters).some(value => value)}
+                  disabled={!Object.values(tempFilters).some(value => value)}
                 >
                   🗑️ Clear All
                 </button>
                 <button 
-                  onClick={loadAuditLogs} 
+                  onClick={applyFiltersHandler} 
                   className="btn btn-primary btn-md modern-apply-button"
+                >
+                  ✨ Apply Filters
+                </button>
+                <button 
+                  onClick={loadAuditLogs} 
+                  className="btn btn-outline-secondary btn-md"
                 >
                   🔄 Refresh
                 </button>

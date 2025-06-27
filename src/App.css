@@ -58,6 +58,51 @@ html {
   }
 }
 
+/* Global Permission Denied Styles */
+.permission-denied {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(248, 249, 250, 0.95) !important;
+  backdrop-filter: blur(5px) !important;
+  z-index: 1000 !important;
+  padding: 2rem !important;
+  box-sizing: border-box !important;
+}
+
+.permission-denied-content {
+  position: absolute !important;
+  top: 50vh !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  text-align: center !important;
+  padding: 3rem !important;
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid #e9ecef !important;
+  max-width: 600px !important;
+  min-width: 400px !important;
+  width: auto !important;
+  margin: 0 !important;
+}
+
+.permission-denied-content h2 {
+  color: #dc3545 !important;
+  margin-bottom: 1rem !important;
+  font-size: 2rem !important;
+  font-weight: 600 !important;
+}
+
+.permission-denied-content p {
+  color: #6c757d !important;
+  margin-bottom: 1rem !important;
+  line-height: 1.6 !important;
+  font-size: 1rem !important;
+}
+
 /* Standardized Button System */
 .btn {
   display: inline-flex;
@@ -1672,6 +1717,7 @@ body {
   margin: 0 auto;
   padding: 40px 24px;
   width: 100%;
+  position: relative;
 }
 
 /* Modern Split-Screen Login Styles */
@@ -5503,6 +5549,11 @@ textarea:focus {
   align-items: center;
 }
 
+.filter-input-wrapper input,
+.filter-input-wrapper .searchable-dropdown input {
+  padding-left: 36px !important;
+}
+
 .modern-filter-input {
   width: 100%;
   padding: 10px 12px 10px 36px;
@@ -5529,6 +5580,8 @@ textarea:focus {
   left: 10px;
   font-size: 16px;
   pointer-events: none;
+  z-index: 10;
+  color: #717171;
 }
 
 .status-filter-wrapper {

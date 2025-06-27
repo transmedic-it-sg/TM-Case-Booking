@@ -1,12 +1,12 @@
 /**
  * Centralized date formatting utilities
- * All dates in the application should use DD/MM/YYYY format
+ * All dates in the application should use Day, DD/MM/YYYY format
  */
 
 /**
- * Format a date to DD/MM/YYYY format
+ * Format a date to DD/MM/YYYY format with day name
  * @param date - Date object, string, or timestamp
- * @returns Formatted date string in DD/MM/YYYY format
+ * @returns Formatted date string in Day, DD/MM/YYYY format
  */
 export const formatDate = (date: Date | string | number): string => {
   const d = new Date(date);
@@ -14,17 +14,19 @@ export const formatDate = (date: Date | string | number): string => {
     return 'Invalid Date';
   }
   
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayName = dayNames[d.getDay()];
   const day = d.getDate().toString().padStart(2, '0');
   const month = (d.getMonth() + 1).toString().padStart(2, '0');
   const year = d.getFullYear();
   
-  return `${day}/${month}/${year}`;
+  return `${dayName}, ${day}/${month}/${year}`;
 };
 
 /**
- * Format a date to DD/MM/YYYY HH:MM format
+ * Format a date to DD/MM/YYYY HH:MM format with day name
  * @param date - Date object, string, or timestamp
- * @returns Formatted date and time string in DD/MM/YYYY HH:MM format
+ * @returns Formatted date and time string in Day, DD/MM/YYYY HH:MM format
  */
 export const formatDateTime = (date: Date | string | number): string => {
   const d = new Date(date);
@@ -32,13 +34,15 @@ export const formatDateTime = (date: Date | string | number): string => {
     return 'Invalid Date';
   }
   
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayName = dayNames[d.getDay()];
   const day = d.getDate().toString().padStart(2, '0');
   const month = (d.getMonth() + 1).toString().padStart(2, '0');
   const year = d.getFullYear();
   const hours = d.getHours().toString().padStart(2, '0');
   const minutes = d.getMinutes().toString().padStart(2, '0');
   
-  return `${day}/${month}/${year} ${hours}:${minutes}`;
+  return `${dayName}, ${day}/${month}/${year} ${hours}:${minutes}`;
 };
 
 /**
