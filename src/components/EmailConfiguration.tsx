@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { COUNTRIES } from '../types';
+import { COUNTRIES, DEPARTMENTS } from '../types';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { useSound } from '../contexts/SoundContext';
@@ -29,6 +29,8 @@ interface NotificationRule {
     roles: string[];
     specificEmails: string[];
     includeSubmitter: boolean;
+    departmentFilter: string[]; // Only notify users in these departments
+    requireSameDepartment: boolean; // Only notify if user has access to case department
   };
   template: {
     subject: string;
@@ -187,7 +189,9 @@ const EmailConfiguration: React.FC = () => {
         recipients: {
           roles: [],
           specificEmails: [],
-          includeSubmitter: false
+          includeSubmitter: false,
+          departmentFilter: [],
+          requireSameDepartment: true
         },
         template: {
           subject: `Case Status Update: ${status}`,
@@ -816,6 +820,50 @@ const EmailConfiguration: React.FC = () => {
                                 placeholder="Enter email addresses (one per line)&#10;example@company.com&#10;manager@company.com"
                               />
                               <small style={{ color: '#6c757d', fontSize: '0.8rem' }}>One email address per line</small>
+                            </div>
+                          </div>
+
+                          {/* Department Filtering Section */}
+                          <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+                            <h5 style={{ color: '#495057', fontSize: '0.9rem', margin: '0 0 1rem 0', fontWeight: '600' }}>
+                              🏥 Department-Based Filtering
+                            </h5>
+                            
+                            <div style={{ marginBottom: '1rem' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={rule.recipients.requireSameDepartment}
+                                  onChange={(e) => updateNotificationRule(index, {
+                                    recipients: { ...rule.recipients, requireSameDepartment: e.target.checked }
+                                  })}
+                                  style={{ transform: 'scale(1.1)' }}
+                                />
+                                <span style={{ fontWeight: '500', color: '#495057' }}>
+                                  🎯 Only notify users with access to case department
+                                </span>
+                              </label>
+                              <small style={{ color: '#6c757d', fontSize: '0.8rem', marginLeft: '1.5rem' }}>
+                                Users must have the same department as the case to receive notifications
+                              </small>
+                            </div>
+
+                            <div>
+                              <MultiSelectDropdown
+                                id={`departments-${index}`}
+                                label="🏥 Additional Department Filter (Optional)"
+                                options={DEPARTMENTS}
+                                value={rule.recipients.departmentFilter}
+                                onChange={(selectedDepartments: string[]) => {
+                                  updateNotificationRule(index, {
+                                    recipients: { ...rule.recipients, departmentFilter: selectedDepartments }
+                                  });
+                                }}
+                                placeholder="Select specific departments to include..."
+                              />
+                              <small style={{ color: '#6c757d', fontSize: '0.8rem' }}>
+                                If specified, only users in these departments will be notified (in addition to department access requirement above)
+                              </small>
                             </div>
                           </div>
                         </div>

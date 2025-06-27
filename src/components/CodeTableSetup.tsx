@@ -3,6 +3,7 @@ import { getCurrentUser } from '../utils/auth';
 import { hasPermission } from '../data/permissionMatrixData';
 import { useToast } from './ToastContainer';
 import { useSound } from '../contexts/SoundContext';
+import { COUNTRIES } from '../types';
 import { 
   getCodeTables, 
   saveCodeTables, 
@@ -10,6 +11,7 @@ import {
   CodeTable 
 } from '../utils/codeTable';
 import CustomModal from './CustomModal';
+import SearchableDropdown from './SearchableDropdown';
 import { useModal } from '../hooks/useModal';
 
 interface CodeTableSetupProps {}
@@ -17,7 +19,11 @@ interface CodeTableSetupProps {}
 const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
   const { modal, closeModal, showConfirm } = useModal();
   const [codeTables, setCodeTables] = useState<CodeTable[]>([]);
+  const [countryBasedTables, setCountryBasedTables] = useState<CodeTable[]>([]);
+  const [globalTables, setGlobalTables] = useState<CodeTable[]>([]);
   const [selectedTable, setSelectedTable] = useState<string>('');
+  const [selectedCountry, setSelectedCountry] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<'global' | 'country'>('country');
   const [showAddItem, setShowAddItem] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [editingItem, setEditingItem] = useState<string | null>(null);
@@ -29,6 +35,27 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
   
   const currentUser = getCurrentUser();
   const canManageCodeTables = currentUser ? hasPermission(currentUser.role, 'code-table-setup') : false;
+
+  // Categorize tables into global and country-based
+  const categorizeCodeTables = useCallback((tables: CodeTable[]) => {
+    const countryBased: CodeTable[] = [];
+    const global: CodeTable[] = [];
+    
+    tables.forEach(table => {
+      if (table.id === 'countries') {
+        // Countries is global
+        global.push(table);
+      } else if (table.id === 'hospitals' || table.id === 'departments') {
+        // Hospitals and Departments are country-based
+        countryBased.push(table);
+      } else {
+        // Default to country-based for future tables
+        countryBased.push(table);
+      }
+    });
+    
+    return { countryBased, global };
+  }, []);
 
   // Filter code tables based on user's country access (VIEW ONLY - don't modify original data)
   const getFilteredTablesForUser = useCallback((tables: CodeTable[]): CodeTable[] => {
@@ -52,32 +79,69 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     });
   }, [currentUser]);
 
-  // Load code tables from localStorage
+  // Initialize selected country with user's first country or current selection
   useEffect(() => {
-    initializeCodeTables();
-    const tables = getCodeTables();
-    
-    // Filter tables based on user's country access
-    const filteredTables = getFilteredTablesForUser(tables);
-    setCodeTables(filteredTables);
-    
-    if (filteredTables.length > 0 && !selectedTable) {
-      setSelectedTable(filteredTables[0].id);
+    if (currentUser && !selectedCountry) {
+      const userCountry = currentUser.selectedCountry || currentUser.countries?.[0] || 'Singapore';
+      setSelectedCountry(userCountry);
     }
-  }, [getFilteredTablesForUser, selectedTable]);
+  }, [currentUser, selectedCountry]);
+
+  // Load code tables from localStorage based on selected country
+  useEffect(() => {
+    if (!selectedCountry) return;
+    
+    initializeCodeTables();
+    
+    // Load global tables (countries)
+    const globalTablesData = getCodeTables(); // No country parameter for global
+    const filteredGlobalTables = getFilteredTablesForUser(globalTablesData.filter(t => t.id === 'countries'));
+    
+    // Load country-based tables (hospitals, departments)
+    const countryTablesData = getCodeTables(selectedCountry);
+    const filteredCountryTables = getFilteredTablesForUser(countryTablesData.filter(t => t.id !== 'countries'));
+    
+    // Categorize tables
+    const allTables = [...filteredGlobalTables, ...filteredCountryTables];
+    const { countryBased, global } = categorizeCodeTables(allTables);
+    
+    setGlobalTables(global);
+    setCountryBasedTables(countryBased);
+    setCodeTables(allTables);
+    
+    // Set initial selection based on category
+    if (!selectedTable) {
+      const initialTables = selectedCategory === 'global' ? global : countryBased;
+      if (initialTables.length > 0) {
+        setSelectedTable(initialTables[0].id);
+      }
+    }
+  }, [getFilteredTablesForUser, selectedTable, selectedCountry, selectedCategory, categorizeCodeTables]);
 
   // Save code tables to localStorage whenever they change
   useEffect(() => {
-    if (codeTables.length > 0) {
+    if (codeTables.length > 0 && selectedCountry) {
       // Only save if user has permission to modify AND is admin/IT (to prevent filtered data from being saved)
       if (canManageCodeTables && (currentUser?.role === 'admin' || currentUser?.role === 'it')) {
-        saveCodeTables(codeTables);
+        saveCodeTables(codeTables, selectedCountry);
       }
     }
-  }, [codeTables, canManageCodeTables, currentUser?.role]);
+  }, [codeTables, canManageCodeTables, currentUser?.role, selectedCountry]);
 
   const getCurrentTable = (): CodeTable | undefined => {
     return codeTables.find(table => table.id === selectedTable);
+  };
+
+  const getCurrentCategoryTables = (): CodeTable[] => {
+    return selectedCategory === 'global' ? globalTables : countryBasedTables;
+  };
+
+  const getTableOptions = () => {
+    const currentTables = getCurrentCategoryTables();
+    return currentTables.map(table => ({
+      value: table.id,
+      label: `${table.name} (${table.items.length})`
+    }));
   };
 
 
@@ -198,26 +262,90 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
         <p>Manage system reference data and lookup tables</p>
       </div>
 
-      <div className="table-selector">
-        <div className="table-selector-header">
-          <h3>Select Code Table:</h3>
+      {/* Country Selection - Only show for Admin/IT users and Country-Based Tables */}
+      {(currentUser?.role === 'admin' || currentUser?.role === 'it') && selectedCategory === 'country' && (
+        <div className="country-selector">
+          <div className="country-selector-header">
+            <h3>🌍 Select Country:</h3>
+            <p>Country-based code tables are managed separately for each country</p>
+          </div>
+          <div className="country-dropdown">
+            <SearchableDropdown
+              options={[...COUNTRIES]}
+              value={selectedCountry}
+              onChange={(value) => setSelectedCountry(value)}
+              placeholder="Select a country..."
+              className="country-select-dropdown"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Category Selection */}
+      <div className="category-selector">
+        <div className="category-selector-header">
+          <h3>📊 Code Table Categories:</h3>
+          <p>Select the type of code tables to manage</p>
         </div>
         
-        <div className="table-tabs">
-          {codeTables.map(table => (
-            <button
-              key={table.id}
-              onClick={() => setSelectedTable(table.id)}
-              className={`table-tab ${selectedTable === table.id ? 'active' : ''}`}
-              title={table.description}
-            >
-              {table.name}
-              <span className="item-count">({table.items.length})</span>
-            </button>
-          ))}
+        <div className="category-tabs">
+          <button
+            onClick={() => {
+              setSelectedCategory('country');
+              setSelectedTable('');
+              // Set default country if not set when switching to country-based
+              if (!selectedCountry && currentUser) {
+                const userCountry = currentUser.selectedCountry || currentUser.countries?.[0] || 'Singapore';
+                setSelectedCountry(userCountry);
+              }
+            }}
+            className={`category-tab ${selectedCategory === 'country' ? 'active' : ''}`}
+          >
+            🏥 Country-Based Tables
+            <span className="category-count">({countryBasedTables.length})</span>
+          </button>
+          <button
+            onClick={() => {
+              setSelectedCategory('global');
+              setSelectedTable('');
+            }}
+            className={`category-tab ${selectedCategory === 'global' ? 'active' : ''}`}
+          >
+            🌍 Global Tables
+            <span className="category-count">({globalTables.length})</span>
+          </button>
         </div>
-
       </div>
+
+      {/* Table Selection - Only show when category is selected and conditions are met */}
+      {(selectedCategory === 'global' || (selectedCategory === 'country' && selectedCountry)) && (
+        <div className="table-selector">
+          <div className="table-selector-header">
+            <h3>
+              {selectedCategory === 'global' 
+                ? '🌍 Select Global Code Table:' 
+                : `🏥 Select Code Table for ${selectedCountry}:`
+              }
+            </h3>
+            <p>
+              {selectedCategory === 'global'
+                ? 'These tables apply to all countries'
+                : 'These tables are specific to the selected country'
+              }
+            </p>
+          </div>
+          
+          <div className="table-dropdown">
+            <SearchableDropdown
+              options={getTableOptions()}
+              value={selectedTable}
+              onChange={setSelectedTable}
+              placeholder="Select a code table..."
+              className="table-select-dropdown"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Current Table Items */}
       {currentTable && (

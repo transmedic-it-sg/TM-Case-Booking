@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useModal } from '../hooks/useModal';
+import CustomModal from './CustomModal';
 import './PermissionMatrix.css';
 
 export interface PermissionAction {
@@ -41,6 +43,7 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showRoleSummary, setShowRoleSummary] = useState<string | null>(null);
+  const { modal, closeModal, showConfirm } = useModal();
 
   const categories = Array.from(new Set(actions.map(action => action.category)));
   
@@ -60,7 +63,15 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
     
     const currentPermission = getPermission(actionId, roleId);
     const newAllowed = !currentPermission?.allowed;
-    onPermissionChange(actionId, roleId, newAllowed);
+    const action = actions.find(a => a.id === actionId);
+    const role = roles.find(r => r.id === roleId);
+    
+    const title = `${newAllowed ? 'Grant' : 'Revoke'} Permission`;
+    const message = `Are you sure you want to ${newAllowed ? 'grant' : 'revoke'} "${action?.name}" permission for the ${role?.displayName} role?\n\nThis change will affect system access immediately.`;
+    
+    showConfirm(title, message, () => {
+      onPermissionChange(actionId, roleId, newAllowed);
+    });
   };
 
   const getPermissionIcon = (allowed: boolean) => {
@@ -115,7 +126,8 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
   }, [showRoleSummary]);
 
   return (
-    <div className="permission-matrix">
+    <>
+      <div className="permission-matrix">
       <div className="permission-matrix-header">
         <h2>Role-Based Permission Matrix</h2>
         <div className="permission-controls">
@@ -303,7 +315,30 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
           </div>
         </div>
       )}
-    </div>
+
+      </div>
+
+      {/* Confirmation Modal */}
+      <CustomModal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+        actions={modal.type === 'confirm' ? [
+          {
+            label: 'Cancel',
+            onClick: closeModal,
+            style: 'secondary'
+          },
+          {
+            label: 'Confirm',
+            onClick: modal.onConfirm || closeModal,
+            style: 'primary'
+          }
+        ] : undefined}
+      />
+    </>
   );
 };
 

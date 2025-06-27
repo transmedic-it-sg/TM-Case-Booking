@@ -8,8 +8,9 @@ export interface CodeTable {
 }
 
 // Get code tables from localStorage with fallback to defaults
-export const getCodeTables = (): CodeTable[] => {
-  const storedTables = localStorage.getItem('codeTables');
+export const getCodeTables = (country?: string): CodeTable[] => {
+  const storageKey = country ? `codeTables-${country}` : 'codeTables';
+  const storedTables = localStorage.getItem(storageKey);
   if (storedTables) {
     try {
       return JSON.parse(storedTables);
@@ -19,28 +20,19 @@ export const getCodeTables = (): CodeTable[] => {
   }
   
   // Return default code tables if none exist
-  return getDefaultCodeTables();
+  return getDefaultCodeTables(country);
 };
 
 // Get default code tables based on types constants
-export const getDefaultCodeTables = (): CodeTable[] => {
+export const getDefaultCodeTables = (country?: string): CodeTable[] => {
+  const defaultHospitals = getDefaultHospitalsForCountry(country);
+  
   return [
     {
       id: 'hospitals',
       name: 'Hospitals',
       description: 'List of available hospitals',
-      items: [
-        'Singapore General Hospital',
-        'Mount Elizabeth Hospital', 
-        'Raffles Hospital',
-        'National University Hospital',
-        'Changi General Hospital',
-        'Tan Tock Seng Hospital',
-        'KK Women\'s and Children\'s Hospital',
-        'Institute of Mental Health',
-        'National Cancer Centre Singapore',
-        'Singapore National Eye Centre'
-      ]
+      items: defaultHospitals
     },
     {
       id: 'departments',
@@ -104,9 +96,10 @@ export const getUserCountries = (userCountries?: string[]): string[] => {
 };
 
 // Save code tables to localStorage
-export const saveCodeTables = (tables: CodeTable[]): void => {
+export const saveCodeTables = (tables: CodeTable[], country?: string): void => {
   try {
-    localStorage.setItem('codeTables', JSON.stringify(tables));
+    const storageKey = country ? `codeTables-${country}` : 'codeTables';
+    localStorage.setItem(storageKey, JSON.stringify(tables));
   } catch (error) {
     console.error('Error saving code tables to localStorage:', error);
   }
@@ -196,5 +189,102 @@ export const updateCodeTableItem = (tableId: string, oldItem: string, newItem: s
   } catch (error) {
     console.error('Error updating item in code table:', error);
     return false;
+  }
+};
+
+// Get default hospitals for a specific country
+export const getDefaultHospitalsForCountry = (country?: string): string[] => {
+  switch (country) {
+    case 'Singapore':
+      return [
+        'Singapore General Hospital',
+        'Mount Elizabeth Hospital', 
+        'Raffles Hospital',
+        'National University Hospital',
+        'Changi General Hospital',
+        'Tan Tock Seng Hospital',
+        'KK Women\'s and Children\'s Hospital',
+        'Institute of Mental Health',
+        'National Cancer Centre Singapore',
+        'Singapore National Eye Centre'
+      ];
+    case 'Malaysia':
+      return [
+        'Kuala Lumpur Hospital',
+        'University Malaya Medical Centre',
+        'Gleneagles Kuala Lumpur',
+        'Pantai Hospital Kuala Lumpur',
+        'Prince Court Medical Centre',
+        'Sunway Medical Centre',
+        'Hospital Sultanah Aminah',
+        'Penang General Hospital'
+      ];
+    case 'Philippines':
+      return [
+        'Philippine General Hospital',
+        'St. Luke\'s Medical Center',
+        'The Medical City',
+        'Makati Medical Center',
+        'Asian Hospital and Medical Center',
+        'Cardinal Santos Medical Center',
+        'Jose Reyes Memorial Medical Center'
+      ];
+    case 'Indonesia':
+      return [
+        'Cipto Mangunkusumo Hospital',
+        'Siloam Hospitals',
+        'RS Pondok Indah',
+        'Mayapada Hospital',
+        'MRCCC Siloam Hospitals Semanggi',
+        'Jakarta Heart Center',
+        'Rumah Sakit Premier Bintaro'
+      ];
+    case 'Vietnam':
+      return [
+        'Cho Ray Hospital',
+        'Bach Mai Hospital',
+        'Vinmec Central Park',
+        'FV Hospital',
+        'University Medical Center HCMC',
+        'Gia Dinh People\'s Hospital',
+        'Columbia Asia Saigon'
+      ];
+    case 'Hong Kong':
+      return [
+        'Queen Mary Hospital',
+        'Prince of Wales Hospital',
+        'Hong Kong Sanatorium & Hospital',
+        'Baptist Hospital',
+        'Gleneagles Hong Kong Hospital',
+        'Union Hospital',
+        'St. Paul\'s Hospital'
+      ];
+    case 'Thailand':
+      return [
+        'Siriraj Hospital',
+        'Chulalongkorn Hospital',
+        'Bumrungrad International Hospital',
+        'Bangkok Hospital',
+        'Samitivej Hospital',
+        'BNH Hospital',
+        'Ramathibodi Hospital'
+      ];
+    default:
+      return [
+        'Singapore General Hospital',
+        'Mount Elizabeth Hospital', 
+        'Raffles Hospital',
+        'National University Hospital'
+      ];
+  }
+};
+
+// Update saveCodeTables to support country-specific storage
+export const saveCodeTablesForCountry = (tables: CodeTable[], country?: string): void => {
+  try {
+    const storageKey = country ? `codeTables-${country}` : 'codeTables';
+    localStorage.setItem(storageKey, JSON.stringify(tables));
+  } catch (error) {
+    console.error('Error saving code tables to localStorage:', error);
   }
 };
