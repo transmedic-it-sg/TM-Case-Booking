@@ -164,87 +164,24 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
   return (
     <div className="role-management">
       <div className="role-management-header">
-        <h3>Role Management</h3>
-        <p>Manage system roles and their permissions</p>
-        <button
-          className="btn btn-primary"
-          onClick={() => setShowAddRole(true)}
-        >
-          + Add New Role
-        </button>
-      </div>
-
-      {/* Default Roles */}
-      <div className="roles-section">
-        <h4>Default System Roles</h4>
-        <div className="roles-grid">
-          {defaultRoles.map(role => (
-            <div key={role.id} className="role-card default-role">
-              <div className="role-header" style={{ backgroundColor: role.color }}>
-                <span className="role-name">{role.displayName}</span>
-                <span className="role-badge">System</span>
-              </div>
-              <div className="role-content">
-                <p className="role-description">{role.description}</p>
-                <div className="role-meta">
-                  <span className="role-id">ID: {role.id}</span>
-                </div>
-              </div>
-            </div>
-          ))}
+        <h2>Role Management Matrix</h2>
+        <div className="admin-panel-buttons">
+          <button
+            onClick={() => showAddRole ? setShowAddRole(false) : setShowAddRole(true)}
+            className="btn btn-primary btn-md add-role-button"
+          >
+            {showAddRole ? 'Cancel' : 'Add New Role'}
+          </button>
         </div>
       </div>
 
-      {/* Custom Roles */}
-      {customRoles.length > 0 && (
-        <div className="roles-section">
-          <h4>Custom Roles ({customRoles.length})</h4>
-          <div className="roles-grid">
-            {customRoles.map(role => (
-              <div key={role.id} className="role-card custom-role">
-                <div className="role-header" style={{ backgroundColor: role.color }}>
-                  <span className="role-name">{role.displayName}</span>
-                  <span className="role-badge">Custom</span>
-                </div>
-                <div className="role-content">
-                  <p className="role-description">{role.description}</p>
-                  <div className="role-meta">
-                    <span className="role-id">ID: {role.id}</span>
-                  </div>
-                  <div className="role-actions">
-                    <button
-                      className="btn btn-outline-danger btn-sm"
-                      onClick={() => handleDeleteRole(role.id)}
-                      title="Delete role"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Add Role Modal */}
       {showAddRole && (
-        <div className="modal-overlay" onClick={() => setShowAddRole(false)}>
-          <div className="add-role-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Add New Role</h3>
-              <button
-                className="close-button"
-                onClick={() => setShowAddRole(false)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="modal-content">
+        <div className="add-role-form">
+          <h3>Add New Role</h3>
+          <form onSubmit={(e) => { e.preventDefault(); handleAddRole(); }}>
+            <div className="form-row">
               <div className="form-group">
-                <label htmlFor="displayName">Display Name *</label>
+                <label htmlFor="displayName" className="required">Display Name</label>
                 <input
                   type="text"
                   id="displayName"
@@ -252,6 +189,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
                   onChange={(e) => handleDisplayNameChange(e.target.value)}
                   placeholder="e.g., Super Admin, Regional Manager"
                   maxLength={50}
+                  required
                 />
                 {errors.displayName && <span className="error-message">{errors.displayName}</span>}
               </div>
@@ -268,9 +206,11 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
                 />
                 {errors.name && <span className="error-message">{errors.name}</span>}
               </div>
+            </div>
 
+            <div className="form-row">
               <div className="form-group">
-                <label htmlFor="description">Description *</label>
+                <label htmlFor="description" className="required">Description</label>
                 <textarea
                   id="description"
                   value={newRole.description}
@@ -278,6 +218,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
                   placeholder="Describe the role's responsibilities and scope"
                   rows={3}
                   maxLength={200}
+                  required
                 />
                 {errors.description && <span className="error-message">{errors.description}</span>}
               </div>
@@ -290,13 +231,15 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
                   onChange={(value) => setNewRole(prev => ({ ...prev, basedOnRole: value }))}
                   placeholder="Choose a role to copy permissions from"
                 />
-                <small className="help-text">
+                <small className="form-helper-text">
                   Select a role to copy its permissions as a starting point
                 </small>
               </div>
+            </div>
 
+            <div className="form-row">
               <div className="form-group">
-                <label htmlFor="color">Role Color *</label>
+                <label htmlFor="color" className="required">Role Color</label>
                 <div className="color-picker">
                   {predefinedColors.map(color => (
                     <button
@@ -313,24 +256,103 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
               </div>
             </div>
 
-            <div className="modal-actions">
+            <div className="form-actions">
               <button
-                className="btn btn-secondary"
+                type="button"
                 onClick={() => setShowAddRole(false)}
+                className="btn btn-outline-secondary btn-lg cancel-button"
               >
                 Cancel
               </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleAddRole}
+              <button 
+                type="submit" 
+                className="btn btn-primary btn-lg submit-button"
                 disabled={!newRole.displayName.trim() || !newRole.description.trim()}
               >
                 Create Role
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
+
+      <div className="roles-table">
+        <h3>Existing Roles</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Role Name</th>
+              <th>Description</th>
+              <th>Role ID</th>
+              <th>Type</th>
+              <th>Color</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {/* Default System Roles */}
+            {defaultRoles.map(role => (
+              <tr key={role.id} className="default-role">
+                <td>
+                  <span className="role-display-name">{role.displayName}</span>
+                </td>
+                <td>{role.description}</td>
+                <td>
+                  <span className="role-id-badge">{role.id}</span>
+                </td>
+                <td>
+                  <span className="role-type-badge system">System</span>
+                </td>
+                <td>
+                  <div 
+                    className="role-color-indicator" 
+                    style={{ backgroundColor: role.color }}
+                    title={role.color}
+                  ></div>
+                </td>
+                <td>
+                  <span className="no-actions">Protected</span>
+                </td>
+              </tr>
+            ))}
+            
+            {/* Custom Roles */}
+            {customRoles.map(role => (
+              <tr key={role.id} className="custom-role">
+                <td>
+                  <span className="role-display-name">{role.displayName}</span>
+                </td>
+                <td>{role.description}</td>
+                <td>
+                  <span className="role-id-badge">{role.id}</span>
+                </td>
+                <td>
+                  <span className="role-type-badge custom">Custom</span>
+                </td>
+                <td>
+                  <div 
+                    className="role-color-indicator" 
+                    style={{ backgroundColor: role.color }}
+                    title={role.color}
+                  ></div>
+                </td>
+                <td>
+                  <div className="role-actions">
+                    <button
+                      className="btn btn-danger btn-sm"
+                      onClick={() => handleDeleteRole(role.id)}
+                      title="Delete role"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
 
       <CustomModal
         isOpen={modal.isOpen}

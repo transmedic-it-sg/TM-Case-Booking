@@ -13,6 +13,7 @@ import PermissionMatrixPage from './components/PermissionMatrixPage';
 import AuditLogs from './components/AuditLogs';
 import EmailConfiguration from './components/EmailConfiguration';
 import LogoutConfirmation from './components/LogoutConfirmation';
+import SSOCallback from './components/SSOCallback';
 import { User, CaseBooking } from './types';
 import { getCurrentUser, logout } from './utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from './utils/permissions';
@@ -51,6 +52,9 @@ const AppContent: React.FC = () => {
   const { addNotification } = useNotifications();
   const { showSuccess } = useToast();
 
+  // Check if this is an SSO callback route after all hooks
+  const isCallbackRoute = window.location.pathname === '/auth/callback' || window.location.search.includes('code=');
+
   useEffect(() => {
     // Initialize code tables first
     initializeCodeTables();
@@ -77,6 +81,11 @@ const AppContent: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [adminPanelExpanded]);
+
+  // Return SSO callback component if needed (after all hooks)
+  if (isCallbackRoute) {
+    return <SSOCallback />;
+  }
 
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);

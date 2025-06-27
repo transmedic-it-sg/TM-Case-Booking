@@ -3,12 +3,15 @@ import PermissionMatrix from './PermissionMatrix';
 import { getAllRoles, permissionActions } from '../data/permissionMatrixData';
 import { Role, Permission } from './PermissionMatrix';
 import { getRuntimePermissions, saveRuntimePermissions, updatePermission, resetPermissions } from '../utils/permissions';
+import { useModal } from '../hooks/useModal';
+import CustomModal from './CustomModal';
 import './PermissionMatrixPage.css';
 
 const PermissionMatrixPage: React.FC = () => {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
+  const { modal, closeModal, showConfirm, showSuccess } = useModal();
 
   // Load runtime permissions and roles on component mount
   useEffect(() => {
@@ -65,11 +68,17 @@ const PermissionMatrixPage: React.FC = () => {
   };
 
   const handleSave = () => {
-    // Permissions are already saved in real-time via updatePermission
-    // But we can still save the current state to ensure consistency
-    saveRuntimePermissions(permissions);
-    setIsEditing(false);
-    alert('Permissions saved successfully!');
+    const changedPermissions = permissions.filter(p => p.allowed).length;
+    const title = 'Confirm Save Changes';
+    const message = `Are you sure you want to save the current permission configuration?\n\nThis will update ${changedPermissions} permission(s) and affect system access immediately.`;
+    
+    showConfirm(title, message, () => {
+      // Permissions are already saved in real-time via updatePermission
+      // But we can still save the current state to ensure consistency
+      saveRuntimePermissions(permissions);
+      setIsEditing(false);
+      showSuccess('Permissions saved successfully!');
+    });
   };
 
 
@@ -164,6 +173,29 @@ const PermissionMatrixPage: React.FC = () => {
           </ul>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <CustomModal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+        actions={modal.type === 'confirm' ? [
+          {
+            label: 'Cancel',
+            onClick: closeModal,
+            style: 'secondary'
+          },
+          {
+            label: 'Confirm',
+            onClick: modal.onConfirm || closeModal,
+            style: 'primary'
+          }
+        ] : undefined}
+        autoClose={modal.type === 'success'}
+        autoCloseDelay={3000}
+      />
     </div>
   );
 };

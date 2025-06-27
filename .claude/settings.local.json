@@ -48,7 +48,8 @@
       "Bash(npm uninstall:*)",
       "WebFetch(domain:lh6.googleusercontent.com)",
       "Bash(git reset:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(npx gh-pages:*)"
     ],
     "deny": []
   }

@@ -44,10 +44,13 @@ export const useModal = () => {
       title,
       message,
       type: 'confirm',
-      onConfirm,
+      onConfirm: () => {
+        onConfirm();
+        closeModal();
+      },
       autoClose: false
     });
-  }, []);
+  }, [closeModal]);
 
   // Convenience methods that match the browser API
   const alert = useCallback((message: string) => {

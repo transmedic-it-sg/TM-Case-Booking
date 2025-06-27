@@ -20,7 +20,14 @@ export const getCodeTables = (country?: string): CodeTable[] => {
   }
   
   // Return default code tables if none exist
-  return getDefaultCodeTables(country);
+  if (country) {
+    // For country-specific requests, return only country-based tables
+    const defaultTables = getDefaultCodeTables(country);
+    return defaultTables.filter(table => table.id !== 'countries');
+  } else {
+    // For global requests, return all default tables so they can be categorized
+    return getDefaultCodeTables();
+  }
 };
 
 // Get default code tables based on types constants
@@ -128,6 +135,40 @@ export const initializeCodeTables = (): void => {
       console.error('Error checking code tables, resetting to defaults:', error);
       const defaultTables = getDefaultCodeTables();
       saveCodeTables(defaultTables);
+    }
+  }
+};
+
+// Initialize country-specific code tables
+export const initializeCountryCodeTables = (country: string): void => {
+  const storageKey = `codeTables-${country}`;
+  const existingTables = localStorage.getItem(storageKey);
+  
+  if (!existingTables) {
+    // Create country-specific tables with default data for that country
+    const defaultTables = getDefaultCodeTables(country);
+    // Only save country-based tables (exclude countries table which is global)
+    const countryBasedTables = defaultTables.filter(table => table.id !== 'countries');
+    saveCodeTables(countryBasedTables, country);
+    console.log(`Initialized country-specific code tables for ${country}`);
+  } else {
+    // Validate existing country tables
+    try {
+      const tables = JSON.parse(existingTables);
+      const hospitalsTable = tables.find((table: CodeTable) => table.id === 'hospitals');
+      
+      // If hospitals table doesn't exist, reinitialize
+      if (!hospitalsTable) {
+        console.log(`Missing hospitals table for ${country}, reinitializing...`);
+        const defaultTables = getDefaultCodeTables(country);
+        const countryBasedTables = defaultTables.filter(table => table.id !== 'countries');
+        saveCodeTables(countryBasedTables, country);
+      }
+    } catch (error) {
+      console.error(`Error parsing country code tables for ${country}, reinitializing:`, error);
+      const defaultTables = getDefaultCodeTables(country);
+      const countryBasedTables = defaultTables.filter(table => table.id !== 'countries');
+      saveCodeTables(countryBasedTables, country);
     }
   }
 };

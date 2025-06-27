@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { getCurrentUser } from '../utils/auth';
+import { hasPermission } from '../data/permissionMatrixData';
+import { NotificationPreferences } from '../components/NotificationSettings';
 
 export interface Notification {
   id: string;
@@ -15,7 +17,7 @@ export interface Notification {
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
-  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read' | 'userId'>) => void;
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read' | 'userId'>, notificationType?: string) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   clearNotification: (id: string) => void;
@@ -72,9 +74,66 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     localStorage.setItem('case-booking-notifications', JSON.stringify(allNotifications));
   }, [allNotifications]);
 
-  const addNotification = (notification: Omit<Notification, 'id' | 'timestamp' | 'read' | 'userId'>) => {
+  // Helper function to get user notification preferences
+  const getUserNotificationPreferences = (userId: string): NotificationPreferences => {
+    const savedPreferences = localStorage.getItem(`notificationPreferences_${userId}`);
+    if (savedPreferences) {
+      try {
+        return JSON.parse(savedPreferences);
+      } catch (error) {
+        console.error('Error parsing notification preferences:', error);
+      }
+    }
+    // Default preferences
+    return {
+      statusUpdates: true,
+      caseCreated: true,
+      caseAmended: true,
+      orderProcessed: true,
+      orderDelivered: true,
+      orderReceived: true,
+      caseCompleted: true,
+      toBeBilled: true,
+      systemAlerts: true,
+      reminderNotifications: true,
+      sound: true,
+      desktop: false
+    };
+  };
+
+  // Helper function to check if notification should be sent based on type and preferences
+  const shouldSendNotification = (notificationType: string, preferences: NotificationPreferences): boolean => {
+    const typeMapping: { [key: string]: keyof NotificationPreferences } = {
+      'status-update': 'statusUpdates',
+      'case-created': 'caseCreated',
+      'case-amended': 'caseAmended',
+      'order-processed': 'orderProcessed',
+      'order-delivered': 'orderDelivered',
+      'order-received': 'orderReceived',
+      'case-completed': 'caseCompleted',
+      'to-be-billed': 'toBeBilled',
+      'system-alert': 'systemAlerts',
+      'reminder': 'reminderNotifications'
+    };
+
+    const preferenceKey = typeMapping[notificationType];
+    return preferenceKey ? preferences[preferenceKey] : true; // Default to true for unknown types
+  };
+
+  const addNotification = (notification: Omit<Notification, 'id' | 'timestamp' | 'read' | 'userId'>, notificationType?: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
+
+    // Check if user has permission to receive notifications
+    if (!hasPermission(currentUser.role, 'view-notification-settings')) {
+      return;
+    }
+
+    // Check user notification preferences
+    const userPreferences = getUserNotificationPreferences(currentUser.id);
+    if (notificationType && !shouldSendNotification(notificationType, userPreferences)) {
+      return;
+    }
 
     const newNotification: Notification = {
       ...notification,

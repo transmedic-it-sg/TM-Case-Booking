@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect, useMemo, memo, useCallback } from '
 import { useNotifications } from '../contexts/NotificationContext';
 import { useSound } from '../contexts/SoundContext';
 import { formatDate } from '../utils/dateFormat';
+import { getCurrentUser } from '../utils/auth';
+import { hasPermission } from '../data/permissionMatrixData';
 import NotificationSettings from './NotificationSettings';
 import './NotificationSettings.css';
 
@@ -11,6 +13,10 @@ const NotificationBell: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotification } = useNotifications();
   const { playSound } = useSound();
   const bellRef = useRef<HTMLDivElement>(null);
+  
+  // Check permissions
+  const currentUser = getCurrentUser();
+  const canViewNotifications = currentUser ? hasPermission(currentUser.role, 'view-notification-settings') : false;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -110,17 +116,19 @@ const NotificationBell: React.FC = () => {
           <div className="notification-header">
             <h3>Notifications</h3>
             <div className="notification-header-actions">
-              <button
-                onClick={() => {
-                  setShowSettings(true);
-                  setIsOpen(false);
-                  playSound.click();
-                }}
-                className="btn btn-outline-primary btn-sm settings-button"
-                title="Notification Settings"
-              >
-                ⚙️ Settings
-              </button>
+              {canViewNotifications && (
+                <button
+                  onClick={() => {
+                    setShowSettings(true);
+                    setIsOpen(false);
+                    playSound.click();
+                  }}
+                  className="btn btn-outline-primary btn-sm settings-button"
+                  title="Notification Settings"
+                >
+                  ⚙️ Settings
+                </button>
+              )}
               {notifications.length > 0 && (
                 <button
                   onClick={() => {

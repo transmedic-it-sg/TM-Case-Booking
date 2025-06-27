@@ -257,6 +257,26 @@ export const permissionActions: PermissionAction[] = [
     name: 'Delete Files',
     description: 'Remove uploaded files and attachments',
     category: 'File Operations'
+  },
+  
+  // Notification Management
+  {
+    id: 'configure-notifications',
+    name: 'Configure Notifications',
+    description: 'Access and modify notification settings',
+    category: 'Notification Management'
+  },
+  {
+    id: 'manage-notification-rules',
+    name: 'Manage Notification Rules',
+    description: 'Create and modify system notification rules',
+    category: 'Notification Management'
+  },
+  {
+    id: 'view-notification-settings',
+    name: 'View Notification Settings',
+    description: 'View notification preferences and settings',
+    category: 'Notification Management'
   }
 ];
 
@@ -295,6 +315,9 @@ export const permissions: Permission[] = [
   { actionId: 'download-files', roleId: 'admin', allowed: true },
   { actionId: 'delete-files', roleId: 'admin', allowed: true },
   { actionId: 'cancel-case', roleId: 'admin', allowed: true },
+  { actionId: 'configure-notifications', roleId: 'admin', allowed: true },
+  { actionId: 'manage-notification-rules', roleId: 'admin', allowed: true },
+  { actionId: 'view-notification-settings', roleId: 'admin', allowed: true },
   
   // Operations - Order processing and case management
   { actionId: 'create-case', roleId: 'operations', allowed: true },
@@ -306,6 +329,7 @@ export const permissions: Permission[] = [
   { actionId: 'upload-files', roleId: 'operations', allowed: true },
   { actionId: 'download-files', roleId: 'operations', allowed: true },
   { actionId: 'view-reports', roleId: 'operations', allowed: true },
+  { actionId: 'view-notification-settings', roleId: 'operations', allowed: true },
   
   // Operations Manager - Operations + additional oversight
   { actionId: 'create-case', roleId: 'operation-manager', allowed: true },
@@ -322,6 +346,8 @@ export const permissions: Permission[] = [
   { actionId: 'view-reports', roleId: 'operation-manager', allowed: true },
   { actionId: 'export-data', roleId: 'operation-manager', allowed: true },
   { actionId: 'cancel-case', roleId: 'operation-manager', allowed: true },
+  { actionId: 'configure-notifications', roleId: 'operation-manager', allowed: true },
+  { actionId: 'view-notification-settings', roleId: 'operation-manager', allowed: true },
   
   // Sales - Case completion and office delivery
   { actionId: 'create-case', roleId: 'sales', allowed: true },
@@ -336,6 +362,7 @@ export const permissions: Permission[] = [
   { actionId: 'upload-files', roleId: 'sales', allowed: true },
   { actionId: 'download-files', roleId: 'sales', allowed: true },
   { actionId: 'view-reports', roleId: 'sales', allowed: true },
+  { actionId: 'view-notification-settings', roleId: 'sales', allowed: true },
   
   // Sales Manager - Sales + additional oversight
   { actionId: 'create-case', roleId: 'sales-manager', allowed: true },
@@ -351,6 +378,8 @@ export const permissions: Permission[] = [
   { actionId: 'download-files', roleId: 'sales-manager', allowed: true },
   { actionId: 'view-reports', roleId: 'sales-manager', allowed: true },
   { actionId: 'export-data', roleId: 'sales-manager', allowed: true },
+  { actionId: 'configure-notifications', roleId: 'sales-manager', allowed: true },
+  { actionId: 'view-notification-settings', roleId: 'sales-manager', allowed: true },
   
   // Driver - Delivery operations only
   { actionId: 'view-cases', roleId: 'driver', allowed: true },
@@ -362,6 +391,7 @@ export const permissions: Permission[] = [
   { actionId: 'case-closed', roleId: 'driver', allowed: true },
   { actionId: 'upload-files', roleId: 'driver', allowed: true },
   { actionId: 'download-files', roleId: 'driver', allowed: true },
+  { actionId: 'view-notification-settings', roleId: 'driver', allowed: true },
   
   // IT - System management and technical support + user management
   { actionId: 'view-cases', roleId: 'it', allowed: true },
@@ -381,7 +411,10 @@ export const permissions: Permission[] = [
   { actionId: 'upload-files', roleId: 'it', allowed: true },
   { actionId: 'download-files', roleId: 'it', allowed: true },
   { actionId: 'delete-files', roleId: 'it', allowed: true },
-  { actionId: 'view-reports', roleId: 'it', allowed: true }
+  { actionId: 'view-reports', roleId: 'it', allowed: true },
+  { actionId: 'configure-notifications', roleId: 'it', allowed: true },
+  { actionId: 'manage-notification-rules', roleId: 'it', allowed: true },
+  { actionId: 'view-notification-settings', roleId: 'it', allowed: true }
 ];
 
 // Get all roles including custom ones

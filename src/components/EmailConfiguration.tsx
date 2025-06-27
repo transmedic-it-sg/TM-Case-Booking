@@ -1,10 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { COUNTRIES, DEPARTMENTS } from '../types';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
+import { getAllRoles } from '../data/permissionMatrixData';
 import { useSound } from '../contexts/SoundContext';
 import { useToast } from './ToastContainer';
 import MultiSelectDropdown from './MultiSelectDropdown';
+import { 
+  SSOAuthFactory, 
+  SSOConfig, 
+  SSOUserInfo,
+  getDefaultScopes, 
+  isTokenExpired, 
+  storeTokens, 
+  getStoredTokens, 
+  clearStoredTokens 
+} from '../utils/ssoAuth';
 import './EmailConfiguration.css';
 
 interface EmailConfig {
@@ -20,6 +31,7 @@ interface EmailConfig {
   accessToken?: string;
   refreshToken?: string;
   tokenExpiry?: number;
+  authenticatedUser?: SSOUserInfo;
 }
 
 interface NotificationRule {
@@ -91,6 +103,7 @@ const EmailConfiguration: React.FC = () => {
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [emailConfigs, setEmailConfigs] = useState<Record<string, EmailConfig>>({});
   const [emailMatrixConfigs, setEmailMatrixConfigs] = useState<Record<string, EmailNotificationMatrix>>({});
+  const [roleRefreshTrigger, setRoleRefreshTrigger] = useState(0);
   const [currentConfig, setCurrentConfig] = useState<EmailConfig>({
     provider: 'microsoft',
     clientId: '',
@@ -128,6 +141,10 @@ const EmailConfiguration: React.FC = () => {
     currentUser.role === 'it' || 
     hasPermission(currentUser.role, PERMISSION_ACTIONS.EMAIL_CONFIG)
   ) : false;
+
+  // SSO Authentication state
+  const [ssoInProgress, setSsoInProgress] = useState(false);
+  const [authError, setAuthError] = useState<string>('');
 
   // Debug logging
   console.log('EmailConfiguration Debug:', {
@@ -295,7 +312,110 @@ const EmailConfiguration: React.FC = () => {
     showSuccess('Email Configuration Saved', `${currentConfig.provider.toUpperCase()} SSO settings for ${selectedCountry} have been successfully saved`);
   };
 
-  const handleOAuthAuthentication = () => {
+  // Check for stored tokens and validate authentication
+  const checkStoredAuthentication = useCallback(async () => {
+    if (!selectedCountry || !currentConfig.provider || !currentConfig.clientId) return;
+    
+    // Only support Microsoft and Google SSO
+    if (currentConfig.provider === 'custom') return;
+
+    const storedTokens = getStoredTokens(selectedCountry, currentConfig.provider);
+    if (storedTokens && !isTokenExpired(storedTokens)) {
+      // Valid tokens found
+      setCurrentConfig(prev => ({
+        ...prev,
+        isAuthenticated: true,
+        accessToken: storedTokens.accessToken,
+        refreshToken: storedTokens.refreshToken,
+        tokenExpiry: storedTokens.expiresAt
+      }));
+
+      // Try to get user info
+      try {
+        const ssoConfig: SSOConfig = {
+          provider: currentConfig.provider as 'microsoft' | 'google',
+          clientId: currentConfig.clientId,
+          clientSecret: currentConfig.clientSecret,
+          tenantId: currentConfig.tenantId,
+          redirectUri: currentConfig.redirectUri,
+          scopes: getDefaultScopes(currentConfig.provider as 'microsoft' | 'google')
+        };
+
+        const auth = SSOAuthFactory.createAuth(ssoConfig);
+        const userInfo = await auth.getUserInfo(storedTokens.accessToken);
+        
+        setCurrentConfig(prev => ({
+          ...prev,
+          authenticatedUser: userInfo,
+          fromEmail: prev.fromEmail || userInfo.email
+        }));
+      } catch (error) {
+        console.error('Failed to get user info:', error);
+      }
+    } else if (storedTokens && storedTokens.refreshToken) {
+      // Try to refresh expired tokens
+      try {
+        const ssoConfig: SSOConfig = {
+          provider: currentConfig.provider as 'microsoft' | 'google',
+          clientId: currentConfig.clientId,
+          clientSecret: currentConfig.clientSecret,
+          tenantId: currentConfig.tenantId,
+          redirectUri: currentConfig.redirectUri,
+          scopes: getDefaultScopes(currentConfig.provider as 'microsoft' | 'google')
+        };
+
+        const auth = SSOAuthFactory.createAuth(ssoConfig);
+        const newTokens = await auth.refreshAccessToken(storedTokens.refreshToken);
+        
+        storeTokens(selectedCountry, currentConfig.provider, newTokens);
+        setCurrentConfig(prev => ({
+          ...prev,
+          isAuthenticated: true,
+          accessToken: newTokens.accessToken,
+          refreshToken: newTokens.refreshToken,
+          tokenExpiry: newTokens.expiresAt
+        }));
+
+        showSuccess('Token Refreshed', 'Authentication tokens have been automatically refreshed');
+      } catch (error) {
+        console.error('Failed to refresh tokens:', error);
+        clearStoredTokens(selectedCountry, currentConfig.provider);
+        setCurrentConfig(prev => ({
+          ...prev,
+          isAuthenticated: false,
+          accessToken: undefined,
+          refreshToken: undefined,
+          tokenExpiry: undefined,
+          authenticatedUser: undefined
+        }));
+      }
+    }
+  }, [selectedCountry, currentConfig.provider, currentConfig.clientId, currentConfig.clientSecret, currentConfig.tenantId, currentConfig.redirectUri, showSuccess]);
+
+  // Check authentication on component mount and config changes
+  useEffect(() => {
+    checkStoredAuthentication();
+  }, [checkStoredAuthentication]);
+
+  // Listen for role changes in localStorage (when custom roles are added/removed)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'case-booking-custom-roles') {
+        setRoleRefreshTrigger(prev => prev + 1);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Force component refresh when roles change (for same-tab updates)
+  useEffect(() => {
+    // This effect runs when roleRefreshTrigger changes
+    // It forces re-render of the notification matrix
+  }, [roleRefreshTrigger]);
+
+  const handleOAuthAuthentication = async () => {
     if (!selectedCountry) {
       showSuccess('Validation Error', 'Please select a country first');
       return;
@@ -306,64 +426,220 @@ const EmailConfiguration: React.FC = () => {
       return;
     }
 
-    // OAuth authentication URLs
-    let authUrl = '';
-    const redirectUri = encodeURIComponent(currentConfig.redirectUri);
-    const scopes = encodeURIComponent(
-      currentConfig.provider === 'microsoft' 
-        ? 'https://graph.microsoft.com/Mail.Send offline_access'
-        : 'https://www.googleapis.com/auth/gmail.send'
-    );
-
-    if (currentConfig.provider === 'microsoft') {
-      const tenantId = currentConfig.tenantId || 'common';
-      authUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?` +
-        `client_id=${currentConfig.clientId}&` +
-        `response_type=code&` +
-        `redirect_uri=${redirectUri}&` +
-        `scope=${scopes}&` +
-        `state=${selectedCountry}`;
-    } else if (currentConfig.provider === 'google') {
-      authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-        `client_id=${currentConfig.clientId}&` +
-        `response_type=code&` +
-        `redirect_uri=${redirectUri}&` +
-        `scope=${scopes}&` +
-        `state=${selectedCountry}&` +
-        `access_type=offline&` +
-        `prompt=consent`;
+    if (currentConfig.provider === 'custom') {
+      showSuccess('Provider Not Supported', 'Custom OAuth is not yet implemented. Please use Microsoft or Google.');
+      return;
     }
 
-    // Open OAuth flow in new window
-    if (authUrl) {
-      const popup = window.open(authUrl, 'oauth', 'width=500,height=600');
-      playSound.click();
-      showSuccess('OAuth Flow Started', `Opening ${currentConfig.provider.toUpperCase()} authentication window...`);
+    setSsoInProgress(true);
+    setAuthError('');
+
+    try {
+      const ssoConfig: SSOConfig = {
+        provider: currentConfig.provider as 'microsoft' | 'google',
+        clientId: currentConfig.clientId,
+        clientSecret: currentConfig.clientSecret,
+        tenantId: currentConfig.tenantId,
+        redirectUri: currentConfig.redirectUri,
+        scopes: getDefaultScopes(currentConfig.provider as 'microsoft' | 'google')
+      };
+
+      const auth = SSOAuthFactory.createAuth(ssoConfig);
+      const authUrl = auth.getAuthorizationUrl(`${selectedCountry}_${Date.now()}`);
+
+      // Open OAuth flow in new window
+      const popup = window.open(authUrl, 'sso_auth', 'width=600,height=700,scrollbars=yes,resizable=yes');
       
-      // Monitor popup for completion (simplified)
+      if (!popup) {
+        throw new Error('Popup blocked. Please allow popups for this site and try again.');
+      }
+
+      playSound.click();
+      showSuccess('SSO Authentication Started', `Opening ${currentConfig.provider.toUpperCase()} authentication window...`);
+
+      // Listen for authorization code from popup
+      const handleAuthCallback = async (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
+
+        if (event.data.type === 'sso_auth_success' && event.data.code) {
+          try {
+            // Exchange code for tokens
+            const tokens = await auth.exchangeCodeForTokens(event.data.code);
+            
+            // Get user information
+            const userInfo = await auth.getUserInfo(tokens.accessToken);
+            
+            // Store tokens securely
+            storeTokens(selectedCountry, currentConfig.provider, tokens);
+            
+            // Update configuration
+            setCurrentConfig(prev => ({
+              ...prev,
+              isAuthenticated: true,
+              accessToken: tokens.accessToken,
+              refreshToken: tokens.refreshToken,
+              tokenExpiry: tokens.expiresAt,
+              authenticatedUser: userInfo,
+              fromEmail: prev.fromEmail || userInfo.email
+            }));
+
+            popup.close();
+            setSsoInProgress(false);
+            showSuccess('Authentication Successful', `Successfully authenticated with ${currentConfig.provider.toUpperCase()} as ${userInfo.email}`);
+            
+          } catch (error) {
+            console.error('Token exchange failed:', error);
+            setAuthError(`Authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            setSsoInProgress(false);
+            popup.close();
+          }
+        } else if (event.data.type === 'sso_auth_error') {
+          setAuthError(`Authentication failed: ${event.data.error}`);
+          setSsoInProgress(false);
+          popup.close();
+        }
+      };
+
+      window.addEventListener('message', handleAuthCallback);
+
+      // Monitor popup for manual closure
       const checkClosed = setInterval(() => {
-        if (popup?.closed) {
+        if (popup.closed) {
           clearInterval(checkClosed);
-          showSuccess('Authentication Window Closed', 'Please complete the OAuth flow and save your configuration');
+          window.removeEventListener('message', handleAuthCallback);
+          if (ssoInProgress) {
+            setSsoInProgress(false);
+            showSuccess('Authentication Cancelled', 'Authentication window was closed');
+          }
         }
       }, 1000);
+
+    } catch (error) {
+      console.error('OAuth authentication failed:', error);
+      setAuthError(`Failed to start authentication: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setSsoInProgress(false);
     }
   };
 
-  const handleTestConfig = () => {
+  const handleTestConfig = async () => {
     if (!selectedCountry) {
       showSuccess('Validation Error', 'Please select a country first');
       return;
     }
 
-    if (!currentConfig.isAuthenticated) {
-      showSuccess('Authentication Required', 'Please authenticate with OAuth first');
+    if (!currentConfig.isAuthenticated || !currentConfig.accessToken) {
+      showSuccess('Authentication Required', 'Please authenticate with SSO first');
       return;
     }
 
-    // This would normally send a test email using the OAuth token
-    playSound.notification();
-    showSuccess('Test Email Sent', `Test email sent using ${currentConfig.provider.toUpperCase()} OAuth for ${selectedCountry}. Check your inbox shortly.`);
+    if (!currentConfig.fromEmail) {
+      showSuccess('Configuration Required', 'Please configure From Email address first');
+      return;
+    }
+
+    if (currentConfig.provider === 'custom') {
+      showSuccess('Provider Not Supported', 'Custom OAuth is not yet implemented. Please use Microsoft or Google.');
+      return;
+    }
+
+    try {
+      const ssoConfig: SSOConfig = {
+        provider: currentConfig.provider as 'microsoft' | 'google',
+        clientId: currentConfig.clientId,
+        clientSecret: currentConfig.clientSecret,
+        tenantId: currentConfig.tenantId,
+        redirectUri: currentConfig.redirectUri,
+        scopes: getDefaultScopes(currentConfig.provider as 'microsoft' | 'google')
+      };
+
+      const auth = SSOAuthFactory.createAuth(ssoConfig);
+      
+      // Check if token is expired and refresh if needed
+      let accessToken = currentConfig.accessToken;
+      if (currentConfig.tokenExpiry && Date.now() >= currentConfig.tokenExpiry - 60000) {
+        if (currentConfig.refreshToken) {
+          const newTokens = await auth.refreshAccessToken(currentConfig.refreshToken);
+          storeTokens(selectedCountry, currentConfig.provider, newTokens);
+          setCurrentConfig(prev => ({
+            ...prev,
+            accessToken: newTokens.accessToken,
+            refreshToken: newTokens.refreshToken,
+            tokenExpiry: newTokens.expiresAt
+          }));
+          accessToken = newTokens.accessToken;
+        } else {
+          showSuccess('Authentication Expired', 'Please re-authenticate with SSO');
+          return;
+        }
+      }
+
+      // Send test email
+      const success = await auth.sendEmail(accessToken, {
+        to: [currentConfig.fromEmail],
+        subject: `Test Email from Case Booking System - ${selectedCountry}`,
+        body: `
+          <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+              <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #007bff;">🧪 Test Email Successful!</h2>
+                <p>This is a test email from the Case Booking System email configuration.</p>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                  <h3 style="margin: 0 0 10px 0; color: #495057;">Configuration Details:</h3>
+                  <ul style="margin: 0; padding-left: 20px;">
+                    <li><strong>Country:</strong> ${selectedCountry}</li>
+                    <li><strong>Provider:</strong> ${currentConfig.provider.toUpperCase()}</li>
+                    <li><strong>From Email:</strong> ${currentConfig.fromEmail}</li>
+                    <li><strong>From Name:</strong> ${currentConfig.fromName}</li>
+                    <li><strong>Authenticated User:</strong> ${currentConfig.authenticatedUser?.email || 'Unknown'}</li>
+                  </ul>
+                </div>
+                
+                <p>If you received this email, your SSO authentication and email sending configuration is working correctly!</p>
+                
+                <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;">
+                <p style="font-size: 0.9em; color: #6c757d;">
+                  <strong>Case Booking System</strong><br>
+                  Test sent at: ${new Date().toLocaleString()}
+                </p>
+              </div>
+            </body>
+          </html>
+        `,
+        fromEmail: currentConfig.fromEmail,
+        fromName: currentConfig.fromName
+      });
+
+      if (success) {
+        playSound.notification();
+        showSuccess('Test Email Sent', `Test email successfully sent using ${currentConfig.provider.toUpperCase()} SSO for ${selectedCountry}. Check your inbox at ${currentConfig.fromEmail}.`);
+      } else {
+        showSuccess('Email Send Failed', 'Failed to send test email. Please check your configuration and try again.');
+      }
+    } catch (error) {
+      console.error('Test email failed:', error);
+      showSuccess('Test Email Error', `Failed to send test email: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleDisconnectSSO = () => {
+    if (!selectedCountry || !currentConfig.provider) return;
+
+    // Clear stored tokens
+    clearStoredTokens(selectedCountry, currentConfig.provider);
+    
+    // Reset authentication state
+    setCurrentConfig(prev => ({
+      ...prev,
+      isAuthenticated: false,
+      accessToken: undefined,
+      refreshToken: undefined,
+      tokenExpiry: undefined,
+      authenticatedUser: undefined
+    }));
+
+    playSound.click();
+    showSuccess('SSO Disconnected', `${currentConfig.provider.toUpperCase()} authentication has been disconnected for ${selectedCountry}`);
   };
 
   const handleResetConfig = () => {
@@ -520,14 +796,29 @@ const EmailConfiguration: React.FC = () => {
             >
               {/* Provider Selection */}
               <div style={{ marginBottom: '2rem' }}>
-                <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #dee2e6', paddingBottom: '0.5rem' }}>🏢 Email Provider</h4>
+                <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', paddingBottom: '0.5rem' }}>🏢 Email Provider</h4>
                 
                 <div className="form-group">
                   <label htmlFor="provider" className="required">Authentication Provider</label>
                   <select
                     id="provider"
                     value={currentConfig.provider}
-                    onChange={(e) => handleConfigChange('provider', e.target.value as 'microsoft' | 'google' | 'custom')}
+                    onChange={(e) => {
+                      const newProvider = e.target.value as 'microsoft' | 'google' | 'custom';
+                      handleConfigChange('provider', newProvider);
+                      // Reset authentication state when changing provider
+                      if (newProvider !== currentConfig.provider) {
+                        setCurrentConfig(prev => ({
+                          ...prev,
+                          isAuthenticated: false,
+                          accessToken: undefined,
+                          refreshToken: undefined,
+                          tokenExpiry: undefined,
+                          authenticatedUser: undefined
+                        }));
+                        setAuthError('');
+                      }
+                    }}
                     className="form-control"
                     required
                   >
@@ -540,7 +831,7 @@ const EmailConfiguration: React.FC = () => {
 
               {/* OAuth Settings */}
               <div style={{ marginBottom: '2rem' }}>
-                <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #dee2e6', paddingBottom: '0.5rem' }}>🔑 OAuth Settings</h4>
+                <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', paddingBottom: '0.5rem' }}>🔑 OAuth Settings</h4>
               
               <div className="form-group">
                 <label htmlFor="clientId" className="required">Client ID / Application ID</label>
@@ -601,34 +892,96 @@ const EmailConfiguration: React.FC = () => {
 
               {/* Authentication Status */}
               <div style={{ marginBottom: '2rem' }}>
-                <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #dee2e6', paddingBottom: '0.5rem' }}>🔓 Authentication Status</h4>
+                <h4 style={{ color: '#495057', fontSize: '1.1rem', marginBottom: '1rem', paddingBottom: '0.5rem' }}>🔓 SSO Authentication Status</h4>
+                
+                {/* Authentication Error Display */}
+                {authError && (
+                  <div style={{
+                    padding: '0.75rem',
+                    marginBottom: '1rem',
+                    borderRadius: '6px',
+                    border: '1px solid #dc3545',
+                    background: '#f8d7da',
+                    color: '#721c24'
+                  }}>
+                    <strong>⚠️ Authentication Error:</strong> {authError}
+                  </div>
+                )}
                 
                 <div style={{
-                  padding: '1rem',
-                  borderRadius: '8px',
-                  border: `2px solid ${currentConfig.isAuthenticated ? '#28a745' : '#dc3545'}`,
-                  background: currentConfig.isAuthenticated ? '#d4edda' : '#f8d7da',
+                  padding: '1.5rem',
+                  borderRadius: '12px',
+                  border: `2px solid ${currentConfig.isAuthenticated ? '#28a745' : ssoInProgress ? '#ffc107' : '#dc3545'}`,
+                  background: currentConfig.isAuthenticated ? '#d4edda' : ssoInProgress ? '#fff3cd' : '#f8d7da',
                   textAlign: 'center'
                 }}>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                    {currentConfig.isAuthenticated ? '✅ Authenticated' : '❌ Not Authenticated'}
+                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '0.75rem' }}>
+                    {ssoInProgress ? '🔄 Authenticating...' : 
+                     currentConfig.isAuthenticated ? '✅ Successfully Authenticated' : '❌ Not Authenticated'}
                   </div>
-                  <div style={{ fontSize: '0.9rem', color: '#495057' }}>
-                    {currentConfig.isAuthenticated 
-                      ? `Successfully authenticated with ${currentConfig.provider.toUpperCase()}` 
-                      : `Click "Authenticate with ${currentConfig.provider.toUpperCase()}" to connect`}
-                  </div>
-                  {!currentConfig.isAuthenticated && (
-                    <button
-                      onClick={handleOAuthAuthentication}
-                      className="btn btn-primary btn-md"
-                      style={{ marginTop: '1rem' }}
-                      disabled={!currentConfig.clientId}
-                      title={!currentConfig.clientId ? 'Please configure Client ID first' : `Authenticate with ${currentConfig.provider.toUpperCase()}`}
-                    >
-                      🔐 Authenticate with {currentConfig.provider.toUpperCase()}
-                    </button>
+                  
+                  {currentConfig.isAuthenticated && currentConfig.authenticatedUser && (
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.8)',
+                      padding: '1rem',
+                      borderRadius: '8px',
+                      marginBottom: '1rem',
+                      textAlign: 'left'
+                    }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.9rem' }}>
+                        <div><strong>Provider:</strong> {currentConfig.provider.toUpperCase()}</div>
+                        <div><strong>User:</strong> {currentConfig.authenticatedUser.name}</div>
+                        <div><strong>Email:</strong> {currentConfig.authenticatedUser.email}</div>
+                        <div><strong>Token Expires:</strong> {currentConfig.tokenExpiry ? new Date(currentConfig.tokenExpiry).toLocaleString() : 'Unknown'}</div>
+                      </div>
+                    </div>
                   )}
+                  
+                  <div style={{ fontSize: '0.95rem', color: '#495057', marginBottom: '1rem' }}>
+                    {currentConfig.provider === 'custom' 
+                      ? 'Custom OAuth authentication is not yet implemented. Please select Microsoft or Google provider.'
+                      : ssoInProgress 
+                        ? 'Please complete authentication in the popup window...'
+                        : currentConfig.isAuthenticated 
+                          ? `Connected to ${currentConfig.provider.toUpperCase()} SSO. You can now send emails securely.`
+                          : `Connect your ${currentConfig.provider.toUpperCase()} account to enable email sending`}
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    {!currentConfig.isAuthenticated && !ssoInProgress && currentConfig.provider !== 'custom' && (
+                      <button
+                        onClick={handleOAuthAuthentication}
+                        className="btn btn-primary btn-md"
+                        disabled={!currentConfig.clientId}
+                        title={!currentConfig.clientId ? 'Please configure Client ID first' : `Authenticate with ${currentConfig.provider.toUpperCase()} SSO`}
+                      >
+                        🔐 Connect {currentConfig.provider.toUpperCase()} SSO
+                      </button>
+                    )}
+                    
+                    {currentConfig.isAuthenticated && (
+                      <button
+                        onClick={handleDisconnectSSO}
+                        className="btn btn-warning btn-sm"
+                        title="Disconnect SSO authentication"
+                      >
+                        🔌 Disconnect SSO
+                      </button>
+                    )}
+                    
+                    {ssoInProgress && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        color: '#856404',
+                        fontSize: '0.9rem'
+                      }}>
+                        <div className="spinner-border spinner-border-sm" role="status"></div>
+                        <span>Waiting for authentication...</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </CollapsibleSection>
@@ -684,7 +1037,9 @@ const EmailConfiguration: React.FC = () => {
 
                   {emailMatrixConfigs[selectedCountry].rules.map((rule, index) => {
                     const isRuleCollapsed = ruleCollapsedStates[index] || false;
-                    const availableRoles = ['admin', 'operations', 'operation-manager', 'sales', 'sales-manager', 'driver', 'it'];
+                    // Get all roles from role management system (includes custom roles)
+                    const allRoles = getAllRoles();
+                    const availableRoles = allRoles.map(role => role.id);
                     
                     return (
                     <div key={rule.status} className="notification-rule" style={{
@@ -893,31 +1248,63 @@ const EmailConfiguration: React.FC = () => {
               onToggle={() => toggleSection('configGuide')}
             >
               <div className="config-tips">
-                <ul>
-                  <li><strong>Microsoft 365:</strong> 
+                <div style={{ marginBottom: '2rem', padding: '1rem', background: '#e8f4fd', borderRadius: '8px', border: '1px solid #2196f3' }}>
+                  <h4 style={{ color: '#1976d2', margin: '0 0 0.5rem 0' }}>🔐 SSO Authentication Setup</h4>
+                  <p style={{ margin: '0', fontSize: '0.9rem', color: '#37474f' }}>
+                    This system uses modern OAuth 2.0 / OpenID Connect for secure email sending. 
+                    Follow the steps below to configure SSO authentication with your email provider.
+                  </p>
+                </div>
+
+                <ul style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>
+                  <li><strong>🏢 Microsoft 365 / Entra ID Setup:</strong> 
                     <br/>1. Go to <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer">Azure Portal → App Registrations</a>
-                    <br/>2. Create new app registration with name "Case Booking Email Integration"
-                    <br/>3. Add redirect URI: {currentConfig.redirectUri}
-                    <br/>4. API Permissions: Add Microsoft Graph → Mail.Send (Application or Delegated)
-                    <br/>5. Copy Application (client) ID and Directory (tenant) ID
+                    <br/>2. Click "New registration" and create "Case Booking Email Integration"
+                    <br/>3. Set redirect URI (Web): <code style={{ background: '#f1f3f4', padding: '2px 4px', borderRadius: '3px' }}>{currentConfig.redirectUri}</code>
+                    <br/>4. Go to "API permissions" → "Add a permission" → Microsoft Graph:
+                    <br/>&nbsp;&nbsp;&nbsp;• <strong>Mail.Send</strong> (Delegated) - Send mail as the signed-in user
+                    <br/>&nbsp;&nbsp;&nbsp;• <strong>User.Read</strong> (Delegated) - Read user profile
+                    <br/>5. Grant admin consent if required for your organization
+                    <br/>6. Copy <strong>Application (client) ID</strong> and <strong>Directory (tenant) ID</strong>
+                    <br/>7. Optionally create a client secret for enhanced security
                   </li>
-                  <li><strong>Google Workspace:</strong>
+                  
+                  <li style={{ marginTop: '1.5rem' }}><strong>🎯 Google Workspace / Gmail Setup:</strong>
                     <br/>1. Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Google Cloud Console → Credentials</a>
-                    <br/>2. Create OAuth 2.0 Client ID with type "Web application"
-                    <br/>3. Add authorized redirect URI: {currentConfig.redirectUri}
-                    <br/>4. Enable Gmail API in APIs & Services
-                    <br/>5. Copy Client ID and Client Secret
+                    <br/>2. Create new project or select existing project
+                    <br/>3. Enable the Gmail API: Go to "APIs & Services" → "Library" → Search "Gmail API" → Enable
+                    <br/>4. Create OAuth 2.0 Client ID:
+                    <br/>&nbsp;&nbsp;&nbsp;• Application type: Web application
+                    <br/>&nbsp;&nbsp;&nbsp;• Name: Case Booking Email Integration
+                    <br/>&nbsp;&nbsp;&nbsp;• Authorized redirect URI: <code style={{ background: '#f1f3f4', padding: '2px 4px', borderRadius: '3px' }}>{currentConfig.redirectUri}</code>
+                    <br/>5. Copy <strong>Client ID</strong> and <strong>Client Secret</strong>
+                    <br/>6. Configure OAuth consent screen with your organization details
                   </li>
-                  <li><strong>Security Best Practices:</strong>
-                    <br/>• Use dedicated service accounts for email sending
-                    <br/>• Regularly rotate client secrets and refresh tokens
-                    <br/>• Monitor OAuth token usage and expiration
-                    <br/>• Implement proper scoping (Mail.Send only, not full mailbox access)
+                  
+                  <li style={{ marginTop: '1.5rem' }}><strong>🔒 Security & Best Practices:</strong>
+                    <br/>• <strong>Principle of Least Privilege:</strong> Only request necessary scopes (Mail.Send, User.Read)
+                    <br/>• <strong>Token Management:</strong> Tokens are stored securely in browser localStorage per country
+                    <br/>• <strong>Automatic Refresh:</strong> Access tokens are automatically refreshed when expired
+                    <br/>• <strong>Secure Storage:</strong> Sensitive data is encrypted and isolated by country
+                    <br/>• <strong>Audit Trail:</strong> All authentication events are logged for security monitoring
+                    <br/>• <strong>Regular Rotation:</strong> Consider rotating client secrets every 6-12 months
                   </li>
-                  <li><strong>Troubleshooting:</strong>
-                    <br/>• Ensure redirect URI exactly matches app registration
-                    <br/>• Check that admin consent is granted for application permissions
-                    <br/>• Verify API permissions are correctly configured
+                  
+                  <li style={{ marginTop: '1.5rem' }}><strong>⚡ Troubleshooting Common Issues:</strong>
+                    <br/>• <strong>Redirect URI Mismatch:</strong> Ensure the URI in your app registration exactly matches: {currentConfig.redirectUri}
+                    <br/>• <strong>Popup Blocked:</strong> Allow popups for this domain in your browser settings
+                    <br/>• <strong>Admin Consent Required:</strong> Your organization may require admin approval for Graph API permissions
+                    <br/>• <strong>Invalid Client:</strong> Double-check your Client ID and Tenant ID are correct
+                    <br/>• <strong>Scope Issues:</strong> Verify Mail.Send permission is granted and consented
+                    <br/>• <strong>Token Expired:</strong> Click "Disconnect SSO" and re-authenticate if tokens are invalid
+                  </li>
+                  
+                  <li style={{ marginTop: '1.5rem' }}><strong>🧪 Testing Your Configuration:</strong>
+                    <br/>1. Complete the SSO authentication flow
+                    <br/>2. Configure your "From Email" address (must match authenticated user)
+                    <br/>3. Click "Test Email Sending" to send a test message
+                    <br/>4. Check your inbox for the test email confirmation
+                    <br/>5. Verify notification rules work by triggering case status changes
                   </li>
                 </ul>
               </div>
@@ -928,8 +1315,13 @@ const EmailConfiguration: React.FC = () => {
               <button
                 onClick={handleTestConfig}
                 className="btn btn-info btn-md"
-                disabled={!currentConfig.isAuthenticated || !currentConfig.fromEmail}
-                title={!currentConfig.isAuthenticated ? 'Please authenticate with OAuth first' : !currentConfig.fromEmail ? 'Please configure From Email address' : 'Send a test email using OAuth'}
+                disabled={!currentConfig.isAuthenticated || !currentConfig.fromEmail || currentConfig.provider === 'custom'}
+                title={
+                  currentConfig.provider === 'custom' ? 'Custom OAuth not supported' :
+                  !currentConfig.isAuthenticated ? 'Please authenticate with SSO first' : 
+                  !currentConfig.fromEmail ? 'Please configure From Email address' : 
+                  'Send a test email using SSO'
+                }
               >
                 🧪 Test Email Sending
               </button>
