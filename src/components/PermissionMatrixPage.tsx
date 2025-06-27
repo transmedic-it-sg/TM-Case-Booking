@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import PermissionMatrix from './PermissionMatrix';
-import { roles, permissionActions } from '../data/permissionMatrixData';
-import { Permission } from './PermissionMatrix';
+import { getAllRoles, permissionActions } from '../data/permissionMatrixData';
+import { Role, Permission } from './PermissionMatrix';
 import { getRuntimePermissions, saveRuntimePermissions, updatePermission, resetPermissions } from '../utils/permissions';
 import './PermissionMatrixPage.css';
 
 const PermissionMatrixPage: React.FC = () => {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [isEditing, setIsEditing] = useState(false);
+  const [roles, setRoles] = useState<Role[]>([]);
 
-  // Load runtime permissions on component mount
+  // Load runtime permissions and roles on component mount
   useEffect(() => {
+    // Load roles including custom ones
+    const allRoles = getAllRoles();
+    setRoles(allRoles);
+    
     const runtimePermissions = getRuntimePermissions();
     
     // Debug: Check if admin has code-table-setup permission

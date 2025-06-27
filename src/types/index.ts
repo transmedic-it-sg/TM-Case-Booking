@@ -113,7 +113,7 @@ export interface User {
   id: string;
   username: string;
   password: string;
-  role: 'admin' | 'operations' | 'operation-manager' | 'sales' | 'sales-manager' | 'driver' | 'it';
+  role: string; // Support for dynamic roles including custom ones
   name: string;
   departments: string[];
   countries: string[];

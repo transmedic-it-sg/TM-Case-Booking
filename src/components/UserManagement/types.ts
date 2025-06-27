@@ -4,7 +4,7 @@ export interface UserFormData {
   username: string;
   password: string;
   name: string;
-  role: 'admin' | 'operations' | 'operation-manager' | 'sales' | 'sales-manager' | 'driver' | 'it';
+  role: string; // Support for dynamic roles including custom ones
   departments: string[];
   countries: string[];
 }

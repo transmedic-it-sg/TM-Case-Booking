@@ -6,12 +6,15 @@ import { useToast } from './ToastContainer';
 import { useSound } from '../contexts/SoundContext';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getCountries, getDepartments, initializeCodeTables } from '../utils/codeTable';
+import { getAllRoles } from '../data/permissionMatrixData';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import SearchableDropdown from './SearchableDropdown';
+import RoleManagement from './RoleManagement';
 
 const UserManagement: React.FC = () => {
   const currentUser = getCurrentUser();
   
+  const [activeTab, setActiveTab] = useState<'users' | 'roles'>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [showAddUser, setShowAddUser] = useState(false);
   const [editingUser, setEditingUser] = useState<string | null>(null);
@@ -20,7 +23,7 @@ const UserManagement: React.FC = () => {
     username: '',
     password: '',
     name: '',
-    role: (currentUser?.role === 'admin' ? 'admin' : 'operations') as 'admin' | 'operations' | 'operation-manager' | 'sales' | 'sales-manager' | 'driver' | 'it',
+    role: (currentUser?.role === 'admin' ? 'admin' : 'operations') as string,
     departments: [] as string[],
     countries: [] as string[],
     email: '',
@@ -28,6 +31,7 @@ const UserManagement: React.FC = () => {
   });
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [availableRoles, setAvailableRoles] = useState<Array<{value: string, label: string}>>([]);
   const [usersPerPage] = useState(10);
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
@@ -50,7 +54,30 @@ const UserManagement: React.FC = () => {
     // Load countries and departments from code tables
     setAvailableCountries(getCountries());
     setAvailableDepartments(getDepartments());
+    
+    // Load available roles
+    loadAvailableRoles();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadAvailableRoles = () => {
+    const allRoles = getAllRoles();
+    const roleOptions = allRoles.map(role => ({
+      value: role.id,
+      label: role.displayName
+    }));
+
+    // Filter roles based on current user's permissions
+    const filteredRoles = currentUser?.role === 'admin' 
+      ? roleOptions 
+      : roleOptions.filter(role => role.value !== 'admin');
+
+    setAvailableRoles(filteredRoles);
+  };
+
+  // Refresh roles when custom roles are updated
+  const handleRoleUpdate = () => {
+    loadAvailableRoles();
+  };
 
   // Cancel edit handler - defined before useEffect to avoid dependency issues
   const handleCancelEdit = useCallback(() => {
@@ -305,7 +332,7 @@ const UserManagement: React.FC = () => {
       <div className="user-management-header">
         <h2>User Access Matrix</h2>
         <div className="admin-panel-buttons">
-          {canCreateUsers && (
+          {activeTab === 'users' && canCreateUsers && (
             <button
               onClick={() => showAddUser ? handleCancelEdit() : setShowAddUser(true)}
               className="btn btn-primary btn-md add-user-button"
@@ -316,7 +343,26 @@ const UserManagement: React.FC = () => {
         </div>
       </div>
 
-      {showAddUser && (
+      {/* Tab Navigation */}
+      <div className="tab-navigation">
+        <button
+          className={`tab-button ${activeTab === 'users' ? 'active' : ''}`}
+          onClick={() => setActiveTab('users')}
+        >
+          👥 User Management
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'roles' ? 'active' : ''}`}
+          onClick={() => setActiveTab('roles')}
+        >
+          🎭 Role Management
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'users' && (
+        <div className="tab-content">
+          {showAddUser && (
         <div className="add-user-form" ref={addUserFormRef}>
           <h3>{editingUser ? 'Edit User' : 'Add New User'}</h3>
           <form onSubmit={handleAddUser}>
@@ -382,17 +428,9 @@ const UserManagement: React.FC = () => {
               <div className="form-group">
                 <label htmlFor="newRole" className="required">Role</label>
                 <SearchableDropdown
-                  options={[
-                    ...(currentUser?.role === 'admin' ? [{ value: 'admin', label: 'Admin' }] : []),
-                    { value: 'operations', label: 'Operations' },
-                    { value: 'operation-manager', label: 'Operation Manager' },
-                    { value: 'sales', label: 'Sales' },
-                    { value: 'sales-manager', label: 'Sales Manager' },
-                    { value: 'driver', label: 'Driver' },
-                    { value: 'it', label: 'IT' }
-                  ]}
+                  options={availableRoles}
                   value={newUser.role}
-                  onChange={(value) => setNewUser(prev => ({ ...prev, role: value as 'admin' | 'operations' | 'operation-manager' | 'sales' | 'sales-manager' | 'driver' | 'it' }))}
+                  onChange={(value) => setNewUser(prev => ({ ...prev, role: value }))}
                   placeholder="Select Role"
                 />
               </div>
@@ -588,6 +626,14 @@ const UserManagement: React.FC = () => {
           </div>
         )}
       </div>
+        </div>
+      )}
+
+      {activeTab === 'roles' && (
+        <div className="tab-content">
+          <RoleManagement onRoleUpdate={handleRoleUpdate} />
+        </div>
+      )}
 
     </div>
   );

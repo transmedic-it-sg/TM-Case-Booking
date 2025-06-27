@@ -384,22 +384,54 @@ export const permissions: Permission[] = [
   { actionId: 'view-reports', roleId: 'it', allowed: true }
 ];
 
+// Get all roles including custom ones
+export const getAllRoles = (): Role[] => {
+  try {
+    const customRoles = localStorage.getItem('case-booking-custom-roles');
+    if (customRoles) {
+      const parsed = JSON.parse(customRoles);
+      return [...roles, ...parsed];
+    }
+  } catch (error) {
+    console.error('Error loading custom roles:', error);
+  }
+  return roles;
+};
+
+// Get all permissions including custom role permissions
+export const getAllPermissions = (): Permission[] => {
+  try {
+    const customPermissions = localStorage.getItem('case-booking-custom-permissions');
+    if (customPermissions) {
+      const parsed = JSON.parse(customPermissions);
+      return [...permissions, ...parsed];
+    }
+  } catch (error) {
+    console.error('Error loading custom permissions:', error);
+  }
+  return permissions;
+};
+
 // Helper function to check if a role has permission for an action
 export const hasPermission = (roleId: string, actionId: string): boolean => {
-  const permission = permissions.find(p => p.roleId === roleId && p.actionId === actionId);
+  const allPermissions = getAllPermissions();
+  const permission = allPermissions.find(p => p.roleId === roleId && p.actionId === actionId);
   return permission?.allowed || false;
 };
 
 // Helper function to get all permissions for a role
 export const getRolePermissions = (roleId: string): Permission[] => {
-  return permissions.filter(p => p.roleId === roleId && p.allowed);
+  const allPermissions = getAllPermissions();
+  return allPermissions.filter(p => p.roleId === roleId && p.allowed);
 };
 
 // Helper function to get all roles that have permission for an action
 export const getRolesWithPermission = (actionId: string): Role[] => {
-  const roleIds = permissions
+  const allPermissions = getAllPermissions();
+  const allRoles = getAllRoles();
+  const roleIds = allPermissions
     .filter(p => p.actionId === actionId && p.allowed)
     .map(p => p.roleId);
   
-  return roles.filter(role => roleIds.includes(role.id));
+  return allRoles.filter(role => roleIds.includes(role.id));
 };
