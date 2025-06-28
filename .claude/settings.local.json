@@ -53,7 +53,9 @@
       "Bash(curl:*)",
       "Bash(npm test:*)",
       "WebFetch(domain:www.sitepoint.com)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(git remote add:*)",
+      "Bash(touch:*)"
     ],
     "deny": []
   }
