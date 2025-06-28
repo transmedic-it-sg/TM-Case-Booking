@@ -42,12 +42,14 @@ const UserManagement: React.FC = () => {
   const [availableRoles, setAvailableRoles] = useState<Array<{value: string, label: string}>>([]);
   const [usersPerPage] = useState(10);
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+  const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>(''); // For previewing users by country
   // Removed availableDepartments since we now use CountryGroupedDepartments exclusively
   const canCreateUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CREATE_USER) : false;
   
   // Ref for the add user form to handle click outside
   const addUserFormRef = useRef<HTMLDivElement>(null);
   const canEditUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_USER) : false;
+  const canEditCountries = currentUser ? hasPermission(currentUser.role, 'edit-countries') : false;
   const canDeleteUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.DELETE_USER) : false;
   const canEnableDisableUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.ENABLE_DISABLE_USER) : false;
   
@@ -65,6 +67,11 @@ const UserManagement: React.FC = () => {
     // Load available roles
     loadAvailableRoles();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  
+  // Reload users when country filter changes
+  useEffect(() => {
+    loadUsers();
+  }, [selectedCountryFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadAvailableRoles = () => {
     const allRoles = getAllRoles();
@@ -103,24 +110,8 @@ const UserManagement: React.FC = () => {
     setError('');
   }, [currentUser?.role]);
 
-  // Handle click outside to close add user form
+  // Handle escape key to close add user form (removed click outside functionality)
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showAddUser && 
-          addUserFormRef.current && 
-          !addUserFormRef.current.contains(event.target as Node)) {
-        // Don't close if clicking on dropdowns or their portals
-        const target = event.target as HTMLElement;
-        if (target.closest('.searchable-dropdown-container') || 
-            target.closest('.multi-select-dropdown-container') ||
-            target.closest('.dropdown-portal')) {
-          return;
-        }
-        
-        handleCancelEdit();
-      }
-    };
-
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && showAddUser) {
         handleCancelEdit();
@@ -128,12 +119,10 @@ const UserManagement: React.FC = () => {
     };
 
     if (showAddUser) {
-      document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleEscapeKey);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscapeKey);
     };
   }, [showAddUser, handleCancelEdit]);
@@ -142,18 +131,26 @@ const UserManagement: React.FC = () => {
     const allUsers = getUsers();
     
     // Filter users based on current user's role and country access
+    let filteredUsers = allUsers;
+    
     if (currentUser?.role === 'it' && currentUser.selectedCountry) {
       // IT can only see users from their assigned country
-      const filteredUsers = allUsers.filter(user => 
+      filteredUsers = allUsers.filter(user => 
         (user.countries && user.countries.includes(currentUser.selectedCountry!)) || user.role === 'admin'
       );
-      setUsers(filteredUsers);
     } else if (currentUser?.role === 'admin') {
       // Admin can see all users
-      setUsers(allUsers);
-    } else {
-      setUsers(allUsers);
+      filteredUsers = allUsers;
     }
+    
+    // Apply country filter if selected
+    if (selectedCountryFilter) {
+      filteredUsers = filteredUsers.filter(user => 
+        user.countries && user.countries.includes(selectedCountryFilter)
+      );
+    }
+    
+    setUsers(filteredUsers);
   };
 
   const handleEditUser = (user: User) => {
@@ -350,6 +347,25 @@ const UserManagement: React.FC = () => {
         </div>
       </div>
 
+      {/* Country Filter for User Preview */}
+      {(currentUser?.role === 'admin' || currentUser?.role === 'it') && (
+        <div className="country-filter-section">
+          <div className="country-filter-header">
+            <h3>🌍 Filter Users by Country:</h3>
+            <p>Select a country to preview users assigned to that region</p>
+          </div>
+          <div className="country-filter-dropdown">
+            <SearchableDropdown
+              options={['All Countries', ...availableCountries]}
+              value={selectedCountryFilter || 'All Countries'}
+              onChange={(value) => setSelectedCountryFilter(value === 'All Countries' ? '' : value)}
+              placeholder="Select country to filter users..."
+              className="country-filter-select"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Tab Navigation */}
       <div className="tab-navigation">
         <button
@@ -442,31 +458,33 @@ const UserManagement: React.FC = () => {
                 />
               </div>
 
-              <div className="form-group">
-                <MultiSelectDropdown
-                  id="newCountries"
-                  label="Countries"
-                  options={availableCountries}
-                  value={newUser.countries}
-                  onChange={(values) => {
-                    // Get valid departments for the selected countries
-                    const validDepartmentsForCountries = values.length > 0 ? getDepartmentsForCountries(values) : [];
-                    
-                    // Filter out departments that don't exist in the selected countries
-                    const validDepartments = newUser.departments.filter(dept => 
-                      validDepartmentsForCountries.includes(dept)
-                    );
-                    
-                    setNewUser(prev => ({ 
-                      ...prev, 
-                      countries: values,
-                      departments: validDepartments
-                    }));
-                  }}
-                  placeholder="Select countries..."
-                  required={false}
-                />
-              </div>
+              {canEditCountries && (
+                <div className="form-group">
+                  <MultiSelectDropdown
+                    id="newCountries"
+                    label="Countries"
+                    options={availableCountries}
+                    value={newUser.countries}
+                    onChange={(values) => {
+                      // Get valid departments for the selected countries
+                      const validDepartmentsForCountries = values.length > 0 ? getDepartmentsForCountries(values) : [];
+                      
+                      // Filter out departments that don't exist in the selected countries
+                      const validDepartments = newUser.departments.filter(dept => 
+                        validDepartmentsForCountries.includes(dept)
+                      );
+                      
+                      setNewUser(prev => ({ 
+                        ...prev, 
+                        countries: values,
+                        departments: validDepartments
+                      }));
+                    }}
+                    placeholder="Select countries..."
+                    required={false}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="form-row">
@@ -497,9 +515,7 @@ const UserManagement: React.FC = () => {
               <div className="form-group form-group-full">
                 <label>Departments</label>
                 <p className="form-helper-text departments-hint">
-                  Select departments for the assigned countries. Departments are organized by country.
-                  <br />
-                  <small className="text-success">✅ Department selections are now isolated by country - selecting "Oncology" in Singapore won't affect "Oncology" in other countries.</small>
+                  Select departments for the assigned countries. Departments are organised by country.
                 </p>
                 <CountryGroupedDepartments
                   selectedDepartments={newUser.departments}

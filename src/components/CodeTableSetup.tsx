@@ -47,6 +47,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
   
   const currentUser = getCurrentUser();
   const canManageCodeTables = currentUser ? hasPermission(currentUser.role, 'code-table-setup') : false;
+  const canManageGlobalTables = currentUser ? hasPermission(currentUser.role, 'global-tables') : false;
 
   // Removed unused wrapper function to fix ESLint warning
 
@@ -360,33 +361,40 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     
     // Update the appropriate state arrays and save immediately
     if (isGlobalTable) {
-      setGlobalTables(prev => {
-        const updated = prev.map(t => 
-          t.id === selectedTable 
-            ? { ...t, items: t.items.filter(item => item !== itemName) }
-            : t
-        );
-        saveCodeTables(updated); // Save global tables immediately
-        return updated;
-      });
+      const updatedGlobalTables = globalTables.map(t => 
+        t.id === selectedTable 
+          ? { ...t, items: t.items.filter(item => item !== itemName) }
+          : t
+      );
+      
+      // Save global tables immediately (no country parameter)
+      saveCodeTables(updatedGlobalTables);
+      setGlobalTables(updatedGlobalTables);
+      
+      // Update the combined codeTables array
+      setCodeTables(prev => prev.map(t => 
+        t.id === selectedTable 
+          ? { ...t, items: t.items.filter(item => item !== itemName) }
+          : t
+      ));
     } else {
-      setCountryBasedTables(prev => {
-        const updated = prev.map(t => 
-          t.id === selectedTable 
-            ? { ...t, items: t.items.filter(item => item !== itemName) }
-            : t
-        );
-        saveCodeTables(updated, selectedCountry); // Save country tables immediately
-        return updated;
-      });
+      const updatedCountryTables = countryBasedTables.map(t => 
+        t.id === selectedTable 
+          ? { ...t, items: t.items.filter(item => item !== itemName) }
+          : t
+      );
+      
+      // Save country tables immediately
+      saveCodeTables(updatedCountryTables, selectedCountry);
+      setCountryBasedTables(updatedCountryTables);
+      
+      // Update the combined codeTables array
+      setCodeTables(prev => prev.map(t => 
+        t.id === selectedTable 
+          ? { ...t, items: t.items.filter(item => item !== itemName) }
+          : t
+      ));
     }
-    
-    // Update the combined codeTables array
-    setCodeTables(prev => prev.map(t => 
-      t.id === selectedTable 
-        ? { ...t, items: t.items.filter(item => item !== itemName) }
-        : t
-    ));
     
     playSound.delete();
     showSuccess('Item Deleted', `"${itemName}" has been removed from ${table.name}`);
@@ -439,8 +447,8 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
         <p>Manage system reference data and lookup tables</p>
       </div>
 
-      {/* Country Selection - Only show for Admin/IT users and Country-Based Tables */}
-      {(currentUser?.role === 'admin' || currentUser?.role === 'it') && selectedCategory === 'country' && (
+      {/* Country Selection - Only show for users with multiple countries and Country-Based Tables */}
+      {currentUser && currentUser.countries && currentUser.countries.length > 1 && selectedCategory === 'country' && (
         <div className="country-selector">
           <div className="country-selector-header">
             <h3>🌍 Select Country:</h3>
@@ -484,7 +492,8 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
               setSelectedTable('');
             }}
             className={`category-tab ${selectedCategory === 'global' ? 'active' : ''}`}
-            title="Manage tables that apply to all countries"
+            disabled={!canManageGlobalTables}
+            title={canManageGlobalTables ? "Manage tables that apply to all countries" : "You need Global Tables permission to access this section"}
           >
             🌍 Global Tables
             <span className="category-count">({globalTables.length})</span>

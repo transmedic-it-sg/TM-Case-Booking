@@ -2956,10 +2956,40 @@ body {
 }
 
 .add-user-form {
-  background: var(--background-light);
+  background: transparent;
   padding: 32px;
   margin: 24px;
   border-radius: var(--border-radius);
+}
+
+/* Country Filter Section for User Management */
+.country-filter-section {
+  background: var(--background-light);
+  padding: 16px 24px;
+  margin: 16px 0;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-light);
+}
+
+.country-filter-header h3 {
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.country-filter-header p {
+  color: var(--text-secondary);
+  margin: 0 0 12px 0;
+  font-size: 14px;
+}
+
+.country-filter-dropdown {
+  max-width: 300px;
+}
+
+.country-filter-select {
+  width: 100%;
 }
 
 .form-actions {

@@ -63,6 +63,93 @@
   margin-bottom: 16px;
 }
 
+/* Scrollable Matrix - Show minimum 10 entries, scroll if more */
+.scrollable-matrix {
+  max-height: 600px; /* Approximately 10 rows + header */
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Enhanced scrollbar styling */
+.scrollable-matrix::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollable-matrix::-webkit-scrollbar-track {
+  background: var(--background-light);
+  border-radius: 4px;
+}
+
+.scrollable-matrix::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 4px;
+  opacity: 0.7;
+}
+
+.scrollable-matrix::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark, #2c7a7b);
+  opacity: 1;
+}
+
+/* Firefox scrollbar styling */
+.scrollable-matrix {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) var(--background-light);
+}
+
+/* Sticky header for scrollable matrix */
+.scrollable-matrix .permission-matrix-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--primary-color);
+}
+
+.scrollable-matrix .permission-matrix-table thead th {
+  background: var(--primary-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Scroll indicators for better UX */
+.scrollable-matrix::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+  opacity: 0.8;
+  z-index: 11;
+  pointer-events: none;
+}
+
+.scrollable-matrix::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary-light), var(--primary-color));
+  opacity: 0.6;
+  z-index: 11;
+  pointer-events: none;
+}
+
+/* Smooth scrolling behavior */
+.scrollable-matrix {
+  scroll-behavior: smooth;
+}
+
+/* Visual feedback for scrollable content */
+@media (hover: hover) {
+  .scrollable-matrix:hover::-webkit-scrollbar-thumb {
+    background: var(--primary-dark, #2c7a7b);
+  }
+}
+
 .permission-matrix-table {
   width: 100%;
   border-collapse: collapse;
@@ -399,6 +486,11 @@
     margin: 10px 0;
   }
   
+  /* Adjust scrollable matrix height for mobile */
+  .scrollable-matrix {
+    max-height: 450px; /* Smaller height for mobile screens */
+  }
+  
   .permission-controls {
     flex-direction: column;
     gap: 12px;
@@ -417,6 +509,11 @@
   .role-column {
     width: 100px;
     min-width: 100px;
+  }
+  
+  /* Adjust scrollable matrix height for mobile */
+  .scrollable-matrix {
+    max-height: 450px; /* Reduced height for mobile */
   }
   
   .permission-toggle {

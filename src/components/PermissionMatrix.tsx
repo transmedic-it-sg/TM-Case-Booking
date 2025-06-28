@@ -147,14 +147,14 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
         </div>
       </div>
 
-      <div className="permission-matrix-table-container">
+      <div className="permission-matrix-table-container scrollable-matrix">
         <table className="permission-matrix-table">
           <thead>
             <tr>
               <th className="action-column">
                 <div className="action-header">
                   <span>Actions & Permissions</span>
-                  <small>{filteredActions.length} actions</small>
+                  <small>{filteredActions.length} actions {filteredActions.length > 10 ? '(scrollable)' : ''}</small>
                 </div>
               </th>
               {roles.map(role => (

@@ -261,12 +261,15 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
                         return (
                           <label key={`${country}-${department}`} className={`department-checkbox ${isSelected ? 'selected' : ''}`}>
                             <span className="department-name">{department}</span>
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(e) => handleDepartmentChange(country, department, e.target.checked)}
-                              disabled={disabled}
-                            />
+                            <label className="toggle-switch">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => handleDepartmentChange(country, department, e.target.checked)}
+                                disabled={disabled}
+                              />
+                              <span className="toggle-slider"></span>
+                            </label>
                           </label>
                         );
                       })}
