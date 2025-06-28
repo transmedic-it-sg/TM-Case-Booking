@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission } from '../data/permissionMatrixData';
 import { useToast } from './ToastContainer';
@@ -40,6 +40,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
   const [itemError, setItemError] = useState('');
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [isManualUpdate, setIsManualUpdate] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const { showSuccess } = useToast();
   const { playSound } = useSound();
@@ -47,9 +48,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
   const currentUser = getCurrentUser();
   const canManageCodeTables = currentUser ? hasPermission(currentUser.role, 'code-table-setup') : false;
 
-  // Use utility functions for table operations
-  const getFilteredTablesForUserWrapper = useCallback((tables: CodeTable[]) => 
-    getFilteredTablesForUser(tables, currentUser), [currentUser]);
+  // Removed unused wrapper function to fix ESLint warning
 
   // Initialize selected country with user's first country or current selection
   useEffect(() => {
@@ -57,111 +56,124 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       const userCountry = currentUser.selectedCountry || currentUser.countries?.[0] || 'Singapore';
       setSelectedCountry(userCountry);
     }
-  }, [currentUser, selectedCountry]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id, selectedCountry]);
 
-  // Load available countries from Global-Tables
+  // Load available countries from Global-Tables - run only once on mount
   useEffect(() => {
-    // Initialize global tables first to ensure countries table exists
-    initializeCodeTables();
-    
-    // Load global tables to get available countries
-    const globalTablesData = getCodeTables(); // No country parameter for global
-    const countriesTable = globalTablesData.find(t => t.id === 'countries');
-    
-    // Use countries from Global-Tables, fallback to COUNTRIES constant if empty
-    const countries = countriesTable && countriesTable.items.length > 0 
-      ? countriesTable.items 
-      : [...COUNTRIES];
-    
-    setAvailableCountries(countries);
-    
-    // Set initial country if not already set
-    if (!selectedCountry && currentUser) {
-      const userCountry = currentUser.selectedCountry || currentUser.countries?.[0] || countries[0];
-      if (countries.includes(userCountry)) {
-        setSelectedCountry(userCountry);
-      } else if (countries.length > 0) {
-        setSelectedCountry(countries[0]);
+    const initializeData = async () => {
+      setIsLoading(true);
+      
+      try {
+        // Initialize global tables first to ensure countries table exists
+        initializeCodeTables();
+        
+        // Load global tables to get available countries
+        const globalTablesData = getCodeTables(); // No country parameter for global
+        const countriesTable = globalTablesData.find(t => t.id === 'countries');
+        
+        // Use countries from Global-Tables, fallback to COUNTRIES constant if empty
+        const countries = countriesTable && countriesTable.items.length > 0 
+          ? countriesTable.items 
+          : [...COUNTRIES];
+        
+        setAvailableCountries(countries);
+        
+        // Set initial country if not already set
+        if (!selectedCountry && currentUser) {
+          const userCountry = currentUser.selectedCountry || currentUser.countries?.[0] || countries[0];
+          if (countries.includes(userCountry)) {
+            setSelectedCountry(userCountry);
+          } else if (countries.length > 0) {
+            setSelectedCountry(countries[0]);
+          }
+        }
+      } finally {
+        setIsLoading(false);
       }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]); // selectedCountry intentionally excluded to avoid infinite loop
+    };
+    
+    initializeData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - run only once on mount
 
-  // Load code tables from localStorage
+  // Load code tables from localStorage - optimized to prevent infinite loops
   useEffect(() => {
-    // Always initialize global tables first
-    initializeCodeTables();
+    if (!currentUser || isLoading) return;
     
-    // Load ALL tables from global storage (includes countries, hospitals, departments)
-    const allTablesData = getCodeTables(); // Gets all default tables from global storage
+    const loadTables = async () => {
+      try {
+        // Always initialize global tables first
+        initializeCodeTables();
+        
+        // Load ALL tables from global storage (includes countries, hospitals, departments)
+        const allTablesData = getCodeTables(); // Gets all default tables from global storage
+        
+        // Categorize tables into global and country-based using helper function
+        const { global: globalOnly } = categorizeCodeTables(allTablesData);
+        
+        // Apply user filtering to global tables
+        const filteredGlobalTables = getFilteredTablesForUser(globalOnly, currentUser);
+        
+        // Update global tables immediately
+        setGlobalTables(filteredGlobalTables);
+        
+        // If country is selected, also load country-based tables
+        if (selectedCountry) {
+          // Reset selected table when country changes to avoid showing wrong data
+          setSelectedTable('');
+          setShowAddItem(false);
+          setEditingItem(null);
+          
+          // Initialize country-specific tables for the selected country
+          initializeCountryCodeTables(selectedCountry);
+          
+          // Load country-based tables (hospitals, departments) from country-specific storage
+          const countryTablesData = getCodeTables(selectedCountry);
+          const filteredCountryTables = getFilteredTablesForUser(countryTablesData, currentUser);
+          
+          // Set country-based tables
+          setCountryBasedTables(filteredCountryTables);
+          
+          // Combine all tables for the unified codeTables array
+          setCodeTables([...filteredGlobalTables, ...filteredCountryTables]);
+        } else {
+          // No country selected - don't show any country-based tables
+          setCountryBasedTables([]);
+          setCodeTables(filteredGlobalTables);
+        }
+      } catch (error) {
+        console.error('Error loading code tables:', error);
+      }
+    };
     
-    // Categorize tables into global and country-based using helper function
-    const { global: globalOnly } = categorizeCodeTables(allTablesData);
-    
-    // Apply user filtering to global tables
-    const filteredGlobalTables = getFilteredTablesForUserWrapper(globalOnly);
-    
-    // Update global tables immediately
-    setGlobalTables(filteredGlobalTables);
-    
-    // If country is selected, also load country-based tables
-    if (selectedCountry) {
-      // Reset selected table when country changes to avoid showing wrong data
-      setSelectedTable('');
-      setShowAddItem(false);
-      setEditingItem(null);
-      
-      // Initialize country-specific tables for the selected country
-      initializeCountryCodeTables(selectedCountry);
-      
-      // Load country-based tables (hospitals, departments) from country-specific storage
-      const countryTablesData = getCodeTables(selectedCountry);
-      const filteredCountryTables = getFilteredTablesForUserWrapper(countryTablesData);
-      
-      // Set country-based tables
-      setCountryBasedTables(filteredCountryTables);
-      
-      // Combine all tables for the unified codeTables array
-      setCodeTables([...filteredGlobalTables, ...filteredCountryTables]);
-    } else {
-      // No country selected - don't show any country-based tables
-      setCountryBasedTables([]);
-      setCodeTables(filteredGlobalTables);
-    }
-  }, [selectedCountry, getFilteredTablesForUserWrapper]);
+    loadTables();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCountry, currentUser?.id, currentUser?.role, isLoading]);
 
   // Set initial table selection when category changes or tables are loaded
   useEffect(() => {
-    if (!selectedTable) {
-      const initialTables = selectedCategory === 'global' ? globalTables : countryBasedTables;
-      if (initialTables.length > 0) {
-        setSelectedTable(initialTables[0].id);
+    const currentTables = selectedCategory === 'global' ? globalTables : countryBasedTables;
+    
+    // If no table is selected or current table doesn't exist in current category
+    if (!selectedTable || !currentTables.find(t => t.id === selectedTable)) {
+      if (currentTables.length > 0) {
+        setSelectedTable(currentTables[0].id);
+      } else {
+        setSelectedTable('');
       }
     }
   }, [selectedCategory, globalTables, countryBasedTables, selectedTable]);
 
   // Save code tables to localStorage whenever they change (but not during manual updates)
+  // Removed automatic save to prevent infinite loops - saving is now handled in individual operations
   useEffect(() => {
-    if (!isManualUpdate && codeTables.length > 0 && canManageCodeTables && (currentUser?.role === 'admin' || currentUser?.role === 'it')) {
-      // Save global tables and country-based tables separately
-      const { countryBased, global } = categorizeCodeTables(codeTables);
-      
-      // Save global tables (no country parameter)
-      if (global.length > 0) {
-        saveCodeTables(global);
-      }
-      
-      // Save country-based tables (with country parameter)
-      if (countryBased.length > 0 && selectedCountry) {
-        saveCodeTables(countryBased, selectedCountry);
-      }
-    }
-    
     // Reset manual update flag
     if (isManualUpdate) {
       setIsManualUpdate(false);
     }
-  }, [codeTables, canManageCodeTables, currentUser?.role, selectedCountry, isManualUpdate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isManualUpdate]);
 
   const getCurrentTable = (): CodeTable | undefined => {
     return codeTables.find(table => table.id === selectedTable);
@@ -399,6 +411,27 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
 
   const currentTable = getCurrentTable();
 
+  if (isLoading) {
+    return (
+      <div className="code-table-setup">
+        <div className="code-table-header">
+          <h2>Code Table Setup</h2>
+          <p>Loading code tables...</p>
+        </div>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '200px',
+          fontSize: '1.2rem',
+          color: '#6c757d'
+        }}>
+          🔄 Loading data...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="code-table-setup">
       <div className="code-table-header">
@@ -437,11 +470,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
             onClick={() => {
               setSelectedCategory('country');
               setSelectedTable('');
-              // Always ensure a country is selected when switching to country-based
-              if (!selectedCountry && availableCountries.length > 0) {
-                const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0] || availableCountries[0];
-                setSelectedCountry(userCountry);
-              }
             }}
             className={`category-tab ${selectedCategory === 'country' ? 'active' : ''}`}
             disabled={availableCountries.length === 0}
@@ -510,7 +538,12 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
                   onClick={() => {
                     console.log('Reinitializing global tables...');
                     initializeCodeTables();
-                    window.location.reload();
+                    // Force reload tables without full page refresh
+                    const globalTablesData = getCodeTables();
+                    const { global: globalOnly } = categorizeCodeTables(globalTablesData);
+                    const filteredGlobalTables = getFilteredTablesForUser(globalOnly, currentUser);
+                    setGlobalTables(filteredGlobalTables);
+                    setCodeTables(filteredGlobalTables);
                   }}
                   className="btn btn-secondary"
                 >
@@ -529,7 +562,16 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
                     onClick={() => {
                       console.log(`Reinitializing tables for ${selectedCountry}...`);
                       initializeCountryCodeTables(selectedCountry);
-                      window.location.reload();
+                      // Force reload tables without full page refresh
+                      const countryTablesData = getCodeTables(selectedCountry);
+                      const filteredCountryTables = getFilteredTablesForUser(countryTablesData, currentUser);
+                      setCountryBasedTables(filteredCountryTables);
+                      
+                      const globalTablesData = getCodeTables();
+                      const { global: globalOnly } = categorizeCodeTables(globalTablesData);
+                      const filteredGlobalTables = getFilteredTablesForUser(globalOnly, currentUser);
+                      setGlobalTables(filteredGlobalTables);
+                      setCodeTables([...filteredGlobalTables, ...filteredCountryTables]);
                     }}
                     className="btn btn-secondary"
                   >

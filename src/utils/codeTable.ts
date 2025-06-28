@@ -90,6 +90,130 @@ export const getCountries = (): string[] => {
   return getCodeTableItems('countries');
 };
 
+// Get departments by country for User Access Matrix
+export const getDepartmentsByCountry = (): Record<string, string[]> => {
+  const countries = getCountries();
+  const departmentsByCountry: Record<string, string[]> = {};
+  
+  // Get departments for each country from country-specific storage
+  countries.forEach(country => {
+    try {
+      const countryTables = getCodeTables(country);
+      const departmentsTable = countryTables.find(table => table.id === 'departments');
+      departmentsByCountry[country] = departmentsTable?.items || [];
+    } catch (error) {
+      console.error(`Error loading departments for ${country}:`, error);
+      departmentsByCountry[country] = [];
+    }
+  });
+  
+  return departmentsByCountry;
+};
+
+// Get all departments from all countries (for backward compatibility)
+export const getAllDepartmentsFromAllCountries = (): string[] => {
+  const departmentsByCountry = getDepartmentsByCountry();
+  const allDepartments = new Set<string>();
+  
+  Object.values(departmentsByCountry).forEach(departments => {
+    departments.forEach(dept => allDepartments.add(dept));
+  });
+  
+  return Array.from(allDepartments).sort();
+};
+
+// Get departments for specific countries
+export const getDepartmentsForCountries = (countries: string[]): string[] => {
+  const departmentsByCountry = getDepartmentsByCountry();
+  const departments = new Set<string>();
+  
+  countries.forEach(country => {
+    if (departmentsByCountry[country]) {
+      departmentsByCountry[country].forEach(dept => departments.add(dept));
+    }
+  });
+  
+  return Array.from(departments).sort();
+};
+
+// Department isolation utilities for country-specific department tracking
+export const createCountryDepartmentId = (country: string, department: string): string => {
+  return `${country}:${department}`;
+};
+
+export const parseCountryDepartmentId = (departmentId: string): { country: string; department: string } => {
+  if (departmentId.includes(':')) {
+    const [country, department] = departmentId.split(':', 2);
+    return { country, department };
+  }
+  // Backward compatibility - treat as global department
+  return { country: '', department: departmentId };
+};
+
+export const isCountrySpecificDepartment = (departmentId: string): boolean => {
+  return departmentId.includes(':');
+};
+
+export const getPlainDepartmentName = (departmentId: string): string => {
+  const { department } = parseCountryDepartmentId(departmentId);
+  return department;
+};
+
+export const getCountryFromDepartmentId = (departmentId: string): string => {
+  const { country } = parseCountryDepartmentId(departmentId);
+  return country;
+};
+
+// Convert legacy departments to country-specific format
+export const migrateDepartmentsToCountrySpecific = (
+  departments: string[], 
+  userCountries: string[]
+): string[] => {
+  const migratedDepartments: string[] = [];
+  
+  departments.forEach(dept => {
+    if (isCountrySpecificDepartment(dept)) {
+      // Already in new format
+      migratedDepartments.push(dept);
+    } else {
+      // Legacy format - convert to country-specific for each user country
+      userCountries.forEach(country => {
+        const countryDepartments = getDepartmentsForCountries([country]);
+        if (countryDepartments.includes(dept)) {
+          migratedDepartments.push(createCountryDepartmentId(country, dept));
+        }
+      });
+    }
+  });
+  
+  return migratedDepartments;
+};
+
+// Get departments for display in forms (backward compatible)
+export const getDepartmentNamesForUser = (
+  userDepartments: string[], 
+  userCountries: string[]
+): string[] => {
+  const departmentNames = new Set<string>();
+  
+  userDepartments.forEach(dept => {
+    if (isCountrySpecificDepartment(dept)) {
+      const { country, department } = parseCountryDepartmentId(dept);
+      if (userCountries.includes(country)) {
+        departmentNames.add(department);
+      }
+    } else {
+      // Legacy department - include if it exists in user's countries
+      const availableDepts = getDepartmentsForCountries(userCountries);
+      if (availableDepts.includes(dept)) {
+        departmentNames.add(dept);
+      }
+    }
+  });
+  
+  return Array.from(departmentNames).sort();
+};
+
 // Get countries filtered by user's assigned countries
 export const getUserCountries = (userCountries?: string[]): string[] => {
   const allCountries = getCountries();

@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getDepartments } from '../utils/codeTable';
+import { 
+  getDepartments, 
+  getCodeTables,
+  getDepartmentNamesForUser
+} from '../utils/codeTable';
 import { getCurrentUser } from '../utils/auth';
 import { getCases } from '../utils/storage';
 import { CaseBooking, COUNTRIES } from '../types';
@@ -41,13 +45,38 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
       setSelectedCountry(defaultCountry);
     }
     
-    // Get departments filtered by user's assigned departments
-    const userDepartments = getDepartments(user?.departments);
-    setDepartments(userDepartments.sort()); // Sort alphabetically
-    if (userDepartments.length > 0) {
-      setSelectedDepartment(userDepartments[0]);
+    // Get departments for the active country from Code Table Setup
+    const country = isAdmin && selectedCountry ? selectedCountry : (user?.selectedCountry || user?.countries?.[0]);
+    if (country) {
+      // Load country-specific departments from Code Table Setup
+      const countryDepartments = getCodeTables(country);
+      const departmentsTable = countryDepartments.find(table => table.id === 'departments');
+      const countrySpecificDepts = departmentsTable?.items || [];
+      
+      // Filter by user's assigned departments if not admin
+      let availableDepartments = countrySpecificDepts;
+      if (user?.role !== 'admin' && user?.role !== 'it') {
+        const userDepartments = user?.departments || [];
+        
+        // Handle both legacy and new country-specific department formats
+        const userDepartmentNames = getDepartmentNamesForUser(userDepartments, [country]);
+        availableDepartments = countrySpecificDepts.filter(dept => userDepartmentNames.includes(dept));
+      }
+      
+      setDepartments(availableDepartments.sort());
+      if (availableDepartments.length > 0) {
+        setSelectedDepartment(availableDepartments[0]);
+      }
+    } else {
+      // Fallback to global departments
+      const userDepartments = getDepartments(user?.departments);
+      setDepartments(userDepartments.sort());
+      if (userDepartments.length > 0) {
+        setSelectedDepartment(userDepartments[0]);
+      }
     }
-  }, [selectedCountry]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCountry]); // isAdmin is derived from currentUser which is already handled
 
   // Load and filter cases whenever active country changes
   useEffect(() => {

@@ -5,11 +5,19 @@ import { useNotifications } from '../contexts/NotificationContext';
 import { useToast } from './ToastContainer';
 import { useSound } from '../contexts/SoundContext';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
-import { getCountries, getDepartments, initializeCodeTables } from '../utils/codeTable';
+import { 
+  getCountries, 
+  initializeCodeTables, 
+  getDepartmentsForCountries,
+  migrateDepartmentsToCountrySpecific,
+  isCountrySpecificDepartment 
+} from '../utils/codeTable';
 import { getAllRoles } from '../data/permissionMatrixData';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import SearchableDropdown from './SearchableDropdown';
+import CountryGroupedDepartments from './CountryGroupedDepartments';
 import RoleManagement from './RoleManagement';
+import '../styles/department-management.css';
 
 const UserManagement: React.FC = () => {
   const currentUser = getCurrentUser();
@@ -34,7 +42,7 @@ const UserManagement: React.FC = () => {
   const [availableRoles, setAvailableRoles] = useState<Array<{value: string, label: string}>>([]);
   const [usersPerPage] = useState(10);
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
-  const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
+  // Removed availableDepartments since we now use CountryGroupedDepartments exclusively
   const canCreateUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CREATE_USER) : false;
   
   // Ref for the add user form to handle click outside
@@ -51,9 +59,8 @@ const UserManagement: React.FC = () => {
     initializeCodeTables();
     loadUsers();
     
-    // Load countries and departments from code tables
+    // Load countries from code tables
     setAvailableCountries(getCountries());
-    setAvailableDepartments(getDepartments());
     
     // Load available roles
     loadAvailableRoles();
@@ -437,30 +444,32 @@ const UserManagement: React.FC = () => {
 
               <div className="form-group">
                 <MultiSelectDropdown
-                  id="newDepartments"
-                  label="Departments"
-                  options={availableDepartments}
-                  value={newUser.departments}
-                  onChange={(values) => setNewUser(prev => ({ ...prev, departments: values }))}
-                  placeholder="Select departments..."
+                  id="newCountries"
+                  label="Countries"
+                  options={availableCountries}
+                  value={newUser.countries}
+                  onChange={(values) => {
+                    // Get valid departments for the selected countries
+                    const validDepartmentsForCountries = values.length > 0 ? getDepartmentsForCountries(values) : [];
+                    
+                    // Filter out departments that don't exist in the selected countries
+                    const validDepartments = newUser.departments.filter(dept => 
+                      validDepartmentsForCountries.includes(dept)
+                    );
+                    
+                    setNewUser(prev => ({ 
+                      ...prev, 
+                      countries: values,
+                      departments: validDepartments
+                    }));
+                  }}
+                  placeholder="Select countries..."
                   required={false}
                 />
               </div>
             </div>
 
             <div className="form-row">
-              <div className="form-group">
-                <MultiSelectDropdown
-                  id="newCountries"
-                  label="Countries"
-                  options={availableCountries}
-                  value={newUser.countries}
-                  onChange={(values) => setNewUser(prev => ({ ...prev, countries: values }))}
-                  placeholder="Select countries..."
-                  required={false}
-                />
-              </div>
-              
               <div className="form-group">
                 <label htmlFor="userEnabled">User Status</label>
                 <div className="checkbox-wrapper">
@@ -480,6 +489,31 @@ const UserManagement: React.FC = () => {
                     : 'User cannot log in (account disabled)'
                   }
                 </small>
+              </div>
+            </div>
+
+            {/* Departments - Now as the last field, full width */}
+            <div className="form-row">
+              <div className="form-group form-group-full">
+                <label>Departments</label>
+                <p className="form-helper-text departments-hint">
+                  Select departments for the assigned countries. Departments are organized by country.
+                  <br />
+                  <small className="text-success">✅ Department selections are now isolated by country - selecting "Oncology" in Singapore won't affect "Oncology" in other countries.</small>
+                </p>
+                <CountryGroupedDepartments
+                  selectedDepartments={newUser.departments}
+                  onChange={(departments) => {
+                    // Ensure departments are in the new country-specific format
+                    const migratedDepartments = departments.every(dept => isCountrySpecificDepartment(dept))
+                      ? departments
+                      : migrateDepartmentsToCountrySpecific(departments, newUser.countries);
+                    
+                    setNewUser(prev => ({ ...prev, departments: migratedDepartments }));
+                  }}
+                  userCountries={newUser.countries}
+                  compact={true}
+                />
               </div>
             </div>
 
@@ -536,7 +570,7 @@ const UserManagement: React.FC = () => {
                   </td>
                   <td>
                     {user.username !== 'Admin' && (
-                      <div className="user-actions">
+                      <div className="user-actions vertical">
                         {canEditUsers && (
                           <button 
                             className="btn btn-outline-secondary btn-sm" 

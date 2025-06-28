@@ -2,7 +2,13 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { CaseBooking, SURGERY_SETS, IMPLANT_BOXES, PROCEDURE_TYPE_MAPPINGS } from '../types';
 import { saveCase, generateCaseReferenceNumber, getCategorizedSets, getAllProcedureTypes } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';
-import { getHospitals, getDepartments, initializeCodeTables } from '../utils/codeTable';
+import { 
+  getHospitals, 
+  getDepartments, 
+  getCodeTables, 
+  initializeCodeTables,
+  getDepartmentNamesForUser
+} from '../utils/codeTable';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import TimePicker from './common/TimePicker';
 import SearchableDropdown from './SearchableDropdown';
@@ -93,13 +99,29 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       return getDepartments().sort();
     }
     
-    // Admin and IT users can access all departments
-    if (currentUser.role === 'admin' || currentUser.role === 'it') {
-      return getDepartments().sort();
+    // Get departments for user's current country
+    const userCountry = currentUser.selectedCountry || currentUser.countries?.[0];
+    if (userCountry) {
+      // Load country-specific departments from Code Table Setup
+      const countryDepartments = getCodeTables(userCountry);
+      const departmentsTable = countryDepartments.find(table => table.id === 'departments');
+      const countrySpecificDepts = departmentsTable?.items || [];
+      
+      // Admin and IT users can access all departments for their country
+      if (currentUser.role === 'admin' || currentUser.role === 'it') {
+        return countrySpecificDepts.sort();
+      }
+      
+      // Other users are restricted to their assigned departments
+      const userDepartments = currentUser.departments || [];
+      
+      // Handle both legacy and new country-specific department formats
+      const userDepartmentNames = getDepartmentNamesForUser(userDepartments, [userCountry]);
+      return countrySpecificDepts.filter(dept => userDepartmentNames.includes(dept)).sort();
     }
     
-    // Other users are restricted to their assigned departments
-    return getDepartments(currentUser.departments).sort();
+    // Fallback to global departments
+    return getDepartments().sort();
   }, []);
 
   const validateForm = () => {
