@@ -59,31 +59,31 @@ export const permissionActions: PermissionAction[] = [
   {
     id: 'create-case',
     name: 'Create Case',
-    description: 'Submit new case bookings',
+    description: 'Create new medical case bookings with complete details including hospital, department, surgery date, procedure type, and special instructions. Essential for case submission workflow.',
     category: 'Case Management'
   },
   {
     id: 'view-cases',
     name: 'View Cases',
-    description: 'View case listings and details',
+    description: 'Access case listings, view detailed case information, status history, and case progress. Includes filtering by department, country, and date ranges within user permissions.',
     category: 'Case Management'
   },
   {
     id: 'amend-case',
     name: 'Amend Case',
-    description: 'Modify existing case details',
+    description: 'Modify existing case booking details including procedures, dates, special instructions, and requirements. Changes are tracked with user attribution and audit trail.',
     category: 'Case Management'
   },
   {
     id: 'delete-case',
     name: 'Delete Case',
-    description: 'Remove cases from system',
+    description: 'Permanently remove case bookings from the system. High-privilege action with full audit logging. Typically restricted to administrative roles only.',
     category: 'Case Management'
   },
   {
     id: 'edit-sets',
     name: 'Edit Sets',
-    description: 'Manage surgery sets and implant boxes for procedure types',
+    description: 'Manage surgery sets and implant boxes for procedure types. Configure available surgical instruments and implant options for specific medical procedures and specialties.',
     category: 'Case Management'
   },
   
@@ -185,7 +185,7 @@ export const permissionActions: PermissionAction[] = [
   {
     id: 'edit-countries',
     name: 'Edit Countries',
-    description: 'Assign and modify user country access permissions',
+    description: 'Assign and modify user country access permissions. Control which countries and regions users can access for case management and data viewing. Essential for multi-regional access control.',
     category: 'User Management'
   },
   {
@@ -223,14 +223,14 @@ export const permissionActions: PermissionAction[] = [
   {
     id: 'code-table-setup',
     name: 'Code Table Setup',
-    description: 'Manage system code tables and reference data',
-    category: 'Code Management'
+    description: 'Access and manage system code tables including hospitals, departments, and reference data. Configure country-specific and global lookup tables used throughout the application.',
+    category: 'Code Table Management'
   },
   {
     id: 'global-tables',
     name: 'Global Tables',
-    description: 'Access to manage global code tables that apply to all countries',
-    category: 'Code Management'
+    description: 'Manage global code tables that apply across all countries such as countries list, procedure types, and system-wide reference data. Requires additional confirmation for modifications.',
+    category: 'Code Table Management'
   },
   {
     id: 'booking-calendar',
@@ -271,25 +271,7 @@ export const permissionActions: PermissionAction[] = [
     category: 'File Operations'
   },
   
-  // Notification Management
-  {
-    id: 'configure-notifications',
-    name: 'Configure Notifications',
-    description: 'Access and modify notification settings',
-    category: 'Notification Management'
-  },
-  {
-    id: 'manage-notification-rules',
-    name: 'Manage Notification Rules',
-    description: 'Create and modify system notification rules',
-    category: 'Notification Management'
-  },
-  {
-    id: 'view-notification-settings',
-    name: 'View Notification Settings',
-    description: 'View notification preferences and settings',
-    category: 'Notification Management'
-  }
+  // Notification Management - REMOVED: Notification settings should be freely accessible to all users
 ];
 
 // Define the permission matrix
@@ -329,9 +311,6 @@ export const permissions: Permission[] = [
   { actionId: 'download-files', roleId: 'admin', allowed: true },
   { actionId: 'delete-files', roleId: 'admin', allowed: true },
   { actionId: 'cancel-case', roleId: 'admin', allowed: true },
-  { actionId: 'configure-notifications', roleId: 'admin', allowed: true },
-  { actionId: 'manage-notification-rules', roleId: 'admin', allowed: true },
-  { actionId: 'view-notification-settings', roleId: 'admin', allowed: true },
   
   // Operations - Order processing and case management
   { actionId: 'create-case', roleId: 'operations', allowed: true },
@@ -343,7 +322,6 @@ export const permissions: Permission[] = [
   { actionId: 'upload-files', roleId: 'operations', allowed: true },
   { actionId: 'download-files', roleId: 'operations', allowed: true },
   { actionId: 'view-reports', roleId: 'operations', allowed: true },
-  { actionId: 'view-notification-settings', roleId: 'operations', allowed: true },
   
   // Operations Manager - Operations + additional oversight
   { actionId: 'create-case', roleId: 'operation-manager', allowed: true },
@@ -360,8 +338,6 @@ export const permissions: Permission[] = [
   { actionId: 'view-reports', roleId: 'operation-manager', allowed: true },
   { actionId: 'export-data', roleId: 'operation-manager', allowed: true },
   { actionId: 'cancel-case', roleId: 'operation-manager', allowed: true },
-  { actionId: 'configure-notifications', roleId: 'operation-manager', allowed: true },
-  { actionId: 'view-notification-settings', roleId: 'operation-manager', allowed: true },
   
   // Sales - Case completion and office delivery
   { actionId: 'create-case', roleId: 'sales', allowed: true },
@@ -376,7 +352,6 @@ export const permissions: Permission[] = [
   { actionId: 'upload-files', roleId: 'sales', allowed: true },
   { actionId: 'download-files', roleId: 'sales', allowed: true },
   { actionId: 'view-reports', roleId: 'sales', allowed: true },
-  { actionId: 'view-notification-settings', roleId: 'sales', allowed: true },
   
   // Sales Manager - Sales + additional oversight
   { actionId: 'create-case', roleId: 'sales-manager', allowed: true },
@@ -392,8 +367,6 @@ export const permissions: Permission[] = [
   { actionId: 'download-files', roleId: 'sales-manager', allowed: true },
   { actionId: 'view-reports', roleId: 'sales-manager', allowed: true },
   { actionId: 'export-data', roleId: 'sales-manager', allowed: true },
-  { actionId: 'configure-notifications', roleId: 'sales-manager', allowed: true },
-  { actionId: 'view-notification-settings', roleId: 'sales-manager', allowed: true },
   
   // Driver - Delivery operations only
   { actionId: 'view-cases', roleId: 'driver', allowed: true },
@@ -405,7 +378,6 @@ export const permissions: Permission[] = [
   { actionId: 'case-closed', roleId: 'driver', allowed: true },
   { actionId: 'upload-files', roleId: 'driver', allowed: true },
   { actionId: 'download-files', roleId: 'driver', allowed: true },
-  { actionId: 'view-notification-settings', roleId: 'driver', allowed: true },
   
   // IT - System management and technical support + user management
   { actionId: 'view-cases', roleId: 'it', allowed: true },
@@ -427,10 +399,7 @@ export const permissions: Permission[] = [
   { actionId: 'upload-files', roleId: 'it', allowed: true },
   { actionId: 'download-files', roleId: 'it', allowed: true },
   { actionId: 'delete-files', roleId: 'it', allowed: true },
-  { actionId: 'view-reports', roleId: 'it', allowed: true },
-  { actionId: 'configure-notifications', roleId: 'it', allowed: true },
-  { actionId: 'manage-notification-rules', roleId: 'it', allowed: true },
-  { actionId: 'view-notification-settings', roleId: 'it', allowed: true }
+  { actionId: 'view-reports', roleId: 'it', allowed: true }
 ];
 
 // Get all roles including custom ones

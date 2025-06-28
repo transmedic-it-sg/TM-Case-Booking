@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { COUNTRIES, DEPARTMENTS } from '../types';
+import { getCountries } from '../utils/codeTable';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getAllRoles } from '../data/permissionMatrixData';
@@ -101,6 +102,7 @@ const EmailConfiguration: React.FC = () => {
   const { playSound } = useSound();
   const { showSuccess } = useToast();
   const [selectedCountry, setSelectedCountry] = useState<string>('');
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [emailConfigs, setEmailConfigs] = useState<Record<string, EmailConfig>>({});
   const [emailMatrixConfigs, setEmailMatrixConfigs] = useState<Record<string, EmailNotificationMatrix>>({});
   const [roleRefreshTrigger, setRoleRefreshTrigger] = useState(0);
@@ -153,6 +155,12 @@ const EmailConfiguration: React.FC = () => {
     canConfigureEmail: canConfigureEmail,
     hasPermissionCheck: currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EMAIL_CONFIG) : false
   });
+
+  // Load countries from Global-Table
+  useEffect(() => {
+    const countries = getCountries();
+    setAvailableCountries(countries.length > 0 ? countries : [...COUNTRIES]);
+  }, []);
 
   // Load email configurations from localStorage
   useEffect(() => {
@@ -747,7 +755,7 @@ const EmailConfiguration: React.FC = () => {
               required
             >
               <option value="">Choose a country to configure...</option>
-              {COUNTRIES.map(country => (
+              {availableCountries.map(country => (
                 <option key={country} value={country}>
                   {country}
                 </option>

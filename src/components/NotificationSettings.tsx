@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { getCurrentUser } from '../utils/auth';
-import { hasPermission } from '../data/permissionMatrixData';
 
 export interface NotificationPreferences {
   statusUpdates: boolean;
@@ -40,10 +39,6 @@ const defaultPreferences: NotificationPreferences = {
 const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onClose }) => {
   const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences);
   const [currentUser] = useState(getCurrentUser());
-  
-  // Check permissions
-  const canViewNotifications = currentUser ? hasPermission(currentUser.role, 'view-notification-settings') : false;
-  const canConfigureNotifications = currentUser ? hasPermission(currentUser.role, 'configure-notifications') : false;
 
   // Load saved preferences
   useEffect(() => {
@@ -69,16 +64,11 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
   };
 
   const handlePreferenceChange = (key: keyof NotificationPreferences, value: boolean) => {
-    // Only allow changes if user has configure permission
-    if (!canConfigureNotifications) {
-      return;
-    }
     const newPreferences = { ...preferences, [key]: value };
     savePreferences(newPreferences);
   };
 
   const handleSelectAll = () => {
-    if (!canConfigureNotifications) return;
     const allEnabled: NotificationPreferences = {
       statusUpdates: true,
       caseCreated: true,
@@ -97,7 +87,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
   };
 
   const handleSelectNone = () => {
-    if (!canConfigureNotifications) return;
     const allDisabled: NotificationPreferences = {
       statusUpdates: false,
       caseCreated: false,
@@ -116,46 +105,10 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
   };
 
   const handleResetToDefault = () => {
-    if (!canConfigureNotifications) return;
     savePreferences(defaultPreferences);
   };
 
   if (!isOpen) return null;
-
-  // Check if user has permission to view notifications
-  if (!canViewNotifications) {
-    return (
-      <div className="notification-settings-overlay">
-        <div className="notification-settings-modal">
-          <div className="notification-settings-header">
-            <h2>🔔 Notification Settings</h2>
-            <button
-              className="btn btn-outline-secondary btn-sm close-settings-button"
-              onClick={onClose}
-              title="Close settings"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="notification-settings-content">
-            <div className="permission-denied-message">
-              <h3>Access Denied</h3>
-              <p>You don't have permission to view notification settings.</p>
-              <p>Please contact your administrator to request access.</p>
-            </div>
-          </div>
-          <div className="notification-settings-footer">
-            <button
-              className="btn btn-primary"
-              onClick={onClose}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="notification-settings-overlay">
@@ -172,36 +125,27 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
         </div>
 
         <div className="notification-settings-content">
-          {/* Quick Actions - Only show if user can configure */}
-          {canConfigureNotifications && (
-            <div className="settings-quick-actions">
-              <button
-                className="btn btn-outline-primary btn-sm"
-                onClick={handleSelectAll}
-              >
-                ✅ Enable All
-              </button>
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                onClick={handleSelectNone}
-              >
-                ❌ Disable All
-              </button>
-              <button
-                className="btn btn-outline-warning btn-sm"
-                onClick={handleResetToDefault}
-              >
-                🔄 Reset to Default
-              </button>
-            </div>
-          )}
-          
-          {/* Read-only notice */}
-          {!canConfigureNotifications && (
-            <div className="settings-readonly-notice">
-              <p>⚠️ You have read-only access to notification settings. Contact your administrator to request modification permissions.</p>
-            </div>
-          )}
+          {/* Quick Actions */}
+          <div className="settings-quick-actions">
+            <button
+              className="btn btn-outline-primary btn-sm"
+              onClick={handleSelectAll}
+            >
+              ✅ Enable All
+            </button>
+            <button
+              className="btn btn-outline-secondary btn-sm"
+              onClick={handleSelectNone}
+            >
+              ❌ Disable All
+            </button>
+            <button
+              className="btn btn-outline-warning btn-sm"
+              onClick={handleResetToDefault}
+            >
+              🔄 Reset to Default
+            </button>
+          </div>
 
           {/* Workflow Notifications */}
           <div className="settings-section">
@@ -212,7 +156,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
                   type="checkbox"
                   checked={preferences.statusUpdates}
                   onChange={(e) => handlePreferenceChange('statusUpdates', e.target.checked)}
-                  disabled={!canConfigureNotifications}
                 />
                 <span className="setting-label">
                   <span className="setting-title">Status Updates</span>
@@ -225,7 +168,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
                   type="checkbox"
                   checked={preferences.caseCreated}
                   onChange={(e) => handlePreferenceChange('caseCreated', e.target.checked)}
-                  disabled={!canConfigureNotifications}
                 />
                 <span className="setting-label">
                   <span className="setting-title">Case Created</span>
@@ -238,7 +180,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
                   type="checkbox"
                   checked={preferences.caseAmended}
                   onChange={(e) => handlePreferenceChange('caseAmended', e.target.checked)}
-                  disabled={!canConfigureNotifications}
                 />
                 <span className="setting-label">
                   <span className="setting-title">Case Amended</span>
@@ -251,7 +192,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
                   type="checkbox"
                   checked={preferences.orderProcessed}
                   onChange={(e) => handlePreferenceChange('orderProcessed', e.target.checked)}
-                  disabled={!canConfigureNotifications}
                 />
                 <span className="setting-label">
                   <span className="setting-title">Order Processed</span>
@@ -264,7 +204,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
                   type="checkbox"
                   checked={preferences.orderDelivered}
                   onChange={(e) => handlePreferenceChange('orderDelivered', e.target.checked)}
-                  disabled={!canConfigureNotifications}
                 />
                 <span className="setting-label">
                   <span className="setting-title">Order Delivered</span>
@@ -277,7 +216,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
                   type="checkbox"
                   checked={preferences.orderReceived}
                   onChange={(e) => handlePreferenceChange('orderReceived', e.target.checked)}
-                  disabled={!canConfigureNotifications}
                 />
                 <span className="setting-label">
                   <span className="setting-title">Order Received</span>
@@ -290,7 +228,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
                   type="checkbox"
                   checked={preferences.caseCompleted}
                   onChange={(e) => handlePreferenceChange('caseCompleted', e.target.checked)}
-                  disabled={!canConfigureNotifications}
                 />
                 <span className="setting-label">
                   <span className="setting-title">Case Completed</span>
@@ -303,7 +240,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
                   type="checkbox"
                   checked={preferences.toBeBilled}
                   onChange={(e) => handlePreferenceChange('toBeBilled', e.target.checked)}
-                  disabled={!canConfigureNotifications}
                 />
                 <span className="setting-label">
                   <span className="setting-title">Ready for Billing</span>
@@ -322,7 +258,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
                   type="checkbox"
                   checked={preferences.systemAlerts}
                   onChange={(e) => handlePreferenceChange('systemAlerts', e.target.checked)}
-                  disabled={!canConfigureNotifications}
                 />
                 <span className="setting-label">
                   <span className="setting-title">System Alerts</span>
@@ -335,7 +270,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
                   type="checkbox"
                   checked={preferences.reminderNotifications}
                   onChange={(e) => handlePreferenceChange('reminderNotifications', e.target.checked)}
-                  disabled={!canConfigureNotifications}
                 />
                 <span className="setting-label">
                   <span className="setting-title">Reminder Notifications</span>
@@ -354,7 +288,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
                   type="checkbox"
                   checked={preferences.sound}
                   onChange={(e) => handlePreferenceChange('sound', e.target.checked)}
-                  disabled={!canConfigureNotifications}
                 />
                 <span className="setting-label">
                   <span className="setting-title">Sound Alerts</span>
@@ -367,7 +300,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
                   type="checkbox"
                   checked={preferences.desktop}
                   onChange={(e) => handlePreferenceChange('desktop', e.target.checked)}
-                  disabled={!canConfigureNotifications}
                 />
                 <span className="setting-label">
                   <span className="setting-title">Desktop Notifications</span>

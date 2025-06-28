@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FilterOptions, COUNTRIES } from '../../types';
 import FilterDatePicker from '../FilterDatePicker';
 import { statusOptions } from './utils';
 import { getCurrentUser } from '../../utils/auth';
+import { getCountries } from '../../utils/codeTable';
 import SearchableDropdown from '../SearchableDropdown';
 
 interface CasesFilterProps {
@@ -35,6 +36,15 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
   onQuickFilter
 }) => {
   const currentUser = getCurrentUser();
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+
+  // Load countries from Global-Table
+  useEffect(() => {
+    const globalCountries = getCountries();
+    const countries = globalCountries.length > 0 ? globalCountries : [...COUNTRIES];
+    setAvailableCountries(countries);
+  }, []);
+
   return (
     <div className="modern-filters-section">
       <div className="filters-header" onClick={onToggleFilters}>
@@ -101,7 +111,7 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
                       <SearchableDropdown
                         options={[
                           { value: '', label: 'All Countries' },
-                          ...COUNTRIES.map(country => ({
+                          ...availableCountries.map(country => ({
                             value: country,
                             label: country
                           }))

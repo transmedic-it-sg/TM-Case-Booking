@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission } from '../data/permissionMatrixData';
 import { useToast } from './ToastContainer';
@@ -26,8 +26,7 @@ import { useModal } from '../hooks/useModal';
 interface CodeTableSetupProps {}
 
 const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
-  const { modal, closeModal, showConfirm } = useModal();
-  const [codeTables, setCodeTables] = useState<CodeTable[]>([]);
+  const { modal, closeModal, showConfirm, showError } = useModal();
   const [countryBasedTables, setCountryBasedTables] = useState<CodeTable[]>([]);
   const [globalTables, setGlobalTables] = useState<CodeTable[]>([]);
   const [selectedTable, setSelectedTable] = useState<string>('');
@@ -48,6 +47,13 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
   const currentUser = getCurrentUser();
   const canManageCodeTables = currentUser ? hasPermission(currentUser.role, 'code-table-setup') : false;
   const canManageGlobalTables = currentUser ? hasPermission(currentUser.role, 'global-tables') : false;
+
+  // Calculate current table based on state - this will recalculate when tables change
+  const currentTable = useMemo(() => {
+    const currentTables = selectedCategory === 'global' ? globalTables : countryBasedTables;
+    return currentTables.find(table => table.id === selectedTable);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory, globalTables, countryBasedTables, selectedTable, isManualUpdate]);
 
   // Removed unused wrapper function to fix ESLint warning
 
@@ -136,12 +142,9 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
           // Set country-based tables
           setCountryBasedTables(filteredCountryTables);
           
-          // Combine all tables for the unified codeTables array
-          setCodeTables([...filteredGlobalTables, ...filteredCountryTables]);
         } else {
           // No country selected - don't show any country-based tables
           setCountryBasedTables([]);
-          setCodeTables(filteredGlobalTables);
         }
       } catch (error) {
         console.error('Error loading code tables:', error);
@@ -177,7 +180,9 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
   }, [isManualUpdate]);
 
   const getCurrentTable = (): CodeTable | undefined => {
-    return codeTables.find(table => table.id === selectedTable);
+    // Look in the appropriate category-specific array
+    const currentTables = selectedCategory === 'global' ? globalTables : countryBasedTables;
+    return currentTables.find(table => table.id === selectedTable);
   };
 
   const getCurrentCategoryTables = (): CodeTable[] => {
@@ -246,12 +251,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       });
     }
     
-    // Update the combined codeTables array
-    setCodeTables(prev => prev.map(table => 
-      table.id === selectedTable 
-        ? { ...table, items: [...table.items, trimmedName] }
-        : table
-    ));
     
     setNewItemName('');
     setShowAddItem(false);
@@ -314,15 +313,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       });
     }
     
-    // Update the combined codeTables array
-    setCodeTables(prev => prev.map(table => 
-      table.id === selectedTable 
-        ? { 
-            ...table, 
-            items: table.items.map(item => item === oldName ? trimmedName : item) 
-          }
-        : table
-    ));
     
     setEditingItem(null);
     setEditItemValue('');
@@ -356,29 +346,96 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
   const deleteItemFromTable = (itemName: string, table: any) => {
     const isGlobalTable = selectedCategory === 'global';
     
-    // Set manual update flag to prevent automatic save
+    console.log('Starting deletion process:', {
+      itemName,
+      tableName: table.name,
+      isGlobalTable,
+      selectedTable
+    });
+    
+    // Set manual update flag first
     setIsManualUpdate(true);
     
     // Update the appropriate state arrays and save immediately
     if (isGlobalTable) {
-      const updatedGlobalTables = globalTables.map(t => 
+      // Get fresh data directly from localStorage to avoid stale state
+      const freshGlobalTables = getCodeTables(); // No country parameter for global
+      const currentTable = freshGlobalTables.find(t => t.id === selectedTable);
+      
+      if (!currentTable) {
+        console.error('Global table not found:', selectedTable);
+        showError('Table Not Found', `${table.name} table was not found`);
+        return;
+      }
+      
+      // Verify the item exists before deletion
+      if (!currentTable.items.includes(itemName)) {
+        console.error('Item not found in global table:', itemName, currentTable.items);
+        showError('Item Not Found', `"${itemName}" was not found in ${table.name}`);
+        return;
+      }
+      
+      console.log('Before deletion - Item count:', currentTable.items.length);
+      console.log('Items:', currentTable.items);
+      
+      // Create updated tables with the item removed - work directly with fresh data
+      const updatedGlobalTables = freshGlobalTables.map(t => 
         t.id === selectedTable 
           ? { ...t, items: t.items.filter(item => item !== itemName) }
           : t
       );
       
-      // Save global tables immediately (no country parameter)
-      saveCodeTables(updatedGlobalTables);
-      setGlobalTables(updatedGlobalTables);
+      const updatedTable = updatedGlobalTables.find(t => t.id === selectedTable);
+      console.log('After deletion - Item count:', updatedTable?.items.length);
+      console.log('Items:', updatedTable?.items);
+      console.log('Item still exists:', updatedTable?.items.includes(itemName));
       
-      // Update the combined codeTables array
-      setCodeTables(prev => prev.map(t => 
-        t.id === selectedTable 
-          ? { ...t, items: t.items.filter(item => item !== itemName) }
-          : t
-      ));
+      // Save to localStorage first - CRITICAL STEP
+      try {
+        saveCodeTables(updatedGlobalTables);
+        console.log('Successfully saved to localStorage');
+        
+        // Verify the save worked
+        const verifyTables = getCodeTables();
+        const verifyTable = verifyTables.find(t => t.id === selectedTable);
+        console.log('Verification - Item still exists:', verifyTable?.items.includes(itemName));
+        
+        if (verifyTable?.items.includes(itemName)) {
+          throw new Error('Item still exists after save - deletion failed');
+        }
+        
+      } catch (error) {
+        console.error('Failed to save updated tables:', error);
+        showError('Save Failed', 'Failed to save changes to localStorage');
+        return;
+      }
+      
+      // Update React state with verified data
+      const { global: globalOnly } = categorizeCodeTables(updatedGlobalTables);
+      const filteredGlobalTables = getFilteredTablesForUser(globalOnly, currentUser);
+      setGlobalTables(filteredGlobalTables);
+      
+      // Force component re-render
+      setIsManualUpdate(prev => !prev);
+      
     } else {
-      const updatedCountryTables = countryBasedTables.map(t => 
+      // Country tables logic (unchanged for now)
+      const freshCountryTables = getCodeTables(selectedCountry);
+      const currentCountryTable = freshCountryTables.find(t => t.id === selectedTable);
+      
+      if (!currentCountryTable) {
+        console.error('Country table not found:', selectedTable);
+        showError('Table Not Found', `${table.name} table was not found`);
+        return;
+      }
+      
+      // Verify the item exists before deletion
+      if (!currentCountryTable.items.includes(itemName)) {
+        showError('Item Not Found', `"${itemName}" was not found in ${table.name}`);
+        return;
+      }
+      
+      const updatedCountryTables = freshCountryTables.map(t => 
         t.id === selectedTable 
           ? { ...t, items: t.items.filter(item => item !== itemName) }
           : t
@@ -387,13 +444,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       // Save country tables immediately
       saveCodeTables(updatedCountryTables, selectedCountry);
       setCountryBasedTables(updatedCountryTables);
-      
-      // Update the combined codeTables array
-      setCodeTables(prev => prev.map(t => 
-        t.id === selectedTable 
-          ? { ...t, items: t.items.filter(item => item !== itemName) }
-          : t
-      ));
     }
     
     playSound.delete();
@@ -416,8 +466,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       </div>
     );
   }
-
-  const currentTable = getCurrentTable();
 
   if (isLoading) {
     return (
@@ -552,7 +600,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
                     const { global: globalOnly } = categorizeCodeTables(globalTablesData);
                     const filteredGlobalTables = getFilteredTablesForUser(globalOnly, currentUser);
                     setGlobalTables(filteredGlobalTables);
-                    setCodeTables(filteredGlobalTables);
                   }}
                   className="btn btn-secondary"
                 >
@@ -580,7 +627,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
                       const { global: globalOnly } = categorizeCodeTables(globalTablesData);
                       const filteredGlobalTables = getFilteredTablesForUser(globalOnly, currentUser);
                       setGlobalTables(filteredGlobalTables);
-                      setCodeTables([...filteredGlobalTables, ...filteredCountryTables]);
                     }}
                     className="btn btn-secondary"
                   >

@@ -4,6 +4,7 @@ import { saveCase, generateCaseReferenceNumber, getCategorizedSets, getAllProced
 import { getCurrentUser } from '../utils/auth';
 import { 
   getHospitals, 
+  getHospitalsForCountry,
   getDepartments, 
   getCodeTables, 
   initializeCodeTables,
@@ -52,9 +53,15 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     const allTypes = getAllProcedureTypes(userCountry);
     setAvailableProcedureTypes(allTypes.sort());
     
-    // Load hospitals from code tables
-    const hospitals = getHospitals();
-    setAvailableHospitals(hospitals.sort());
+    // Load hospitals from country-specific code tables
+    if (userCountry) {
+      const hospitals = getHospitalsForCountry(userCountry);
+      setAvailableHospitals(hospitals.sort());
+    } else {
+      // Fallback to global hospitals if no country selected
+      const hospitals = getHospitals();
+      setAvailableHospitals(hospitals.sort());
+    }
   }, []);
 
   const surgerySetOptions = useMemo(() => {

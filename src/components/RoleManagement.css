@@ -1,3 +1,114 @@
+/* Permission Management Modal Styles */
+.permission-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.permission-modal-content {
+  background: white;
+  border-radius: 12px;
+  max-width: 95vw;
+  max-height: 90vh;
+  width: 1200px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.permission-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e9ecef;
+  background-color: #f8f9fa;
+}
+
+.permission-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.permission-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.permission-modal-close:hover {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.permission-modal-body {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+}
+
+.permission-modal-body .permission-matrix {
+  margin: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+/* Role Actions Enhancements */
+.role-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.role-protection-label {
+  font-size: 0.75rem;
+  color: #6c757d;
+  font-style: italic;
+  margin-left: 0.5rem;
+}
+
+/* Responsive Design for Permission Modal */
+@media (max-width: 768px) {
+  .permission-modal-content {
+    width: 95vw;
+    max-height: 85vh;
+  }
+  
+  .permission-modal-header {
+    padding: 16px 20px;
+  }
+  
+  .permission-modal-header h2 {
+    font-size: 18px;
+  }
+  
+  .role-actions {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .role-protection-label {
+    margin-left: 0;
+    margin-top: 0.25rem;
+  }
+}
+
 /* Role Management Styles - UserManagement Pattern */
 .role-management {
   background: var(--white);

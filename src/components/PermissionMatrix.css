@@ -111,32 +111,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Scroll indicators for better UX */
-.scrollable-matrix::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
-  opacity: 0.8;
-  z-index: 11;
-  pointer-events: none;
-}
-
-.scrollable-matrix::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--primary-light), var(--primary-color));
-  opacity: 0.6;
-  z-index: 11;
-  pointer-events: none;
-}
+/* Removed scroll indicators that were causing green lines */
 
 /* Smooth scrolling behavior */
 .scrollable-matrix {

@@ -8,9 +8,7 @@ import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { 
   getCountries, 
   initializeCodeTables, 
-  getDepartmentsForCountries,
-  migrateDepartmentsToCountrySpecific,
-  isCountrySpecificDepartment 
+  getDepartmentsForCountries
 } from '../utils/codeTable';
 import { getAllRoles } from '../data/permissionMatrixData';
 import MultiSelectDropdown from './MultiSelectDropdown';
@@ -356,7 +354,7 @@ const UserManagement: React.FC = () => {
           </div>
           <div className="country-filter-dropdown">
             <SearchableDropdown
-              options={['All Countries', ...availableCountries]}
+              options={['All Countries', ...(currentUser?.countries || [])]}
               value={selectedCountryFilter || 'All Countries'}
               onChange={(value) => setSelectedCountryFilter(value === 'All Countries' ? '' : value)}
               placeholder="Select country to filter users..."
@@ -520,12 +518,8 @@ const UserManagement: React.FC = () => {
                 <CountryGroupedDepartments
                   selectedDepartments={newUser.departments}
                   onChange={(departments) => {
-                    // Ensure departments are in the new country-specific format
-                    const migratedDepartments = departments.every(dept => isCountrySpecificDepartment(dept))
-                      ? departments
-                      : migrateDepartmentsToCountrySpecific(departments, newUser.countries);
-                    
-                    setNewUser(prev => ({ ...prev, departments: migratedDepartments }));
+                    // CountryGroupedDepartments always sends country-specific format, no migration needed
+                    setNewUser(prev => ({ ...prev, departments }));
                   }}
                   userCountries={newUser.countries}
                   compact={true}

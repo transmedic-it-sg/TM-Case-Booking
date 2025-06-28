@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { CaseBooking, CaseStatus, COUNTRIES, DEPARTMENTS } from '../types';
+import { getCountries } from '../utils/codeTable';
 import { getCases } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
@@ -36,6 +37,7 @@ const Reports: React.FC = () => {
   const [filteredCases, setFilteredCases] = useState<CaseBooking[]>([]);
   const [currentUser] = useState(getCurrentUser());
   const [showFilters, setShowFilters] = useState(true);
+  const [globalCountries, setGlobalCountries] = useState<string[]>([]);
   const [filters, setFilters] = useState<ReportFilters>({
     dateFrom: '',
     dateTo: '',
@@ -54,6 +56,12 @@ const Reports: React.FC = () => {
     submitter: '',
     reportType: 'overview'
   });
+
+  // Load countries from Global-Table
+  useEffect(() => {
+    const countries = getCountries();
+    setGlobalCountries(countries.length > 0 ? countries : [...COUNTRIES]);
+  }, []);
 
   // Load cases on component mount
   useEffect(() => {
@@ -138,7 +146,7 @@ const Reports: React.FC = () => {
 
     // Country breakdown
     const countryBreakdown: Record<string, number> = {};
-    COUNTRIES.forEach(country => {
+    globalCountries.forEach(country => {
       countryBreakdown[country] = filteredCases.filter(c => c.country === country).length;
     });
 
@@ -196,7 +204,7 @@ const Reports: React.FC = () => {
       urgentCases,
       completionRate
     };
-  }, [filteredCases]);
+  }, [filteredCases, globalCountries]);
 
   // Get available options for dropdowns
   const availableSubmitters = useMemo(() => {
@@ -205,12 +213,12 @@ const Reports: React.FC = () => {
 
   const availableCountries = useMemo(() => {
     const userCountries = currentUser?.role === 'admin' || currentUser?.role === 'it' 
-      ? COUNTRIES 
+      ? globalCountries 
       : (currentUser?.countries || []);
-    return Array.from(new Set(cases.map(c => c.country).filter((country): country is typeof COUNTRIES[number] => 
-      userCountries.includes(country as typeof COUNTRIES[number])
+    return Array.from(new Set(cases.map(c => c.country).filter(country => 
+      userCountries.includes(country)
     ))).sort();
-  }, [cases, currentUser]);
+  }, [cases, currentUser, globalCountries]);
 
   const availableDepartments = useMemo(() => {
     const userDepartments = currentUser?.role === 'admin' || currentUser?.role === 'it'

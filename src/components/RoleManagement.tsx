@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Role } from './PermissionMatrix';
-import { roles as defaultRoles } from '../data/permissionMatrixData';
+import { roles as defaultRoles, permissionActions as allActions, permissions as allPermissions } from '../data/permissionMatrixData';
 import { 
   loadCustomRoles, 
   saveCustomRoles, 
@@ -14,6 +14,7 @@ import CustomModal from './CustomModal';
 import { useModal } from '../hooks/useModal';
 import { useToast } from './ToastContainer';
 import { useSound } from '../contexts/SoundContext';
+import PermissionMatrix from './PermissionMatrix';
 import './RoleManagement.css';
 
 interface RoleManagementProps {
@@ -35,6 +36,8 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
   const [customRoles, setCustomRoles] = useState<Role[]>([]);
   const [allRoles, setAllRoles] = useState<Role[]>(defaultRoles);
   const [showAddRole, setShowAddRole] = useState(false);
+  const [showPermissionMatrix, setShowPermissionMatrix] = useState(false);
+  const [selectedRoleForPermissions, setSelectedRoleForPermissions] = useState<string | null>(null);
   const [newRole, setNewRole] = useState<NewRole>({
     id: '',
     name: '',
@@ -143,6 +146,22 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
         showError('Failed to delete role', 'Error');
       }
     });
+  };
+
+  const handleManagePermissions = (roleId: string) => {
+    setSelectedRoleForPermissions(roleId);
+    setShowPermissionMatrix(true);
+  };
+
+  const handlePermissionChange = (actionId: string, roleId: string, allowed: boolean) => {
+    // This would update the permissions for the specific role
+    // For now, this is handled by the PermissionMatrix component itself
+    console.log(`Permission change: ${actionId} for ${roleId} = ${allowed}`);
+  };
+
+  const closePermissionMatrix = () => {
+    setShowPermissionMatrix(false);
+    setSelectedRoleForPermissions(null);
   };
 
   // Use utility function for generating role ID
@@ -311,7 +330,16 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
                   ></div>
                 </td>
                 <td>
-                  <span className="no-actions">Protected</span>
+                  <div className="role-actions">
+                    <button
+                      className="btn btn-outline-primary btn-sm"
+                      onClick={() => handleManagePermissions(role.id)}
+                      title="Manage permissions for this role"
+                    >
+                      Permissions
+                    </button>
+                    <span className="role-protection-label">System Role</span>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -338,6 +366,13 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
                 </td>
                 <td>
                   <div className="role-actions">
+                    <button
+                      className="btn btn-outline-primary btn-sm"
+                      onClick={() => handleManagePermissions(role.id)}
+                      title="Manage permissions for this role"
+                    >
+                      Permissions
+                    </button>
                     <button
                       className="btn btn-danger btn-sm"
                       onClick={() => handleDeleteRole(role.id)}
@@ -373,6 +408,35 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
           }
         ] : undefined}
       />
+
+      {/* Permission Management Modal */}
+      {showPermissionMatrix && selectedRoleForPermissions && (
+        <div className="permission-modal-overlay" onClick={closePermissionMatrix}>
+          <div className="permission-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="permission-modal-header">
+              <h2>
+                🛡️ Manage Permissions: {allRoles.find(r => r.id === selectedRoleForPermissions)?.displayName}
+              </h2>
+              <button 
+                className="permission-modal-close"
+                onClick={closePermissionMatrix}
+                title="Close Permission Manager"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="permission-modal-body">
+              <PermissionMatrix
+                roles={allRoles.filter(r => r.id === selectedRoleForPermissions)}
+                actions={allActions}
+                permissions={allPermissions}
+                onPermissionChange={handlePermissionChange}
+                readonly={false}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

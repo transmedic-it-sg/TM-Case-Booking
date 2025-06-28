@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   getDepartments, 
   getCodeTables,
-  getDepartmentNamesForUser
+  getDepartmentNamesForUser,
+  getCountries
 } from '../utils/codeTable';
 import { getCurrentUser } from '../utils/auth';
 import { getCases } from '../utils/storage';
@@ -27,6 +28,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
   const moreCasesPerPage = 10;
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
   const [selectedCountry, setSelectedCountry] = useState<string>('');
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [showDatePickers, setShowDatePickers] = useState(false);
   const datePickerRef = useRef<HTMLDivElement>(null);
 
@@ -39,9 +41,14 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
     const user = getCurrentUser();
     setCurrentUser(user);
     
+    // Load countries from Global-Table instead of hardcoded COUNTRIES
+    const globalCountries = getCountries();
+    const countries = globalCountries.length > 0 ? globalCountries : [...COUNTRIES];
+    setAvailableCountries(countries);
+    
     // Initialize selected country for Admin users
     if (user?.role === 'admin' && !selectedCountry) {
-      const defaultCountry = user?.selectedCountry || user?.countries?.[0] || COUNTRIES[0];
+      const defaultCountry = user?.selectedCountry || user?.countries?.[0] || countries[0];
       setSelectedCountry(defaultCountry);
     }
     
@@ -333,7 +340,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
                 onChange={(e) => setSelectedCountry(e.target.value)}
                 className="country-select"
               >
-                {COUNTRIES.map(country => (
+                {availableCountries.map(country => (
                   <option key={country} value={country}>{country}</option>
                 ))}
               </select>

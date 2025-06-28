@@ -51,7 +51,9 @@
       "Bash(cp:*)",
       "Bash(npx gh-pages:*)",
       "Bash(curl:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "WebFetch(domain:www.sitepoint.com)",
+      "Bash(npx eslint:*)"
     ],
     "deny": []
   }

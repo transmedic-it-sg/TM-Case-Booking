@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PROCEDURE_TYPES, COUNTRIES } from '../../types';
+import { getCountries } from '../../utils/codeTable';
 import { useToast } from '../ToastContainer';
 import { useSound } from '../../contexts/SoundContext';
 import { getCurrentUser } from '../../utils/auth';
@@ -38,6 +39,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
   const [newProcedureTypeName, setNewProcedureTypeName] = useState('');
   const [procedureTypeError, setProcedureTypeError] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<string>('');
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
 
   const { showError, showSuccess } = useToast();
   const { playSound } = useSound();
@@ -50,10 +52,14 @@ const EditSets: React.FC<EditSetsProps> = () => {
   // Use selected country for Admin, otherwise use user's country
   const activeCountry = isAdmin && selectedCountry ? selectedCountry : userCountry;
 
-  // Initialize selected country for Admin users
+  // Load countries from Global-Table and initialize selected country for Admin users
   useEffect(() => {
+    const globalCountries = getCountries();
+    const countries = globalCountries.length > 0 ? globalCountries : [...COUNTRIES];
+    setAvailableCountries(countries);
+    
     if (isAdmin && !selectedCountry) {
-      setSelectedCountry(userCountry || COUNTRIES[0]);
+      setSelectedCountry(userCountry || countries[0]);
     }
   }, [isAdmin, selectedCountry, userCountry]);
 
@@ -434,7 +440,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
                 onChange={(e) => setSelectedCountry(e.target.value)}
                 className="country-select"
               >
-                {COUNTRIES.map(country => (
+                {availableCountries.map(country => (
                   <option key={country} value={country}>{country}</option>
                 ))}
               </select>

@@ -73,6 +73,13 @@ export const getHospitals = (): string[] => {
   return getCodeTableItems('hospitals');
 };
 
+// Get hospitals list for a specific country
+export const getHospitalsForCountry = (country: string): string[] => {
+  const countryTables = getCodeTables(country);
+  const hospitalTable = countryTables.find(table => table.id === 'hospitals');
+  return hospitalTable?.items || [];
+};
+
 // Get departments list with user filtering
 export const getDepartments = (userDepartments?: string[]): string[] => {
   const allDepartments = getCodeTableItems('departments');

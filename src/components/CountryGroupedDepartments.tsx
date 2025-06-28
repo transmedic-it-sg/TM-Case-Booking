@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   getDepartmentsByCountry, 
   initializeCodeTables, 
@@ -99,23 +99,28 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
     });
   };
 
-  const handleDepartmentChange = (country: string, department: string, checked: boolean) => {
+  const handleDepartmentChange = useCallback((country: string, department: string, checked: boolean) => {
     if (disabled) return;
     
     const countrySpecificId = createCountryDepartmentId(country, department);
     
+    let newDepartments;
     if (checked) {
-      // Add the country-specific department ID
-      const newDepartments = [...selectedDepartments, countrySpecificId];
-      onChange(newDepartments);
+      // Add department if not already selected
+      if (!selectedDepartments.includes(countrySpecificId)) {
+        newDepartments = [...selectedDepartments, countrySpecificId];
+      } else {
+        return; // Already selected, no change needed
+      }
     } else {
-      // Remove the country-specific department ID
-      const newDepartments = selectedDepartments.filter(d => d !== countrySpecificId);
-      onChange(newDepartments);
+      // Remove department
+      newDepartments = selectedDepartments.filter(d => d !== countrySpecificId);
     }
-  };
+    
+    onChange(newDepartments);
+  }, [disabled, selectedDepartments, onChange]);
 
-  const selectAllInCountry = (country: string) => {
+  const selectAllInCountry = useCallback((country: string) => {
     if (disabled) return;
     
     const countryDepartments = departmentsByCountry[country] || [];
@@ -125,9 +130,9 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
     
     const newSelections = new Set([...selectedDepartments, ...countrySpecificIds]);
     onChange(Array.from(newSelections));
-  };
+  }, [disabled, departmentsByCountry, selectedDepartments, onChange]);
 
-  const deselectAllInCountry = (country: string) => {
+  const deselectAllInCountry = useCallback((country: string) => {
     if (disabled) return;
     
     const countryDepartments = departmentsByCountry[country] || [];
@@ -139,7 +144,7 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
       !countrySpecificIds.includes(dept)
     );
     onChange(newSelections);
-  };
+  }, [disabled, departmentsByCountry, selectedDepartments, onChange]);
 
   if (isLoading) {
     return (
@@ -255,22 +260,25 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
                     </div>
                   ) : (
                     <div className="departments-grid">
-                      {departments.map(department => {
+                      {departments.map((department, index) => {
                         const countrySpecificId = createCountryDepartmentId(country, department);
                         const isSelected = selectedDepartments.includes(countrySpecificId);
+                        const uniqueId = `toggle-${country}-${index}-${department.replace(/\s+/g, '-')}`;
+                        
                         return (
-                          <label key={`${country}-${department}`} className={`department-checkbox ${isSelected ? 'selected' : ''}`}>
+                          <div key={`${country}-${department}-${index}`} className={`department-checkbox ${isSelected ? 'selected' : ''}`}>
                             <span className="department-name">{department}</span>
-                            <label className="toggle-switch">
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={(e) => handleDepartmentChange(country, department, e.target.checked)}
-                                disabled={disabled}
-                              />
-                              <span className="toggle-slider"></span>
-                            </label>
-                          </label>
+                            <input
+                              type="checkbox"
+                              id={uniqueId}
+                              checked={isSelected}
+                              onChange={(e) => {
+                                handleDepartmentChange(country, department, e.target.checked);
+                              }}
+                              disabled={disabled}
+                              className="department-checkbox-input"
+                            />
+                          </div>
                         );
                       })}
                     </div>
