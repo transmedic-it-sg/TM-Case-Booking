@@ -7,6 +7,29 @@
   min-height: 100vh;
 }
 
+/* Read-only badge for global tables */
+.read-only-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.read-only-badge:hover {
+  background: linear-gradient(135deg, #e9ecef 0%, #d6dbdf 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 .code-table-header {
   margin-bottom: 32px;
   border-bottom: 2px solid var(--border-light);

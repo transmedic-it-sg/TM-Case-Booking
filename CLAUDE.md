@@ -163,6 +163,21 @@ All status changes trigger notifications with:
 - `npm run build`: Production build
 - `npm test`: Run tests
 
+## Email Configuration Setup
+The application now features simplified OAuth-based email configuration:
+
+### OAuth Setup Required
+1. **Google OAuth**: Create credentials at https://console.cloud.google.com/
+2. **Microsoft OAuth**: Create app registration at https://portal.azure.com/
+3. **Environment Variables**: Copy `.env.example` to `.env` and configure client IDs
+
+### Key Features
+- Direct OAuth authentication (no manual credential entry)
+- Support for both Google Gmail and Microsoft Outlook
+- Secure token storage and refresh handling
+- Simplified UI with authentication buttons
+- Per-country email provider configuration
+
 ## Known Working Features
 - ✅ User authentication with role-based access
 - ✅ Case creation and submission

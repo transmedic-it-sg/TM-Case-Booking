@@ -11,7 +11,7 @@ import CodeTableSetup from './components/CodeTableSetup';
 import WelcomePopup from './components/WelcomePopup';
 import PermissionMatrixPage from './components/PermissionMatrixPage';
 import AuditLogs from './components/AuditLogs';
-import EmailConfiguration from './components/EmailConfiguration';
+import SimplifiedEmailConfig from './components/SimplifiedEmailConfig';
 import LogoutConfirmation from './components/LogoutConfirmation';
 import SSOCallback from './components/SSOCallback';
 import { User, CaseBooking } from './types';
@@ -328,7 +328,7 @@ const AppContent: React.FC = () => {
               📅 Booking Calendar
             </button>
           )}
-          {(user.role === 'admin' || user.role === 'operation-manager') && (
+          {hasPermission(user.role, PERMISSION_ACTIONS.EDIT_SETS) && (
             <button
               onClick={() => {
                 setActivePage('sets');
@@ -411,14 +411,14 @@ const AppContent: React.FC = () => {
         )}
         
         {activePage === 'email-config' && hasPermission(user.role, PERMISSION_ACTIONS.EMAIL_CONFIG) && (
-          <EmailConfiguration />
+          <SimplifiedEmailConfig />
         )}
         
         {activePage === 'calendar' && hasPermission(user.role, 'booking-calendar') && (
           <BookingCalendar onCaseClick={handleCalendarCaseClick} />
         )}
         
-        {activePage === 'sets' && (user.role === 'admin' || user.role === 'operation-manager') && (
+        {activePage === 'sets' && hasPermission(user.role, PERMISSION_ACTIONS.EDIT_SETS) && (
           <EditSets />
         )}
         

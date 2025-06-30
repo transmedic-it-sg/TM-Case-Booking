@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Callback</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .callback-container {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="callback-container">
+        <div class="spinner" id="spinner"></div>
+        <h2 id="status">Processing authentication...</h2>
+        <p id="message">Please wait while we complete your authentication.</p>
+        <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const error = urlParams.get('error');
+            const errorDescription = urlParams.get('error_description');
+            
+            const statusEl = document.getElementById('status');
+            const messageEl = document.getElementById('message');
+            const errorEl = document.getElementById('error');
+            const spinnerEl = document.getElementById('spinner');
+
+            if (error) {
+                // Authentication error
+                spinnerEl.style.display = 'none';
+                statusEl.textContent = 'Authentication Failed';
+                messageEl.textContent = 'There was an error during authentication.';
+                errorEl.textContent = errorDescription || error;
+                errorEl.style.display = 'block';
+                
+                // Send error to parent window
+                setTimeout(() => {
+                    if (window.opener) {
+                        window.opener.postMessage({
+                            type: 'oauth_error',
+                            error: errorDescription || error
+                        }, window.location.origin);
+                    }
+                    window.close();
+                }, 3000);
+                
+            } else if (code) {
+                // Authentication successful
+                statusEl.textContent = 'Authentication Successful!';
+                messageEl.textContent = 'Completing setup...';
+                
+                // Send success to parent window
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'oauth_success',
+                        code: code
+                    }, window.location.origin);
+                    
+                    // Close popup after a short delay
+                    setTimeout(() => {
+                        window.close();
+                    }, 1000);
+                } else {
+                    // Fallback if opener is not available
+                    statusEl.textContent = 'Please close this window';
+                    messageEl.textContent = 'Authentication completed. You can close this window.';
+                    spinnerEl.style.display = 'none';
+                }
+                
+            } else {
+                // No code or error - unexpected state
+                spinnerEl.style.display = 'none';
+                statusEl.textContent = 'Unexpected Response';
+                messageEl.textContent = 'The authentication response was not recognized.';
+                errorEl.textContent = 'Please try again or contact support if this issue persists.';
+                errorEl.style.display = 'block';
+                
+                setTimeout(() => {
+                    if (window.opener) {
+                        window.opener.postMessage({
+                            type: 'oauth_error',
+                            error: 'Unexpected authentication response'
+                        }, window.location.origin);
+                    }
+                    window.close();
+                }, 3000);
+            }
+        })();
+    </script>
+</body>
+</html>

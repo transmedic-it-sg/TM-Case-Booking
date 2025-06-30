@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getCurrentUser } from '../utils/auth';
 
 export interface NotificationPreferences {
@@ -39,6 +39,7 @@ const defaultPreferences: NotificationPreferences = {
 const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onClose }) => {
   const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences);
   const [currentUser] = useState(getCurrentUser());
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // Load saved preferences
   useEffect(() => {
@@ -54,6 +55,31 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
       }
     }
   }, [currentUser]);
+
+  // Handle ESC key and click outside to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, onClose]);
 
   // Save preferences
   const savePreferences = (newPreferences: NotificationPreferences) => {
@@ -112,7 +138,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
 
   return (
     <div className="notification-settings-overlay">
-      <div className="notification-settings-modal">
+      <div className="notification-settings-modal" ref={modalRef}>
         <div className="notification-settings-header">
           <h2>🔔 Notification Settings</h2>
           <button

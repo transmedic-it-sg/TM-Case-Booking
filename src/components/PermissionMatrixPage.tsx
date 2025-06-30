@@ -4,8 +4,6 @@ import { getAllRoles, permissionActions } from '../data/permissionMatrixData';
 import { Role, Permission } from './PermissionMatrix';
 import { getRuntimePermissions, saveRuntimePermissions, updatePermission, resetPermissions } from '../utils/permissions';
 import { useModal } from '../hooks/useModal';
-import { useToast } from './ToastContainer';
-import { useSound } from '../contexts/SoundContext';
 import CustomModal from './CustomModal';
 import './PermissionMatrixPage.css';
 
@@ -13,10 +11,7 @@ const PermissionMatrixPage: React.FC = () => {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [lastUpdateTimestamp, setLastUpdateTimestamp] = useState<string>('');
   const { modal, closeModal, showConfirm, showSuccess } = useModal();
-  const { showSuccess: showToastSuccess } = useToast();
-  const { playSound } = useSound();
 
   // Load runtime permissions and roles on component mount
   useEffect(() => {
@@ -25,12 +20,6 @@ const PermissionMatrixPage: React.FC = () => {
     setRoles(allRoles);
     
     const runtimePermissions = getRuntimePermissions();
-    
-    // Load last update timestamp
-    const savedTimestamp = localStorage.getItem('role-definitions-last-update');
-    if (savedTimestamp) {
-      setLastUpdateTimestamp(savedTimestamp);
-    }
     
     // Debug: Check if admin has code-table-setup permission
     const adminCodeTablePerm = runtimePermissions.find(p => 
@@ -105,48 +94,6 @@ const PermissionMatrixPage: React.FC = () => {
     linkElement.click();
   };
 
-  const handleUpdateRoleDefinitions = () => {
-    showConfirm(
-      'Update Role Definitions',
-      'This will refresh all role definitions with the latest permission descriptions and update the timestamp. Continue?',
-      () => {
-        // Auto-populate role descriptions based on permissions
-        const updatedRoles = roles.map(role => {
-          const rolePermissions = permissions.filter(p => p.roleId === role.id && p.allowed);
-          const categorySet = new Set(
-            rolePermissions.map(p => {
-              const action = permissionActions.find(a => a.id === p.actionId);
-              return action?.category || 'Unknown';
-            }).filter(cat => cat !== 'Unknown')
-          );
-          const permissionCategories = Array.from(categorySet);
-          
-          // Generate description based on permissions
-          let autoDescription = '';
-          if (permissionCategories.length > 0) {
-            autoDescription = `Authorized for: ${permissionCategories.join(', ')}. `;
-          }
-          autoDescription += `${rolePermissions.length} permission(s) assigned.`;
-          
-          return {
-            ...role,
-            description: autoDescription
-          };
-        });
-        
-        // Update timestamp
-        const currentTimestamp = new Date().toLocaleString();
-        setLastUpdateTimestamp(currentTimestamp);
-        localStorage.setItem('role-definitions-last-update', currentTimestamp);
-        
-        // Update roles (in a real application, this would save to backend)
-        setRoles(updatedRoles);
-        
-        playSound.success();
-        showToastSuccess('Role Definitions Updated', 'All role definitions have been updated with current permission data.');
-      }
-    );
-  };
 
   return (
     <div className="permission-matrix-page">
@@ -207,11 +154,6 @@ const PermissionMatrixPage: React.FC = () => {
         <div className="role-definitions-header">
           <div className="role-definitions-title">
             <h3>Role Definitions</h3>
-            {lastUpdateTimestamp && (
-              <span className="last-update-timestamp">
-                Last updated: {lastUpdateTimestamp}
-              </span>
-            )}
           </div>
         </div>
         <div className="role-definitions">
@@ -228,13 +170,6 @@ const PermissionMatrixPage: React.FC = () => {
         <div className="system-notes">
           <div className="role-details-header">
             <h4>Role Details:</h4>
-            <button
-              className="btn btn-outline-primary btn-sm update-role-definitions-btn"
-              onClick={handleUpdateRoleDefinitions}
-              title="Update role definitions with current permission data"
-            >
-              🔄 Update Role Definitions
-            </button>
           </div>
           <ul>
             <li><strong>Admin</strong> role has full access to all system functions</li>

@@ -3,7 +3,6 @@ import { useNotifications } from '../contexts/NotificationContext';
 import { useSound } from '../contexts/SoundContext';
 import { formatDate } from '../utils/dateFormat';
 import { getCurrentUser } from '../utils/auth';
-import { hasPermission } from '../data/permissionMatrixData';
 import NotificationSettings from './NotificationSettings';
 import './NotificationSettings.css';
 
@@ -14,9 +13,9 @@ const NotificationBell: React.FC = () => {
   const { playSound } = useSound();
   const bellRef = useRef<HTMLDivElement>(null);
   
-  // Check permissions
+  // All users can access notification settings
   const currentUser = getCurrentUser();
-  const canViewNotifications = currentUser ? hasPermission(currentUser.role, 'view-notification-settings') : false;
+  const canViewNotifications = !!currentUser;
 
   // Close dropdown when clicking outside
   useEffect(() => {

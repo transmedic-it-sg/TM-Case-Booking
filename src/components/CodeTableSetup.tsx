@@ -15,7 +15,6 @@ import {
   categorizeCodeTables,
   getFilteredTablesForUser,
   getUserAccessibleCountries,
-  requiresDoubleConfirmation,
   getDeleteConfirmationMessages
 } from '../utils/codeTableHelpers';
 import CustomModal from './CustomModal';
@@ -225,32 +224,25 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
 
     const isGlobalTable = selectedCategory === 'global';
     
+    // Global tables are read-only
+    if (isGlobalTable) {
+      setItemError('Global tables are read-only and cannot be modified');
+      return;
+    }
+    
     // Set manual update flag to prevent automatic save
     setIsManualUpdate(true);
     
-    // Update the appropriate state arrays and save immediately
-    if (isGlobalTable) {
-      setGlobalTables(prev => {
-        const updated = prev.map(table => 
-          table.id === selectedTable 
-            ? { ...table, items: [...table.items, trimmedName] }
-            : table
-        );
-        saveCodeTables(updated); // Save global tables immediately
-        return updated;
-      });
-    } else {
-      setCountryBasedTables(prev => {
-        const updated = prev.map(table => 
-          table.id === selectedTable 
-            ? { ...table, items: [...table.items, trimmedName] }
-            : table
-        );
-        saveCodeTables(updated, selectedCountry); // Save country tables immediately
-        return updated;
-      });
-    }
-    
+    // Update country-based tables only
+    setCountryBasedTables(prev => {
+      const updated = prev.map(table => 
+        table.id === selectedTable 
+          ? { ...table, items: [...table.items, trimmedName] }
+          : table
+      );
+      saveCodeTables(updated, selectedCountry); // Save country tables immediately
+      return updated;
+    });
     
     setNewItemName('');
     setShowAddItem(false);
@@ -281,38 +273,28 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
 
     const isGlobalTable = selectedCategory === 'global';
     
+    // Global tables are read-only
+    if (isGlobalTable) {
+      setItemError('Global tables are read-only and cannot be modified');
+      return;
+    }
+    
     // Set manual update flag to prevent automatic save
     setIsManualUpdate(true);
     
-    // Update the appropriate state arrays and save immediately
-    if (isGlobalTable) {
-      setGlobalTables(prev => {
-        const updated = prev.map(table => 
-          table.id === selectedTable 
-            ? { 
-                ...table, 
-                items: table.items.map(item => item === oldName ? trimmedName : item) 
-              }
-            : table
-        );
-        saveCodeTables(updated); // Save global tables immediately
-        return updated;
-      });
-    } else {
-      setCountryBasedTables(prev => {
-        const updated = prev.map(table => 
-          table.id === selectedTable 
-            ? { 
-                ...table, 
-                items: table.items.map(item => item === oldName ? trimmedName : item) 
-              }
-            : table
-        );
-        saveCodeTables(updated, selectedCountry); // Save country tables immediately
-        return updated;
-      });
-    }
-    
+    // Update country-based tables only
+    setCountryBasedTables(prev => {
+      const updated = prev.map(table => 
+        table.id === selectedTable 
+          ? { 
+              ...table, 
+              items: table.items.map(item => item === oldName ? trimmedName : item) 
+            }
+          : table
+      );
+      saveCodeTables(updated, selectedCountry); // Save country tables immediately
+      return updated;
+    });
     
     setEditingItem(null);
     setEditItemValue('');
@@ -325,129 +307,56 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     const currentTable = getCurrentTable();
     if (!currentTable) return;
 
-    const isGlobal = requiresDoubleConfirmation(selectedCategory);
-    const confirmMessages = getDeleteConfirmationMessages(itemName, currentTable.name, isGlobal, selectedCountry);
+    const isGlobalTable = selectedCategory === 'global';
     
-    if (isGlobal && confirmMessages.first && confirmMessages.second) {
-      // Double confirmation for Global Tables
-      showConfirm(confirmMessages.first.title, confirmMessages.first.message, () => {
-        showConfirm(confirmMessages.second.title, confirmMessages.second.message, () => {
-          deleteItemFromTable(itemName, currentTable);
-        });
-      });
-    } else if (confirmMessages.single) {
-      // Single confirmation for country-based tables
+    // Global tables are read-only
+    if (isGlobalTable) {
+      showError('Action Not Allowed', 'Global tables are read-only and cannot be modified');
+      return;
+    }
+
+    const confirmMessages = getDeleteConfirmationMessages(itemName, currentTable.name, false, selectedCountry);
+    
+    // Single confirmation for country-based tables only
+    if (confirmMessages.single) {
       showConfirm(confirmMessages.single.title, confirmMessages.single.message, () => {
         deleteItemFromTable(itemName, currentTable);
       });
     }
   };
 
-  const deleteItemFromTable = (itemName: string, table: any) => {
+  const deleteItemFromTable = (itemName: string, table: CodeTable) => {
     const isGlobalTable = selectedCategory === 'global';
     
-    console.log('Starting deletion process:', {
-      itemName,
-      tableName: table.name,
-      isGlobalTable,
-      selectedTable
-    });
-    
-    // Set manual update flag first
-    setIsManualUpdate(true);
-    
-    // Update the appropriate state arrays and save immediately
+    // Global tables are read-only - this should not be called
     if (isGlobalTable) {
-      // Get fresh data directly from localStorage to avoid stale state
-      const freshGlobalTables = getCodeTables(); // No country parameter for global
-      const currentTable = freshGlobalTables.find(t => t.id === selectedTable);
-      
-      if (!currentTable) {
-        console.error('Global table not found:', selectedTable);
-        showError('Table Not Found', `${table.name} table was not found`);
-        return;
-      }
-      
-      // Verify the item exists before deletion
-      if (!currentTable.items.includes(itemName)) {
-        console.error('Item not found in global table:', itemName, currentTable.items);
-        showError('Item Not Found', `"${itemName}" was not found in ${table.name}`);
-        return;
-      }
-      
-      console.log('Before deletion - Item count:', currentTable.items.length);
-      console.log('Items:', currentTable.items);
-      
-      // Create updated tables with the item removed - work directly with fresh data
-      const updatedGlobalTables = freshGlobalTables.map(t => 
-        t.id === selectedTable 
-          ? { ...t, items: t.items.filter(item => item !== itemName) }
-          : t
-      );
-      
-      const updatedTable = updatedGlobalTables.find(t => t.id === selectedTable);
-      console.log('After deletion - Item count:', updatedTable?.items.length);
-      console.log('Items:', updatedTable?.items);
-      console.log('Item still exists:', updatedTable?.items.includes(itemName));
-      
-      // Save to localStorage first - CRITICAL STEP
-      try {
-        saveCodeTables(updatedGlobalTables);
-        console.log('Successfully saved to localStorage');
-        
-        // Verify the save worked
-        const verifyTables = getCodeTables();
-        const verifyTable = verifyTables.find(t => t.id === selectedTable);
-        console.log('Verification - Item still exists:', verifyTable?.items.includes(itemName));
-        
-        if (verifyTable?.items.includes(itemName)) {
-          throw new Error('Item still exists after save - deletion failed');
-        }
-        
-      } catch (error) {
-        console.error('Failed to save updated tables:', error);
-        showError('Save Failed', 'Failed to save changes to localStorage');
-        return;
-      }
-      
-      // Update React state with verified data
-      const { global: globalOnly } = categorizeCodeTables(updatedGlobalTables);
-      const filteredGlobalTables = getFilteredTablesForUser(globalOnly, currentUser);
-      setGlobalTables(filteredGlobalTables);
-      
-      // Force component re-render
-      setIsManualUpdate(prev => !prev);
-      
-    } else {
-      // Country tables logic (unchanged for now)
-      const freshCountryTables = getCodeTables(selectedCountry);
-      const currentCountryTable = freshCountryTables.find(t => t.id === selectedTable);
-      
-      if (!currentCountryTable) {
-        console.error('Country table not found:', selectedTable);
-        showError('Table Not Found', `${table.name} table was not found`);
-        return;
-      }
-      
-      // Verify the item exists before deletion
-      if (!currentCountryTable.items.includes(itemName)) {
-        showError('Item Not Found', `"${itemName}" was not found in ${table.name}`);
-        return;
-      }
-      
-      const updatedCountryTables = freshCountryTables.map(t => 
-        t.id === selectedTable 
-          ? { ...t, items: t.items.filter(item => item !== itemName) }
-          : t
-      );
-      
-      // Save country tables immediately
-      saveCodeTables(updatedCountryTables, selectedCountry);
-      setCountryBasedTables(updatedCountryTables);
+      showError('Action Not Allowed', 'Global tables are read-only and cannot be modified');
+      return;
     }
     
-    playSound.delete();
-    showSuccess('Item Deleted', `"${itemName}" has been removed from ${table.name}`);
+    // Set manual update flag to prevent unnecessary re-renders during update
+    setIsManualUpdate(true);
+    
+    try {
+      // Update country tables only
+      setCountryBasedTables(prevTables => {
+        const updatedTables = prevTables.map(t => 
+          t.id === selectedTable 
+            ? { ...t, items: t.items.filter(item => item !== itemName) }
+            : t
+        );
+        
+        // Save to localStorage immediately
+        saveCodeTables(updatedTables, selectedCountry);
+        return updatedTables;
+      });
+      
+      playSound.delete();
+      showSuccess('Item Deleted', `"${itemName}" has been removed from ${table.name}`);
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      showError('Delete Failed', `Failed to delete "${itemName}" from ${table.name}`);
+    }
   };
 
   const startEditItem = (itemName: string) => {
@@ -593,7 +502,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
                 <p>Global tables are being loaded or there are no global tables configured.</p>
                 <button 
                   onClick={() => {
-                    console.log('Reinitializing global tables...');
                     initializeCodeTables();
                     // Force reload tables without full page refresh
                     const globalTablesData = getCodeTables();
@@ -616,7 +524,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
                 {selectedCountry && (
                   <button 
                     onClick={() => {
-                      console.log(`Reinitializing tables for ${selectedCountry}...`);
                       initializeCountryCodeTables(selectedCountry);
                       // Force reload tables without full page refresh
                       const countryTablesData = getCodeTables(selectedCountry);
@@ -648,17 +555,24 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
               <p>{currentTable.description}</p>
               <span className="item-count">{currentTable.items.length} items</span>
             </div>
-            <button
-              className="btn btn-primary btn-sm add-item-button"
-              onClick={() => setShowAddItem(true)}
-              title="Add new item"
-            >
-              + Add Item
-            </button>
+            {selectedCategory !== 'global' && (
+              <button
+                className="btn btn-primary btn-sm add-item-button"
+                onClick={() => setShowAddItem(true)}
+                title="Add new item"
+              >
+                + Add Item
+              </button>
+            )}
+            {selectedCategory === 'global' && (
+              <span className="read-only-badge" title="Global tables are read-only">
+                📖 Read-Only
+              </span>
+            )}
           </div>
 
-          {/* Add Item Form */}
-          {showAddItem && (
+          {/* Add Item Form - Only for country tables */}
+          {showAddItem && selectedCategory !== 'global' && (
             <div className="add-item-form">
               <div className="form-group">
                 <label htmlFor="itemName">Item Name:</label>
@@ -704,12 +618,14 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
             {currentTable.items.length === 0 ? (
               <div className="empty-state">
                 <p>No items in this table yet.</p>
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={() => setShowAddItem(true)}
-                >
-                  Add First Item
-                </button>
+                {selectedCategory !== 'global' && (
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setShowAddItem(true)}
+                  >
+                    Add First Item
+                  </button>
+                )}
               </div>
             ) : (
               <div className="items-grid">
@@ -750,22 +666,24 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
                     ) : (
                       <div className="item-display">
                         <span className="item-name">{item}</span>
-                        <div className="item-actions">
-                          <button
-                            className="btn btn-outline-primary btn-sm"
-                            onClick={() => startEditItem(item)}
-                            title="Edit item"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            className="btn btn-outline-danger btn-sm"
-                            onClick={() => handleDeleteItem(item)}
-                            title="Delete item"
-                          >
-                            🗑️
-                          </button>
-                        </div>
+                        {selectedCategory !== 'global' && (
+                          <div className="item-actions">
+                            <button
+                              className="btn btn-outline-primary btn-sm"
+                              onClick={() => startEditItem(item)}
+                              title="Edit item"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              className="btn btn-outline-danger btn-sm"
+                              onClick={() => handleDeleteItem(item)}
+                              title="Delete item"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

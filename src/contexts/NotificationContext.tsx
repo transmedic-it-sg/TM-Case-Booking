@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { getCurrentUser } from '../utils/auth';
-import { hasPermission } from '../data/permissionMatrixData';
 import { NotificationPreferences } from '../components/NotificationSettings';
 
 export interface Notification {
@@ -124,10 +123,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     const currentUser = getCurrentUser();
     if (!currentUser) return;
 
-    // Check if user has permission to receive notifications
-    if (!hasPermission(currentUser.role, 'view-notification-settings')) {
-      return;
-    }
+    // All authenticated users can receive notifications
 
     // Check user notification preferences
     const userPreferences = getUserNotificationPreferences(currentUser.id);
