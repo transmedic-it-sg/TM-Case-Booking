@@ -1,11 +1,11 @@
 {
   "files": {
     "main.css": "/Live-CaseBooking/static/css/main.aab4a7df.css",
-    "main.js": "/Live-CaseBooking/static/js/main.1ecc2e5d.js",
+    "main.js": "/Live-CaseBooking/static/js/main.2bfd7e26.js",
     "index.html": "/Live-CaseBooking/index.html"
   },
   "entrypoints": [
     "static/css/main.aab4a7df.css",
-    "static/js/main.1ecc2e5d.js"
+    "static/js/main.2bfd7e26.js"
   ]
 }

@@ -18,12 +18,6 @@ import { User, CaseBooking } from './types';
 import { getCurrentUser, logout } from './utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from './utils/permissions';
 import { initializeCodeTables } from './utils/codeTable';
-import './utils/resetPermissions'; // Debug utility
-import './utils/fixPermissions'; // Auto-fix permissions
-import './utils/emergencyFix'; // Emergency fix
-import './utils/testPermissions'; // Test permissions
-import './utils/checkPermissionData'; // Check permission data
-import './utils/forceFixPermissions'; // Force fix permissions
 import { SoundProvider, useSound } from './contexts/SoundContext';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { ToastProvider, useToast } from './components/ToastContainer';
