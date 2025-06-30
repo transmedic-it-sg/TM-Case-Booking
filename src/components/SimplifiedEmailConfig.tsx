@@ -34,10 +34,10 @@ interface CountryEmailConfig {
 
 const SimplifiedEmailConfig: React.FC = () => {
   const [selectedCountry, setSelectedCountry] = useState<string>('');
-  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [emailConfigs, setEmailConfigs] = useState<Record<string, CountryEmailConfig>>({});
   const [isAuthenticating, setIsAuthenticating] = useState<Record<string, boolean>>({});
   const [authError, setAuthError] = useState<string>('');
+  const [isProviderSectionCollapsed, setIsProviderSectionCollapsed] = useState<boolean>(false);
 
   const { playSound } = useSound();
   const { showSuccess, showError } = useToast();
@@ -46,13 +46,13 @@ const SimplifiedEmailConfig: React.FC = () => {
   // Check permissions
   const canConfigureEmail = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EMAIL_CONFIG) : false;
 
-  // Initialize countries
+  // Initialize countries - automatically select user's country
   useEffect(() => {
     const globalCountries = getCountries();
     const countries = globalCountries.length > 0 ? globalCountries : [...COUNTRIES];
-    setAvailableCountries(countries);
     
-    if (!selectedCountry && countries.length > 0) {
+    // Auto-select user's country without showing the dropdown
+    if (!selectedCountry && countries.length > 0 && currentUser) {
       const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0] || countries[0];
       setSelectedCountry(userCountry);
     }
@@ -241,36 +241,34 @@ const SimplifiedEmailConfig: React.FC = () => {
       <div className="email-config-header">
         <h2>📧 Email Configuration</h2>
         <p>Configure email providers for automated notifications</p>
-      </div>
-
-      {/* Country Selection */}
-      <div className="config-section">
-        <div className="section-header">
-          <h3>🌍 Select Country</h3>
-        </div>
-        <div className="form-group">
-          <label>Country:</label>
-          <select
-            value={selectedCountry}
-            onChange={(e) => setSelectedCountry(e.target.value)}
-            className="form-control"
-          >
-            <option value="">Select a country...</option>
-            {availableCountries.map(country => (
-              <option key={country} value={country}>{country}</option>
-            ))}
-          </select>
-        </div>
+        {selectedCountry && (
+          <div className="current-country-badge">
+            <span className="country-label">Configuration for:</span>
+            <span className="country-name">{selectedCountry}</span>
+          </div>
+        )}
       </div>
 
       {selectedCountry && (
         <>
-          {/* Provider Authentication */}
+          {/* Collapsible Provider Authentication */}
           <div className="config-section">
-            <div className="section-header">
+            <div 
+              className="section-header collapsible-header" 
+              onClick={() => setIsProviderSectionCollapsed(!isProviderSectionCollapsed)}
+              style={{ cursor: 'pointer' }}
+            >
               <h3>🔐 Email Provider Authentication</h3>
-              <p>Authenticate with your email provider to enable automated notifications</p>
+              <span className={`chevron ${isProviderSectionCollapsed ? 'collapsed' : 'expanded'}`}>
+                {isProviderSectionCollapsed ? '▶' : '▼'}
+              </span>
             </div>
+            
+            {!isProviderSectionCollapsed && (
+              <div className="section-content">
+                <p style={{ marginBottom: '2rem', color: '#6c757d' }}>
+                  Authenticate with your email provider to enable automated notifications
+                </p>
 
             {authError && (
               <div className="alert alert-danger">
@@ -431,32 +429,40 @@ const SimplifiedEmailConfig: React.FC = () => {
                 )}
               </div>
             </div>
+              </div>
+            )}
           </div>
 
-          {/* Active Provider Status */}
-          {currentConfig?.activeProvider && (
-            <div className="config-section">
-              <div className="section-header">
-                <h3>✅ Active Email Provider</h3>
-              </div>
-              <div className="active-provider-info">
-                <p>
-                  Currently using <strong>{currentConfig.activeProvider.charAt(0).toUpperCase() + currentConfig.activeProvider.slice(1)}</strong> 
-                  {' '}({currentConfig.providers[currentConfig.activeProvider].userInfo?.email}) for sending notifications.
-                </p>
+          {/* Active Provider Status & Actions */}
+          <div className="config-section">
+            <div className="config-summary-section">
+              {currentConfig?.activeProvider ? (
+                <div className="active-provider-summary">
+                  <div className="provider-status-badge">
+                    <span className="status-icon">✅</span>
+                    <div className="status-details">
+                      <strong>{currentConfig.activeProvider.charAt(0).toUpperCase() + currentConfig.activeProvider.slice(1)}</strong>
+                      <div className="provider-email">{currentConfig.providers[currentConfig.activeProvider].userInfo?.email}</div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="no-provider-summary">
+                  <span className="status-icon">⚠️</span>
+                  <span>No email provider configured</span>
+                </div>
+              )}
+              
+              <div className="config-actions">
+                <button
+                  onClick={handleSaveConfig}
+                  disabled={!currentConfig?.providers.google.isAuthenticated && !currentConfig?.providers.microsoft.isAuthenticated}
+                  className="btn btn-success"
+                >
+                  💾 Save Configuration
+                </button>
               </div>
             </div>
-          )}
-
-          {/* Save Configuration */}
-          <div className="config-actions">
-            <button
-              onClick={handleSaveConfig}
-              disabled={!currentConfig?.providers.google.isAuthenticated && !currentConfig?.providers.microsoft.isAuthenticated}
-              className="btn btn-success"
-            >
-              💾 Save Configuration
-            </button>
           </div>
         </>
       )}
