@@ -171,10 +171,21 @@ class SimplifiedOAuthManager {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('Token exchange failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+        provider: this.provider
+      });
       throw new Error(`Token exchange failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('Token exchange response:', { 
+      hasAccessToken: !!data.access_token,
+      hasRefreshToken: !!data.refresh_token,
+      expiresIn: data.expires_in
+    });
     const expiresAt = Date.now() + (data.expires_in * 1000);
 
     return {
@@ -196,10 +207,23 @@ class SimplifiedOAuthManager {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to get user info: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('User info request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+        provider: this.provider
+      });
+      throw new Error(`Failed to get user info: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('User info response:', { 
+      provider: this.provider,
+      hasEmail: !!data.email || !!data.mail || !!data.userPrincipalName,
+      hasId: !!data.id,
+      hasName: !!data.name || !!data.displayName
+    });
 
     // Normalize response format between Google and Microsoft
     if (this.provider === 'google') {
@@ -366,8 +390,12 @@ export const authenticateWithPopup = async (
 
         if (event.data.type === 'oauth_success' && event.data.code) {
           try {
+            console.log(`Received authorization code for ${provider}, exchanging for tokens...`);
             const tokens = await oauth.exchangeCodeForTokens(event.data.code);
+            console.log(`Token exchange successful for ${provider}, fetching user info...`);
+            
             const userInfo = await oauth.getUserInfo(tokens.accessToken);
+            console.log(`User info retrieved for ${provider}:`, { email: userInfo.email, id: userInfo.id });
             
             // Store tokens
             storeAuthTokens(country, provider, tokens);
@@ -377,6 +405,7 @@ export const authenticateWithPopup = async (
             
             resolve({ tokens, userInfo });
           } catch (error) {
+            console.error(`OAuth flow failed for ${provider}:`, error);
             window.removeEventListener('message', messageHandler);
             popup.close();
             reject(error);

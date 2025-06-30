@@ -123,7 +123,14 @@ const SimplifiedEmailConfig: React.FC = () => {
     setAuthError('');
 
     try {
+      console.log(`Starting ${provider} authentication for ${selectedCountry}...`);
       const { tokens, userInfo } = await authenticateWithPopup(provider, selectedCountry);
+      
+      console.log('Authentication successful:', { 
+        provider, 
+        email: userInfo.email, 
+        hasAccessToken: !!tokens.accessToken 
+      });
       
       // Update configuration
       setEmailConfigs(prev => ({
@@ -151,9 +158,27 @@ const SimplifiedEmailConfig: React.FC = () => {
       );
 
     } catch (error) {
-      console.error('Authentication failed:', error);
-      setAuthError(error instanceof Error ? error.message : 'Authentication failed');
-      showError('Authentication Failed', error instanceof Error ? error.message : 'Please try again');
+      console.error('Authentication failed - Full error:', error);
+      
+      // More detailed error handling
+      let errorMessage = 'Authentication failed';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Check for specific error types
+        if (error.message.includes('Token exchange failed')) {
+          errorMessage = 'Failed to exchange authorization code for tokens. Please check your OAuth configuration.';
+        } else if (error.message.includes('Failed to get user info')) {
+          errorMessage = 'Authentication succeeded but failed to retrieve user information. Please try again.';
+        } else if (error.message.includes('Popup blocked')) {
+          errorMessage = 'Popup was blocked. Please allow popups for this site and try again.';
+        } else if (error.message.includes('Authentication cancelled')) {
+          errorMessage = 'Authentication was cancelled. Please try again.';
+        }
+      }
+      
+      setAuthError(errorMessage);
+      showError('Authentication Failed', errorMessage);
     } finally {
       setIsAuthenticating(prev => ({ ...prev, [provider]: false }));
     }
@@ -273,6 +298,16 @@ const SimplifiedEmailConfig: React.FC = () => {
             {authError && (
               <div className="alert alert-danger">
                 <strong>Authentication Error:</strong> {authError}
+                <details style={{ marginTop: '10px' }}>
+                  <summary style={{ cursor: 'pointer', fontSize: '0.9rem' }}>Show Debug Info</summary>
+                  <div style={{ marginTop: '8px', fontSize: '0.8rem', fontFamily: 'monospace' }}>
+                    <div><strong>Country:</strong> {selectedCountry}</div>
+                    <div><strong>Google Configured:</strong> {isGoogleConfigured ? 'Yes' : 'No'}</div>
+                    <div><strong>Microsoft Configured:</strong> {isMicrosoftConfigured ? 'Yes' : 'No'}</div>
+                    <div><strong>User Agent:</strong> {navigator.userAgent.substring(0, 100)}...</div>
+                    <div><strong>Popup Support:</strong> {typeof window.open === 'function' ? 'Yes' : 'No'}</div>
+                  </div>
+                </details>
               </div>
             )}
 
@@ -461,6 +496,22 @@ const SimplifiedEmailConfig: React.FC = () => {
                 >
                   💾 Save Configuration
                 </button>
+                {process.env.NODE_ENV === 'development' && (
+                  <button
+                    onClick={() => {
+                      console.log('Debug Info:', {
+                        selectedCountry,
+                        currentConfig,
+                        isGoogleConfigured,
+                        isMicrosoftConfigured,
+                        emailConfigs
+                      });
+                    }}
+                    className="btn btn-outline-secondary btn-sm"
+                  >
+                    🐛 Debug
+                  </button>
+                )}
               </div>
             </div>
           </div>
