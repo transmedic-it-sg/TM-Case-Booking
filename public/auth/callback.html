@@ -56,10 +56,23 @@
 
     <script>
         (function() {
+            console.log('[Callback] OAuth callback page loaded');
+            console.log('[Callback] Current URL:', window.location.href);
+            
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
             const error = urlParams.get('error');
             const errorDescription = urlParams.get('error_description');
+            const state = urlParams.get('state');
+            
+            console.log('[Callback] URL parameters:', {
+                hasCode: !!code,
+                hasError: !!error,
+                error: error,
+                errorDescription: errorDescription,
+                state: state,
+                codeLength: code ? code.length : 0
+            });
             
             const statusEl = document.getElementById('status');
             const messageEl = document.getElementById('message');
@@ -75,23 +88,30 @@
                 errorEl.style.display = 'block';
                 
                 // Send error to parent window
+                console.log('[Callback] Sending error to parent window:', errorDescription || error);
                 setTimeout(() => {
                     if (window.opener) {
+                        console.log('[Callback] Posting error message to parent');
                         window.opener.postMessage({
                             type: 'oauth_error',
                             error: errorDescription || error
                         }, window.location.origin);
+                    } else {
+                        console.error('[Callback] No window.opener available to send error');
                     }
+                    console.log('[Callback] Closing popup window (error)');
                     window.close();
                 }, 3000);
                 
             } else if (code) {
                 // Authentication successful
+                console.log('[Callback] Authentication successful, sending code to parent');
                 statusEl.textContent = 'Authentication Successful!';
                 messageEl.textContent = 'Completing setup...';
                 
                 // Send success to parent window
                 if (window.opener) {
+                    console.log('[Callback] Posting success message to parent with code');
                     window.opener.postMessage({
                         type: 'oauth_success',
                         code: code
@@ -99,9 +119,11 @@
                     
                     // Close popup after a short delay
                     setTimeout(() => {
+                        console.log('[Callback] Closing popup window (success)');
                         window.close();
                     }, 1000);
                 } else {
+                    console.error('[Callback] No window.opener available to send success');
                     // Fallback if opener is not available
                     statusEl.textContent = 'Please close this window';
                     messageEl.textContent = 'Authentication completed. You can close this window.';

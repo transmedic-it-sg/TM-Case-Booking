@@ -123,10 +123,16 @@ const SimplifiedEmailConfig: React.FC = () => {
     setAuthError('');
 
     try {
-      console.log(`Starting ${provider} authentication for ${selectedCountry}...`);
+      console.log(`[OAuth] Starting ${provider} authentication for ${selectedCountry}...`);
+      console.log(`[OAuth] Environment check:`, {
+        clientId: provider === 'microsoft' ? process.env.REACT_APP_MICROSOFT_CLIENT_ID?.substring(0, 8) + '...' : process.env.REACT_APP_GOOGLE_CLIENT_ID?.substring(0, 8) + '...',
+        redirectUri: `${window.location.origin}/auth/callback`,
+        currentOrigin: window.location.origin
+      });
+      
       const { tokens, userInfo } = await authenticateWithPopup(provider, selectedCountry);
       
-      console.log('Authentication successful:', { 
+      console.log(`[OAuth] Authentication successful:`, { 
         provider, 
         email: userInfo.email, 
         hasAccessToken: !!tokens.accessToken 

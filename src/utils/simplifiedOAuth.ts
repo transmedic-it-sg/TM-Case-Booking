@@ -119,6 +119,7 @@ class SimplifiedOAuthManager {
    * Generate OAuth authorization URL with PKCE support
    */
   async getAuthUrl(state?: string): Promise<string> {
+    console.log(`[OAuth] Building auth URL for ${this.provider}`);
     const params: Record<string, string> = {
       client_id: this.config.config.clientId,
       response_type: 'code',
@@ -127,20 +128,35 @@ class SimplifiedOAuthManager {
       state: state || `${this.provider}_${Date.now()}`
     };
 
+    console.log(`[OAuth] Base parameters:`, {
+      provider: this.provider,
+      clientId: this.config.config.clientId.substring(0, 8) + '...',
+      redirectUri: this.config.config.redirectUri,
+      scopes: this.config.config.scopes
+    });
+
     // Add PKCE for Microsoft (required) and Google (recommended)
     if (this.provider === 'microsoft' || this.provider === 'google') {
+      console.log(`[OAuth] Generating PKCE challenge for ${this.provider}`);
       this.pkceChallenge = await generatePKCEChallenge();
       params.code_challenge = this.pkceChallenge.codeChallenge;
       params.code_challenge_method = 'S256';
+      console.log(`[OAuth] PKCE challenge generated:`, {
+        codeChallenge: this.pkceChallenge.codeChallenge.substring(0, 20) + '...',
+        method: 'S256'
+      });
     }
 
     // Provider-specific parameters
     if (this.provider === 'google') {
       params.access_type = 'offline'; // For refresh tokens
       params.prompt = 'consent'; // Force consent to get refresh token
+      console.log(`[OAuth] Added Google-specific parameters: access_type=offline, prompt=consent`);
     }
 
-    return `${this.config.authUrl}?${new URLSearchParams(params).toString()}`;
+    const authUrl = `${this.config.authUrl}?${new URLSearchParams(params).toString()}`;
+    console.log(`[OAuth] Final auth URL constructed for ${this.provider}`);
+    return authUrl;
   }
 
   /**
@@ -366,13 +382,17 @@ export const authenticateWithPopup = async (
   provider: 'google' | 'microsoft',
   country: string
 ): Promise<{ tokens: AuthTokens; userInfo: UserInfo }> => {
+  console.log(`[OAuth] Creating OAuth manager for ${provider}`);
   const oauth = createOAuthManager(provider);
   
   try {
     // Generate auth URL with PKCE (async operation)
+    console.log(`[OAuth] Generating auth URL for ${provider}`);
     const authUrl = await oauth.getAuthUrl(`${country}_${Date.now()}`);
+    console.log(`[OAuth] Auth URL generated:`, authUrl.substring(0, 100) + '...');
 
     return new Promise((resolve, reject) => {
+      console.log(`[OAuth] Opening popup window for ${provider}`);
       const popup = window.open(
         authUrl,
         'oauth_auth',
@@ -380,55 +400,88 @@ export const authenticateWithPopup = async (
       );
 
       if (!popup) {
+        console.error(`[OAuth] Popup blocked for ${provider}`);
         reject(new Error('Popup blocked. Please allow popups for this site.'));
         return;
       }
 
+      console.log(`[OAuth] Popup opened successfully for ${provider}, waiting for callback...`);
+
       // Listen for auth completion
       const messageHandler = async (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) return;
+        console.log(`[OAuth] Received message from popup:`, {
+          origin: event.origin,
+          expectedOrigin: window.location.origin,
+          dataType: event.data?.type,
+          hasCode: !!event.data?.code
+        });
+        
+        if (event.origin !== window.location.origin) {
+          console.warn(`[OAuth] Ignoring message from different origin: ${event.origin}`);
+          return;
+        }
 
         if (event.data.type === 'oauth_success' && event.data.code) {
           try {
-            console.log(`Received authorization code for ${provider}, exchanging for tokens...`);
+            console.log(`[OAuth] Received authorization code for ${provider}, exchanging for tokens...`);
             const tokens = await oauth.exchangeCodeForTokens(event.data.code);
-            console.log(`Token exchange successful for ${provider}, fetching user info...`);
+            console.log(`[OAuth] Token exchange successful for ${provider}, fetching user info...`);
             
             const userInfo = await oauth.getUserInfo(tokens.accessToken);
-            console.log(`User info retrieved for ${provider}:`, { email: userInfo.email, id: userInfo.id });
+            console.log(`[OAuth] User info retrieved for ${provider}:`, { email: userInfo.email, id: userInfo.id });
             
             // Store tokens
+            console.log(`[OAuth] Storing tokens for ${provider} in ${country}`);
             storeAuthTokens(country, provider, tokens);
             
+            console.log(`[OAuth] Cleaning up event listeners and closing popup`);
             window.removeEventListener('message', messageHandler);
             popup.close();
             
+            console.log(`[OAuth] Resolving with tokens and userInfo`);
             resolve({ tokens, userInfo });
           } catch (error) {
-            console.error(`OAuth flow failed for ${provider}:`, error);
+            console.error(`[OAuth] OAuth flow failed for ${provider}:`, error);
             window.removeEventListener('message', messageHandler);
             popup.close();
             reject(error);
           }
         } else if (event.data.type === 'oauth_error') {
+          console.error(`[OAuth] OAuth error received:`, event.data.error);
           window.removeEventListener('message', messageHandler);
           popup.close();
           reject(new Error(event.data.error));
+        } else {
+          console.log(`[OAuth] Ignoring unrecognized message:`, event.data);
         }
       };
 
+      console.log(`[OAuth] Adding message event listener for ${provider}`);
       window.addEventListener('message', messageHandler);
 
       // Check if popup was closed manually
       const checkClosed = setInterval(() => {
         if (popup.closed) {
+          console.log(`[OAuth] Popup was closed manually for ${provider}`);
           clearInterval(checkClosed);
           window.removeEventListener('message', messageHandler);
           reject(new Error('Authentication cancelled'));
         }
       }, 1000);
+      
+      // Add timeout protection
+      setTimeout(() => {
+        if (!popup.closed) {
+          console.warn(`[OAuth] Authentication timeout for ${provider} (2 minutes)`);
+          clearInterval(checkClosed);
+          window.removeEventListener('message', messageHandler);
+          popup.close();
+          reject(new Error('Authentication timeout - please try again'));
+        }
+      }, 120000); // 2 minute timeout
     });
   } catch (error) {
+    console.error(`[OAuth] Failed to generate auth URL for ${provider}:`, error);
     throw new Error(`Failed to generate auth URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
