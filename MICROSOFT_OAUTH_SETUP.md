@@ -41,9 +41,9 @@
 ### 7. Configure Authentication Settings
 - Go to "Authentication" in the left sidebar
 - Under "Single-page application", ensure your redirect URI is listed
-- Under "Advanced settings":
-  - Enable "Access tokens (used for implicit flows)"
-  - Enable "ID tokens (used for implicit and hybrid flows)"
+- **Important**: Do NOT enable implicit flows - we use Authorization Code with PKCE
+- The default settings for Single-page applications already support PKCE
+- Ensure "Allow public client flows" is set to "No" (default)
 
 ### 8. Update Environment Variables
 Create/update your `.env` file:
@@ -57,6 +57,10 @@ REACT_APP_MICROSOFT_CLIENT_ID=your-actual-client-id-here
 **Cause**: The client ID in your `.env` file is still the placeholder value
 **Solution**: Replace `your-microsoft-client-id` with your actual client ID from step 4
 
+### Issue: "AADSTS9002325: Proof Key for Code Exchange is required"
+**Cause**: PKCE is now required for Single-page applications (this is normal)
+**Solution**: This error should be automatically handled by our implementation. If you see this, ensure you're using the latest version of the code.
+
 ### Issue: "AADSTS65001: The user or administrator has not consented"
 **Cause**: Admin consent hasn't been granted
 **Solution**: Complete step 6 above, or contact your IT administrator
@@ -68,6 +72,10 @@ REACT_APP_MICROSOFT_CLIENT_ID=your-actual-client-id-here
 ### Issue: Permission denied errors
 **Cause**: Required API permissions not granted
 **Solution**: Verify all permissions from step 5 are added and consented to
+
+### Issue: "AADSTS7000218: The request body must contain the following parameter: client_assertion"
+**Cause**: Incorrect authentication flow configuration
+**Solution**: Ensure the app is registered as "Single-page application" not "Web application"
 
 ## Testing Your Setup
 1. Update your `.env` file with the real client ID
