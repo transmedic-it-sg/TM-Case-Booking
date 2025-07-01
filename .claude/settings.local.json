@@ -55,7 +55,8 @@
       "WebFetch(domain:www.sitepoint.com)",
       "Bash(npx eslint:*)",
       "Bash(git remote add:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "WebFetch(domain:tinypic.host)"
     ],
     "deny": []
   }

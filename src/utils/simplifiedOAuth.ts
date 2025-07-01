@@ -421,7 +421,7 @@ export const authenticateWithPopup = async (
           return;
         }
 
-        if (event.data.type === 'oauth_success' && event.data.code) {
+        if ((event.data.type === 'oauth_success' || event.data.type === 'sso_auth_success') && event.data.code) {
           try {
             console.log(`[OAuth] Received authorization code for ${provider}, exchanging for tokens...`);
             const tokens = await oauth.exchangeCodeForTokens(event.data.code);
@@ -446,7 +446,7 @@ export const authenticateWithPopup = async (
             popup.close();
             reject(error);
           }
-        } else if (event.data.type === 'oauth_error') {
+        } else if (event.data.type === 'oauth_error' || event.data.type === 'sso_auth_error') {
           console.error(`[OAuth] OAuth error received:`, event.data.error);
           window.removeEventListener('message', messageHandler);
           popup.close();
