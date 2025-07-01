@@ -35,6 +35,7 @@
 .notification-settings-modal {
   background: white !important;
   color: #333 !important;
+  border: 2px solid #dee2e6 !important;
   border-radius: 12px;
   width: 90%;
   max-width: 600px;
@@ -138,7 +139,7 @@
   align-items: flex-start;
   gap: 12px;
   padding: 12px;
-  border: 1px solid #e9ecef;
+  border: 1px solid #dee2e6 !important;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -147,8 +148,8 @@
 }
 
 .setting-item:hover {
-  background-color: #f8f9fa;
-  border-color: #20b2aa;
+  background-color: #f8f9fa !important;
+  border-color: #20b2aa !important;
 }
 
 .setting-item input[type="checkbox"] {
@@ -250,42 +251,51 @@
   outline: none;
 }
 
-/* Dark mode support */
+/* Force white theme for notification settings - override dark mode */
 @media (prefers-color-scheme: dark) {
   .notification-settings-modal {
-    background: #2c3e50;
-    color: white;
+    background: white !important;
+    color: #333 !important;
   }
   
   .notification-settings-header {
-    border-bottom-color: #34495e;
+    border-bottom-color: #e9ecef !important;
+  }
+  
+  .notification-settings-content {
+    background: white !important;
+    color: #333 !important;
   }
   
   .setting-item {
-    background: #34495e;
-    border-color: #4a5f7a;
-    color: white;
+    background: white !important;
+    border-color: #dee2e6 !important;
+    color: #333 !important;
   }
   
   .setting-item:hover {
-    background-color: #3d5a80;
-    border-color: #20b2aa;
+    background-color: #f8f9fa !important;
+    border-color: #20b2aa !important;
   }
   
   .setting-title {
-    color: white;
+    color: #2c3e50 !important;
   }
   
   .setting-description {
-    color: #bdc3c7;
+    color: #6c757d !important;
   }
   
   .notification-settings-footer {
-    background-color: #34495e;
-    border-top-color: #4a5f7a;
+    background-color: #f8f9fa !important;
+    border-top-color: #e9ecef !important;
   }
   
   .settings-note {
-    color: #bdc3c7;
+    color: #6c757d !important;
+  }
+  
+  .settings-section h3 {
+    color: #2c3e50 !important;
   }
 }
