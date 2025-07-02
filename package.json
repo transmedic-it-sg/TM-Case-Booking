@@ -1,6 +1,6 @@
 {
   "name": "case-booking-app",
-  "version": "1.1.9",
+  "version": "1.2.0",
   "homepage": "https://mika-nim.github.io/Live-CaseBooking",
   "private": true,
   "dependencies": {

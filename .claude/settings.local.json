@@ -57,7 +57,8 @@
       "Bash(git remote add:*)",
       "Bash(touch:*)",
       "WebFetch(domain:tinypic.host)",
-      "Bash(code --version)"
+      "Bash(code --version)",
+      "Bash(git tag:*)"
     ],
     "deny": []
   }
