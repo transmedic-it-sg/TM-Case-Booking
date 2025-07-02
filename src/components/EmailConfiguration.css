@@ -49,6 +49,23 @@
   margin-bottom: 2rem;
 }
 
+/* Provider Status Badge Inline */
+.provider-status-badge-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.provider-status-badge-inline .status-icon {
+  font-size: 0.9rem;
+}
+
 /* Simplified OAuth Provider Cards */
 .provider-card {
   border: 2px solid #e9ecef;
@@ -422,7 +439,6 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  border-bottom: 2px solid #e9ecef;
   padding-bottom: 0.75rem;
 }
 

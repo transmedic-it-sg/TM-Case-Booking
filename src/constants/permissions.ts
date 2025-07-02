@@ -7,7 +7,7 @@
 export const USER_ROLES = {
   ADMIN: 'admin',
   OPERATIONS: 'operations',
-  OPERATIONS_MANAGER: 'operation-manager',
+  OPERATIONS_MANAGER: 'operations-manager',
   SALES: 'sales',
   SALES_MANAGER: 'sales-manager',
   DRIVER: 'driver',

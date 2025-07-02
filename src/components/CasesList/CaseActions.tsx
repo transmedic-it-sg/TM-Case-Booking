@@ -214,17 +214,17 @@ const CaseActions: React.FC<CaseActionsProps> = ({
       {/* Cancel Case button - only show for specific statuses */}
       {(['Order Preparation', 'Order Prepared', 'Pending Delivery (Hospital)', 'Delivered (Hospital)', 'Pending Delivery (Office)'].includes(caseItem.status)) && hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE) && (
         <Tooltip
-          content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE) ? 'Cancel this case - will mark as cancelled' : 'You do not have permission to cancel cases'}
+          content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE) ? 'Cancel this case - will mark as cancelled (case data preserved)' : 'You do not have permission to cancel cases'}
           disabled={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE)}
         >
           <button
             onClick={() => onCancelCase(caseItem.id)}
-            className={`case-action-button cancel-button ${
+            className={`case-action-button cancel-button warning-action ${
               !hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE) ? 'disabled' : ''
             }`}
             disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE)}
           >
-            ❌ Cancel Case
+            ⚠️ Cancel Case
           </button>
         </Tooltip>
       )}

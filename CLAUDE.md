@@ -23,17 +23,22 @@ A React-based case booking application for medical procedures with role-based ac
 - **sounds.ts**: Audio feedback system
 
 ## Status Workflow
+The complete standardized workflow follows this sequence:
 ```
-Case Booked → Order Prepared → Order Delivered (Hospital) → 
-Order Received (Hospital) → Case Completed → Order Delivered (Office) → To be billed
+Case Booked → Order Preparation → Order Prepared → Pending Delivery (Hospital) → 
+Delivered (Hospital) → Case Completed → Pending Delivery (Office) → Delivered (Office) → To be billed
 ```
 
+### Additional Final Statuses (outside main workflow):
+- **Case Closed**: Case finalized and archived
+- **Case Cancelled**: Case cancelled
+
 ### Role-Based Permissions
-- **Operations/Operations-Manager**: Process orders, mark as delivered to hospital
-- **Driver**: Mark orders as received at hospital (with image/details)
-- **Sales**: Complete cases (with attachments/summary/DO), deliver to office
+- **Operations/Operations-Manager**: Process orders (Order Preparation → Order Prepared), mark as pending/delivered to hospital
+- **Driver**: Mark orders as delivered to hospital (Pending Delivery (Hospital) → Delivered (Hospital)) with image/details
+- **Sales**: Complete cases (Delivered (Hospital) → Case Completed) with attachments/summary/DO, handle office delivery
 - **Admin**: Full access + user management
-- **All Users**: Mark as "to be billed"
+- **All Users**: Mark as "To be billed" from any active status
 
 ## Key Features
 1. **Multi-country Support**: Singapore, Malaysia, Philippines, Indonesia, Vietnam, Hong Kong, Thailand

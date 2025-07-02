@@ -94,8 +94,12 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
         return false;
       }
       
-      // Filter by user's assigned departments (unless admin/IT)
-      if (currentUser?.role !== 'admin' && currentUser?.role !== 'it') {
+      // Filter by user's assigned departments (excluding admin/IT/operations/operations-manager)
+      if (currentUser?.role !== 'admin' && 
+          currentUser?.role !== 'it' && 
+          currentUser?.role !== 'operations' && 
+          currentUser?.role !== 'operations-manager' && 
+          currentUser?.role !== 'operations-manager') {
         if (currentUser?.departments && !currentUser.departments.includes(caseItem.department)) {
           return false;
         }

@@ -17,6 +17,7 @@ import CustomModal from './CustomModal';
 import { useModal } from '../hooks/useModal';
 import FilterDatePicker from './FilterDatePicker';
 import { addDaysForInput, getTodayForInput } from '../utils/dateFormat';
+import { sendNewCaseNotification } from '../utils/emailNotificationService';
 
 interface CaseBookingFormProps {
   onCaseSubmitted: () => void;
@@ -218,6 +219,17 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     };
 
     saveCase(newCase);
+    
+    // Send email notification for new case
+    sendNewCaseNotification(newCase).then(emailSent => {
+      if (emailSent) {
+        console.log('✅ Email notification sent for new case:', newCase.caseReferenceNumber);
+      } else {
+        console.warn('⚠️ Failed to send email notification for new case:', newCase.caseReferenceNumber);
+      }
+    }).catch(error => {
+      console.error('💥 Error sending email notification:', error);
+    });
     
     setFormData({
       hospital: '',

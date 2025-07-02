@@ -64,7 +64,7 @@ export const usePermissions = () => {
       // Role checks
       isAdmin: userRole === 'admin',
       isOperations: userRole === 'operations',
-      isOperationsManager: userRole === 'operation-manager',
+      isOperationsManager: userRole === 'operations-manager',
       isSales: userRole === 'sales',
       isSalesManager: userRole === 'sales-manager',
       isDriver: userRole === 'driver'

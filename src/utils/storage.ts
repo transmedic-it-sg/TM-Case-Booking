@@ -1,4 +1,5 @@
 import { CaseBooking, FilterOptions, StatusHistory, AmendmentHistory } from '../types';
+import { sendStatusChangeNotification } from './emailNotificationService';
 
 const CASES_KEY = 'case-booking-cases';
 const CASE_COUNTER_KEY = 'case-booking-counter';
@@ -99,6 +100,22 @@ export const updateCaseStatus = (caseId: string, status: CaseBooking['status'], 
     cases.unshift(caseData);
     
     localStorage.setItem(CASES_KEY, JSON.stringify(cases));
+    
+    // Send email notification for status change (async, don't block the UI)
+    const previousStatus = caseData.statusHistory[caseData.statusHistory.length - 2]?.status || 'Unknown';
+    sendStatusChangeNotification(caseData, status, previousStatus, processedBy || 'System').then(emailSent => {
+      if (emailSent) {
+        console.log('✅ Email notification sent for status change:', {
+          caseRef: caseData.caseReferenceNumber,
+          status: status,
+          previousStatus: previousStatus
+        });
+      } else {
+        console.warn('⚠️ Failed to send email notification for status change:', caseData.caseReferenceNumber);
+      }
+    }).catch(error => {
+      console.error('💥 Error sending status change email notification:', error);
+    });
   }
 };
 

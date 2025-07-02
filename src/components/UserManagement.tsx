@@ -41,6 +41,12 @@ const UserManagement: React.FC = () => {
   const [usersPerPage] = useState(10);
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>(''); // For previewing users by country
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>(''); // For filtering by role
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>(''); // For filtering by status
+  const [searchQuery, setSearchQuery] = useState<string>(''); // For searching users
+  const [tempFilters, setTempFilters] = useState({searchQuery: '', selectedRoleFilter: '', selectedStatusFilter: '', selectedCountryFilter: ''}); // Temp filters for Apply button
+  const [showFilters, setShowFilters] = useState(false); // Show/hide advanced filters
+  // Removed expandedBadges and columnWidths - simplified table design
   // Removed availableDepartments since we now use CountryGroupedDepartments exclusively
   const canCreateUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CREATE_USER) : false;
   
@@ -317,13 +323,52 @@ const UserManagement: React.FC = () => {
   }
 
   // Pagination helpers
-  const getCurrentPageUsers = () => {
-    const indexOfLastUser = currentPage * usersPerPage;
-    const indexOfFirstUser = indexOfLastUser - usersPerPage;
-    return users.slice(indexOfFirstUser, indexOfLastUser);
+  // Filter users based on search and filter criteria
+  const getFilteredUsers = () => {
+    return users.filter(user => {
+      // Search query filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = 
+          user.username.toLowerCase().includes(query) ||
+          user.name.toLowerCase().includes(query) ||
+          (user.email && user.email.toLowerCase().includes(query)) ||
+          user.role.toLowerCase().includes(query) ||
+          (user.departments && user.departments.some(dept => dept.toLowerCase().includes(query))) ||
+          (user.countries && user.countries.some(country => country.toLowerCase().includes(query)));
+        
+        if (!matchesSearch) return false;
+      }
+      
+      // Role filter
+      if (selectedRoleFilter && user.role !== selectedRoleFilter) {
+        return false;
+      }
+      
+      // Country filter
+      if (selectedCountryFilter && (!user.countries || !user.countries.includes(selectedCountryFilter))) {
+        return false;
+      }
+      
+      // Status filter
+      if (selectedStatusFilter) {
+        const userEnabled = user.enabled !== undefined ? user.enabled : true;
+        if (selectedStatusFilter === 'enabled' && !userEnabled) return false;
+        if (selectedStatusFilter === 'disabled' && userEnabled) return false;
+      }
+      
+      return true;
+    });
   };
 
-  const totalPages = Math.ceil(users.length / usersPerPage);
+  const getCurrentPageUsers = () => {
+    const filteredUsers = getFilteredUsers();
+    const indexOfLastUser = currentPage * usersPerPage;
+    const indexOfFirstUser = indexOfLastUser - usersPerPage;
+    return filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+  };
+
+  const totalPages = Math.ceil(getFilteredUsers().length / usersPerPage);
 
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
@@ -546,7 +591,172 @@ const UserManagement: React.FC = () => {
       )}
 
       <div className="users-table">
-        <h3>Existing Users</h3>
+        <div className="users-table-header">
+          <h3>Existing Users ({getFilteredUsers().length})</h3>
+          
+          {/* Modern Advanced Filters - Similar to View All Cases */}
+          <div className="modern-filters-section">
+            <div className="filters-header" onClick={() => setShowFilters(!showFilters)}>
+              <div className="filters-title">
+                <h3>🔍 Advanced Filters</h3>
+                <span className="active-filters-count">
+                  {(searchQuery || selectedRoleFilter || selectedCountryFilter || selectedStatusFilter) && 
+                    `(${[searchQuery, selectedRoleFilter, selectedCountryFilter, selectedStatusFilter].filter(Boolean).length} active)`}
+                </span>
+              </div>
+              <button className={`btn btn-outline-secondary btn-sm filters-toggle ${showFilters ? 'expanded' : ''}`}>
+                {showFilters ? '▲' : '▼'}
+              </button>
+            </div>
+            
+            {showFilters && (
+              <div className="filters-content">
+                <div className="filters-grid">
+                  {/* Search Filter */}
+                  <div className="filter-category">
+                    <h4>🔎 Search</h4>
+                    <div className="filter-row">
+                      <div className="modern-filter-group full-width">
+                        <label>Search Users</label>
+                        <div className="filter-input-wrapper">
+                          <input
+                            type="text"
+                            placeholder="Search users, roles, departments, countries..."
+                            value={tempFilters.searchQuery}
+                            onChange={(e) => setTempFilters(prev => ({...prev, searchQuery: e.target.value}))}
+                            className="modern-filter-input"
+                          />
+                          <span className="filter-icon">👤</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Role & Status Filters */}
+                  <div className="filter-category">
+                    <h4>🎭 Role & Status</h4>
+                    <div className="filter-row" style={{gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))'}}>
+                      <div className="modern-filter-group">
+                        <label>Role</label>
+                        <div className="filter-input-wrapper">
+                          <select
+                            value={tempFilters.selectedRoleFilter}
+                            onChange={(e) => setTempFilters(prev => ({...prev, selectedRoleFilter: e.target.value}))}
+                            className="modern-filter-select"
+                          >
+                            <option value="">All Roles</option>
+                            {availableRoles.map(role => (
+                              <option key={role.value} value={role.value}>{role.label}</option>
+                            ))}
+                          </select>
+                          <span className="filter-icon">🎭</span>
+                        </div>
+                      </div>
+                      
+                      <div className="modern-filter-group">
+                        <label>Status</label>
+                        <div className="filter-input-wrapper">
+                          <select
+                            value={tempFilters.selectedStatusFilter}
+                            onChange={(e) => setTempFilters(prev => ({...prev, selectedStatusFilter: e.target.value}))}
+                            className="modern-filter-select"
+                          >
+                            <option value="">All Status</option>
+                            <option value="enabled">Enabled</option>
+                            <option value="disabled">Disabled</option>
+                          </select>
+                          <span className="filter-icon">📊</span>
+                        </div>
+                      </div>
+                      
+                      <div className="modern-filter-group">
+                        <label>Country</label>
+                        <div className="filter-input-wrapper">
+                          <select
+                            value={tempFilters.selectedCountryFilter}
+                            onChange={(e) => setTempFilters(prev => ({...prev, selectedCountryFilter: e.target.value}))}
+                            className="modern-filter-select"
+                          >
+                            <option value="">All Countries</option>
+                            {availableCountries.map(country => (
+                              <option key={country} value={country}>{country}</option>
+                            ))}
+                          </select>
+                          <span className="filter-icon">🌍</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filter Actions */}
+                <div className="modern-filter-actions">
+                  <div className="filter-stats">
+                    Showing {getFilteredUsers().length} of {users.length} users
+                  </div>
+                  <div className="filter-buttons">
+                    <button 
+                      onClick={() => {
+                        setTempFilters({searchQuery: '', selectedRoleFilter: '', selectedStatusFilter: '', selectedCountryFilter: ''});
+                        setSearchQuery('');
+                        setSelectedRoleFilter('');
+                        setSelectedStatusFilter('');
+                        setSelectedCountryFilter('');
+                        setCurrentPage(1);
+                      }}
+                      className="btn btn-outline-secondary btn-md modern-clear-button"
+                      disabled={!tempFilters.searchQuery && !tempFilters.selectedRoleFilter && !tempFilters.selectedStatusFilter && !tempFilters.selectedCountryFilter}
+                    >
+                      🗑️ Clear All
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setSearchQuery(tempFilters.searchQuery);
+                        setSelectedRoleFilter(tempFilters.selectedRoleFilter);
+                        setSelectedStatusFilter(tempFilters.selectedStatusFilter);
+                        setSelectedCountryFilter(tempFilters.selectedCountryFilter);
+                        setCurrentPage(1);
+                      }}
+                      className="btn btn-primary btn-md modern-apply-button"
+                    >
+                      ✨ Apply Filters
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Filter Presets */}
+                <div className="quick-filters">
+                  <span className="quick-filters-label">Quick Filters:</span>
+                  <button 
+                    onClick={() => {
+                      setTempFilters(prev => ({...prev, selectedRoleFilter: 'admin'}));
+                    }}
+                    className="btn btn-outline-secondary btn-sm quick-filter-button"
+                  >
+                    👑 Admin Users
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setTempFilters(prev => ({...prev, selectedStatusFilter: 'enabled'}));
+                    }}
+                    className="btn btn-outline-secondary btn-sm quick-filter-button"
+                  >
+                    ✅ Enabled Only
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setTempFilters(prev => ({...prev, selectedStatusFilter: 'disabled'}));
+                    }}
+                    className="btn btn-outline-secondary btn-sm quick-filter-button"
+                  >
+                    🚫 Disabled Only
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
         <table>
           <thead>
             <tr>
@@ -569,10 +779,36 @@ const UserManagement: React.FC = () => {
                   <td>{user.name}</td>
                   <td>{user.email || 'N/A'}</td>
                   <td>
-                    {user.role.replace(/-/g, ' ').toUpperCase()}
+                    <span className={`badge badge-role badge-role-${user.role}`}>
+                      {user.role.replace(/-/g, ' ').toUpperCase()}
+                    </span>
                   </td>
-                  <td>{user.departments ? user.departments.join(', ') : 'N/A'}</td>
-                  <td>{user.countries ? user.countries.join(', ') : 'N/A'}</td>
+                  <td className="department-column">
+                    <div className="badge-container">
+                      {user.departments && user.departments.length > 0 ? (
+                        user.departments.map((dept, index) => (
+                          <span key={index} className="badge badge-department" title={dept}>
+                            {dept}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-muted">No departments</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="countries-column">
+                    <div className="badge-container">
+                      {user.countries && user.countries.length > 0 ? (
+                        user.countries.map((country, index) => (
+                          <span key={index} className="badge badge-country" title={country}>
+                            {country}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-muted">No countries</span>
+                      )}
+                    </div>
+                  </td>
                   <td>
                     <span className={`user-status ${userEnabled ? 'enabled' : 'disabled'}`}>
                       {userEnabled ? 'Enabled' : 'Disabled'}

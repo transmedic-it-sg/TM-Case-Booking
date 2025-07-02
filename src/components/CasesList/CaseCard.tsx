@@ -107,7 +107,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
     if (currentUser.role === 'admin') return true;
     
     // Check if user has amend permission
-    const canAmend = ['sales', 'sales-manager', 'operations', 'operation-manager'].includes(currentUser.role);
+    const canAmend = ['sales', 'sales-manager', 'operations', 'operations-manager'].includes(currentUser.role);
     
     // Check if case hasn't been amended yet (for non-admin users)
     const notAmended = !caseItem.isAmended;

@@ -17,9 +17,9 @@ export const roles: Role[] = [
     color: '#3498db'
   },
   {
-    id: 'operation-manager',
-    name: 'operation-manager',
-    displayName: 'Ops Manager',
+    id: 'operations-manager',
+    name: 'operations-manager',
+    displayName: 'Operations Manager',
     description: 'Operations oversight',
     color: '#2980b9'
   },
@@ -324,20 +324,20 @@ export const permissions: Permission[] = [
   { actionId: 'view-reports', roleId: 'operations', allowed: true },
   
   // Operations Manager - Operations + additional oversight
-  { actionId: 'create-case', roleId: 'operation-manager', allowed: true },
-  { actionId: 'view-cases', roleId: 'operation-manager', allowed: true },
-  { actionId: 'amend-case', roleId: 'operation-manager', allowed: true },
-  { actionId: 'delete-case', roleId: 'operation-manager', allowed: true },
-  { actionId: 'edit-sets', roleId: 'operation-manager', allowed: true },
-  { actionId: 'booking-calendar', roleId: 'operation-manager', allowed: true },
-  { actionId: 'process-order', roleId: 'operation-manager', allowed: true },
-  { actionId: 'order-processed', roleId: 'operation-manager', allowed: true },
-  { actionId: 'pending-delivery-hospital', roleId: 'operation-manager', allowed: true },
-  { actionId: 'upload-files', roleId: 'operation-manager', allowed: true },
-  { actionId: 'download-files', roleId: 'operation-manager', allowed: true },
-  { actionId: 'view-reports', roleId: 'operation-manager', allowed: true },
-  { actionId: 'export-data', roleId: 'operation-manager', allowed: true },
-  { actionId: 'cancel-case', roleId: 'operation-manager', allowed: true },
+  { actionId: 'create-case', roleId: 'operations-manager', allowed: true },
+  { actionId: 'view-cases', roleId: 'operations-manager', allowed: true },
+  { actionId: 'amend-case', roleId: 'operations-manager', allowed: true },
+  { actionId: 'delete-case', roleId: 'operations-manager', allowed: true },
+  { actionId: 'edit-sets', roleId: 'operations-manager', allowed: true },
+  { actionId: 'booking-calendar', roleId: 'operations-manager', allowed: true },
+  { actionId: 'process-order', roleId: 'operations-manager', allowed: true },
+  { actionId: 'order-processed', roleId: 'operations-manager', allowed: true },
+  { actionId: 'pending-delivery-hospital', roleId: 'operations-manager', allowed: true },
+  { actionId: 'upload-files', roleId: 'operations-manager', allowed: true },
+  { actionId: 'download-files', roleId: 'operations-manager', allowed: true },
+  { actionId: 'view-reports', roleId: 'operations-manager', allowed: true },
+  { actionId: 'export-data', roleId: 'operations-manager', allowed: true },
+  { actionId: 'cancel-case', roleId: 'operations-manager', allowed: true },
   
   // Sales - Case completion and office delivery
   { actionId: 'create-case', roleId: 'sales', allowed: true },

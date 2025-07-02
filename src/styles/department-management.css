@@ -345,3 +345,320 @@
 .country-group.has-selections .country-name {
   color: #007bff;
 }
+
+/* Enhanced User Management Styles */
+
+/* Users Table Header and Filters */
+.users-table-header {
+  margin-bottom: 1.5rem;
+}
+
+.users-table-header h3 {
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.users-filters {
+  background: var(--background-light);
+  border: 1px solid var(--border-light);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filter-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 300px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
+}
+
+.filter-controls {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  background: white;
+  min-width: 120px;
+  transition: border-color 0.2s ease;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.clear-filters {
+  padding: 0.5rem 0.75rem;
+  font-size: 12px;
+  border-radius: var(--border-radius);
+  background: var(--background-light);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.clear-filters:hover {
+  background: var(--danger-color);
+  color: white;
+  border-color: var(--danger-color);
+}
+
+/* Badge System for Departments and Countries */
+.badge-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: flex-start;
+  line-height: 1.4;
+  min-width: max-content;
+}
+
+/* Table-specific badge containers */
+.users-table .badge-container {
+  white-space: normal;
+  min-width: max-content;
+  padding: 0.25rem 0;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.3rem 0.6rem;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 14px;
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.badge-department {
+  background: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #2196f3;
+}
+
+.badge-country {
+  background: #f3e5f5;
+  color: #7b1fa2;
+  border: 1px solid #9c27b0;
+}
+
+.badge-role {
+  background: #e8f5e8;
+  color: #2e7d32;
+  border: 1px solid #4caf50;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+
+/* Role-specific colors */
+.badge-role-admin {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #f44336;
+}
+
+.badge-role-operations {
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ff9800;
+}
+
+.badge-role-operations-manager {
+  background: #fce4ec;
+  color: #ad1457;
+  border: 1px solid #e91e63;
+}
+
+.badge-role-sales {
+  background: #e1f5fe;
+  color: #0277bd;
+  border: 1px solid #03a9f4;
+}
+
+.badge-role-sales-manager {
+  background: #e0f2f1;
+  color: #00695c;
+  border: 1px solid #009688;
+}
+
+.badge-role-driver {
+  background: #f3e5f5;
+  color: #6a1b9a;
+  border: 1px solid #9c27b0;
+}
+
+.badge-role-it {
+  background: #e8eaf6;
+  color: #3f51b5;
+  border: 1px solid #5c6bc0;
+}
+
+.badge-more {
+  background: var(--background-light);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+  font-size: 10px;
+}
+
+.badge-expandable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #e9ecef;
+  color: #495057;
+  border: 1px solid #adb5bd;
+  font-size: 10px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.badge-expandable:hover {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+  transform: scale(1.05);
+}
+
+.text-muted {
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* Responsive Design for Filters */
+@media (max-width: 768px) {
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-box {
+    min-width: unset;
+  }
+  
+  .filter-controls {
+    justify-content: space-between;
+  }
+  
+  .filter-select {
+    flex: 1;
+    min-width: unset;
+  }
+  
+  .badge-container {
+    max-width: unset;
+  }
+  
+  .badge-expandable {
+    font-size: 9px;
+    padding: 0.2rem 0.4rem;
+  }
+}
+
+/* Simplified Horizontally Scrollable Table */
+.users-table {
+  overflow-x: auto;
+  width: 100%;
+  border: 1px solid var(--border-light);
+  border-radius: var(--border-radius);
+  background: white;
+  box-shadow: var(--shadow-light);
+}
+
+.users-table table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: white;
+  table-layout: auto; /* Auto layout for content-based column sizing */
+}
+
+.users-table th {
+  background: var(--primary-light);
+  color: var(--text-primary);
+  padding: 1rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 2px solid var(--primary-color);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.users-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.users-table tr:hover {
+  background: rgba(32, 178, 170, 0.05);
+}
+
+.user-disabled {
+  opacity: 0.6;
+  background: rgba(244, 67, 54, 0.05);
+}
+
+/* Enhanced Status Badges */
+.user-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.user-status.enabled {
+  background: #e8f5e8;
+  color: #2e7d32;
+  border: 1px solid #4caf50;
+}
+
+.user-status.disabled {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #f44336;
+}
+
+/* Removed column controls - no longer needed */

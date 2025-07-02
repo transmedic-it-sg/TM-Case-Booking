@@ -44,7 +44,7 @@ export const getTooltipMessage = (requiredRoles: string[], action: string): stri
   const roleNames = {
     'admin': 'Administrator',
     'operations': 'Operations',
-    'operation-manager': 'Operations Manager', 
+    'operations-manager': 'Operations Manager', 
     'sales': 'Sales',
     'sales-manager': 'Sales Manager',
     'driver': 'Driver'

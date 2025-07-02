@@ -351,6 +351,29 @@ export const storeAuthTokens = (country: string, provider: string, tokens: AuthT
   localStorage.setItem(key, JSON.stringify(tokens));
 };
 
+// User info storage utilities
+export const storeUserInfo = (country: string, provider: string, userInfo: UserInfo): void => {
+  const key = `email_userinfo_${country}_${provider}`;
+  localStorage.setItem(key, JSON.stringify(userInfo));
+};
+
+export const getStoredUserInfo = (country: string, provider: string): UserInfo | null => {
+  const key = `email_userinfo_${country}_${provider}`;
+  const stored = localStorage.getItem(key);
+  if (!stored) return null;
+  
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return null;
+  }
+};
+
+export const clearUserInfo = (country: string, provider: string): void => {
+  const key = `email_userinfo_${country}_${provider}`;
+  localStorage.removeItem(key);
+};
+
 export const getStoredAuthTokens = (country: string, provider: string): AuthTokens | null => {
   const key = `email_auth_${country}_${provider}`;
   const stored = localStorage.getItem(key);
@@ -366,6 +389,8 @@ export const getStoredAuthTokens = (country: string, provider: string): AuthToke
 export const clearAuthTokens = (country: string, provider: string): void => {
   const key = `email_auth_${country}_${provider}`;
   localStorage.removeItem(key);
+  // Also clear user info when clearing tokens
+  clearUserInfo(country, provider);
 };
 
 export const isTokenExpired = (tokens: AuthTokens): boolean => {
@@ -430,9 +455,10 @@ export const authenticateWithPopup = async (
             const userInfo = await oauth.getUserInfo(tokens.accessToken);
             console.log(`[OAuth] User info retrieved for ${provider}:`, { email: userInfo.email, id: userInfo.id });
             
-            // Store tokens
-            console.log(`[OAuth] Storing tokens for ${provider} in ${country}`);
+            // Store tokens and user info
+            console.log(`[OAuth] Storing tokens and user info for ${provider} in ${country}`);
             storeAuthTokens(country, provider, tokens);
+            storeUserInfo(country, provider, userInfo);
             
             console.log(`[OAuth] Cleaning up event listeners and closing popup`);
             window.removeEventListener('message', messageHandler);

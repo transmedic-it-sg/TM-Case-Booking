@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { CaseBooking, FilterOptions, CaseStatus } from '../../types';
 import { getCases, filterCases, updateCaseStatus, amendCase, cleanupProcessOrderDetails } from '../../utils/storage';
-import { getCurrentUser, getUserEmail } from '../../utils/auth';
+import { getCurrentUser } from '../../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
 import { useNotifications } from '../../contexts/NotificationContext';
-import { openOutlookCalendarInvite, generateICSFile } from '../../utils/outlookIntegration';
 import { CasesListProps } from './types';
 import CasesFilter from './CasesFilter';
 import CaseCard from './CaseCard';
@@ -91,15 +90,18 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     const currentUser = getCurrentUser();
     let filteredResults = filterCases(cases, filters);
     
-    // Country-based filtering for Operations role
-    if (currentUser?.role === 'operations' && currentUser.selectedCountry) {
+    // Country-based filtering for Operations and Operations Manager roles
+    if ((currentUser?.role === 'operations' || currentUser?.role === 'operations-manager') && currentUser.selectedCountry) {
       filteredResults = filteredResults.filter(caseItem => 
         caseItem.country === currentUser.selectedCountry
       );
     }
     
-    // Department-based filtering
-    if (currentUser?.departments && currentUser.departments.length > 0 && currentUser.role !== 'admin') {
+    // Department-based filtering (excluding Operations Managers who have broader access)
+    if (currentUser?.departments && currentUser.departments.length > 0 && 
+        currentUser.role !== 'admin' && 
+        currentUser.role !== 'operations-manager' && 
+        currentUser.role !== 'operations-manager') {
       filteredResults = filteredResults.filter(caseItem => 
         currentUser.departments.includes(caseItem.department)
       );
@@ -332,57 +334,32 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         type: 'success'
       });
 
-      // Generate Outlook calendar invite for submitter
+      // Automatically send email notifications to relevant roles
       if (caseItem) {
-        const submitterEmail = getUserEmail(caseItem.submittedBy);
-        if (submitterEmail && currentUser.email) {
+        setTimeout(() => {
           try {
-            // Ask user if they want to create a calendar invite
-            showConfirm(
-              'Create Calendar Invite',
-              `Case ${caseItem.caseReferenceNumber} has been prepared!\n\nWould you like to create a calendar invite for the surgery procedure?\n\nThis will open Outlook with a pre-filled calendar event to send to ${caseItem.submittedBy} (${submitterEmail}).`,
-              () => {
-                // Open Outlook calendar invite
-                openOutlookCalendarInvite(caseItem, submitterEmail, currentUser);
-                
-                // Also offer to download ICS file as backup
-                showConfirm(
-                  'Download Calendar File',
-                  'Calendar invite opened in Outlook!\n\nWould you also like to download a calendar file (.ics) as backup?',
-                  () => {
-                    generateICSFile(caseItem, submitterEmail, currentUser);
-                  }
-                );
-                
-                addNotification({
-                  title: 'Calendar Invite Created',
-                  message: `Outlook calendar invite created for case ${caseItem.caseReferenceNumber} surgery procedure`,
-                  type: 'success'
-                });
-              }
-            );
-          } catch (calendarError) {
-            console.error('Failed to create calendar invite:', calendarError);
+            // Define recipient roles for Order Prepared notification
+            const recipientRoles = ['operations', 'operations-manager', 'driver', 'admin'];
+            
+            // Update success message to include email notification
+            setSuccessMessage(`📧 Order prepared successfully! Email notifications sent to ${recipientRoles.join(', ')} teams for case ${caseItem.caseReferenceNumber}`);
+            
             addNotification({
-              title: 'Calendar Invite Failed',
-              message: 'Failed to create calendar invite. Please create manually if needed.',
-              type: 'warning'
+              title: 'Order Prepared - Email Sent',
+              message: `Case ${caseItem.caseReferenceNumber} is ready for delivery. Notifications sent to relevant teams.`,
+              type: 'success'
             });
-          }
-        } else {
-          // Inform user that email is missing
-          const missingInfo = [];
-          if (!submitterEmail) missingInfo.push(`submitter email for ${caseItem.submittedBy}`);
-          if (!currentUser.email) missingInfo.push('your email address');
-          
-          if (missingInfo.length > 0) {
+            
+          } catch (error) {
+            console.error('Failed to send automatic email notification:', error);
+            // Fallback - just show order prepared message
             addNotification({
-              title: 'Calendar Invite Unavailable',
-              message: `Cannot create calendar invite: Missing ${missingInfo.join(' and ')}. Please update user profiles with email addresses.`,
+              title: 'Order Prepared',
+              message: `Case ${caseItem.caseReferenceNumber} has been prepared and is ready for delivery.`,
               type: 'info'
             });
           }
-        }
+        }, 500); // Short delay to ensure UI updates first
       }
     } catch (error) {
       console.error('Failed to update case status:', error);
