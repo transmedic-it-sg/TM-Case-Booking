@@ -10,6 +10,8 @@ import CaseCard from './CaseCard';
 import StatusChangeSuccessPopup from '../StatusChangeSuccessPopup';
 import CustomModal from '../CustomModal';
 import { useModal } from '../../hooks/useModal';
+import { USER_ROLES } from '../../constants/permissions';
+import { userHasDepartmentAccess } from '../../utils/departmentUtils';
 
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
@@ -91,7 +93,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     let filteredResults = filterCases(cases, filters);
     
     // Country-based filtering for Operations and Operations Manager roles
-    if ((currentUser?.role === 'operations' || currentUser?.role === 'operations-manager') && currentUser.selectedCountry) {
+    if ((currentUser?.role === USER_ROLES.OPERATIONS || currentUser?.role === USER_ROLES.OPERATIONS_MANAGER) && currentUser.selectedCountry) {
       filteredResults = filteredResults.filter(caseItem => 
         caseItem.country === currentUser.selectedCountry
       );
@@ -99,11 +101,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     
     // Department-based filtering (excluding Operations Managers who have broader access)
     if (currentUser?.departments && currentUser.departments.length > 0 && 
-        currentUser.role !== 'admin' && 
-        currentUser.role !== 'operations-manager' && 
-        currentUser.role !== 'operations-manager') {
+        currentUser.role !== USER_ROLES.ADMIN && 
+        currentUser.role !== USER_ROLES.OPERATIONS_MANAGER && 
+        currentUser.role !== USER_ROLES.IT) {
       filteredResults = filteredResults.filter(caseItem => 
-        currentUser.departments.includes(caseItem.department)
+        userHasDepartmentAccess(currentUser.departments, caseItem.department)
       );
     }
     
@@ -334,33 +336,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         type: 'success'
       });
 
-      // Automatically send email notifications to relevant roles
-      if (caseItem) {
-        setTimeout(() => {
-          try {
-            // Define recipient roles for Order Prepared notification
-            const recipientRoles = ['operations', 'operations-manager', 'driver', 'admin'];
-            
-            // Update success message to include email notification
-            setSuccessMessage(`📧 Order prepared successfully! Email notifications sent to ${recipientRoles.join(', ')} teams for case ${caseItem.caseReferenceNumber}`);
-            
-            addNotification({
-              title: 'Order Prepared - Email Sent',
-              message: `Case ${caseItem.caseReferenceNumber} is ready for delivery. Notifications sent to relevant teams.`,
-              type: 'success'
-            });
-            
-          } catch (error) {
-            console.error('Failed to send automatic email notification:', error);
-            // Fallback - just show order prepared message
-            addNotification({
-              title: 'Order Prepared',
-              message: `Case ${caseItem.caseReferenceNumber} has been prepared and is ready for delivery.`,
-              type: 'info'
-            });
-          }
-        }, 500); // Short delay to ensure UI updates first
-      }
+      // Email notifications are now handled automatically by the Email Notification Rules system
+      // in the updateCaseStatus function - no hardcoded logic needed here
     } catch (error) {
       console.error('Failed to update case status:', error);
     }

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Configuration Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { border: 1px solid #ccc; margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+        .warning { color: orange; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .status-rule { background: #f9f9f9; margin: 10px 0; padding: 10px; border-left: 4px solid #007bff; }
+        .enabled { border-left-color: #28a745; }
+        .disabled { border-left-color: #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Email Configuration Debug Tool</h1>
+    <p>This tool will analyze your Email Notification Rules configuration to identify why emails are only going to one recipient.</p>
+    
+    <div class="section">
+        <h2>📋 1. Email Notification Matrix Check</h2>
+        <div id="matrix-check"></div>
+    </div>
+    
+    <div class="section">
+        <h2>📧 2. Email Provider Configuration</h2>
+        <div id="provider-check"></div>
+    </div>
+    
+    <div class="section">
+        <h2>👥 3. User Configuration Check</h2>
+        <div id="users-check"></div>
+    </div>
+    
+    <div class="section">
+        <h2>🔧 4. Case Booked Rule Analysis</h2>
+        <div id="case-booked-check"></div>
+    </div>
+    
+    <div class="section">
+        <h2>🚨 5. All Status Rules Summary</h2>
+        <div id="all-status-check"></div>
+    </div>
+    
+    <div class="section">
+        <h2>💡 6. Recommendations</h2>
+        <div id="recommendations"></div>
+    </div>
+
+    <script>
+        function debugEmailConfiguration() {
+            console.log('🔍 Starting Email Configuration Debug...');
+            
+            // 1. Check Email Notification Matrix
+            const matrixKey = 'email-matrix-configs-by-country';
+            const storedMatrix = localStorage.getItem(matrixKey);
+            const matrixDiv = document.getElementById('matrix-check');
+            
+            if (!storedMatrix) {
+                matrixDiv.innerHTML = `
+                    <div class="error">❌ No Email Notification Matrix found!</div>
+                    <p>The notification matrix hasn't been initialized yet.</p>
+                    <p><strong>Solution:</strong> Visit the Email Configuration page and save the settings to initialize the matrix.</p>
+                `;
+                return;
+            }
+            
+            let matrixData;
+            try {
+                matrixData = JSON.parse(storedMatrix);
+                matrixDiv.innerHTML = `
+                    <div class="success">✅ Email Notification Matrix found</div>
+                    <p><strong>Countries configured:</strong> ${Object.keys(matrixData).join(', ')}</p>
+                `;
+            } catch (error) {
+                matrixDiv.innerHTML = `
+                    <div class="error">❌ Error parsing notification matrix: ${error.message}</div>
+                `;
+                return;
+            }
+            
+            // 2. Check Email Provider Configuration
+            const emailConfigKey = 'simplified_email_configs';
+            const storedEmailConfig = localStorage.getItem(emailConfigKey);
+            const providerDiv = document.getElementById('provider-check');
+            
+            if (!storedEmailConfig) {
+                providerDiv.innerHTML = `
+                    <div class="error">❌ No Email Provider configuration found!</div>
+                `;
+                return;
+            }
+            
+            let emailConfigData;
+            try {
+                emailConfigData = JSON.parse(storedEmailConfig);
+                let providerInfo = '';
+                Object.entries(emailConfigData).forEach(([country, config]) => {
+                    const activeProvider = config.activeProvider || 'none';
+                    const googleAuth = config.providers?.google?.isAuthenticated ? '✅' : '❌';
+                    const microsoftAuth = config.providers?.microsoft?.isAuthenticated ? '✅' : '❌';
+                    providerInfo += `
+                        <div><strong>${country}:</strong> Active: ${activeProvider}, Google: ${googleAuth}, Microsoft: ${microsoftAuth}</div>
+                    `;
+                });
+                providerDiv.innerHTML = `
+                    <div class="success">✅ Email Provider configuration found</div>
+                    ${providerInfo}
+                `;
+            } catch (error) {
+                providerDiv.innerHTML = `
+                    <div class="error">❌ Error parsing email config: ${error.message}</div>
+                `;
+                return;
+            }
+            
+            // 3. Check Users
+            const usersKey = 'case-booking-users';
+            const storedUsers = localStorage.getItem(usersKey);
+            const usersDiv = document.getElementById('users-check');
+            
+            if (!storedUsers) {
+                usersDiv.innerHTML = `
+                    <div class="error">❌ No users found!</div>
+                `;
+                return;
+            }
+            
+            let users;
+            try {
+                users = JSON.parse(storedUsers);
+                const usersByRole = {};
+                let usersWithEmail = 0;
+                let usersWithoutEmail = 0;
+                
+                users.forEach(user => {
+                    if (!usersByRole[user.role]) usersByRole[user.role] = [];
+                    usersByRole[user.role].push(user);
+                    
+                    if (user.email && user.email.trim()) {
+                        usersWithEmail++;
+                    } else {
+                        usersWithoutEmail++;
+                    }
+                });
+                
+                let userInfo = `
+                    <div class="success">✅ Users found: ${users.length} total</div>
+                    <p><strong>With email:</strong> ${usersWithEmail}, <strong>Without email:</strong> ${usersWithoutEmail}</p>
+                    <h4>Users by role:</h4>
+                `;
+                
+                Object.entries(usersByRole).forEach(([role, roleUsers]) => {
+                    userInfo += `<div><strong>${role}:</strong> ${roleUsers.length} users</div>`;
+                    roleUsers.forEach(user => {
+                        const email = user.email || 'NO EMAIL';
+                        const countries = user.countries?.join(', ') || 'none';
+                        userInfo += `<div style="margin-left: 20px;">• ${user.name} (${email}) - Countries: [${countries}]</div>`;
+                    });
+                });
+                
+                usersDiv.innerHTML = userInfo;
+            } catch (error) {
+                usersDiv.innerHTML = `
+                    <div class="error">❌ Error parsing users: ${error.message}</div>
+                `;
+                return;
+            }
+            
+            // 4. Detailed Case Booked Rule Analysis
+            const caseBookedDiv = document.getElementById('case-booked-check');
+            let caseBookedAnalysis = '';
+            
+            Object.entries(matrixData).forEach(([country, config]) => {
+                const caseBookedRule = config.rules?.find(r => r.status === 'Case Booked');
+                if (caseBookedRule) {
+                    caseBookedAnalysis += `
+                        <div class="status-rule ${caseBookedRule.enabled ? 'enabled' : 'disabled'}">
+                            <h4>${country} - Case Booked Rule</h4>
+                            <p><strong>Enabled:</strong> ${caseBookedRule.enabled ? '✅ Yes' : '❌ No'}</p>
+                            <p><strong>Roles:</strong> [${caseBookedRule.recipients?.roles?.join(', ') || 'none'}]</p>
+                            <p><strong>Specific Emails:</strong> [${caseBookedRule.recipients?.specificEmails?.join(', ') || 'none'}]</p>
+                            <p><strong>Include Submitter:</strong> ${caseBookedRule.recipients?.includeSubmitter ? '✅ Yes' : '❌ No'}</p>
+                            <p><strong>Require Same Department:</strong> ${caseBookedRule.recipients?.requireSameDepartment ? '✅ Yes' : '❌ No'}</p>
+                            <p><strong>Department Filter:</strong> [${caseBookedRule.recipients?.departmentFilter?.join(', ') || 'none'}]</p>
+                        </div>
+                    `;
+                } else {
+                    caseBookedAnalysis += `
+                        <div class="status-rule disabled">
+                            <h4>${country}</h4>
+                            <p class="error">❌ No Case Booked rule found!</p>
+                        </div>
+                    `;
+                }
+            });
+            
+            caseBookedDiv.innerHTML = caseBookedAnalysis;
+            
+            // 5. All Status Rules Summary
+            const allStatusDiv = document.getElementById('all-status-check');
+            let allStatusSummary = '';
+            
+            const allStatuses = [
+                'Case Booked', 'Order Preparation', 'Order Prepared', 
+                'Pending Delivery (Hospital)', 'Delivered (Hospital)', 'Case Completed',
+                'Pending Delivery (Office)', 'Delivered (Office)', 'To be billed',
+                'Case Closed', 'Case Cancelled'
+            ];
+            
+            Object.entries(matrixData).forEach(([country, config]) => {
+                allStatusSummary += `<h4>${country}</h4>`;
+                allStatuses.forEach(status => {
+                    const rule = config.rules?.find(r => r.status === status);
+                    if (rule) {
+                        const enabledIcon = rule.enabled ? '✅' : '❌';
+                        const rolesCount = rule.recipients?.roles?.length || 0;
+                        const specificCount = rule.recipients?.specificEmails?.length || 0;
+                        allStatusSummary += `
+                            <div style="margin-left: 20px;">${enabledIcon} ${status} (${rolesCount} roles, ${specificCount} specific emails)</div>
+                        `;
+                    } else {
+                        allStatusSummary += `
+                            <div style="margin-left: 20px;">❌ ${status} - NO RULE FOUND</div>
+                        `;
+                    }
+                });
+            });
+            
+            allStatusDiv.innerHTML = allStatusSummary;
+            
+            // 6. Recommendations
+            const recDiv = document.getElementById('recommendations');
+            let recommendations = [];
+            
+            // Check for common issues
+            if (usersWithoutEmail > 0) {
+                recommendations.push('⚠️ Some users don\'t have email addresses configured. Update them in User Management.');
+            }
+            
+            Object.entries(matrixData).forEach(([country, config]) => {
+                const caseBookedRule = config.rules?.find(r => r.status === 'Case Booked');
+                if (!caseBookedRule) {
+                    recommendations.push(`❌ ${country}: No Case Booked rule found. Visit Email Configuration to fix.`);
+                } else if (!caseBookedRule.enabled) {
+                    recommendations.push(`⚠️ ${country}: Case Booked rule is disabled. Enable it in Email Configuration.`);
+                } else if (caseBookedRule.recipients?.roles?.length === 0 && caseBookedRule.recipients?.specificEmails?.length === 0) {
+                    recommendations.push(`❌ ${country}: Case Booked rule has no recipients (no roles or specific emails).`);
+                } else if (caseBookedRule.recipients?.specificEmails?.length > 0) {
+                    recommendations.push(`🔍 ${country}: Case Booked rule has specific emails: [${caseBookedRule.recipients.specificEmails.join(', ')}]. This might be why only specific emails are receiving notifications.`);
+                }
+            });
+            
+            if (recommendations.length === 0) {
+                recommendations.push('✅ Configuration looks good! If you\'re still having issues, check the browser console for detailed debug logs when creating a case.');
+            }
+            
+            recDiv.innerHTML = recommendations.map(rec => `<div style="margin: 10px 0;">${rec}</div>`).join('');
+        }
+        
+        // Run the debug when page loads
+        document.addEventListener('DOMContentLoaded', debugEmailConfiguration);
+    </script>
+</body>
+</html>

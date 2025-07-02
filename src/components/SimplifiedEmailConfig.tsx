@@ -8,6 +8,7 @@ import { useSound } from '../contexts/SoundContext';
 import { useToast } from './ToastContainer';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import { CASE_STATUSES, STATUS_WORKFLOW } from '../constants/statuses';
+import { USER_ROLES } from '../constants/permissions';
 import {
   authenticateWithPopup,
   getStoredAuthTokens,
@@ -63,7 +64,7 @@ const SimplifiedEmailConfig: React.FC = () => {
   const [emailConfigs, setEmailConfigs] = useState<Record<string, CountryEmailConfig>>({});
   const [isAuthenticating, setIsAuthenticating] = useState<Record<string, boolean>>({});
   const [authError, setAuthError] = useState<string>('');
-  const [isProviderSectionCollapsed, setIsProviderSectionCollapsed] = useState<boolean>(false);
+  const [isProviderSectionCollapsed, setIsProviderSectionCollapsed] = useState<boolean>(true);
   const [isNotificationRulesCollapsed, setIsNotificationRulesCollapsed] = useState<boolean>(true);
   const [isTemplateVariablesCollapsed, setIsTemplateVariablesCollapsed] = useState<boolean>(true);
   const [emailMatrixConfigs, setEmailMatrixConfigs] = useState<Record<string, EmailNotificationMatrix>>({});
@@ -99,13 +100,41 @@ const SimplifiedEmailConfig: React.FC = () => {
       rules: statuses.map(status => {
         // Enable key statuses by default and provide better templates
         const isKeyStatus = status === CASE_STATUSES.CASE_BOOKED || 
+                           status === CASE_STATUSES.ORDER_PREPARATION ||
+                           status === CASE_STATUSES.ORDER_PREPARED ||
+                           status === CASE_STATUSES.PENDING_DELIVERY_HOSPITAL ||
+                           status === CASE_STATUSES.DELIVERED_HOSPITAL ||
                            status === CASE_STATUSES.CASE_COMPLETED || 
+                           status === CASE_STATUSES.PENDING_DELIVERY_OFFICE ||
+                           status === CASE_STATUSES.DELIVERED_OFFICE ||
                            status === CASE_STATUSES.TO_BE_BILLED;
         
-        // Default roles for key statuses
-        const defaultRoles = status === CASE_STATUSES.CASE_BOOKED 
-          ? ['admin', 'operations', 'operations-manager'] 
-          : [];
+        // Default roles for different statuses based on workflow
+        let defaultRoles: string[] = [];
+        
+        if (status === CASE_STATUSES.CASE_BOOKED) {
+          defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.OPERATIONS, USER_ROLES.OPERATIONS_MANAGER];
+        } else if (status === CASE_STATUSES.ORDER_PREPARATION) {
+          defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.OPERATIONS, USER_ROLES.OPERATIONS_MANAGER];
+        } else if (status === CASE_STATUSES.ORDER_PREPARED) {
+          defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.OPERATIONS, USER_ROLES.OPERATIONS_MANAGER, USER_ROLES.DRIVER];
+        } else if (status === CASE_STATUSES.PENDING_DELIVERY_HOSPITAL) {
+          defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.OPERATIONS_MANAGER, USER_ROLES.DRIVER];
+        } else if (status === CASE_STATUSES.DELIVERED_HOSPITAL) {
+          defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.OPERATIONS_MANAGER, USER_ROLES.DRIVER, USER_ROLES.SALES];
+        } else if (status === CASE_STATUSES.CASE_COMPLETED) {
+          defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.SALES, USER_ROLES.SALES_MANAGER, USER_ROLES.OPERATIONS_MANAGER];
+        } else if (status === CASE_STATUSES.PENDING_DELIVERY_OFFICE) {
+          defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.SALES, USER_ROLES.DRIVER];
+        } else if (status === CASE_STATUSES.DELIVERED_OFFICE) {
+          defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.SALES, USER_ROLES.DRIVER];
+        } else if (status === CASE_STATUSES.TO_BE_BILLED) {
+          defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.SALES, USER_ROLES.SALES_MANAGER, USER_ROLES.OPERATIONS_MANAGER];
+        } else if (status === CASE_STATUSES.CASE_CLOSED) {
+          defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.SALES_MANAGER, USER_ROLES.OPERATIONS_MANAGER];
+        } else if (status === CASE_STATUSES.CASE_CANCELLED) {
+          defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.OPERATIONS_MANAGER, USER_ROLES.IT];
+        }
 
         // Enhanced templates for different statuses
         let template = {
@@ -170,6 +199,159 @@ Please proceed with equipment collection and office delivery.
 Best regards,
 {{country}} Case Booking System`
           };
+        } else if (status === CASE_STATUSES.ORDER_PREPARED) {
+          template = {
+            subject: `📦 Order Ready for Delivery: {{caseReference}} - {{hospital}}`,
+            body: `Dear Delivery Team,
+
+The order has been prepared and is ready for delivery to the hospital.
+
+📋 Case Details:
+• Case Reference: {{caseReference}}
+• Hospital: {{hospital}}
+• Department: {{department}}
+• Surgery Date: {{dateOfSurgery}}
+• Surgery Time: {{timeOfProcedure}}
+• Doctor: {{doctorName}}
+• Prepared by: {{processedBy}}
+
+📦 Order Details:
+{{processOrderDetails}}
+
+📦 Equipment Ready:
+• Surgery Sets: {{surgerySetSelection}}
+• Implant Boxes: {{implantBox}}
+
+💬 Special Instructions:
+{{specialInstruction}}
+
+Please proceed with delivery to hospital.
+
+Best regards,
+{{country}} Case Booking System`
+          };
+        } else if (status === CASE_STATUSES.DELIVERED_HOSPITAL) {
+          template = {
+            subject: `🏥 Delivered to Hospital: {{caseReference}} - {{hospital}}`,
+            body: `Dear Team,
+
+The equipment has been successfully delivered to the hospital.
+
+📋 Case Details:
+• Case Reference: {{caseReference}}
+• Hospital: {{hospital}}
+• Department: {{department}}
+• Surgery Date: {{dateOfSurgery}}
+• Doctor: {{doctorName}}
+• Delivered by: {{processedBy}}
+
+📦 Delivery Details:
+{{deliveryDetails}}
+
+The surgical team can now proceed with the case.
+
+Best regards,
+{{country}} Case Booking System`
+          };
+        } else if (status === CASE_STATUSES.ORDER_PREPARATION) {
+          template = {
+            subject: `📋 Order Preparation Started: {{caseReference}} - {{hospital}}`,
+            body: `Dear Operations Team,
+
+Order preparation has started for the following case.
+
+📋 Case Details:
+• Case Reference: {{caseReference}}
+• Hospital: {{hospital}}
+• Department: {{department}}
+• Surgery Date: {{dateOfSurgery}}
+• Surgery Time: {{timeOfProcedure}}
+• Doctor: {{doctorName}}
+• Started by: {{processedBy}}
+
+📦 Equipment to Prepare:
+• Surgery Sets: {{surgerySetSelection}}
+• Implant Boxes: {{implantBox}}
+
+💬 Special Instructions:
+{{specialInstruction}}
+
+Please proceed with order preparation.
+
+Best regards,
+{{country}} Case Booking System`
+          };
+        } else if (status === CASE_STATUSES.PENDING_DELIVERY_HOSPITAL) {
+          template = {
+            subject: `🚚 Pending Hospital Delivery: {{caseReference}} - {{hospital}}`,
+            body: `Dear Delivery Team,
+
+The following order is ready and pending delivery to the hospital.
+
+📋 Case Details:
+• Case Reference: {{caseReference}}
+• Hospital: {{hospital}}
+• Department: {{department}}
+• Surgery Date: {{dateOfSurgery}}
+• Surgery Time: {{timeOfProcedure}}
+• Doctor: {{doctorName}}
+
+📦 Ready for Delivery:
+• Surgery Sets: {{surgerySetSelection}}
+• Implant Boxes: {{implantBox}}
+
+Please coordinate delivery with the hospital.
+
+Best regards,
+{{country}} Case Booking System`
+          };
+        } else if (status === CASE_STATUSES.PENDING_DELIVERY_OFFICE) {
+          template = {
+            subject: `🏢 Pending Office Delivery: {{caseReference}} - Equipment Return`,
+            body: `Dear Collection Team,
+
+The following case equipment is ready for collection and return to office.
+
+📋 Case Details:
+• Case Reference: {{caseReference}}
+• Hospital: {{hospital}}
+• Department: {{department}}
+• Surgery Date: {{dateOfSurgery}}
+• Doctor: {{doctorName}}
+• Completed by: {{processedBy}}
+
+📝 Case Summary:
+{{orderSummary}}
+
+📄 DO Number: {{doNumber}}
+
+Please coordinate equipment collection from the hospital.
+
+Best regards,
+{{country}} Case Booking System`
+          };
+        } else if (status === CASE_STATUSES.DELIVERED_OFFICE) {
+          template = {
+            subject: `✅ Equipment Returned to Office: {{caseReference}}`,
+            body: `Dear Team,
+
+The equipment has been successfully returned to the office.
+
+📋 Case Details:
+• Case Reference: {{caseReference}}
+• Hospital: {{hospital}}
+• Department: {{department}}
+• Surgery Date: {{dateOfSurgery}}
+• Doctor: {{doctorName}}
+• Returned by: {{processedBy}}
+
+📄 DO Number: {{doNumber}}
+
+The case is now ready for billing.
+
+Best regards,
+{{country}} Case Booking System`
+          };
         } else if (status === CASE_STATUSES.TO_BE_BILLED) {
           template = {
             subject: `💰 Ready for Billing: {{caseReference}} - {{hospital}}`,
@@ -191,6 +373,51 @@ Please proceed with billing process.
 Best regards,
 {{country}} Case Booking System`
           };
+        } else if (status === CASE_STATUSES.CASE_CLOSED) {
+          template = {
+            subject: `📁 Case Closed: {{caseReference}} - {{hospital}}`,
+            body: `Dear Team,
+
+The following case has been officially closed.
+
+📋 Case Details:
+• Case Reference: {{caseReference}}
+• Hospital: {{hospital}}
+• Department: {{department}}
+• Surgery Date: {{dateOfSurgery}}
+• Doctor: {{doctorName}}
+• Closed by: {{processedBy}}
+
+📄 DO Number: {{doNumber}}
+
+The case has been archived and the billing process is complete.
+
+Best regards,
+{{country}} Case Booking System`
+          };
+        } else if (status === CASE_STATUSES.CASE_CANCELLED) {
+          template = {
+            subject: `❌ Case Cancelled: {{caseReference}} - {{hospital}}`,
+            body: `Dear Team,
+
+The following case has been cancelled.
+
+📋 Case Details:
+• Case Reference: {{caseReference}}
+• Hospital: {{hospital}}
+• Department: {{department}}
+• Surgery Date: {{dateOfSurgery}}
+• Doctor: {{doctorName}}
+• Cancelled by: {{processedBy}}
+
+💬 Cancellation Reason:
+{{processOrderDetails}}
+
+Please take appropriate action regarding any prepared equipment.
+
+Best regards,
+{{country}} Case Booking System`
+          };
         }
 
         return {
@@ -201,9 +428,20 @@ Best regards,
             specificEmails: [],
             includeSubmitter: status === CASE_STATUSES.CASE_BOOKED, // Include submitter for new cases
             departmentFilter: [],
-            requireSameDepartment: true
+            requireSameDepartment: false, // Allow cross-department notifications for most statuses
+            adminOverride: true, // Allow admin users to bypass role restrictions
+            adminGlobalAccess: true, // Allow admin users to bypass country restrictions
+            legacyRoleMapping: {
+              'operation-manager': 'operations-manager' // Handle legacy role names
+            }
           },
-          template
+          template,
+          conditions: {
+            countryRestrictions: [], // No country restrictions by default
+            timeRestrictions: {
+              weekdaysOnly: false // Send notifications any day of the week
+            }
+          }
         };
       })
     };
@@ -951,7 +1189,7 @@ Best regards,
                 {emailMatrixConfigs[selectedCountry] && (
                   <div className="notification-matrix">
                     {emailMatrixConfigs[selectedCountry].rules.map((rule, index) => {
-                      const isRuleCollapsed = ruleCollapsedStates[index] || false;
+                      const isRuleCollapsed = ruleCollapsedStates[index] !== false; // Default to collapsed (true)
                       const allRoles = getAllRoles();
                       const availableRoles = allRoles.map(role => role.id);
                       const isCaseBookedRule = rule.status === CASE_STATUSES.CASE_BOOKED;
@@ -1019,9 +1257,7 @@ Best regards,
                                 checked={rule.enabled}
                                 onChange={(e) => {
                                   updateNotificationRule(index, { enabled: e.target.checked });
-                                  if (e.target.checked && isRuleCollapsed) {
-                                    setRuleCollapsedStates(prev => ({ ...prev, [index]: false }));
-                                  }
+                                  // Removed auto-expansion when enabling rule
                                 }}
                                 style={{ transform: 'scale(1.2)' }}
                                 onClick={(e) => e.stopPropagation()}

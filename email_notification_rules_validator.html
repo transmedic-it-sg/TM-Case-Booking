@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Notification Rules Validator & Configurator</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { border: 1px solid #ccc; margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+        .warning { color: orange; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; white-space: pre-wrap; font-size: 12px; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 3px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .rule-item { margin: 10px 0; padding: 10px; background: #f8f9fa; border-left: 4px solid #007bff; }
+        .rule-valid { border-left-color: #28a745; }
+        .rule-invalid { border-left-color: #dc3545; }
+        .rule-warning { border-left-color: #ffc107; }
+        .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .config-panel { background: #f8f9fa; padding: 15px; border-radius: 5px; }
+        textarea { width: 100%; height: 300px; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>📧 Email Notification Rules Validator & Configurator</h1>
+    <p>This tool validates and configures Email Notification Rules to ensure all notifications are properly integrated and not hardcoded.</p>
+    
+    <div class="section">
+        <h2>🔍 1. Current Configuration Analysis</h2>
+        <div id="analysis-results"></div>
+        <button onclick="analyzeCurrentConfig()" class="btn-primary">Analyze Current Configuration</button>
+    </div>
+    
+    <div class="section">
+        <h2>✅ 2. Validation Results</h2>
+        <div id="validation-results"></div>
+        <button onclick="validateAllRules()" class="btn-primary">Validate All Rules</button>
+    </div>
+    
+    <div class="section">
+        <h2>🔧 3. Configuration Migration</h2>
+        <div id="migration-results"></div>
+        <button onclick="migrateToFullConfig()" class="btn-success">Migrate to Full Email Notification Rules</button>
+        <button onclick="resetToDefaults()" class="btn-warning">Reset to Smart Defaults</button>
+    </div>
+    
+    <div class="section">
+        <h2>⚙️ 4. Advanced Configuration</h2>
+        <div class="config-grid">
+            <div class="config-panel">
+                <h3>Current Configuration</h3>
+                <textarea id="current-config" readonly></textarea>
+                <button onclick="exportConfig()" class="btn-primary">Export Configuration</button>
+            </div>
+            <div class="config-panel">
+                <h3>Import/Edit Configuration</h3>
+                <textarea id="import-config" placeholder="Paste configuration JSON here..."></textarea>
+                <button onclick="importConfig()" class="btn-success">Import Configuration</button>
+                <button onclick="validateImportConfig()" class="btn-warning">Validate Only</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>🧪 5. Test Configuration</h2>
+        <div id="test-results"></div>
+        <div>
+            <label>Test Case Country: <select id="test-country">
+                <option value="Singapore">Singapore</option>
+                <option value="Malaysia">Malaysia</option>
+                <option value="Philippines">Philippines</option>
+                <option value="Indonesia">Indonesia</option>
+                <option value="Vietnam">Vietnam</option>
+                <option value="Hongkong">Hong Kong</option>
+                <option value="Thailand">Thailand</option>
+            </select></label>
+            <label>Test Case Department: <select id="test-department">
+                <option value="General Surgery">General Surgery</option>
+                <option value="Cardiology">Cardiology</option>
+                <option value="Orthopedics">Orthopedics</option>
+                <option value="Neurosurgery">Neurosurgery</option>
+                <option value="Oncology">Oncology</option>
+                <option value="Emergency">Emergency</option>
+                <option value="Radiology">Radiology</option>
+                <option value="Pediatrics">Pediatrics</option>
+            </select></label>
+        </div>
+        <button onclick="testConfiguration()" class="btn-primary">Test All Status Notifications</button>
+    </div>
+
+    <script>
+        const CASE_STATUSES = [
+            'Case Booked', 'Order Preparation', 'Order Prepared',
+            'Pending Delivery (Hospital)', 'Delivered (Hospital)', 'Case Completed',
+            'Pending Delivery (Office)', 'Delivered (Office)', 'To be billed',
+            'Case Closed', 'Case Cancelled'
+        ];
+        
+        const USER_ROLES = {
+            ADMIN: 'admin',
+            OPERATIONS: 'operations',
+            OPERATIONS_MANAGER: 'operations-manager',
+            SALES: 'sales',
+            SALES_MANAGER: 'sales-manager',
+            DRIVER: 'driver',
+            IT: 'it'
+        };
+        
+        function validateNotificationRule(rule) {
+            const errors = [];
+            
+            if (!rule.status || typeof rule.status !== 'string') {
+                errors.push('Status is required and must be a string');
+            }
+            
+            if (typeof rule.enabled !== 'boolean') {
+                errors.push('Enabled flag must be a boolean');
+            }
+            
+            if (!rule.recipients) {
+                errors.push('Recipients configuration is required');
+            } else {
+                if (!Array.isArray(rule.recipients.roles)) {
+                    errors.push('Recipients roles must be an array');
+                }
+                
+                if (!Array.isArray(rule.recipients.specificEmails)) {
+                    errors.push('Specific emails must be an array');
+                }
+                
+                if (typeof rule.recipients.includeSubmitter !== 'boolean') {
+                    errors.push('Include submitter must be a boolean');
+                }
+                
+                if (!Array.isArray(rule.recipients.departmentFilter)) {
+                    errors.push('Department filter must be an array');
+                }
+                
+                if (typeof rule.recipients.requireSameDepartment !== 'boolean') {
+                    errors.push('Require same department must be a boolean');
+                }
+                
+                // Validate optional fields
+                if (rule.recipients.adminOverride !== undefined && typeof rule.recipients.adminOverride !== 'boolean') {
+                    errors.push('Admin override must be a boolean');
+                }
+                
+                if (rule.recipients.adminGlobalAccess !== undefined && typeof rule.recipients.adminGlobalAccess !== 'boolean') {
+                    errors.push('Admin global access must be a boolean');
+                }
+                
+                if (rule.recipients.legacyRoleMapping !== undefined && typeof rule.recipients.legacyRoleMapping !== 'object') {
+                    errors.push('Legacy role mapping must be an object');
+                }
+            }
+            
+            if (!rule.template) {
+                errors.push('Template configuration is required');
+            } else {
+                if (!rule.template.subject || typeof rule.template.subject !== 'string') {
+                    errors.push('Template subject is required and must be a string');
+                }
+                
+                if (!rule.template.body || typeof rule.template.body !== 'string') {
+                    errors.push('Template body is required and must be a string');
+                }
+            }
+            
+            return {
+                isValid: errors.length === 0,
+                errors
+            };
+        }
+        
+        function analyzeCurrentConfig() {
+            const results = document.getElementById('analysis-results');
+            let report = '<h3>📊 Configuration Analysis Report</h3>';
+            
+            // Check if Email Notification Rules exist
+            const matrixData = localStorage.getItem('email-matrix-configs-by-country');
+            if (!matrixData) {
+                report += '<div class="error">❌ No Email Notification Rules found! System is using hardcoded logic.</div>';
+                report += '<div class="warning">⚠️ This means all email notifications are currently hardcoded and not configurable.</div>';
+                results.innerHTML = report;
+                return;
+            }
+            
+            let matrix = JSON.parse(matrixData);
+            const countries = Object.keys(matrix);
+            
+            report += \`<div class="success">✅ Email Notification Rules found for \${countries.length} countries: \${countries.join(', ')}</div>\`;
+            
+            // Analyze each country's configuration
+            let totalRules = 0;
+            let validRules = 0;
+            let invalidRules = 0;
+            let missingStatuses = [];
+            let outdatedRules = 0;
+            
+            countries.forEach(country => {
+                const config = matrix[country];
+                const countryRules = config.rules || [];
+                totalRules += countryRules.length;
+                
+                report += \`<h4>📍 \${country} Configuration:</h4>\`;
+                
+                // Check for missing statuses
+                const countryMissing = CASE_STATUSES.filter(status => 
+                    !countryRules.find(rule => rule.status === status)
+                );
+                
+                if (countryMissing.length > 0) {
+                    missingStatuses.push(...countryMissing.map(s => \`\${country}: \${s}\`));
+                    report += \`<div class="error">❌ Missing \${countryMissing.length} status rules: \${countryMissing.join(', ')}</div>\`;
+                }
+                
+                // Validate existing rules
+                countryRules.forEach(rule => {
+                    const validation = validateNotificationRule(rule);
+                    if (validation.isValid) {
+                        validRules++;
+                    } else {
+                        invalidRules++;
+                        report += \`<div class="error">❌ Invalid rule for "\${rule.status}": \${validation.errors.join(', ')}</div>\`;
+                    }
+                    
+                    // Check for outdated configuration
+                    if (!rule.recipients.adminOverride && !rule.recipients.legacyRoleMapping) {
+                        outdatedRules++;
+                    }
+                });
+                
+                report += \`<div class="info">📋 \${countryRules.length} rules configured, \${CASE_STATUSES.length - countryMissing.length} complete</div>\`;
+            });
+            
+            // Summary
+            report += '<h4>📊 Overall Summary:</h4>';
+            report += \`<div class="info">• Total Rules: \${totalRules}</div>\`;
+            report += \`<div class="success">• Valid Rules: \${validRules}</div>\`;
+            if (invalidRules > 0) {
+                report += \`<div class="error">• Invalid Rules: \${invalidRules}</div>\`;
+            }
+            if (outdatedRules > 0) {
+                report += \`<div class="warning">• Outdated Rules: \${outdatedRules} (missing new configuration options)</div>\`;
+            }
+            if (missingStatuses.length > 0) {
+                report += \`<div class="error">• Missing Status Rules: \${missingStatuses.length}</div>\`;
+            }
+            
+            results.innerHTML = report;
+            
+            // Update current config display
+            document.getElementById('current-config').value = JSON.stringify(matrix, null, 2);
+        }
+        
+        function validateAllRules() {
+            const results = document.getElementById('validation-results');
+            let report = '<h3>✅ Validation Results</h3>';
+            
+            const matrixData = localStorage.getItem('email-matrix-configs-by-country');
+            if (!matrixData) {
+                report += '<div class="error">❌ No configuration to validate</div>';
+                results.innerHTML = report;
+                return;
+            }
+            
+            const matrix = JSON.parse(matrixData);
+            let allValid = true;
+            
+            Object.entries(matrix).forEach(([country, config]) => {
+                report += \`<h4>\${country} Rules:</h4>\`;
+                
+                (config.rules || []).forEach(rule => {
+                    const validation = validateNotificationRule(rule);
+                    const className = validation.isValid ? 'rule-valid' : 'rule-invalid';
+                    
+                    if (validation.isValid) {
+                        report += \`<div class="rule-item \${className}">✅ \${rule.status}: Valid</div>\`;
+                    } else {
+                        allValid = false;
+                        report += \`<div class="rule-item \${className}">❌ \${rule.status}: \${validation.errors.join(', ')}</div>\`;
+                    }
+                });
+            });
+            
+            if (allValid) {
+                report += '<div class="success">🎉 All rules are valid! Email Notification Rules are properly configured.</div>';
+            } else {
+                report += '<div class="error">❌ Some rules have validation errors. Use the migration tool to fix them.</div>';
+            }
+            
+            results.innerHTML = report;
+        }
+        
+        function migrateToFullConfig() {
+            const results = document.getElementById('migration-results');
+            let report = '<h3>🔧 Migration Results</h3>';
+            
+            // Get or create base configuration
+            let matrix = {};
+            const matrixData = localStorage.getItem('email-matrix-configs-by-country');
+            if (matrixData) {
+                matrix = JSON.parse(matrixData);
+            }
+            
+            const countries = ['Singapore', 'Malaysia', 'Philippines', 'Indonesia', 'Vietnam', 'Hongkong', 'Thailand'];
+            let rulesAdded = 0;
+            let rulesUpdated = 0;
+            
+            countries.forEach(country => {
+                if (!matrix[country]) {
+                    matrix[country] = { country: country, rules: [] };
+                }
+                
+                CASE_STATUSES.forEach(status => {
+                    let rule = matrix[country].rules.find(r => r.status === status);
+                    
+                    if (!rule) {
+                        // Create new rule with full configuration
+                        rule = createDefaultRule(status);
+                        matrix[country].rules.push(rule);
+                        rulesAdded++;
+                        report += \`<div class="success">✅ Added rule for \${country} - \${status}</div>\`;
+                    } else {
+                        // Update existing rule with missing fields
+                        const originalRule = JSON.stringify(rule);
+                        updateRuleToFullConfig(rule);
+                        
+                        if (JSON.stringify(rule) !== originalRule) {
+                            rulesUpdated++;
+                            report += \`<div class="info">🔄 Updated rule for \${country} - \${status}</div>\`;
+                        }
+                    }
+                });
+            });
+            
+            // Save updated configuration
+            localStorage.setItem('email-matrix-configs-by-country', JSON.stringify(matrix));
+            
+            report += \`<div class="success">🎉 Migration completed! Added \${rulesAdded} rules, updated \${rulesUpdated} rules.</div>\`;
+            report += '<div class="info">💡 All email notifications now use the Email Notification Rules system.</div>';
+            
+            results.innerHTML = report;
+            
+            // Refresh analysis
+            analyzeCurrentConfig();
+        }
+        
+        function createDefaultRule(status) {
+            // Define default roles based on status
+            let defaultRoles = [USER_ROLES.ADMIN];
+            
+            switch (status) {
+                case 'Case Booked':
+                case 'Order Preparation':
+                case 'Order Prepared':
+                    defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.OPERATIONS, USER_ROLES.OPERATIONS_MANAGER];
+                    break;
+                case 'Pending Delivery (Hospital)':
+                case 'Delivered (Hospital)':
+                    defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.OPERATIONS_MANAGER, USER_ROLES.DRIVER];
+                    break;
+                case 'Case Completed':
+                case 'Pending Delivery (Office)':
+                case 'Delivered (Office)':
+                    defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.SALES, USER_ROLES.SALES_MANAGER];
+                    break;
+                case 'To be billed':
+                case 'Case Closed':
+                    defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.SALES_MANAGER, USER_ROLES.OPERATIONS_MANAGER];
+                    break;
+                case 'Case Cancelled':
+                    defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.OPERATIONS_MANAGER, USER_ROLES.IT];
+                    break;
+            }
+            
+            return {
+                status: status,
+                enabled: true,
+                recipients: {
+                    roles: defaultRoles,
+                    specificEmails: [],
+                    includeSubmitter: status === 'Case Booked',
+                    departmentFilter: [],
+                    requireSameDepartment: false,
+                    adminOverride: true,
+                    adminGlobalAccess: true,
+                    legacyRoleMapping: {
+                        'operation-manager': 'operations-manager'
+                    }
+                },
+                template: {
+                    subject: \`Case Status Update: \${status} - {{caseReference}}\`,
+                    body: \`Dear Team,\\n\\nCase \${status} for {{hospital}} - {{department}}.\\n\\nCase Reference: {{caseReference}}\\nHospital: {{hospital}}\\nDepartment: {{department}}\\nDate: {{dateOfSurgery}}\\n\\nBest regards,\\n{{country}} Case Booking System\`
+                },
+                conditions: {
+                    countryRestrictions: [],
+                    timeRestrictions: {
+                        weekdaysOnly: false
+                    }
+                }
+            };
+        }
+        
+        function updateRuleToFullConfig(rule) {
+            // Add missing recipient fields
+            if (!rule.recipients.adminOverride) {
+                rule.recipients.adminOverride = true;
+            }
+            if (!rule.recipients.adminGlobalAccess) {
+                rule.recipients.adminGlobalAccess = true;
+            }
+            if (!rule.recipients.legacyRoleMapping) {
+                rule.recipients.legacyRoleMapping = {
+                    'operation-manager': 'operations-manager'
+                };
+            }
+            
+            // Add conditions if missing
+            if (!rule.conditions) {
+                rule.conditions = {
+                    countryRestrictions: [],
+                    timeRestrictions: {
+                        weekdaysOnly: false
+                    }
+                };
+            }
+        }
+        
+        function resetToDefaults() {
+            if (confirm('This will reset ALL Email Notification Rules to smart defaults. Are you sure?')) {
+                localStorage.removeItem('email-matrix-configs-by-country');
+                document.getElementById('migration-results').innerHTML = '<div class="success">✅ Configuration reset. Use "Migrate to Full Config" to recreate with defaults.</div>';
+                analyzeCurrentConfig();
+            }
+        }
+        
+        function exportConfig() {
+            const matrixData = localStorage.getItem('email-matrix-configs-by-country');
+            if (matrixData) {
+                const blob = new Blob([matrixData], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'email-notification-rules.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        }
+        
+        function importConfig() {
+            const configText = document.getElementById('import-config').value;
+            if (!configText.trim()) {
+                alert('Please paste configuration JSON first');
+                return;
+            }
+            
+            try {
+                const config = JSON.parse(configText);
+                localStorage.setItem('email-matrix-configs-by-country', JSON.stringify(config));
+                alert('Configuration imported successfully!');
+                analyzeCurrentConfig();
+            } catch (error) {
+                alert('Invalid JSON: ' + error.message);
+            }
+        }
+        
+        function validateImportConfig() {
+            const configText = document.getElementById('import-config').value;
+            if (!configText.trim()) {
+                alert('Please paste configuration JSON first');
+                return;
+            }
+            
+            try {
+                const config = JSON.parse(configText);
+                let errors = [];
+                
+                Object.entries(config).forEach(([country, countryConfig]) => {
+                    if (!countryConfig.rules || !Array.isArray(countryConfig.rules)) {
+                        errors.push(\`\${country}: rules must be an array\`);
+                        return;
+                    }
+                    
+                    countryConfig.rules.forEach(rule => {
+                        const validation = validateNotificationRule(rule);
+                        if (!validation.isValid) {
+                            errors.push(\`\${country} - \${rule.status}: \${validation.errors.join(', ')}\`);
+                        }
+                    });
+                });
+                
+                if (errors.length === 0) {
+                    alert('✅ Configuration is valid!');
+                } else {
+                    alert('❌ Validation errors:\\n' + errors.join('\\n'));
+                }
+            } catch (error) {
+                alert('Invalid JSON: ' + error.message);
+            }
+        }
+        
+        function testConfiguration() {
+            const results = document.getElementById('test-results');
+            const country = document.getElementById('test-country').value;
+            const department = document.getElementById('test-department').value;
+            
+            let report = \`<h3>🧪 Testing Configuration for \${country}/\${department}</h3>\`;
+            
+            const matrixData = localStorage.getItem('email-matrix-configs-by-country');
+            const usersData = localStorage.getItem('case-booking-users');
+            
+            if (!matrixData || !usersData) {
+                report += '<div class="error">❌ Missing data for testing</div>';
+                results.innerHTML = report;
+                return;
+            }
+            
+            const matrix = JSON.parse(matrixData);
+            const users = JSON.parse(usersData);
+            const countryMatrix = matrix[country];
+            
+            if (!countryMatrix) {
+                report += \`<div class="error">❌ No configuration found for \${country}</div>\`;
+                results.innerHTML = report;
+                return;
+            }
+            
+            const mockCase = { country, department };
+            
+            CASE_STATUSES.forEach(status => {
+                const rule = countryMatrix.rules?.find(r => r.status === status);
+                
+                if (!rule) {
+                    report += \`<div class="rule-item rule-invalid">❌ \${status}: No rule configured</div>\`;
+                    return;
+                }
+                
+                if (!rule.enabled) {
+                    report += \`<div class="rule-item rule-warning">⚠️ \${status}: Rule disabled</div>\`;
+                    return;
+                }
+                
+                // Test recipient calculation
+                const eligibleUsers = users.filter(user => {
+                    let hasRole = rule.recipients.roles.includes(user.role);
+                    
+                    // Apply legacy mapping
+                    if (!hasRole && rule.recipients.legacyRoleMapping && rule.recipients.legacyRoleMapping[user.role]) {
+                        hasRole = rule.recipients.roles.includes(rule.recipients.legacyRoleMapping[user.role]);
+                    }
+                    
+                    const hasCountry = user.countries?.includes(country);
+                    const hasEmail = user.email && user.email.trim();
+                    
+                    let hasDepartment = true;
+                    if (rule.recipients.requireSameDepartment && user.departments) {
+                        hasDepartment = user.departments.some(userDept => {
+                            const normalizedUserDept = userDept.includes(':') ? userDept.split(':')[1] : userDept;
+                            return normalizedUserDept === department;
+                        });
+                    }
+                    
+                    // Admin override
+                    if (user.role === 'admin' && rule.recipients.adminOverride && hasEmail) {
+                        return true;
+                    }
+                    
+                    return hasRole && hasCountry && hasEmail && hasDepartment;
+                });
+                
+                const statusClass = eligibleUsers.length > 0 ? 'rule-valid' : 'rule-warning';
+                report += \`<div class="rule-item \${statusClass}">
+                    \${eligibleUsers.length > 0 ? '✅' : '⚠️'} \${status}: \${eligibleUsers.length} recipients
+                    \${eligibleUsers.length > 0 ? \` (\${eligibleUsers.map(u => u.name).join(', ')})\` : ''}
+                </div>\`;
+            });
+            
+            results.innerHTML = report;
+        }
+        
+        // Auto-run analysis when page loads
+        document.addEventListener('DOMContentLoaded', analyzeCurrentConfig);
+    </script>
+</body>
+</html>

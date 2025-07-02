@@ -36,9 +36,19 @@ const UserManagement: React.FC = () => {
     enabled: true
   });
   const [error, setError] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
   const [availableRoles, setAvailableRoles] = useState<Array<{value: string, label: string}>>([]);
-  const [usersPerPage] = useState(10);
+  // Removed expandedUserBadges state - now using popup system instead of inline expansion
+  const [popupData, setPopupData] = useState<{
+    isOpen: boolean;
+    type: 'departments' | 'countries' | null;
+    items: string[];
+    userName: string;
+  }>({
+    isOpen: false,
+    type: null,
+    items: [],
+    userName: ''
+  });
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>(''); // For previewing users by country
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>(''); // For filtering by role
@@ -61,6 +71,24 @@ const UserManagement: React.FC = () => {
   const { showSuccess, showError } = useToast();
   const { playSound } = useSound();
 
+  // Cancel edit handler - defined before useEffect to avoid dependency issues
+  const handleCancelEdit = useCallback(() => {
+    setEditingUser(null);
+    setShowAddUser(false);
+    setNewUser({
+      username: '',
+      password: '',
+      name: '',
+      role: currentUser?.role === 'admin' ? 'admin' : 'operations',
+      departments: [],
+      countries: [],
+      email: '',
+      enabled: true
+    });
+    setError('');
+  }, [currentUser?.role]);
+
+  // ALL useEffect hooks MUST be called before any conditional returns
   useEffect(() => {
     initializeCodeTables();
     loadUsers();
@@ -76,6 +104,36 @@ const UserManagement: React.FC = () => {
   useEffect(() => {
     loadUsers();
   }, [selectedCountryFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle escape key to close add user form (removed click outside functionality)
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && showAddUser) {
+        handleCancelEdit();
+      }
+    };
+
+    // Always add the event listener, but only act when showAddUser is true
+    document.addEventListener('keydown', handleEscapeKey);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [showAddUser, handleCancelEdit]);
+
+  // Handle ESC key to close popup
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && popupData.isOpen) {
+        handleClosePopup();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [popupData.isOpen]);
 
   const loadAvailableRoles = () => {
     const allRoles = getAllRoles();
@@ -97,39 +155,6 @@ const UserManagement: React.FC = () => {
     loadAvailableRoles();
   };
 
-  // Cancel edit handler - defined before useEffect to avoid dependency issues
-  const handleCancelEdit = useCallback(() => {
-    setEditingUser(null);
-    setShowAddUser(false);
-    setNewUser({
-      username: '',
-      password: '',
-      name: '',
-      role: currentUser?.role === 'admin' ? 'admin' : 'operations',
-      departments: [],
-      countries: [],
-      email: '',
-      enabled: true
-    });
-    setError('');
-  }, [currentUser?.role]);
-
-  // Handle escape key to close add user form (removed click outside functionality)
-  useEffect(() => {
-    const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && showAddUser) {
-        handleCancelEdit();
-      }
-    };
-
-    if (showAddUser) {
-      document.addEventListener('keydown', handleEscapeKey);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscapeKey);
-    };
-  }, [showAddUser, handleCancelEdit]);
 
   const loadUsers = () => {
     const allUsers = getUsers();
@@ -363,15 +388,30 @@ const UserManagement: React.FC = () => {
 
   const getCurrentPageUsers = () => {
     const filteredUsers = getFilteredUsers();
-    const indexOfLastUser = currentPage * usersPerPage;
-    const indexOfFirstUser = indexOfLastUser - usersPerPage;
-    return filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+    // Show minimum 5 users, but allow scrolling if more
+    return filteredUsers;
   };
 
-  const totalPages = Math.ceil(getFilteredUsers().length / usersPerPage);
+  // Removed totalUsers as it's no longer displayed in table footer
+  
+  // Open popup to show all departments or countries
+  const handleShowMore = (type: 'departments' | 'countries', items: string[], userName: string) => {
+    setPopupData({
+      isOpen: true,
+      type,
+      items,
+      userName
+    });
+  };
 
-  const handlePageChange = (pageNumber: number) => {
-    setCurrentPage(pageNumber);
+  // Close popup
+  const handleClosePopup = () => {
+    setPopupData({
+      isOpen: false,
+      type: null,
+      items: [],
+      userName: ''
+    });
   };
 
   return (
@@ -702,7 +742,7 @@ const UserManagement: React.FC = () => {
                         setSelectedRoleFilter('');
                         setSelectedStatusFilter('');
                         setSelectedCountryFilter('');
-                        setCurrentPage(1);
+                        // Badge view is now handled by popup system - no reset needed
                       }}
                       className="btn btn-outline-secondary btn-md modern-clear-button"
                       disabled={!tempFilters.searchQuery && !tempFilters.selectedRoleFilter && !tempFilters.selectedStatusFilter && !tempFilters.selectedCountryFilter}
@@ -715,7 +755,7 @@ const UserManagement: React.FC = () => {
                         setSelectedRoleFilter(tempFilters.selectedRoleFilter);
                         setSelectedStatusFilter(tempFilters.selectedStatusFilter);
                         setSelectedCountryFilter(tempFilters.selectedCountryFilter);
-                        setCurrentPage(1);
+                        // Badge view is now handled by popup system - no reset needed
                       }}
                       className="btn btn-primary btn-md modern-apply-button"
                     >
@@ -784,26 +824,52 @@ const UserManagement: React.FC = () => {
                     </span>
                   </td>
                   <td className="department-column">
-                    <div className="badge-container">
+                    <div className="badge-container-vertical">
                       {user.departments && user.departments.length > 0 ? (
-                        user.departments.map((dept, index) => (
-                          <span key={index} className="badge badge-department" title={dept}>
-                            {dept}
-                          </span>
-                        ))
+                        <>
+                          <div className="badge-grid">
+                            {user.departments.slice(0, 4).map((dept, index) => (
+                              <span key={index} className="badge badge-department" title={dept}>
+                                {dept}
+                              </span>
+                            ))}
+                          </div>
+                          {user.departments.length > 4 && (
+                            <button
+                              className="badge badge-expandable"
+                              onClick={() => handleShowMore('departments', user.departments!, user.name)}
+                              title="Show all departments"
+                            >
+                              +{user.departments.length - 4} more
+                            </button>
+                          )}
+                        </>
                       ) : (
                         <span className="text-muted">No departments</span>
                       )}
                     </div>
                   </td>
                   <td className="countries-column">
-                    <div className="badge-container">
+                    <div className="badge-container-vertical">
                       {user.countries && user.countries.length > 0 ? (
-                        user.countries.map((country, index) => (
-                          <span key={index} className="badge badge-country" title={country}>
-                            {country}
-                          </span>
-                        ))
+                        <>
+                          <div className="badge-grid">
+                            {user.countries.slice(0, 4).map((country, index) => (
+                              <span key={index} className="badge badge-country" title={country}>
+                                {country}
+                              </span>
+                            ))}
+                          </div>
+                          {user.countries.length > 4 && (
+                            <button
+                              className="badge badge-expandable"
+                              onClick={() => handleShowMore('countries', user.countries!, user.name)}
+                              title="Show all countries"
+                            >
+                              +{user.countries.length - 4} more
+                            </button>
+                          )}
+                        </>
                       ) : (
                         <span className="text-muted">No countries</span>
                       )}
@@ -851,60 +917,6 @@ const UserManagement: React.FC = () => {
           </tbody>
         </table>
         
-        {totalPages > 1 && (
-          <div className="pagination-container">
-            <div className="pagination-info">
-              Showing {((currentPage - 1) * usersPerPage) + 1} to {Math.min(currentPage * usersPerPage, users.length)} of {users.length} users
-            </div>
-            <div className="pagination-controls">
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                onClick={() => handlePageChange(1)}
-                disabled={currentPage === 1}
-              >
-                First
-              </button>
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </button>
-              {[...Array(totalPages)].map((_, index) => {
-                const pageNumber = index + 1;
-                if (pageNumber === 1 || pageNumber === totalPages || (pageNumber >= currentPage - 2 && pageNumber <= currentPage + 2)) {
-                  return (
-                    <button
-                      key={pageNumber}
-                      className={`btn btn-sm ${pageNumber === currentPage ? 'btn-primary' : 'btn-outline-secondary'}`}
-                      onClick={() => handlePageChange(pageNumber)}
-                    >
-                      {pageNumber}
-                    </button>
-                  );
-                } else if (pageNumber === currentPage - 3 || pageNumber === currentPage + 3) {
-                  return <span key={pageNumber} className="pagination-ellipsis">...</span>;
-                }
-                return null;
-              })}
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </button>
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                onClick={() => handlePageChange(totalPages)}
-                disabled={currentPage === totalPages}
-              >
-                Last
-              </button>
-            </div>
-          </div>
-        )}
       </div>
         </div>
       )}
@@ -912,6 +924,38 @@ const UserManagement: React.FC = () => {
       {activeTab === 'roles' && (
         <div className="tab-content">
           <RoleManagement onRoleUpdate={handleRoleUpdate} />
+        </div>
+      )}
+
+      {/* Popup for showing all departments/countries */}
+      {popupData.isOpen && (
+        <div className="popup-overlay" onClick={handleClosePopup}>
+          <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header">
+              <h3>
+                {popupData.type === 'departments' ? 'All Departments' : 'All Countries'} - {popupData.userName}
+              </h3>
+              <button className="popup-close" onClick={handleClosePopup}>
+                ✕
+              </button>
+            </div>
+            <div className="popup-body">
+              <div className="popup-badge-grid">
+                {popupData.items.map((item, index) => (
+                  <span 
+                    key={index} 
+                    className={`badge ${popupData.type === 'departments' ? 'badge-department' : 'badge-country'}`}
+                    title={item}
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="popup-footer">
+              <p className="popup-info">Press ESC or click outside to close</p>
+            </div>
+          </div>
         </div>
       )}
 

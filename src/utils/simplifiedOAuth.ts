@@ -268,6 +268,11 @@ class SimplifiedOAuthManager {
     subject: string;
     body: string;
     from?: string;
+    attachments?: Array<{
+      filename: string;
+      content: string; // base64 encoded content
+      contentType: string;
+    }>;
   }): Promise<boolean> {
     if (this.provider === 'google') {
       return this.sendGmailEmail(accessToken, emailData);
@@ -281,15 +286,55 @@ class SimplifiedOAuthManager {
     subject: string;
     body: string;
     from?: string;
+    attachments?: Array<{
+      filename: string;
+      content: string; // base64 encoded content
+      contentType: string;
+    }>;
   }): Promise<boolean> {
     // Gmail API implementation
-    const message = [
-      `To: ${emailData.to.join(', ')}`,
-      `Subject: ${emailData.subject}`,
-      `Content-Type: text/html; charset=utf-8`,
-      '',
-      emailData.body
-    ].join('\n');
+    let message: string;
+    
+    if (emailData.attachments && emailData.attachments.length > 0) {
+      // MIME multipart message with attachments
+      const boundary = 'boundary_' + Math.random().toString(36).substr(2, 9);
+      message = [
+        `To: ${emailData.to.join(', ')}`,
+        `Subject: ${emailData.subject}`,
+        `MIME-Version: 1.0`,
+        `Content-Type: multipart/mixed; boundary="${boundary}"`,
+        '',
+        `--${boundary}`,
+        `Content-Type: text/html; charset=utf-8`,
+        '',
+        emailData.body,
+        ''
+      ].join('\n');
+      
+      // Add attachments
+      emailData.attachments.forEach(attachment => {
+        message += [
+          `--${boundary}`,
+          `Content-Type: ${attachment.contentType}`,
+          `Content-Disposition: attachment; filename="${attachment.filename}"`,
+          `Content-Transfer-Encoding: base64`,
+          '',
+          attachment.content,
+          ''
+        ].join('\n');
+      });
+      
+      message += `--${boundary}--`;
+    } else {
+      // Simple text/html message
+      message = [
+        `To: ${emailData.to.join(', ')}`,
+        `Subject: ${emailData.subject}`,
+        `Content-Type: text/html; charset=utf-8`,
+        '',
+        emailData.body
+      ].join('\n');
+    }
 
     const encodedMessage = btoa(unescape(encodeURIComponent(message)))
       .replace(/\+/g, '-')
@@ -315,9 +360,14 @@ class SimplifiedOAuthManager {
     subject: string;
     body: string;
     from?: string;
+    attachments?: Array<{
+      filename: string;
+      content: string; // base64 encoded content
+      contentType: string;
+    }>;
   }): Promise<boolean> {
     // Microsoft Graph API implementation
-    const message = {
+    const message: any = {
       message: {
         subject: emailData.subject,
         body: {
@@ -331,6 +381,16 @@ class SimplifiedOAuthManager {
         }))
       }
     };
+    
+    // Add attachments if provided
+    if (emailData.attachments && emailData.attachments.length > 0) {
+      message.message.attachments = emailData.attachments.map(attachment => ({
+        '@odata.type': '#microsoft.graph.fileAttachment',
+        name: attachment.filename,
+        contentType: attachment.contentType,
+        contentBytes: attachment.content
+      }));
+    }
 
     const response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
       method: 'POST',

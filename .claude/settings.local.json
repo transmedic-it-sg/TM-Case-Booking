@@ -56,7 +56,8 @@
       "Bash(npx eslint:*)",
       "Bash(git remote add:*)",
       "Bash(touch:*)",
-      "WebFetch(domain:tinypic.host)"
+      "WebFetch(domain:tinypic.host)",
+      "Bash(code --version)"
     ],
     "deny": []
   }
