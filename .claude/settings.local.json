@@ -58,7 +58,8 @@
       "Bash(touch:*)",
       "WebFetch(domain:tinypic.host)",
       "Bash(code --version)",
-      "Bash(/dev/null)"
+      "Bash(/dev/null)",
+      "Bash(git tag:*)"
     ],
     "deny": []
   }
