@@ -2179,6 +2179,79 @@ body {
   animation: spin 1s linear infinite;
 }
 
+/* Remember Me Checkbox */
+.remember-me-group {
+  margin-bottom: 20px;
+  margin-top: 10px;
+}
+
+.remember-me-checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  font-size: 14px;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.remember-me-checkbox:hover {
+  color: var(--primary-color);
+}
+
+.remember-me-checkbox input[type="checkbox"] {
+  display: none;
+}
+
+.remember-me-checkbox .checkmark {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-light);
+  border-radius: 3px;
+  margin-right: 10px;
+  background: var(--white);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.remember-me-checkbox:hover .checkmark {
+  border-color: var(--primary-color);
+  transform: scale(1.05);
+}
+
+.remember-me-checkbox input[type="checkbox"]:checked + .checkmark {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.remember-me-checkbox input[type="checkbox"]:checked + .checkmark::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.remember-me-checkbox input[type="checkbox"]:disabled + .checkmark {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.remember-me-checkbox input[type="checkbox"]:disabled ~ .remember-me-text {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.remember-me-text {
+  font-weight: 400;
+  line-height: 1.4;
+}
+
 /* Login Footer */
 .login-footer {
   text-align: center;
