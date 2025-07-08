@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Login from './components/Login';
+import SupabaseLogin from './components/SupabaseLogin';
 import ErrorBoundary from './components/ErrorBoundary';
 import CaseBookingForm from './components/CaseBookingForm';
 import CasesList from './components/CasesList';
@@ -168,7 +168,7 @@ const AppContent: React.FC = () => {
   };
 
   if (!user) {
-    return <Login onLogin={handleLogin} />;
+    return <SupabaseLogin onLogin={handleLogin} />;
   }
 
   return (
