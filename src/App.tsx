@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Login from './components/Login';
+import HybridLogin from './components/HybridLogin';
+import ErrorBoundary from './components/ErrorBoundary';
 import CaseBookingForm from './components/CaseBookingForm';
 import CasesList from './components/CasesList';
 import ProcessOrderPage from './components/ProcessOrderPage';
@@ -167,7 +169,7 @@ const AppContent: React.FC = () => {
   };
 
   if (!user) {
-    return <Login onLogin={handleLogin} />;
+    return <HybridLogin onLogin={handleLogin} />;
   }
 
   return (
@@ -451,13 +453,15 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <SoundProvider>
-      <NotificationProvider>
-        <ToastProvider>
-          <AppContent />
-        </ToastProvider>
-      </NotificationProvider>
-    </SoundProvider>
+    <ErrorBoundary>
+      <SoundProvider>
+        <NotificationProvider>
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
+        </NotificationProvider>
+      </SoundProvider>
+    </ErrorBoundary>
   );
 };
 

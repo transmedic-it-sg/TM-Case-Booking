@@ -59,7 +59,9 @@
       "WebFetch(domain:tinypic.host)",
       "Bash(code --version)",
       "Bash(/dev/null)",
-      "Bash(git tag:*)"
+      "Bash(git tag:*)",
+      "Bash(vercel:*)",
+      "WebFetch(domain:tm-case-booking.vercel.app)"
     ],
     "deny": []
   }

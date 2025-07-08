@@ -1,7 +1,7 @@
 {
   "name": "case-booking-app",
   "version": "1.2.0",
-  "homepage": "https://mika-nim.github.io/Live-CaseBooking",
+  "homepage": "/",
   "private": true,
   "dependencies": {
     "@supabase/supabase-js": "^2.50.3",
