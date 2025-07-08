@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import HybridLogin from './components/HybridLogin';
+import Login from './components/Login';
 import ErrorBoundary from './components/ErrorBoundary';
 import CaseBookingForm from './components/CaseBookingForm';
 import CasesList from './components/CasesList';
@@ -168,7 +168,7 @@ const AppContent: React.FC = () => {
   };
 
   if (!user) {
-    return <HybridLogin onLogin={handleLogin} />;
+    return <Login onLogin={handleLogin} />;
   }
 
   return (
