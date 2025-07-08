@@ -33,7 +33,9 @@
     "claude-overview": "node scripts/claude-speed-optimizer.js --overview-only",
     "claude-analyze": "find src -name '*.tsx' -o -name '*.ts' -o -name '*.css' | xargs wc -c | sort -nr",
     "claude-clean": "rm -rf .claude-optimized",
-    "claude-report": "cat .claude-optimized/size-report.md 2>/dev/null || echo 'Run npm run claude-optimize first'"
+    "claude-report": "cat .claude-optimized/size-report.md 2>/dev/null || echo 'Run npm run claude-optimize first'",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
@@ -52,5 +54,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
   }
 }
