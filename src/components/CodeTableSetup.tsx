@@ -5,12 +5,13 @@ import { useToast } from './ToastContainer';
 import { useSound } from '../contexts/SoundContext';
 import { COUNTRIES } from '../types';
 import { 
-  getCodeTables, 
-  saveCodeTables, 
-  initializeCodeTables,
-  initializeCountryCodeTables,
-  CodeTable 
-} from '../utils/codeTable';
+  getSupabaseCodeTables,
+  saveSupabaseCodeTables,
+  addSupabaseCodeTableItem,
+  updateSupabaseCodeTableItem,
+  removeSupabaseCodeTableItem,
+  CodeTable
+} from '../utils/supabaseCodeTableService';
 import {
   categorizeCodeTables,
   getFilteredTablesForUser,
@@ -71,14 +72,11 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       setIsLoading(true);
       
       try {
-        // Initialize global tables first to ensure countries table exists
-        initializeCodeTables();
-        
-        // Load global tables to get available countries
-        const globalTablesData = getCodeTables(); // No country parameter for global
+        // Load global tables from Supabase to get available countries
+        const globalTablesData = await getSupabaseCodeTables(); // No country parameter for global
         const countriesTable = globalTablesData.find(t => t.id === 'countries');
         
-        // Use countries from Global-Tables, fallback to COUNTRIES constant if empty
+        // Use countries from Supabase, fallback to COUNTRIES constant if empty
         const countries = countriesTable && countriesTable.items.length > 0 
           ? countriesTable.items 
           : [...COUNTRIES];
@@ -94,6 +92,14 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
             setSelectedCountry(countries[0]);
           }
         }
+      } catch (error) {
+        console.error('Error loading countries from Supabase:', error);
+        // Fallback to constants if Supabase fails
+        setAvailableCountries([...COUNTRIES]);
+        if (!selectedCountry && currentUser) {
+          const userCountry = currentUser.selectedCountry || currentUser.countries?.[0] || COUNTRIES[0];
+          setSelectedCountry(userCountry);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -103,20 +109,17 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - run only once on mount
 
-  // Load code tables from localStorage - optimized to prevent infinite loops
+  // Load code tables from Supabase - optimized to prevent infinite loops
   useEffect(() => {
     if (!currentUser || isLoading) return;
     
     const loadTables = async () => {
       try {
-        // Always initialize global tables first
-        initializeCodeTables();
-        
-        // Load ALL tables from global storage (includes countries, hospitals, departments)
-        const allTablesData = getCodeTables(); // Gets all default tables from global storage
+        // Load global tables from Supabase (countries, global departments, etc.)
+        const globalTablesData = await getSupabaseCodeTables(); // Gets all global tables from Supabase
         
         // Categorize tables into global and country-based using helper function
-        const { global: globalOnly } = categorizeCodeTables(allTablesData);
+        const { global: globalOnly } = categorizeCodeTables(globalTablesData);
         
         // Apply user filtering to global tables
         const filteredGlobalTables = getFilteredTablesForUser(globalOnly, currentUser);
@@ -131,11 +134,24 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
           setShowAddItem(false);
           setEditingItem(null);
           
-          // Initialize country-specific tables for the selected country
-          initializeCountryCodeTables(selectedCountry);
+          // Convert country name to country code
+          const getCountryCode = (country: string) => {
+            const countryMap: { [key: string]: string } = {
+              'Singapore': 'SG',
+              'Malaysia': 'MY',
+              'Philippines': 'PH',
+              'Indonesia': 'ID',
+              'Vietnam': 'VN',
+              'Hong Kong': 'HK',
+              'Thailand': 'TH'
+            };
+            return countryMap[country] || 'SG';
+          };
           
-          // Load country-based tables (hospitals, departments) from country-specific storage
-          const countryTablesData = getCodeTables(selectedCountry);
+          const countryCode = getCountryCode(selectedCountry);
+          
+          // Load country-based tables (hospitals, departments) from Supabase
+          const countryTablesData = await getSupabaseCodeTables(countryCode);
           const filteredCountryTables = getFilteredTablesForUser(countryTablesData, currentUser);
           
           // Set country-based tables
@@ -146,7 +162,8 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
           setCountryBasedTables([]);
         }
       } catch (error) {
-        console.error('Error loading code tables:', error);
+        console.error('Error loading code tables from Supabase:', error);
+        // You could add fallback to localStorage here if needed
       }
     };
     
@@ -198,7 +215,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
 
 
 
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     const trimmedName = newItemName.trim();
     const currentTable = getCurrentTable();
     
@@ -233,23 +250,51 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     // Set manual update flag to prevent automatic save
     setIsManualUpdate(true);
     
-    // Update country-based tables only
-    setCountryBasedTables(prev => {
-      const updated = prev.map(table => 
-        table.id === selectedTable 
-          ? { ...table, items: [...table.items, trimmedName] }
-          : table
-      );
-      saveCodeTables(updated, selectedCountry); // Save country tables immediately
-      return updated;
-    });
-    
-    setNewItemName('');
-    setShowAddItem(false);
-    setItemError('');
-    
-    playSound.success();
-    showSuccess('Item Added', `"${trimmedName}" has been added to ${currentTable.name}`);
+    try {
+      // Convert country name to country code
+      const getCountryCode = (country: string) => {
+        const countryMap: { [key: string]: string } = {
+          'Singapore': 'SG',
+          'Malaysia': 'MY',
+          'Philippines': 'PH',
+          'Indonesia': 'ID',
+          'Vietnam': 'VN',
+          'Hong Kong': 'HK',
+          'Thailand': 'TH'
+        };
+        return countryMap[country] || 'SG';
+      };
+      
+      const countryCode = getCountryCode(selectedCountry);
+      
+      // Add item to Supabase
+      const success = await addSupabaseCodeTableItem(selectedTable, trimmedName, countryCode);
+      
+      if (!success) {
+        setItemError('Failed to add item. It may already exist.');
+        return;
+      }
+      
+      // Update local state only if Supabase operation succeeded
+      setCountryBasedTables(prev => {
+        return prev.map(table => 
+          table.id === selectedTable 
+            ? { ...table, items: [...table.items, trimmedName].sort() }
+            : table
+        );
+      });
+      
+      setNewItemName('');
+      setShowAddItem(false);
+      setItemError('');
+      
+      playSound.success();
+      showSuccess('Item Added', `"${trimmedName}" has been added to ${currentTable.name}`);
+      
+    } catch (error) {
+      console.error('Error adding item to Supabase:', error);
+      setItemError('Failed to add item. Please try again.');
+    }
   };
 
   const handleEditItem = (oldName: string, newName: string) => {

@@ -6,6 +6,7 @@ import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getStatusColor } from './CasesList/utils';
 import { formatDate } from '../utils/dateFormat';
+import { useUserNames } from '../hooks/useUserNames';
 import FilterDatePicker from './FilterDatePicker';
 import SearchableDropdown from './SearchableDropdown';
 import './Reports.css';
@@ -56,6 +57,20 @@ const Reports: React.FC = () => {
     submitter: '',
     reportType: 'overview'
   });
+
+  // Extract user IDs for name resolution - memoized to prevent infinite re-renders
+  const userIds = useMemo(() => {
+    const uniqueUserIds = new Set<string>();
+    cases.forEach(caseItem => {
+      if (caseItem.submittedBy) uniqueUserIds.add(caseItem.submittedBy);
+      if (caseItem.processedBy) uniqueUserIds.add(caseItem.processedBy);
+      if (caseItem.amendedBy) uniqueUserIds.add(caseItem.amendedBy);
+    });
+    return Array.from(uniqueUserIds);
+  }, [cases]);
+
+  // Hook to resolve user IDs to names
+  const { getUserName } = useUserNames(userIds);
 
   // Load countries from Global-Table
   useEffect(() => {
@@ -123,9 +138,11 @@ const Reports: React.FC = () => {
 
     // Submitter filter
     if (filters.submitter) {
-      filtered = filtered.filter(c => 
-        c.submittedBy.toLowerCase().includes(filters.submitter.toLowerCase())
-      );
+      filtered = filtered.filter(c => {
+        const userName = getUserName(c.submittedBy);
+        return userName.toLowerCase().includes(filters.submitter.toLowerCase()) ||
+               c.submittedBy.toLowerCase().includes(filters.submitter.toLowerCase());
+      });
     }
 
     setFilteredCases(filtered);
@@ -174,7 +191,8 @@ const Reports: React.FC = () => {
     // Top submitters
     const submitterCounts: Record<string, number> = {};
     filteredCases.forEach(c => {
-      submitterCounts[c.submittedBy] = (submitterCounts[c.submittedBy] || 0) + 1;
+      const userName = getUserName(c.submittedBy);
+      submitterCounts[userName] = (submitterCounts[userName] || 0) + 1;
     });
     const topSubmitters = Object.entries(submitterCounts)
       .map(([name, count]) => ({ name, count }))
@@ -212,8 +230,12 @@ const Reports: React.FC = () => {
 
   // Get available options for dropdowns
   const availableSubmitters = useMemo(() => {
-    return Array.from(new Set(cases.map(c => c.submittedBy))).sort();
-  }, [cases]);
+    const userIds = Array.from(new Set(cases.map(c => c.submittedBy)));
+    return userIds.map(userId => ({
+      id: userId,
+      name: getUserName(userId)
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [cases, getUserName]);
 
   const availableCountries = useMemo(() => {
     const userCountries = currentUser?.role === 'admin' || currentUser?.role === 'it' 
@@ -386,8 +408,8 @@ const Reports: React.FC = () => {
                         options={[
                           { value: '', label: 'All Submitters' },
                           ...availableSubmitters.map(submitter => ({
-                            value: submitter,
-                            label: submitter
+                            value: submitter.name,
+                            label: submitter.name
                           }))
                         ]}
                         value={tempFilters.submitter}
@@ -788,7 +810,7 @@ const DetailedReport: React.FC<{ cases: CaseBooking[] }> = ({ cases }) => (
                 </span>
               </td>
               <td>{caseItem.country}</td>
-              <td>{caseItem.submittedBy}</td>
+              <td>{getUserName(caseItem.submittedBy)}</td>
             </tr>
           ))}
         </tbody>
