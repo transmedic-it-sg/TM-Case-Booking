@@ -96,17 +96,45 @@ export const updateSupabasePermission = async (
   allowed: boolean
 ): Promise<boolean> => {
   try {
-    const { error } = await supabase
+    // First check if the permission exists
+    const { data: existing, error: checkError } = await supabase
       .from('permissions')
-      .upsert({
-        role_id: roleId,
-        action_id: actionId,
-        allowed: allowed
-      });
+      .select('id')
+      .eq('role_id', roleId)
+      .eq('action_id', actionId)
+      .single();
     
-    if (error) {
-      console.error('Error updating permission:', error);
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking existing permission:', checkError);
       return false;
+    }
+    
+    if (existing) {
+      // Update existing permission
+      const { error: updateError } = await supabase
+        .from('permissions')
+        .update({ allowed: allowed })
+        .eq('role_id', roleId)
+        .eq('action_id', actionId);
+      
+      if (updateError) {
+        console.error('Error updating existing permission:', updateError);
+        return false;
+      }
+    } else {
+      // Insert new permission
+      const { error: insertError } = await supabase
+        .from('permissions')
+        .insert({
+          role_id: roleId,
+          action_id: actionId,
+          allowed: allowed
+        });
+      
+      if (insertError) {
+        console.error('Error inserting new permission:', insertError);
+        return false;
+      }
     }
     
     return true;

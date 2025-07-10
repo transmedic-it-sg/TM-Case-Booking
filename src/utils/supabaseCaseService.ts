@@ -305,8 +305,8 @@ export const updateSupabaseCaseStatus = async (
         status: newStatus,
         processed_by: changedBy,
         timestamp: new Date().toISOString(),
-        details,
-        attachments
+        details: details || null,
+        attachments: attachments || null
       }]);
     
     if (historyError) {
@@ -407,21 +407,8 @@ export const amendSupabaseCase = async (
       throw updateError;
     }
     
-    // Add status history entry
-    const { error: historyError } = await supabase
-      .from('status_history')
-      .insert([{
-        case_id: caseId,
-        status: 'Case Booked', // Status typically remains the same when amended
-        processed_by: amendedBy,
-        timestamp: new Date().toISOString(),
-        details: 'Case amended'
-      }]);
-    
-    if (historyError) {
-      console.error('Error creating amendment history:', historyError);
-      throw historyError;
-    }
+    // Note: No status history entry needed for amendments since status doesn't change
+    // The amendment tracking is handled via the is_amended, amended_by, and amended_at fields
   } catch (error) {
     console.error('Error in amendSupabaseCase:', error);
     throw error;

@@ -9,6 +9,7 @@ import {
   updateSupabasePermission, 
   resetSupabasePermissions 
 } from '../utils/supabasePermissionService';
+import { clearPermissionsCache } from '../utils/permissions';
 import { useModal } from '../hooks/useModal';
 import CustomModal from './CustomModal';
 import './PermissionMatrixPage.css';
@@ -21,16 +22,15 @@ const PermissionMatrixPage: React.FC = () => {
 
   // Load permissions and roles on component mount
   useEffect(() => {
-    // Load roles from database
+    // Load roles from both static definitions and custom roles
     const loadRoles = async () => {
       try {
-        const databaseRoles = await getSupabaseRoles();
-        // Filter out admin role from matrix display
-        const matrixRoles = databaseRoles.filter(role => role.id !== 'admin');
-        setRoles(matrixRoles);
+        // Use getAllMatrixRoles which includes both static and custom roles (excluding admin)
+        const allMatrixRoles = getAllMatrixRoles();
+        setRoles(allMatrixRoles);
       } catch (error) {
-        console.error('Error loading roles from database:', error);
-        // Fallback to static roles
+        console.error('Error loading roles:', error);
+        // Fallback to static roles only
         const allMatrixRoles = getAllMatrixRoles();
         setRoles(allMatrixRoles);
       }
@@ -88,6 +88,9 @@ const PermissionMatrixPage: React.FC = () => {
       // Update the permission in Supabase
       await updateSupabasePermission(roleId, actionId, allowed);
       
+      // Clear the permissions cache to force reload with new permissions
+      clearPermissionsCache();
+      
       // Update local state
       setPermissions(prevPermissions => {
         const existingIndex = prevPermissions.findIndex(
@@ -130,6 +133,8 @@ const PermissionMatrixPage: React.FC = () => {
         // Permissions are already saved in real-time via updateSupabasePermission
         // But we can still save the current state to ensure consistency
         await saveSupabasePermissions(permissions);
+        // Clear the permissions cache to force reload with new permissions
+        clearPermissionsCache();
         setIsEditing(false);
         showSuccess('Permissions saved successfully!');
       } catch (error) {

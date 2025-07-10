@@ -17,6 +17,14 @@ export const useUserNames = (userIds: string[]) => {
       
       try {
         const names = await getUserNamesByIds(userIds);
+        
+        // Debug logging for specific problematic UUIDs
+        const problematicIds = userIds.filter(id => names[id] === id && id.includes('-'));
+        if (problematicIds.length > 0) {
+          console.log('User lookup failed for IDs:', problematicIds);
+          console.log('All user names resolved:', names);
+        }
+        
         setUserNames(names);
       } catch (error) {
         console.error('Error loading user names:', error);

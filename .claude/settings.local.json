@@ -65,7 +65,11 @@
       "Bash(npx supabase:*)",
       "Bash(kill:*)",
       "Bash(GENERATE_SOURCEMAP=false npm start)",
-      "Bash(export:*)"
+      "Bash(export:*)",
+      "Bash(timeout 30 npm run build)",
+      "Bash(timeout 15 npm start)",
+      "Bash(timeout 60s npm run build:*)",
+      "Bash(timeout 90s npm run build:*)"
     ],
     "deny": []
   }

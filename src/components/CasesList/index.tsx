@@ -11,6 +11,7 @@ import StatusChangeSuccessPopup from '../StatusChangeSuccessPopup';
 import CustomModal from '../CustomModal';
 import { useModal } from '../../hooks/useModal';
 import { USER_ROLES } from '../../constants/permissions';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { userHasDepartmentAccess } from '../../utils/departmentUtils';
 
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
@@ -344,7 +345,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
     try {
       const isAdmin = currentUser.role === 'admin';
-      await amendCase(caseId, amendmentData, currentUser.name, isAdmin);
+      await amendCase(caseId, amendmentData, currentUser.id, isAdmin);
       setAmendingCase(null);
       setAmendmentData({});
       await loadCases();
@@ -385,7 +386,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     try {
       const caseItem = cases.find(c => c.id === caseId);
       // Use the specific processCaseOrder function for order processing
-      await processCaseOrder(caseId, currentUser.name, processDetails);
+      await processCaseOrder(caseId, currentUser.id, processDetails);
       setProcessingCase(null);
       setProcessDetails('');
       setProcessAttachments([]);
@@ -745,7 +746,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     
     showConfirm('Cancel Case', confirmMessage, async () => {
       try {
-        await updateCaseStatus(caseId, 'Case Cancelled', currentUser.name, 'Case cancelled by user request');
+        await updateCaseStatus(caseId, 'Case Cancelled', currentUser.id, 'Case cancelled by user request');
         await loadCases();
         
         // Reset to page 1 and expand the updated case

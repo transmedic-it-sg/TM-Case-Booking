@@ -161,9 +161,14 @@ const AppContent: React.FC = () => {
   // Helper function to check if user has admin access
   const hasAdminAccess = (user: User | null): boolean => {
     if (!user) return false;
-    return user.role === 'admin' || 
-           hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) ||
-           (user.role === 'it');
+    
+    // Admin and IT roles always have admin access
+    if (user.role === 'admin' || user.role === 'it') {
+      return true;
+    }
+    
+    // For other roles, check specific permissions
+    return hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS);
   };
 
   // Helper function to toggle admin panel

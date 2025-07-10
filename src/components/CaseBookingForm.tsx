@@ -57,14 +57,68 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       const allTypes = getAllProcedureTypes(userCountry);
       setAvailableProcedureTypes(allTypes.sort());
       
-      // Load hospitals from country-specific code tables
-      if (userCountry) {
-        const hospitals = getHospitalsForCountry(userCountry);
-        setAvailableHospitals(hospitals.sort());
-      } else {
-        // Fallback to global hospitals if no country selected
-        const hospitals = getHospitals();
-        setAvailableHospitals(hospitals.sort());
+      // Load hospitals from Supabase code tables
+      try {
+        if (userCountry) {
+          // Convert country name to country code
+          const getCountryCode = (country: string) => {
+            const countryMap: { [key: string]: string } = {
+              'Singapore': 'SG',
+              'Malaysia': 'MY',
+              'Philippines': 'PH',
+              'Indonesia': 'ID',
+              'Vietnam': 'VN',
+              'Hong Kong': 'HK',
+              'Thailand': 'TH'
+            };
+            return countryMap[country] || 'SG';
+          };
+          
+          const countryCode = getCountryCode(userCountry);
+          
+          // Load hospitals from Supabase for this country
+          const { getSupabaseCodeTables, addSupabaseCodeTableItem } = await import('../utils/supabaseCodeTableService');
+          let countryTables = await getSupabaseCodeTables(countryCode);
+          let hospitalTable = countryTables.find(table => table.id === 'hospitals');
+          
+          // If no hospitals exist for this country, seed them
+          if (!hospitalTable || hospitalTable.items.length === 0) {
+            const sampleHospitals = [
+              `${userCountry} General Hospital`,
+              `${userCountry} Medical Center`,
+              `${userCountry} Specialist Hospital`,
+              `${userCountry} Regional Hospital`
+            ];
+            
+            for (const hospital of sampleHospitals) {
+              try {
+                await addSupabaseCodeTableItem('hospitals', hospital, countryCode);
+              } catch (error) {
+                console.error('Error seeding hospital:', hospital, error);
+              }
+            }
+            
+            // Reload tables after seeding
+            countryTables = await getSupabaseCodeTables(countryCode);
+            hospitalTable = countryTables.find(table => table.id === 'hospitals');
+          }
+          
+          const hospitals = hospitalTable?.items || [];
+          setAvailableHospitals(hospitals.sort());
+        } else {
+          // Fallback to empty list if no country selected
+          setAvailableHospitals([]);
+        }
+      } catch (error) {
+        console.error('Error loading hospitals from Supabase, using fallback:', error);
+        // Fallback to localStorage-based functions
+        if (userCountry) {
+          const hospitals = getHospitalsForCountry(userCountry);
+          setAvailableHospitals(hospitals.sort());
+        } else {
+          const hospitals = getHospitals();
+          setAvailableHospitals(hospitals.sort());
+        }
       }
       
       // Load categorized sets from Supabase

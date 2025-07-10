@@ -187,15 +187,21 @@ export const addSupabaseCodeTableItem = async (
     }
 
     // Insert new item
+    const insertData: any = {
+      table_type: tableType,
+      code: generateCode(item),
+      display_name: item,
+      is_active: true
+    };
+    
+    // Only set country if it's provided (for country-specific tables)
+    if (country) {
+      insertData.country = country;
+    }
+    
     const { error: insertError } = await supabase
       .from('code_tables')
-      .insert({
-        country,
-        table_type: tableType,
-        code: generateCode(item),
-        display_name: item,
-        is_active: true
-      });
+      .insert(insertData);
 
     if (insertError) {
       console.error('Error inserting item:', insertError);

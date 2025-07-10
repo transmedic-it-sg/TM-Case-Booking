@@ -146,7 +146,7 @@ const Reports: React.FC = () => {
     }
 
     setFilteredCases(filtered);
-  }, [cases, filters]);
+  }, [cases, filters, getUserName]);
 
   // Generate report data
   const reportData: ReportData = useMemo(() => {
@@ -226,7 +226,7 @@ const Reports: React.FC = () => {
       urgentCases,
       completionRate
     };
-  }, [filteredCases, globalCountries]);
+  }, [filteredCases, globalCountries, getUserName]);
 
   // Get available options for dropdowns
   const availableSubmitters = useMemo(() => {
@@ -596,7 +596,7 @@ const Reports: React.FC = () => {
           <PerformanceMetrics data={reportData} />
         )}
         {filters.reportType === 'detailed' && (
-          <DetailedReport cases={filteredCases} />
+          <DetailedReport cases={filteredCases} getUserName={getUserName} />
         )}
       </div>
     </div>
@@ -765,7 +765,7 @@ const PerformanceMetrics: React.FC<{ data: ReportData }> = ({ data }) => (
 );
 
 // Detailed Report Component
-const DetailedReport: React.FC<{ cases: CaseBooking[] }> = ({ cases }) => (
+const DetailedReport: React.FC<{ cases: CaseBooking[]; getUserName: (userId: string) => string }> = ({ cases, getUserName }) => (
   <div className="detailed-report">
     <h3>📋 Detailed Case Report</h3>
     <div className="detailed-table-container">

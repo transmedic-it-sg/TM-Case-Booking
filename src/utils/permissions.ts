@@ -26,11 +26,15 @@ export const saveRuntimePermissions = async (permissions: Permission[]): Promise
   try {
     const { saveSupabasePermissions } = await import('./supabasePermissionService');
     await saveSupabasePermissions(permissions);
-    // Update cache after successful save
+    // Clear cache first, then update with new permissions
+    clearPermissionsCache();
     permissionsCache = permissions;
     permissionsCacheTime = Date.now();
+    console.log('Permissions saved and cache updated');
   } catch (error) {
     console.error('Error saving runtime permissions:', error);
+    // Clear cache on error to force reload from Supabase
+    clearPermissionsCache();
   }
 };
 
@@ -45,10 +49,29 @@ export const hasPermission = (roleId: string, actionId: string): boolean => {
   let permissionsToCheck = defaultPermissions;
   if (permissionsCache && (Date.now() - permissionsCacheTime < CACHE_DURATION)) {
     permissionsToCheck = permissionsCache;
+    // console.log(`Using cached permissions for ${roleId} - ${actionId}`);
+  } else {
+    // console.log(`Using default permissions for ${roleId} - ${actionId} (cache expired or not available)`);
   }
   
   const permission = permissionsToCheck.find(p => p.roleId === roleId && p.actionId === actionId);
-  return permission?.allowed || false;
+  const result = permission?.allowed || false;
+  
+  // Debug logging for IT role permissions
+  if (roleId === 'it' && ['create-case', 'code-table-setup', 'view-users', 'email-config', 'audit-logs'].includes(actionId)) {
+    console.log(`Permission check for IT ${actionId}: ${result}`, {
+      roleId,
+      actionId,
+      permission,
+      usingCache: permissionsCache && (Date.now() - permissionsCacheTime < CACHE_DURATION),
+      cacheTime: permissionsCacheTime,
+      now: Date.now(),
+      cacheAge: Date.now() - permissionsCacheTime,
+      cacheDuration: CACHE_DURATION
+    });
+  }
+  
+  return result;
 };
 
 // Initialize permissions cache
@@ -58,6 +81,13 @@ export const initializePermissions = async (): Promise<void> => {
   } catch (error) {
     console.error('Error initializing permissions:', error);
   }
+};
+
+// Clear permissions cache to force reload
+export const clearPermissionsCache = (): void => {
+  permissionsCache = null;
+  permissionsCacheTime = 0;
+  console.log('Permissions cache cleared');
 };
 
 // Get all permissions for a specific role

@@ -1,5 +1,6 @@
 import { User } from '../types';
 import { getUsers } from './auth';
+import { supabase } from '../lib/supabase';
 
 // Cache for user data to avoid repeated API calls
 let usersCache: User[] | null = null;
@@ -41,6 +42,7 @@ export const getUserNameById = async (userId: string): Promise<string> => {
  * Convert multiple user IDs to names
  */
 export const getUserNamesByIds = async (userIds: string[]): Promise<Record<string, string>> => {
+  // First try the cached users approach
   const users = await getCachedUsers();
   const result: Record<string, string> = {};
   
@@ -49,6 +51,24 @@ export const getUserNamesByIds = async (userIds: string[]): Promise<Record<strin
     result[userId] = user ? user.name : userId;
   });
   
+  // For any UUIDs that weren't found, try direct Supabase lookup
+  const missingIds = userIds.filter(id => result[id] === id && id.includes('-'));
+  if (missingIds.length > 0) {
+    try {
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', missingIds);
+      
+      if (!error && profiles) {
+        profiles.forEach(profile => {
+          result[profile.id] = profile.name;
+        });
+      }
+    } catch (error) {
+      console.error('Error in direct Supabase user lookup:', error);
+    }
+  }
   return result;
 };
 

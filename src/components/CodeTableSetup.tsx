@@ -6,6 +6,7 @@ import { useSound } from '../contexts/SoundContext';
 import { COUNTRIES } from '../types';
 import { 
   getSupabaseCodeTables,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   saveSupabaseCodeTables,
   addSupabaseCodeTableItem,
   updateSupabaseCodeTableItem,
@@ -74,9 +75,26 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       try {
         // Load global tables from Supabase to get available countries
         const globalTablesData = await getSupabaseCodeTables(); // No country parameter for global
-        const countriesTable = globalTablesData.find(t => t.id === 'countries');
+        let countriesTable = globalTablesData.find(t => t.id === 'countries');
         
-        // Use countries from Supabase, fallback to COUNTRIES constant if empty
+        // If countries table doesn't exist or is empty, seed it with COUNTRIES constant
+        if (!countriesTable || countriesTable.items.length === 0) {
+          // Create countries table with all countries from COUNTRIES constant
+          try {
+            // Add each country to the global code tables
+            for (const country of COUNTRIES) {
+              await addSupabaseCodeTableItem('countries', country); // No country parameter for global
+            }
+            
+            // Reload global tables to get the updated countries
+            const updatedGlobalTablesData = await getSupabaseCodeTables();
+            countriesTable = updatedGlobalTablesData.find(t => t.id === 'countries');
+          } catch (error) {
+            console.error('Error seeding countries in global tables:', error);
+          }
+        }
+        
+        // Use countries from Supabase, fallback to COUNTRIES constant if still empty
         const countries = countriesTable && countriesTable.items.length > 0 
           ? countriesTable.items 
           : [...COUNTRIES];
@@ -151,7 +169,48 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
           const countryCode = getCountryCode(selectedCountry);
           
           // Load country-based tables (hospitals, departments) from Supabase
-          const countryTablesData = await getSupabaseCodeTables(countryCode);
+          let countryTablesData = await getSupabaseCodeTables(countryCode);
+          
+          // Check if hospitals table exists for this country, if not seed with sample hospitals
+          const hospitalsTable = countryTablesData.find(t => t.id === 'hospitals');
+          if (!hospitalsTable || hospitalsTable.items.length === 0) {
+            try {
+              // Add sample hospitals for this country
+              const sampleHospitals = [
+                `${selectedCountry} General Hospital`,
+                `${selectedCountry} Medical Center`,
+                `${selectedCountry} Specialist Hospital`,
+                `${selectedCountry} Regional Hospital`
+              ];
+              
+              for (const hospital of sampleHospitals) {
+                await addSupabaseCodeTableItem('hospitals', hospital, countryCode);
+              }
+              
+              // Reload country tables to get the updated hospitals
+              countryTablesData = await getSupabaseCodeTables(countryCode);
+            } catch (error) {
+              console.error('Error seeding hospitals for country:', error);
+            }
+          }
+          
+          // Check if departments table exists for this country, if not seed with DEPARTMENTS
+          const departmentsTable = countryTablesData.find(t => t.id === 'departments');
+          if (!departmentsTable || departmentsTable.items.length === 0) {
+            try {
+              // Add all departments from DEPARTMENTS constant
+              const { DEPARTMENTS } = await import('../types');
+              for (const department of DEPARTMENTS) {
+                await addSupabaseCodeTableItem('departments', department, countryCode);
+              }
+              
+              // Reload country tables to get the updated departments
+              countryTablesData = await getSupabaseCodeTables(countryCode);
+            } catch (error) {
+              console.error('Error seeding departments for country:', error);
+            }
+          }
+          
           const filteredCountryTables = getFilteredTablesForUser(countryTablesData, currentUser);
           
           // Set country-based tables
@@ -297,7 +356,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     }
   };
 
-  const handleEditItem = (oldName: string, newName: string) => {
+  const handleEditItem = async (oldName: string, newName: string) => {
     const trimmedName = newName.trim();
     const currentTable = getCurrentTable();
     
@@ -327,25 +386,53 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     // Set manual update flag to prevent automatic save
     setIsManualUpdate(true);
     
-    // Update country-based tables only
-    setCountryBasedTables(prev => {
-      const updated = prev.map(table => 
-        table.id === selectedTable 
-          ? { 
-              ...table, 
-              items: table.items.map(item => item === oldName ? trimmedName : item) 
-            }
-          : table
-      );
-      saveCodeTables(updated, selectedCountry); // Save country tables immediately
-      return updated;
-    });
-    
-    setEditingItem(null);
-    setEditItemValue('');
-    setItemError('');
-    playSound.success();
-    showSuccess('Item Updated', `"${oldName}" has been renamed to "${trimmedName}"`);
+    try {
+      // Convert country name to country code
+      const getCountryCode = (country: string) => {
+        const countryMap: { [key: string]: string } = {
+          'Singapore': 'SG',
+          'Malaysia': 'MY',
+          'Philippines': 'PH',
+          'Indonesia': 'ID',
+          'Vietnam': 'VN',
+          'Hong Kong': 'HK',
+          'Thailand': 'TH'
+        };
+        return countryMap[country] || 'SG';
+      };
+      
+      const countryCode = getCountryCode(selectedCountry);
+      
+      // Update item in Supabase
+      const success = await updateSupabaseCodeTableItem(selectedTable, oldName, trimmedName, countryCode);
+      
+      if (!success) {
+        setItemError('Failed to update item. The new name may already exist.');
+        return;
+      }
+      
+      // Update local state only if Supabase operation succeeded
+      setCountryBasedTables(prev => {
+        return prev.map(table => 
+          table.id === selectedTable 
+            ? { 
+                ...table, 
+                items: table.items.map(item => item === oldName ? trimmedName : item) 
+              }
+            : table
+        );
+      });
+      
+      setEditingItem(null);
+      setEditItemValue('');
+      setItemError('');
+      playSound.success();
+      showSuccess('Item Updated', `"${oldName}" has been renamed to "${trimmedName}"`);
+      
+    } catch (error) {
+      console.error('Error updating item in Supabase:', error);
+      setItemError('Failed to update item. Please try again.');
+    }
   };
 
   const handleDeleteItem = (itemName: string) => {
@@ -370,7 +457,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     }
   };
 
-  const deleteItemFromTable = (itemName: string, table: CodeTable) => {
+  const deleteItemFromTable = async (itemName: string, table: CodeTable) => {
     const isGlobalTable = selectedCategory === 'global';
     
     // Global tables are read-only - this should not be called
@@ -383,23 +470,43 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     setIsManualUpdate(true);
     
     try {
-      // Update country tables only
+      // Convert country name to country code
+      const getCountryCode = (country: string) => {
+        const countryMap: { [key: string]: string } = {
+          'Singapore': 'SG',
+          'Malaysia': 'MY',
+          'Philippines': 'PH',
+          'Indonesia': 'ID',
+          'Vietnam': 'VN',
+          'Hong Kong': 'HK',
+          'Thailand': 'TH'
+        };
+        return countryMap[country] || 'SG';
+      };
+      
+      const countryCode = getCountryCode(selectedCountry);
+      
+      // Remove item from Supabase
+      const success = await removeSupabaseCodeTableItem(selectedTable, itemName, countryCode);
+      
+      if (!success) {
+        showError('Delete Failed', `Failed to delete "${itemName}" from ${table.name}`);
+        return;
+      }
+      
+      // Update local state only if Supabase operation succeeded
       setCountryBasedTables(prevTables => {
-        const updatedTables = prevTables.map(t => 
+        return prevTables.map(t => 
           t.id === selectedTable 
             ? { ...t, items: t.items.filter(item => item !== itemName) }
             : t
         );
-        
-        // Save to localStorage immediately
-        saveCodeTables(updatedTables, selectedCountry);
-        return updatedTables;
       });
       
       playSound.delete();
       showSuccess('Item Deleted', `"${itemName}" has been removed from ${table.name}`);
     } catch (error) {
-      console.error('Error deleting item:', error);
+      console.error('Error deleting item from Supabase:', error);
       showError('Delete Failed', `Failed to delete "${itemName}" from ${table.name}`);
     }
   };
@@ -546,13 +653,16 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
                 <h4>🌍 No Global Tables Available</h4>
                 <p>Global tables are being loaded or there are no global tables configured.</p>
                 <button 
-                  onClick={() => {
-                    initializeCodeTables();
-                    // Force reload tables without full page refresh
-                    const globalTablesData = getCodeTables();
-                    const { global: globalOnly } = categorizeCodeTables(globalTablesData);
-                    const filteredGlobalTables = getFilteredTablesForUser(globalOnly, currentUser);
-                    setGlobalTables(filteredGlobalTables);
+                  onClick={async () => {
+                    try {
+                      // Reload global tables from Supabase
+                      const globalTablesData = await getSupabaseCodeTables();
+                      const { global: globalOnly } = categorizeCodeTables(globalTablesData);
+                      const filteredGlobalTables = getFilteredTablesForUser(globalOnly, currentUser);
+                      setGlobalTables(filteredGlobalTables);
+                    } catch (error) {
+                      console.error('Error reinitializing tables:', error);
+                    }
                   }}
                   className="btn btn-secondary"
                 >
@@ -568,17 +678,37 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
                 }</p>
                 {selectedCountry && (
                   <button 
-                    onClick={() => {
-                      initializeCountryCodeTables(selectedCountry);
-                      // Force reload tables without full page refresh
-                      const countryTablesData = getCodeTables(selectedCountry);
-                      const filteredCountryTables = getFilteredTablesForUser(countryTablesData, currentUser);
-                      setCountryBasedTables(filteredCountryTables);
-                      
-                      const globalTablesData = getCodeTables();
-                      const { global: globalOnly } = categorizeCodeTables(globalTablesData);
-                      const filteredGlobalTables = getFilteredTablesForUser(globalOnly, currentUser);
-                      setGlobalTables(filteredGlobalTables);
+                    onClick={async () => {
+                      try {
+                        // Convert country name to country code
+                        const getCountryCode = (country: string) => {
+                          const countryMap: { [key: string]: string } = {
+                            'Singapore': 'SG',
+                            'Malaysia': 'MY',
+                            'Philippines': 'PH',
+                            'Indonesia': 'ID',
+                            'Vietnam': 'VN',
+                            'Hong Kong': 'HK',
+                            'Thailand': 'TH'
+                          };
+                          return countryMap[country] || 'SG';
+                        };
+                        
+                        const countryCode = getCountryCode(selectedCountry);
+                        
+                        // Reload country tables from Supabase
+                        const countryTablesData = await getSupabaseCodeTables(countryCode);
+                        const filteredCountryTables = getFilteredTablesForUser(countryTablesData, currentUser);
+                        setCountryBasedTables(filteredCountryTables);
+                        
+                        // Also reload global tables
+                        const globalTablesData = await getSupabaseCodeTables();
+                        const { global: globalOnly } = categorizeCodeTables(globalTablesData);
+                        const filteredGlobalTables = getFilteredTablesForUser(globalOnly, currentUser);
+                        setGlobalTables(filteredGlobalTables);
+                      } catch (error) {
+                        console.error('Error reinitializing country tables:', error);
+                      }
                     }}
                     className="btn btn-secondary"
                   >
