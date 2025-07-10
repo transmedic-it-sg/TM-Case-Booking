@@ -88,27 +88,67 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
   // Load and filter cases whenever active country changes
   useEffect(() => {
     const loadCases = async () => {
-      const allCases = await getCases();
-      const filteredCases = allCases.filter(caseItem => {
-        // Filter by active country
-        if (activeCountry && caseItem.country !== activeCountry) {
-          return false;
+      try {
+        const allCases = await getCases();
+        
+        // Ensure allCases is an array
+        if (!Array.isArray(allCases)) {
+          console.error('getCases returned non-array in BookingCalendar:', allCases);
+          setCases([]);
+          return;
         }
         
-        // Filter by user's assigned departments (excluding admin/IT/operations/operations-manager)
-        if (currentUser?.role !== 'admin' && 
-            currentUser?.role !== 'it' && 
-            currentUser?.role !== 'operations' && 
-            currentUser?.role !== 'operations-manager' && 
-            currentUser?.role !== 'operations-manager') {
-          if (currentUser?.departments && !currentUser.departments.includes(caseItem.department)) {
-            return false;
+        const filteredCases = allCases.filter(caseItem => {
+          // Convert country name to country code for comparison
+          const getCountryCode = (country: string) => {
+            const countryMap: { [key: string]: string } = {
+              'Singapore': 'SG',
+              'Malaysia': 'MY',
+              'Philippines': 'PH',
+              'Indonesia': 'ID',
+              'Vietnam': 'VN',
+              'Hong Kong': 'HK',
+              'Thailand': 'TH'
+            };
+            return countryMap[country] || 'SG';
+          };
+          
+          // Filter by active country (convert country name to code)
+          if (activeCountry) {
+            const activeCountryCode = getCountryCode(activeCountry);
+            if (caseItem.country !== activeCountryCode) {
+              return false;
+            }
           }
-        }
-        
-        return true;
-      });
-      setCases(filteredCases);
+          
+          // Filter by user's assigned departments (excluding admin/IT/operations/operations-manager)
+          if (currentUser?.role !== 'admin' && 
+              currentUser?.role !== 'it' && 
+              currentUser?.role !== 'operations' && 
+              currentUser?.role !== 'operations-manager') {
+            
+            if (currentUser?.departments && currentUser.departments.length > 0) {
+              // Clean department names - remove country prefixes like "Singapore:", "Malaysia:"
+              const cleanDepartmentName = (department: string) => {
+                return department.replace(/^[A-Za-z\s]+:/, '').trim();
+              };
+              
+              const userDepartments = currentUser.departments.map(cleanDepartmentName);
+              const caseDepartment = cleanDepartmentName(caseItem.department);
+              
+              if (!userDepartments.includes(caseDepartment)) {
+                return false;
+              }
+            }
+          }
+          
+          return true;
+        });
+        setCases(filteredCases);
+      } catch (error) {
+        console.error('Error loading cases in BookingCalendar:', error);
+        setCases([]);
+      }
     };
     
     loadCases();

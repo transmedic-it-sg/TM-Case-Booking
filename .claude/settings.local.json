@@ -64,7 +64,8 @@
       "WebFetch(domain:tm-case-booking.vercel.app)",
       "Bash(npx supabase:*)",
       "Bash(kill:*)",
-      "Bash(GENERATE_SOURCEMAP=false npm start)"
+      "Bash(GENERATE_SOURCEMAP=false npm start)",
+      "Bash(export:*)"
     ],
     "deny": []
   }

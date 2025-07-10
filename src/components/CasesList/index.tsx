@@ -96,26 +96,29 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     const currentUser = getCurrentUser();
     let filteredResults = filterCases(cases, filters);
     
-    // Country-based filtering for Operations and Operations Manager roles
-    if ((currentUser?.role === USER_ROLES.OPERATIONS || currentUser?.role === USER_ROLES.OPERATIONS_MANAGER) && currentUser.selectedCountry) {
-      // Convert country name to country code for comparison
-      const getCountryCode = (country: string) => {
-        const countryMap: { [key: string]: string } = {
-          'Singapore': 'SG',
-          'Malaysia': 'MY',
-          'Philippines': 'PH',
-          'Indonesia': 'ID',
-          'Vietnam': 'VN',
-          'Hong Kong': 'HK',
-          'Thailand': 'TH'
-        };
-        return countryMap[country] || 'SG';
+    // Convert country name to country code for comparison
+    const getCountryCode = (country: string) => {
+      const countryMap: { [key: string]: string } = {
+        'Singapore': 'SG',
+        'Malaysia': 'MY',
+        'Philippines': 'PH',
+        'Indonesia': 'ID',
+        'Vietnam': 'VN',
+        'Hong Kong': 'HK',
+        'Thailand': 'TH'
       };
-      
-      const userCountryCode = getCountryCode(currentUser.selectedCountry);
-      filteredResults = filteredResults.filter(caseItem => 
-        caseItem.country === userCountryCode
-      );
+      return countryMap[country] || 'SG';
+    };
+    
+    // Country-based filtering for ALL non-admin/IT users
+    if (currentUser && currentUser.role !== USER_ROLES.ADMIN && currentUser.role !== USER_ROLES.IT) {
+      if (currentUser.countries && currentUser.countries.length > 0) {
+        // Convert user's country names to country codes and filter cases
+        const userCountryCodes = currentUser.countries.map(country => getCountryCode(country));
+        filteredResults = filteredResults.filter(caseItem => 
+          userCountryCodes.includes(caseItem.country)
+        );
+      }
     }
     
     // Department-based filtering (excluding Operations Managers who have broader access)
@@ -123,8 +126,16 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         currentUser.role !== USER_ROLES.ADMIN && 
         currentUser.role !== USER_ROLES.OPERATIONS_MANAGER && 
         currentUser.role !== USER_ROLES.IT) {
+      
+      // Clean department names - remove country prefixes like "Singapore:", "Malaysia:"
+      const cleanDepartmentName = (department: string) => {
+        return department.replace(/^[A-Za-z\s]+:/, '').trim();
+      };
+      
+      const userDepartments = currentUser.departments.map(cleanDepartmentName);
+      
       filteredResults = filteredResults.filter(caseItem => 
-        userHasDepartmentAccess(currentUser.departments, caseItem.department)
+        userDepartments.includes(cleanDepartmentName(caseItem.department))
       );
     }
     
@@ -164,45 +175,71 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   }, [highlightedCaseId, onClearHighlight, filteredCases, casesPerPage]);
 
   const loadCases = async () => {
-    // Convert country name to country code for database operations
-    const getCountryCode = (country: string) => {
-      const countryMap: { [key: string]: string } = {
-        'Singapore': 'SG',
-        'Malaysia': 'MY',
-        'Philippines': 'PH',
-        'Indonesia': 'ID',
-        'Vietnam': 'VN',
-        'Hong Kong': 'HK',
-        'Thailand': 'TH'
+    try {
+      // Convert country name to country code for database operations
+      const getCountryCode = (country: string) => {
+        const countryMap: { [key: string]: string } = {
+          'Singapore': 'SG',
+          'Malaysia': 'MY',
+          'Philippines': 'PH',
+          'Indonesia': 'ID',
+          'Vietnam': 'VN',
+          'Hong Kong': 'HK',
+          'Thailand': 'TH'
+        };
+        return countryMap[country] || 'SG';
       };
-      return countryMap[country] || 'SG';
-    };
-    
-    const userCountry = currentUser?.selectedCountry;
-    const countryCode = userCountry ? getCountryCode(userCountry) : undefined;
-    
-    const allCases = await getCases(countryCode);
-    
-    // Extract unique submitters from all cases
-    const uniqueSubmitters = Array.from(new Set(allCases.map(caseItem => caseItem.submittedBy)))
-      .filter(submitter => submitter && submitter.trim())
-      .sort();
-    setAvailableSubmitters(uniqueSubmitters);
+      
+      const userCountry = currentUser?.selectedCountry;
+      const countryCode = userCountry ? getCountryCode(userCountry) : undefined;
+      
+      const allCases = await getCases(countryCode);
+      
+      // Ensure allCases is an array
+      if (!Array.isArray(allCases)) {
+        console.error('getCases returned non-array:', allCases);
+        setCases([]);
+        setAvailableSubmitters([]);
+        setAvailableHospitals([]);
+        addNotification({
+          title: 'Data Load Error',
+          message: 'Failed to load cases. Please try refreshing the page.',
+          type: 'error'
+        });
+        return;
+      }
+      
+      // Extract unique submitters from all cases
+      const uniqueSubmitters = Array.from(new Set(allCases.map(caseItem => caseItem.submittedBy)))
+        .filter(submitter => submitter && submitter.trim())
+        .sort();
+      setAvailableSubmitters(uniqueSubmitters);
 
-    // Extract unique hospitals from all cases
-    const uniqueHospitals = Array.from(new Set(allCases.map(caseItem => caseItem.hospital)))
-      .filter(hospital => hospital && hospital.trim())
-      .sort();
-    setAvailableHospitals(uniqueHospitals);
-    
-    // Admin and IT can view all cases, others are filtered by country
-    if (currentUser?.role === 'admin' || currentUser?.role === 'it') {
-      setCases(allCases);
-    } else {
-      const countryCases = countryCode 
-        ? allCases.filter(caseItem => caseItem.country === countryCode)
-        : allCases;
-      setCases(countryCases);
+      // Extract unique hospitals from all cases
+      const uniqueHospitals = Array.from(new Set(allCases.map(caseItem => caseItem.hospital)))
+        .filter(hospital => hospital && hospital.trim())
+        .sort();
+      setAvailableHospitals(uniqueHospitals);
+      
+      // Admin and IT can view all cases, others are filtered by country
+      if (currentUser?.role === 'admin' || currentUser?.role === 'it') {
+        setCases(allCases);
+      } else {
+        const countryCases = countryCode 
+          ? allCases.filter(caseItem => caseItem.country === countryCode)
+          : allCases;
+        setCases(countryCases);
+      }
+    } catch (error) {
+      console.error('Error loading cases:', error);
+      setCases([]);
+      setAvailableSubmitters([]);
+      setAvailableHospitals([]);
+      addNotification({
+        title: 'Data Load Error',
+        message: `Failed to load cases: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        type: 'error'
+      });
     }
   };
 

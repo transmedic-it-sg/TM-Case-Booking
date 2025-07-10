@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CaseCardProps } from './types';
 import { getStatusColor, getNextResponsibleRole, formatDateTime } from './utils';
 import CaseActions from './CaseActions';
@@ -84,32 +84,133 @@ const CaseCard: React.FC<CaseCardProps> = ({
   onOfficeDeliveryCommentsChange,
   onNavigateToPermissions
 }) => {
-  const [availableProcedureTypes, setAvailableProcedureTypes] = useState<string[]>([]);
-  const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
-
-  // Get user IDs from case data and status history
-  const userIds = [
+  // Get user IDs from case data and status history - memoized to prevent infinite re-renders
+  const userIds = useMemo(() => [
     caseItem.submittedBy,
     caseItem.processedBy,
     caseItem.amendedBy,
     ...(caseItem.statusHistory || []).map(h => h.processedBy)
-  ].filter((id): id is string => Boolean(id));
+  ].filter((id): id is string => Boolean(id)), [
+    caseItem.submittedBy,
+    caseItem.processedBy,
+    caseItem.amendedBy,
+    caseItem.statusHistory
+  ]);
 
   const { getUserName } = useUserNames(userIds);
 
+  // Memoize expensive operations to prevent excessive localStorage calls
+  const availableProcedureTypes = useMemo(() => {
+    try {
+      const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
+      return getAllProcedureTypes(userCountry);
+    } catch (error) {
+      console.error('Error loading procedure types:', error);
+      return [];
+    }
+  }, [currentUser?.selectedCountry, currentUser?.countries]);
 
-  // Load dynamic procedure types and departments on component mount
-  useEffect(() => {
-    initializeCodeTables();
-    const currentUser = getCurrentUser();
-    const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
-    const allTypes = getAllProcedureTypes(userCountry);
-    setAvailableProcedureTypes(allTypes);
-    
-    // Load departments from code tables
-    const departments = getDepartments();
-    setAvailableDepartments(departments);
+  const availableDepartments = useMemo(() => {
+    try {
+      return getDepartments();
+    } catch (error) {
+      console.error('Error loading departments:', error);
+      return [];
+    }
   }, []);
+
+  // Initialize code tables only once when component mounts
+  useEffect(() => {
+    try {
+      initializeCodeTables();
+    } catch (error) {
+      console.error('Error initializing code tables:', error);
+    }
+  }, []);
+
+  // Memoize status history parsing to prevent expensive JSON.parse operations during rendering
+  const parsedStatusHistory = useMemo(() => {
+    return caseItem.statusHistory?.map(historyItem => {
+      let parsedDetails = null;
+      let parsedAttachments = [];
+      
+      if (historyItem.details) {
+        try {
+          parsedDetails = JSON.parse(historyItem.details);
+          
+          // Pre-parse attachments if they exist
+          if (parsedDetails.attachments) {
+            parsedAttachments = parsedDetails.attachments.map((attachment: string) => {
+              try {
+                return JSON.parse(attachment);
+              } catch {
+                return null;
+              }
+            }).filter(Boolean);
+          }
+        } catch {
+          parsedDetails = null;
+        }
+      }
+      
+      return {
+        ...historyItem,
+        parsedDetails,
+        parsedAttachments
+      };
+    }) || [];
+  }, [caseItem.statusHistory]);
+
+  // Memoize attachment parsing for forms to prevent repeated JSON.parse operations
+  const parsedProcessAttachments = useMemo(() => {
+    return processAttachments.map(attachment => {
+      try {
+        return JSON.parse(attachment);
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+  }, [processAttachments]);
+
+  const parsedHospitalDeliveryAttachments = useMemo(() => {
+    return hospitalDeliveryAttachments.map(attachment => {
+      try {
+        return JSON.parse(attachment);
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+  }, [hospitalDeliveryAttachments]);
+
+  const parsedPendingOfficeAttachments = useMemo(() => {
+    return pendingOfficeAttachments.map(attachment => {
+      try {
+        return JSON.parse(attachment);
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+  }, [pendingOfficeAttachments]);
+
+  const parsedOfficeDeliveryAttachments = useMemo(() => {
+    return officeDeliveryAttachments.map(attachment => {
+      try {
+        return JSON.parse(attachment);
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+  }, [officeDeliveryAttachments]);
+
+  const parsedAttachments = useMemo(() => {
+    return attachments.map(attachment => {
+      try {
+        return JSON.parse(attachment);
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+  }, [attachments]);
 
   const canAmendCase = (caseItem: any): boolean => {
     const currentUser = getCurrentUser();

@@ -469,7 +469,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               onClick={handleClearForm}
               className="btn btn-outline-secondary btn-lg clear-button"
             >
-              🗑️ Clear Inputs
+              🗑️ Clear Form
             </button>
             <button type="submit" className="btn btn-primary btn-lg submit-button">
               Submit Case Booking
