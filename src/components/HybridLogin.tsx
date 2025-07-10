@@ -104,9 +104,9 @@ const HybridLogin: React.FC<HybridLoginProps> = ({ onLogin }) => {
     }
   };
 
-  const handleLocalStorageLogin = () => {
+  const handleLocalStorageLogin = async () => {
     // Use existing localStorage authentication as fallback
-    const result = authenticate(email.split('@')[0] || email, password, 'Singapore');
+    const result = await authenticate(email.split('@')[0] || email, password, 'Singapore');
     if (result.user) {
       onLogin(result.user);
     } else {

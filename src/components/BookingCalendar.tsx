@@ -87,27 +87,31 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
 
   // Load and filter cases whenever active country changes
   useEffect(() => {
-    const allCases = getCases();
-    const filteredCases = allCases.filter(caseItem => {
-      // Filter by active country
-      if (activeCountry && caseItem.country !== activeCountry) {
-        return false;
-      }
-      
-      // Filter by user's assigned departments (excluding admin/IT/operations/operations-manager)
-      if (currentUser?.role !== 'admin' && 
-          currentUser?.role !== 'it' && 
-          currentUser?.role !== 'operations' && 
-          currentUser?.role !== 'operations-manager' && 
-          currentUser?.role !== 'operations-manager') {
-        if (currentUser?.departments && !currentUser.departments.includes(caseItem.department)) {
+    const loadCases = async () => {
+      const allCases = await getCases();
+      const filteredCases = allCases.filter(caseItem => {
+        // Filter by active country
+        if (activeCountry && caseItem.country !== activeCountry) {
           return false;
         }
-      }
-      
-      return true;
-    });
-    setCases(filteredCases);
+        
+        // Filter by user's assigned departments (excluding admin/IT/operations/operations-manager)
+        if (currentUser?.role !== 'admin' && 
+            currentUser?.role !== 'it' && 
+            currentUser?.role !== 'operations' && 
+            currentUser?.role !== 'operations-manager' && 
+            currentUser?.role !== 'operations-manager') {
+          if (currentUser?.departments && !currentUser.departments.includes(caseItem.department)) {
+            return false;
+          }
+        }
+        
+        return true;
+      });
+      setCases(filteredCases);
+    };
+    
+    loadCases();
   }, [activeCountry, currentUser]);
 
   // Close date picker when clicking outside

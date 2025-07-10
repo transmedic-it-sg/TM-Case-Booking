@@ -61,7 +61,10 @@
       "Bash(/dev/null)",
       "Bash(git tag:*)",
       "Bash(vercel:*)",
-      "WebFetch(domain:tm-case-booking.vercel.app)"
+      "WebFetch(domain:tm-case-booking.vercel.app)",
+      "Bash(npx supabase:*)",
+      "Bash(kill:*)",
+      "Bash(GENERATE_SOURCEMAP=false npm start)"
     ],
     "deny": []
   }

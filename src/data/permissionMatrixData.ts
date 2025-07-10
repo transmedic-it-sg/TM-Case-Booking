@@ -6,7 +6,7 @@ export const roles: Role[] = [
     id: 'admin',
     name: 'admin',
     displayName: 'Admin',
-    description: 'Full system access',
+    description: 'Full system access - has all permissions by default',
     color: '#e74c3c'
   },
   {
@@ -52,6 +52,9 @@ export const roles: Role[] = [
     color: '#9b59b6'
   }
 ];
+
+// Roles for matrix display (excluding Admin since Admin has all permissions)
+export const matrixRoles: Role[] = roles.filter(role => role.id !== 'admin');
 
 // Define all permission actions
 export const permissionActions: PermissionAction[] = [
@@ -414,6 +417,12 @@ export const getAllRoles = (): Role[] => {
     console.error('Error loading custom roles:', error);
   }
   return roles;
+};
+
+// Get all roles for matrix display (excluding admin, including custom)
+export const getAllMatrixRoles = (): Role[] => {
+  const allRoles = getAllRoles();
+  return allRoles.filter(role => role.id !== 'admin');
 };
 
 // Get all permissions including custom role permissions

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { CaseBooking, SURGERY_SETS, IMPLANT_BOXES, PROCEDURE_TYPE_MAPPINGS } from '../types';
-import { saveCase, generateCaseReferenceNumber, getCategorizedSets, getAllProcedureTypes } from '../utils/storage';
+import { CategorizedSets } from '../utils/storage';
+import { saveCase, generateCaseReferenceNumber, getAllProcedureTypes, getCategorizedSets } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';
 import { 
   getHospitals, 
@@ -45,24 +46,52 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [availableProcedureTypes, setAvailableProcedureTypes] = useState<string[]>([]);
   const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);
+  const [categorizedSets, setCategorizedSets] = useState<CategorizedSets>({});
 
   // Load dynamic procedure types and initialize code tables on component mount
   useEffect(() => {
-    initializeCodeTables();
-    const currentUser = getCurrentUser();
-    const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
-    const allTypes = getAllProcedureTypes(userCountry);
-    setAvailableProcedureTypes(allTypes.sort());
+    const loadData = async () => {
+      initializeCodeTables();
+      const currentUser = getCurrentUser();
+      const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
+      const allTypes = getAllProcedureTypes(userCountry);
+      setAvailableProcedureTypes(allTypes.sort());
+      
+      // Load hospitals from country-specific code tables
+      if (userCountry) {
+        const hospitals = getHospitalsForCountry(userCountry);
+        setAvailableHospitals(hospitals.sort());
+      } else {
+        // Fallback to global hospitals if no country selected
+        const hospitals = getHospitals();
+        setAvailableHospitals(hospitals.sort());
+      }
+      
+      // Load categorized sets from Supabase
+      try {
+        const getCountryCode = (country: string) => {
+          const countryMap: { [key: string]: string } = {
+            'Singapore': 'SG',
+            'Malaysia': 'MY',
+            'Philippines': 'PH',
+            'Indonesia': 'ID',
+            'Vietnam': 'VN',
+            'Hong Kong': 'HK',
+            'Thailand': 'TH'
+          };
+          return countryMap[country] || 'SG';
+        };
+        
+        const countryCode = getCountryCode(userCountry || 'Singapore');
+        const sets = await getCategorizedSets(countryCode);
+        setCategorizedSets(sets);
+        console.log('Loaded categorized sets:', sets);
+      } catch (error) {
+        console.error('Error loading categorized sets:', error);
+      }
+    };
     
-    // Load hospitals from country-specific code tables
-    if (userCountry) {
-      const hospitals = getHospitalsForCountry(userCountry);
-      setAvailableHospitals(hospitals.sort());
-    } else {
-      // Fallback to global hospitals if no country selected
-      const hospitals = getHospitals();
-      setAvailableHospitals(hospitals.sort());
-    }
+    loadData();
   }, []);
 
   const surgerySetOptions = useMemo(() => {
@@ -70,10 +99,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       return [...SURGERY_SETS].sort();
     }
     
-    // Try to get from categorized sets first
-    const currentUser = getCurrentUser();
-    const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
-    const categorizedSets = getCategorizedSets(userCountry);
+    // Try to get from categorized sets first (loaded from Supabase)
     if (categorizedSets[formData.procedureType]?.surgerySets?.length > 0) {
       return categorizedSets[formData.procedureType].surgerySets.sort();
     }
@@ -81,17 +107,14 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     // Fallback to static mapping
     const mapping = PROCEDURE_TYPE_MAPPINGS[formData.procedureType as keyof typeof PROCEDURE_TYPE_MAPPINGS];
     return mapping ? [...mapping.surgerySets].sort() : [...SURGERY_SETS].sort();
-  }, [formData.procedureType]);
+  }, [formData.procedureType, categorizedSets]);
 
   const implantBoxOptions = useMemo(() => {
     if (!formData.procedureType) {
       return [...IMPLANT_BOXES].sort();
     }
     
-    // Try to get from categorized sets first
-    const currentUser = getCurrentUser();
-    const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
-    const categorizedSets = getCategorizedSets(userCountry);
+    // Try to get from categorized sets first (loaded from Supabase)
     if (categorizedSets[formData.procedureType]?.implantBoxes?.length > 0) {
       return categorizedSets[formData.procedureType].implantBoxes.sort();
     }
@@ -99,7 +122,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     // Fallback to static mapping
     const mapping = PROCEDURE_TYPE_MAPPINGS[formData.procedureType as keyof typeof PROCEDURE_TYPE_MAPPINGS];
     return mapping ? [...mapping.implantBoxes].sort() : [...IMPLANT_BOXES].sort();
-  }, [formData.procedureType]);
+  }, [formData.procedureType, categorizedSets]);
 
   const availableDepartments = useMemo(() => {
     const currentUser = getCurrentUser();
@@ -193,7 +216,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -206,45 +229,68 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       return;
     }
 
-    const caseReferenceNumber = generateCaseReferenceNumber();
-    
-    const newCase: CaseBooking = {
-      id: Date.now().toString(),
-      caseReferenceNumber,
-      ...formData,
-      status: 'Case Booked',
-      submittedBy: currentUser.name,
-      submittedAt: new Date().toISOString(),
-      country: currentUser.selectedCountry || 'Singapore'
-    };
+    try {
+      // Convert country name to country code for database operations
+      const getCountryCode = (country: string) => {
+        const countryMap: { [key: string]: string } = {
+          'Singapore': 'SG',
+          'Malaysia': 'MY',
+          'Philippines': 'PH',
+          'Indonesia': 'ID',
+          'Vietnam': 'VN',
+          'Hong Kong': 'HK',
+          'Thailand': 'TH'
+        };
+        return countryMap[country] || 'SG';
+      };
+      
+      const userCountry = currentUser.selectedCountry || 'Singapore';
+      const countryCode = getCountryCode(userCountry);
+      
+      const caseReferenceNumber = await generateCaseReferenceNumber(countryCode);
+      
+      const newCase: CaseBooking = {
+        id: '', // Will be generated by Supabase
+        caseReferenceNumber,
+        ...formData,
+        status: 'Case Booked',
+        submittedBy: currentUser.id, // Use ID for database foreign key constraint
+        submittedAt: new Date().toISOString(),
+        country: countryCode
+      };
 
-    saveCase(newCase);
-    
-    // Send email notification for new case
-    sendNewCaseNotification(newCase).then(emailSent => {
-      if (emailSent) {
-        console.log('✅ Email notification sent for new case:', newCase.caseReferenceNumber);
-      } else {
-        console.warn('⚠️ Failed to send email notification for new case:', newCase.caseReferenceNumber);
-      }
-    }).catch(error => {
-      console.error('💥 Error sending email notification:', error);
-    });
-    
-    setFormData({
-      hospital: '',
-      department: '',
-      dateOfSurgery: getDefaultDate(),
-      procedureType: '',
-      procedureName: '',
-      doctorName: '',
-      timeOfProcedure: '',
-      surgerySetSelection: [],
-      implantBox: [],
-      specialInstruction: ''
-    });
+      await saveCase(newCase);
+      
+      // Send email notification for new case
+      sendNewCaseNotification(newCase).then(emailSent => {
+        if (emailSent) {
+          console.log('✅ Email notification sent for new case:', newCase.caseReferenceNumber);
+        } else {
+          console.warn('⚠️ Failed to send email notification for new case:', newCase.caseReferenceNumber);
+        }
+      }).catch(error => {
+        console.error('💥 Error sending email notification:', error);
+      });
+      
+      setFormData({
+        hospital: '',
+        department: '',
+        dateOfSurgery: getDefaultDate(),
+        procedureType: '',
+        procedureName: '',
+        doctorName: '',
+        timeOfProcedure: '',
+        surgerySetSelection: [],
+        implantBox: [],
+        specialInstruction: ''
+      });
 
-    onCaseSubmitted();
+      onCaseSubmitted();
+    } catch (error) {
+      console.error('Error saving case:', error);
+      showError('Failed to save case. Please try again.');
+      return;
+    }
   };
 
   return (

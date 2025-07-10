@@ -17,7 +17,7 @@ import LogoutConfirmation from './components/LogoutConfirmation';
 import SSOCallback from './components/SSOCallback';
 import { User, CaseBooking } from './types';
 import { getCurrentUser, logout } from './utils/auth';
-import { hasPermission, PERMISSION_ACTIONS } from './utils/permissions';
+import { hasPermission, PERMISSION_ACTIONS, initializePermissions } from './utils/permissions';
 import { initializeCodeTables } from './utils/codeTable';
 import { SoundProvider, useSound } from './contexts/SoundContext';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
@@ -51,13 +51,18 @@ const AppContent: React.FC = () => {
   const isCallbackRoute = window.location.pathname === '/auth/callback' || window.location.search.includes('code=');
 
   useEffect(() => {
-    // Initialize code tables first
-    initializeCodeTables();
+    // Initialize code tables and permissions
+    const initialize = async () => {
+      initializeCodeTables();
+      await initializePermissions();
+      
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+      }
+    };
     
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-    }
+    initialize();
   }, []);
 
   // Close admin panel when clicking outside
@@ -98,8 +103,8 @@ const AppContent: React.FC = () => {
     setShowLogoutConfirmation(true);
   };
 
-  const confirmLogout = () => {
-    logout();
+  const confirmLogout = async () => {
+    await logout();
     setUser(null);
     setActivePage('booking');
     setProcessingCase(null);

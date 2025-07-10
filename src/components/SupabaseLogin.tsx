@@ -125,7 +125,7 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
       }
 
       // Store user session
-      localStorage.setItem('currentUser', JSON.stringify(user));
+      localStorage.setItem('case-booking-session', JSON.stringify(user));
 
       onLogin(user);
     } catch (error: any) {

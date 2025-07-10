@@ -65,24 +65,28 @@ const Reports: React.FC = () => {
 
   // Load cases on component mount
   useEffect(() => {
-    const allCases = getCases();
-    const userCases = allCases.filter(caseItem => {
-      // Filter by user's access permissions
-      if (currentUser?.role === 'admin' || currentUser?.role === 'it') {
-        return true;
-      }
+    const loadCases = async () => {
+      const allCases = await getCases();
+      const userCases = allCases.filter(caseItem => {
+        // Filter by user's access permissions
+        if (currentUser?.role === 'admin' || currentUser?.role === 'it') {
+          return true;
+        }
+        
+        // Filter by user's countries and departments
+        const hasCountryAccess = !currentUser?.countries?.length || 
+          currentUser.countries.includes(caseItem.country);
+        const hasDepartmentAccess = !currentUser?.departments?.length || 
+          currentUser.departments.includes(caseItem.department);
+        
+        return hasCountryAccess && hasDepartmentAccess;
+      });
       
-      // Filter by user's countries and departments
-      const hasCountryAccess = !currentUser?.countries?.length || 
-        currentUser.countries.includes(caseItem.country);
-      const hasDepartmentAccess = !currentUser?.departments?.length || 
-        currentUser.departments.includes(caseItem.department);
-      
-      return hasCountryAccess && hasDepartmentAccess;
-    });
+      setCases(userCases);
+      setFilteredCases(userCases);
+    };
     
-    setCases(userCases);
-    setFilteredCases(userCases);
+    loadCases();
   }, [currentUser]);
 
   // Initialize tempFilters with current filters

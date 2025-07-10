@@ -7,6 +7,7 @@
 import React, { useState, useCallback } from 'react';
 import { CaseCardProps } from './types';
 import { useCurrentUser, usePermissions } from '../../hooks';
+import { useUserNames } from '../../hooks/useUserNames';
 
 // Sub-components
 import CaseHeader from './CaseHeader';
@@ -50,8 +51,19 @@ const CaseCard: React.FC<CaseCardProps> = ({
 }) => {
   const { user } = useCurrentUser();
   const permissions = usePermissions();
+  
+  // Get user IDs from status history and case data
+  const userIds = [
+    caseItem.submittedBy,
+    caseItem.processedBy,
+    caseItem.amendedBy,
+    ...(caseItem.statusHistory || []).map(h => h.processedBy)
+  ].filter((id): id is string => Boolean(id));
+
+  const { getUserName } = useUserNames(userIds);
   const caseActions = useCaseActions(caseItem);
   const caseData = useCaseData(caseItem);
+
 
   // Local state for UI interactions
   const [showStatusHistory, setShowStatusHistory] = useState(false);
@@ -129,7 +141,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 {caseData.statusHistory.map((history, index) => (
                   <div key={index} className="status-history-item">
                     <div className="history-status">{history.status}</div>
-                    <div className="history-user">{history.user}</div>
+                    <div className="history-user">{getUserName(history.processedBy)}</div>
                     <div className="history-time">{history.formattedTimestamp}</div>
                     {history.details && (
                       <div className="history-details">{history.details}</div>
@@ -153,7 +165,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
               
               {showAmendmentHistory && caseData.amendmentInfo && (
                 <div className="amendment-history-details">
-                  <div>Amended by: {caseData.amendmentInfo.amendedBy}</div>
+                  <div>Amended by: {getUserName(caseData.amendmentInfo.amendedBy || '')}</div>
                   <div>Date: {caseData.amendmentInfo.amendedAt}</div>
                 </div>
               )}
@@ -202,7 +214,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
       <div className="case-card-footer">
         <div className="case-meta-info">
           <span className="submission-info">
-            Submitted {caseData.daysSinceSubmission} days ago by {caseItem.submittedBy}
+            Submitted {caseData.daysSinceSubmission} days ago by {getUserName(caseItem.submittedBy)}
           </span>
           {caseData.isUrgent && (
             <span className="urgency-warning">

@@ -76,9 +76,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
-    // Simulate loading for better UX
-    setTimeout(() => {
-      const result = authenticate(username, password, country);
+    try {
+      const result = await authenticate(username, password, country);
       if (result.user) {
         // Save credentials if remember me is checked
         if (rememberMe) {
@@ -95,7 +94,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         setError(result.error || 'Login failed');
         setIsLoading(false);
       }
-    }, 1000);
+    } catch (error) {
+      console.error('Authentication error:', error);
+      setError('Authentication failed. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   return (

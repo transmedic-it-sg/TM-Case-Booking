@@ -1,44 +1,119 @@
 import { CaseBooking, FilterOptions, StatusHistory, AmendmentHistory } from '../types';
 import { sendStatusChangeNotification } from './emailNotificationService';
+import { 
+  getSupabaseCases, 
+  saveSupabaseCase, 
+  updateSupabaseCaseStatus, 
+  updateSupabaseCaseProcessing,
+  generateCaseReferenceNumber as generateSupabaseReferenceNumber, 
+  getCategorizedSets as getSupabaseCategorizedSets, 
+  saveCategorizedSets as saveSupabaseCategorizedSets, 
+  checkCasesExist, 
+  migrateCasesFromLocalStorage 
+} from './supabaseCaseService';
 
 const CASES_KEY = 'case-booking-cases';
 const CASE_COUNTER_KEY = 'case-booking-counter';
 
-export const generateCaseReferenceNumber = (): string => {
-  const currentCounter = localStorage.getItem(CASE_COUNTER_KEY);
-  const counter = currentCounter ? parseInt(currentCounter) + 1 : 1;
-  const paddedCounter = counter.toString().padStart(6, '0');
-  const referenceNumber = `TMC${paddedCounter}`;
-  localStorage.setItem(CASE_COUNTER_KEY, counter.toString());
-  return referenceNumber;
+export const generateCaseReferenceNumber = async (country: string = 'SG'): Promise<string> => {
+  try {
+    return await generateSupabaseReferenceNumber(country);
+  } catch (error) {
+    console.error('Error generating Supabase reference number, falling back to localStorage:', error);
+    // Fallback to localStorage
+    const currentCounter = localStorage.getItem(CASE_COUNTER_KEY);
+    const counter = currentCounter ? parseInt(currentCounter) + 1 : 1;
+    const paddedCounter = counter.toString().padStart(6, '0');
+    const referenceNumber = `TMC${paddedCounter}`;
+    localStorage.setItem(CASE_COUNTER_KEY, counter.toString());
+    return referenceNumber;
+  }
 };
 
-export const getCases = (): CaseBooking[] => {
+export const getCases = async (country?: string): Promise<CaseBooking[]> => {
+  try {
+    // Check if cases exist in Supabase
+    const casesExist = await checkCasesExist();
+    
+    if (casesExist) {
+      return await getSupabaseCases(country);
+    } else {
+      // If no cases in Supabase, check localStorage and migrate
+      const stored = localStorage.getItem(CASES_KEY);
+      if (stored) {
+        console.log('Migrating cases from localStorage to Supabase...');
+        await migrateCasesFromLocalStorage();
+        return await getSupabaseCases(country);
+      }
+      return [];
+    }
+  } catch (error) {
+    console.error('Error getting cases from Supabase, falling back to localStorage:', error);
+    // Fallback to localStorage
+    const stored = localStorage.getItem(CASES_KEY);
+    return stored ? JSON.parse(stored) : [];
+  }
+};
+
+export const saveCase = async (caseData: CaseBooking): Promise<CaseBooking> => {
+  try {
+    // If case has an ID, it's an update; otherwise it's a new case
+    if (caseData.id && caseData.id !== '') {
+      // This is an update - not implemented in current Supabase service
+      // For now, fall back to localStorage
+      const cases = await getCasesFromLocalStorage();
+      const existingIndex = cases.findIndex(c => c.id === caseData.id);
+      
+      if (existingIndex >= 0) {
+        cases.splice(existingIndex, 1);
+        cases.unshift(caseData);
+      } else {
+        cases.unshift(caseData);
+      }
+      
+      localStorage.setItem(CASES_KEY, JSON.stringify(cases));
+      return caseData;
+    } else {
+      // New case - save to Supabase
+      const { id, caseReferenceNumber, submittedAt, statusHistory, ...caseWithoutGeneratedFields } = caseData;
+      return await saveSupabaseCase(caseWithoutGeneratedFields);
+    }
+  } catch (error) {
+    console.error('Error saving case to Supabase, falling back to localStorage:', error);
+    // Fallback to localStorage
+    const cases = await getCasesFromLocalStorage();
+    const existingIndex = cases.findIndex(c => c.id === caseData.id);
+    
+    if (existingIndex >= 0) {
+      cases.splice(existingIndex, 1);
+      cases.unshift(caseData);
+    } else {
+      cases.unshift(caseData);
+    }
+    
+    localStorage.setItem(CASES_KEY, JSON.stringify(cases));
+    return caseData;
+  }
+};
+
+// Helper function to get cases from localStorage
+const getCasesFromLocalStorage = async (): Promise<CaseBooking[]> => {
   const stored = localStorage.getItem(CASES_KEY);
   return stored ? JSON.parse(stored) : [];
 };
 
-export const saveCase = (caseData: CaseBooking): void => {
-  const cases = getCases();
-  const existingIndex = cases.findIndex(c => c.id === caseData.id);
-  
-  if (existingIndex >= 0) {
-    // Update existing case - move to front
-    cases.splice(existingIndex, 1);
-    cases.unshift(caseData);
-  } else {
-    // New case - add to front
-    cases.unshift(caseData);
-  }
-  
-  localStorage.setItem(CASES_KEY, JSON.stringify(cases));
-};
-
-export const updateCaseStatus = (caseId: string, status: CaseBooking['status'], processedBy?: string, details?: string): void => {
-  const cases = getCases();
-  const caseIndex = cases.findIndex(c => c.id === caseId);
-  
-  if (caseIndex >= 0) {
+export const updateCaseStatus = async (caseId: string, status: CaseBooking['status'], processedBy?: string, details?: string): Promise<void> => {
+  try {
+    // Try to update in Supabase first
+    await updateSupabaseCaseStatus(caseId, status, processedBy || 'unknown', details);
+    return;
+  } catch (error) {
+    console.error('Error updating case status in Supabase, falling back to localStorage:', error);
+    // Fallback to localStorage
+    const cases = await getCasesFromLocalStorage();
+    const caseIndex = cases.findIndex(c => c.id === caseId);
+    
+    if (caseIndex >= 0) {
     const caseData = cases[caseIndex];
     const timestamp = new Date().toISOString();
     
@@ -116,12 +191,31 @@ export const updateCaseStatus = (caseId: string, status: CaseBooking['status'], 
     }).catch(error => {
       console.error('💥 Error sending status change email notification:', error);
     });
+    }
+  }
+};
+
+// Process order with specific order details
+export const processCaseOrder = async (caseId: string, processedBy: string, processOrderDetails: string): Promise<void> => {
+  try {
+    // Try to update in Supabase first using the specific processing function
+    await updateSupabaseCaseProcessing(caseId, processedBy, processOrderDetails, 'Order Prepared');
+    return;
+  } catch (error) {
+    console.error('Error processing case order in Supabase, falling back to localStorage:', error);
+    
+    // Fallback to localStorage using regular updateCaseStatus
+    const additionalData = {
+      processDetails: processOrderDetails,
+      attachments: []
+    };
+    await updateCaseStatus(caseId, 'Order Prepared', processedBy, JSON.stringify(additionalData));
   }
 };
 
 // Utility function to clean up corrupted processOrderDetails
-export const cleanupProcessOrderDetails = (): void => {
-  const cases = getCases();
+export const cleanupProcessOrderDetails = async (): Promise<void> => {
+  const cases = await getCasesFromLocalStorage();
   let hasChanges = false;
   
   cases.forEach(caseData => {
@@ -145,8 +239,8 @@ export const cleanupProcessOrderDetails = (): void => {
   }
 };
 
-export const amendCase = (caseId: string, amendments: Partial<CaseBooking>, amendedBy: string, isAdmin: boolean = false): void => {
-  const cases = getCases();
+export const amendCase = async (caseId: string, amendments: Partial<CaseBooking>, amendedBy: string, isAdmin: boolean = false): Promise<void> => {
+  const cases = await getCases();
   const caseIndex = cases.findIndex(c => c.id === caseId);
   
   if (caseIndex >= 0) {
@@ -255,19 +349,62 @@ export interface CategorizedSets {
 }
 
 // Country-specific categorized sets storage
-export const saveCategorizedSets = (categorizedSets: CategorizedSets, country?: string): void => {
+export const saveCategorizedSets = async (categorizedSets: CategorizedSets, country?: string): Promise<void> => {
   if (country) {
-    // Save country-specific sets
-    localStorage.setItem(`categorized-sets-${country}`, JSON.stringify(categorizedSets));
+    try {
+      // Transform from CategorizedSets format to Supabase format
+      const transformedSets: Record<string, { surgerySets: string[], implantBoxes: string[] }> = {};
+      Object.entries(categorizedSets).forEach(([procedureType, data]) => {
+        transformedSets[procedureType] = {
+          surgerySets: data.surgerySets || [],
+          implantBoxes: data.implantBoxes || []
+        };
+      });
+      
+      // Try to save to Supabase first
+      await saveSupabaseCategorizedSets(transformedSets, country);
+      return;
+    } catch (error) {
+      console.error('Error saving categorized sets to Supabase:', error);
+      // Fallback to localStorage
+      saveCategorizedSetsToLocalStorage(categorizedSets, country);
+    }
   } else {
     // Legacy support - save global sets
     localStorage.setItem('categorized-sets', JSON.stringify(categorizedSets));
   }
 };
 
-export const getCategorizedSets = (country?: string): CategorizedSets => {
+// Helper function for localStorage fallback
+const saveCategorizedSetsToLocalStorage = (categorizedSets: CategorizedSets, country?: string): void => {
   if (country) {
-    // Try to get country-specific sets first
+    localStorage.setItem(`categorized-sets-${country}`, JSON.stringify(categorizedSets));
+  } else {
+    localStorage.setItem('categorized-sets', JSON.stringify(categorizedSets));
+  }
+};
+
+export const getCategorizedSets = async (country?: string): Promise<CategorizedSets> => {
+  if (country) {
+    try {
+      // Try to get from Supabase first
+      const supabaseSets = await getSupabaseCategorizedSets(country);
+      if (Object.keys(supabaseSets).length > 0) {
+        // Transform from Supabase format to CategorizedSets format
+        const transformedSets: CategorizedSets = {};
+        Object.entries(supabaseSets).forEach(([procedureType, data]) => {
+          transformedSets[procedureType] = {
+            surgerySets: data.surgerySets || [],
+            implantBoxes: data.implantBoxes || []
+          };
+        });
+        return transformedSets;
+      }
+    } catch (error) {
+      console.error('Error getting categorized sets from Supabase:', error);
+    }
+    
+    // Fallback to localStorage
     const countryStored = localStorage.getItem(`categorized-sets-${country}`);
     if (countryStored) {
       return JSON.parse(countryStored);
@@ -281,15 +418,42 @@ export const getCategorizedSets = (country?: string): CategorizedSets => {
     
     // If we have a country and global sets exist, migrate them to country-specific
     if (country && Object.keys(globalSets).length > 0) {
-      saveCategorizedSets(globalSets, country);
+      try {
+        // Transform from CategorizedSets format to Supabase format
+        const transformedSets: Record<string, { surgerySets: string[], implantBoxes: string[] }> = {};
+        Object.entries(globalSets as CategorizedSets).forEach(([procedureType, data]) => {
+          transformedSets[procedureType] = {
+            surgerySets: data.surgerySets || [],
+            implantBoxes: data.implantBoxes || []
+          };
+        });
+        
+        await saveSupabaseCategorizedSets(transformedSets, country);
+      } catch (error) {
+        console.error('Error saving categorized sets to Supabase:', error);
+        // Fallback to localStorage
+        saveCategorizedSetsToLocalStorage(globalSets, country);
+      }
       return globalSets;
     }
     
     return globalSets;
   }
   
-  // Return empty object if no categorized sets found
-  return {};
+  // If no sets found anywhere, initialize with defaults
+  const { initializeCategorizedSets } = await import('../components/EditSets/utils');
+  const defaultSets = initializeCategorizedSets();
+  
+  // Save the default sets to Supabase for future use
+  if (country) {
+    try {
+      await saveCategorizedSets(defaultSets, country);
+    } catch (error) {
+      console.error('Error saving default categorized sets:', error);
+    }
+  }
+  
+  return defaultSets;
 };
 
 // Dynamic Procedure Types Management - Country-specific

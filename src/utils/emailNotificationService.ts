@@ -165,11 +165,11 @@ export const applyTemplateVariables = (template: string, caseData: CaseBooking, 
 };
 
 // Get recipient email addresses based on notification rule
-export const getRecipientEmails = (
+export const getRecipientEmails = async (
   recipients: EmailNotificationRule['recipients'], 
   caseData: CaseBooking
-): string[] => {
-  const users = getUsers();
+): Promise<string[]> => {
+  const users = await getUsers();
   const recipientEmails: string[] = [];
   
   console.log('🔍 Filtering recipients based on rules:');
@@ -548,7 +548,7 @@ export const sendCaseStatusNotification = async (
     // Get recipient email addresses
     console.log('🚨 CRITICAL DEBUG: About to call getRecipientEmails');
     console.log('📋 Status rule recipients config:', statusRule.recipients);
-    const recipientEmails = getRecipientEmails(statusRule.recipients, caseData);
+    const recipientEmails = await getRecipientEmails(statusRule.recipients, caseData);
     console.log('🚨 CRITICAL DEBUG: getRecipientEmails returned:', recipientEmails);
     
     if (recipientEmails.length === 0) {

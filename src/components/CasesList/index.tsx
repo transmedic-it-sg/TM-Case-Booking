@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CaseBooking, FilterOptions, CaseStatus } from '../../types';
-import { getCases, filterCases, updateCaseStatus, amendCase, cleanupProcessOrderDetails } from '../../utils/storage';
+import { getCases, filterCases, updateCaseStatus, amendCase, cleanupProcessOrderDetails, processCaseOrder } from '../../utils/storage';
 import { getCurrentUser } from '../../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -85,8 +85,12 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   useEffect(() => {
     // Clean up any corrupted data on component mount
     cleanupProcessOrderDetails();
-    loadCases();
+    const loadData = async () => {
+      await loadCases();
+    };
+    loadData();
   }, [currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -94,8 +98,23 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     
     // Country-based filtering for Operations and Operations Manager roles
     if ((currentUser?.role === USER_ROLES.OPERATIONS || currentUser?.role === USER_ROLES.OPERATIONS_MANAGER) && currentUser.selectedCountry) {
+      // Convert country name to country code for comparison
+      const getCountryCode = (country: string) => {
+        const countryMap: { [key: string]: string } = {
+          'Singapore': 'SG',
+          'Malaysia': 'MY',
+          'Philippines': 'PH',
+          'Indonesia': 'ID',
+          'Vietnam': 'VN',
+          'Hong Kong': 'HK',
+          'Thailand': 'TH'
+        };
+        return countryMap[country] || 'SG';
+      };
+      
+      const userCountryCode = getCountryCode(currentUser.selectedCountry);
       filteredResults = filteredResults.filter(caseItem => 
-        caseItem.country === currentUser.selectedCountry
+        caseItem.country === userCountryCode
       );
     }
     
@@ -144,8 +163,25 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
   }, [highlightedCaseId, onClearHighlight, filteredCases, casesPerPage]);
 
-  const loadCases = () => {
-    const allCases = getCases();
+  const loadCases = async () => {
+    // Convert country name to country code for database operations
+    const getCountryCode = (country: string) => {
+      const countryMap: { [key: string]: string } = {
+        'Singapore': 'SG',
+        'Malaysia': 'MY',
+        'Philippines': 'PH',
+        'Indonesia': 'ID',
+        'Vietnam': 'VN',
+        'Hong Kong': 'HK',
+        'Thailand': 'TH'
+      };
+      return countryMap[country] || 'SG';
+    };
+    
+    const userCountry = currentUser?.selectedCountry;
+    const countryCode = userCountry ? getCountryCode(userCountry) : undefined;
+    
+    const allCases = await getCases(countryCode);
     
     // Extract unique submitters from all cases
     const uniqueSubmitters = Array.from(new Set(allCases.map(caseItem => caseItem.submittedBy)))
@@ -163,8 +199,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     if (currentUser?.role === 'admin' || currentUser?.role === 'it') {
       setCases(allCases);
     } else {
-      const countryCases = currentUser?.selectedCountry 
-        ? allCases.filter(caseItem => caseItem.country === currentUser.selectedCountry)
+      const countryCases = countryCode 
+        ? allCases.filter(caseItem => caseItem.country === countryCode)
         : allCases;
       setCases(countryCases);
     }
@@ -228,13 +264,13 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     });
   };
 
-  const handleStatusChange = (caseId: string, newStatus: CaseStatus) => {
+  const handleStatusChange = async (caseId: string, newStatus: CaseStatus) => {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
 
     const caseItem = cases.find(c => c.id === caseId);
-    updateCaseStatus(caseId, newStatus, currentUser.name);
-    loadCases();
+    await updateCaseStatus(caseId, newStatus, currentUser.id);
+    await loadCases();
     
     // Reset to page 1 and expand the updated case
     setCurrentPage(1);
@@ -265,16 +301,16 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     });
   };
 
-  const handleSaveAmendment = (caseId: string) => {
+  const handleSaveAmendment = async (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
 
     try {
       const isAdmin = currentUser.role === 'admin';
-      amendCase(caseId, amendmentData, currentUser.name, isAdmin);
+      await amendCase(caseId, amendmentData, currentUser.name, isAdmin);
       setAmendingCase(null);
       setAmendmentData({});
-      loadCases();
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -299,7 +335,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setProcessAttachments([]);
   };
 
-  const handleSaveProcessDetails = (caseId: string) => {
+  const handleSaveProcessDetails = async (caseId: string) => {
     if (!processDetails.trim()) {
       return;
     }
@@ -311,15 +347,12 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
     try {
       const caseItem = cases.find(c => c.id === caseId);
-      const additionalData = {
-        processDetails,
-        attachments: processAttachments
-      };
-      updateCaseStatus(caseId, 'Order Prepared', currentUser.name, JSON.stringify(additionalData));
+      // Use the specific processCaseOrder function for order processing
+      await processCaseOrder(caseId, currentUser.name, processDetails);
       setProcessingCase(null);
       setProcessDetails('');
       setProcessAttachments([]);
-      loadCases();
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -360,7 +393,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setHospitalDeliveryComments('');
   };
 
-  const handleOrderDelivered = (caseId: string) => {
+  const handleOrderDelivered = async (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.PENDING_DELIVERY_HOSPITAL)) {
       return;
@@ -371,11 +404,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         attachments: hospitalDeliveryAttachments,
         comments: hospitalDeliveryComments
       };
-      updateCaseStatus(caseId, 'Pending Delivery (Hospital)', currentUser.name, JSON.stringify(additionalData));
+      await updateCaseStatus(caseId, 'Pending Delivery (Hospital)', currentUser.id, JSON.stringify(additionalData));
       setHospitalDeliveryCase(null);
       setHospitalDeliveryAttachments([]);
       setHospitalDeliveryComments('');
-      loadCases();
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -403,7 +436,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setReceivedImage('');
   };
 
-  const handleSaveOrderReceived = (caseId: string) => {
+  const handleSaveOrderReceived = async (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.DELIVERED_HOSPITAL)) {
       return;
@@ -431,11 +464,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         comments: receivedDetails,
         attachments: attachments
       };
-      updateCaseStatus(caseId, 'Delivered (Hospital)', currentUser.name, JSON.stringify(additionalData));
+      await updateCaseStatus(caseId, 'Delivered (Hospital)', currentUser.id, JSON.stringify(additionalData));
       setReceivedCase(null);
       setReceivedDetails('');
       setReceivedImage('');
-      loadCases();
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -464,7 +497,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setDoNumber('');
   };
 
-  const handleSaveCaseCompleted = (caseId: string) => {
+  const handleSaveCaseCompleted = async (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.CASE_COMPLETED)) {
       return;
@@ -479,12 +512,12 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         orderSummary,
         doNumber
       };
-      updateCaseStatus(caseId, 'Case Completed', currentUser.name, JSON.stringify(additionalData));
+      await updateCaseStatus(caseId, 'Case Completed', currentUser.id, JSON.stringify(additionalData));
       setCompletedCase(null);
       setAttachments([]);
       setOrderSummary('');
       setDoNumber('');
-      loadCases();
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -506,15 +539,15 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   // Delivered (Office) workflow
-  const handleOrderDeliveredOffice = (caseId: string) => {
+  const handleOrderDeliveredOffice = async (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.DELIVERED_OFFICE)) {
       return;
     }
     try {
       const caseItem = cases.find(c => c.id === caseId);
-      updateCaseStatus(caseId, 'Delivered (Office)', currentUser.name);
-      loadCases();
+      await updateCaseStatus(caseId, 'Delivered (Office)', currentUser.id);
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -536,15 +569,15 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   // To be billed workflow
-  const handleToBeBilled = (caseId: string) => {
+  const handleToBeBilled = async (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
       return;
     }
     try {
       const caseItem = cases.find(c => c.id === caseId);
-      updateCaseStatus(caseId, 'To be billed', currentUser.name);
-      loadCases();
+      await updateCaseStatus(caseId, 'To be billed', currentUser.id);
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -572,7 +605,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setPendingOfficeComments('');
   };
 
-  const handleSavePendingOffice = (caseId: string) => {
+  const handleSavePendingOffice = async (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.PENDING_DELIVERY_OFFICE)) {
       return;
@@ -583,11 +616,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         attachments: pendingOfficeAttachments,
         comments: pendingOfficeComments
       };
-      updateCaseStatus(caseId, 'Pending Delivery (Office)', currentUser.name, JSON.stringify(additionalData));
+      await updateCaseStatus(caseId, 'Pending Delivery (Office)', currentUser.id, JSON.stringify(additionalData));
       setPendingOfficeCase(null);
       setPendingOfficeAttachments([]);
       setPendingOfficeComments('');
-      loadCases();
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -621,7 +654,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setOfficeDeliveryComments('');
   };
 
-  const handleSaveOfficeDelivery = (caseId: string) => {
+  const handleSaveOfficeDelivery = async (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.DELIVERED_OFFICE)) {
       return;
@@ -632,11 +665,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         attachments: officeDeliveryAttachments,
         comments: officeDeliveryComments
       };
-      updateCaseStatus(caseId, 'Delivered (Office)', currentUser.name, JSON.stringify(additionalData));
+      await updateCaseStatus(caseId, 'Delivered (Office)', currentUser.id, JSON.stringify(additionalData));
       setOfficeDeliveryCase(null);
       setOfficeDeliveryAttachments([]);
       setOfficeDeliveryComments('');
-      loadCases();
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -673,10 +706,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     const caseItem = cases.find(c => c.id === caseId);
     const confirmMessage = `Are you sure you want to cancel case "${caseItem?.caseReferenceNumber}"?\n\nThis action will mark the case as cancelled and cannot be undone.`;
     
-    showConfirm('Cancel Case', confirmMessage, () => {
+    showConfirm('Cancel Case', confirmMessage, async () => {
       try {
-        updateCaseStatus(caseId, 'Case Cancelled', currentUser.name, 'Case cancelled by user request');
-        loadCases();
+        await updateCaseStatus(caseId, 'Case Cancelled', currentUser.name, 'Case cancelled by user request');
+        await loadCases();
         
         // Reset to page 1 and expand the updated case
         setCurrentPage(1);
@@ -719,17 +752,17 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
     const confirmMessage = `Are you sure you want to delete case "${caseItem.caseReferenceNumber}"?\n\nCase Details:\n- Hospital: ${caseItem.hospital}\n- Procedure: ${caseItem.procedureType}\n- Status: ${caseItem.status}\n\nThis action cannot be undone.`;
     
-    showConfirm('Delete Case', confirmMessage, () => {
+    showConfirm('Delete Case', confirmMessage, async () => {
       try {
         // Get all cases from localStorage
-        const allCases = getCases();
+        const allCases = await getCases();
         // Filter out the case to delete
         const updatedCases = allCases.filter(c => c.id !== caseId);
         // Save back to localStorage
         localStorage.setItem('case-booking-cases', JSON.stringify(updatedCases));
         
         // Reload cases to update the UI
-        loadCases();
+        await loadCases();
         
         // Reset to page 1 (case was deleted, so no need to expand)
         setCurrentPage(1);

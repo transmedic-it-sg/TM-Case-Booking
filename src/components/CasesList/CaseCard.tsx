@@ -5,6 +5,7 @@ import CaseActions from './CaseActions';
 import { getCurrentUser } from '../../utils/auth';
 import { getAllProcedureTypes } from '../../utils/storage';
 import { getDepartments, initializeCodeTables } from '../../utils/codeTable';
+import { useUserNames } from '../../hooks/useUserNames';
 import TimePicker from '../common/TimePicker';
 import { formatDate, getTodayForInput } from '../../utils/dateFormat';
 
@@ -85,6 +86,17 @@ const CaseCard: React.FC<CaseCardProps> = ({
 }) => {
   const [availableProcedureTypes, setAvailableProcedureTypes] = useState<string[]>([]);
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
+
+  // Get user IDs from case data and status history
+  const userIds = [
+    caseItem.submittedBy,
+    caseItem.processedBy,
+    caseItem.amendedBy,
+    ...(caseItem.statusHistory || []).map(h => h.processedBy)
+  ].filter((id): id is string => Boolean(id));
+
+  const { getUserName } = useUserNames(userIds);
+
 
   // Load dynamic procedure types and departments on component mount
   useEffect(() => {
@@ -321,7 +333,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                             <span className="history-timestamp">{formatDateTime(historyItem.timestamp)}</span>
                           </div>
                           <div className="history-details">
-                            <span className="history-processor">By: {historyItem.processedBy}</span>
+                            <span className="history-processor">By: {getUserName(historyItem.processedBy)}</span>
                             {historyItem.details && (
                               <div className="history-notes">
                                 {(() => {
@@ -831,7 +843,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                             <span className="history-timestamp">{formatDateTime(historyItem.timestamp)}</span>
                           </div>
                           <div className="history-details">
-                            <span className="history-processor">By: {historyItem.processedBy}</span>
+                            <span className="history-processor">By: {getUserName(historyItem.processedBy)}</span>
                             {historyItem.details && (
                               <div className="history-notes">
                                 {(() => {

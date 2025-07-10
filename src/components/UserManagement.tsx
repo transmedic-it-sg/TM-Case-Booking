@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { User } from '../types';
-import { getUsers, addUser, getCurrentUser } from '../utils/auth';
+import { getCurrentUser } from '../utils/auth';
+import { 
+  getSupabaseUsers, 
+  addSupabaseUser, 
+  updateSupabaseUser, 
+  deleteSupabaseUser, 
+  toggleUserEnabled, 
+  checkUsernameAvailable 
+} from '../utils/supabaseUserService';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useToast } from './ToastContainer';
 import { useSound } from '../contexts/SoundContext';
@@ -156,30 +164,35 @@ const UserManagement: React.FC = () => {
   };
 
 
-  const loadUsers = () => {
-    const allUsers = getUsers();
-    
-    // Filter users based on current user's role and country access
-    let filteredUsers = allUsers;
-    
-    if (currentUser?.role === 'it' && currentUser.selectedCountry) {
-      // IT can only see users from their assigned country
-      filteredUsers = allUsers.filter(user => 
-        (user.countries && user.countries.includes(currentUser.selectedCountry!)) || user.role === 'admin'
-      );
-    } else if (currentUser?.role === 'admin') {
-      // Admin can see all users
-      filteredUsers = allUsers;
+  const loadUsers = async () => {
+    try {
+      const allUsers = await getSupabaseUsers();
+      
+      // Filter users based on current user's role and country access
+      let filteredUsers = allUsers;
+      
+      if (currentUser?.role === 'it' && currentUser.selectedCountry) {
+        // IT can only see users from their assigned country
+        filteredUsers = allUsers.filter(user => 
+          (user.countries && user.countries.includes(currentUser.selectedCountry!)) || user.role === 'admin'
+        );
+      } else if (currentUser?.role === 'admin') {
+        // Admin can see all users
+        filteredUsers = allUsers;
+      }
+      
+      // Apply country filter if selected
+      if (selectedCountryFilter) {
+        filteredUsers = filteredUsers.filter(user => 
+          user.countries && user.countries.includes(selectedCountryFilter)
+        );
+      }
+      
+      setUsers(filteredUsers);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      showError('Database Error', 'Failed to load users from database');
     }
-    
-    // Apply country filter if selected
-    if (selectedCountryFilter) {
-      filteredUsers = filteredUsers.filter(user => 
-        user.countries && user.countries.includes(selectedCountryFilter)
-      );
-    }
-    
-    setUsers(filteredUsers);
   };
 
   const handleEditUser = (user: User) => {
@@ -209,26 +222,34 @@ const UserManagement: React.FC = () => {
     }, 100);
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     const userToDelete = users.find(u => u.id === userId);
     const confirmMessage = `Are you sure you want to delete user "${userToDelete?.name}" (${userToDelete?.username})?\n\nThis action cannot be undone.`;
     
     if (window.confirm(confirmMessage)) {
-      const updatedUsers = users.filter(u => u.id !== userId);
-      localStorage.setItem('case-booking-users', JSON.stringify(updatedUsers));
-      loadUsers();
-      
-      playSound.delete();
-      showSuccess('User Deleted', `User "${userToDelete?.name}" has been successfully removed from the system.`);
-      addNotification({
-        title: 'User Account Deleted',
-        message: `${userToDelete?.name} (${userToDelete?.username}) has been removed from the user access matrix.`,
-        type: 'warning'
-      });
+      try {
+        const success = await deleteSupabaseUser(userId);
+        if (success) {
+          loadUsers();
+          
+          playSound.delete();
+          showSuccess('User Deleted', `User "${userToDelete?.name}" has been successfully removed from the system.`);
+          addNotification({
+            title: 'User Account Deleted',
+            message: `${userToDelete?.name} (${userToDelete?.username}) has been removed from the user access matrix.`,
+            type: 'warning'
+          });
+        } else {
+          showError('Delete Failed', 'Failed to delete user. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        showError('Delete Failed', 'Failed to delete user. Please try again.');
+      }
     }
   };
 
-  const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
+  const handleToggleUserStatus = async (userId: string, currentStatus: boolean) => {
     const userToToggle = users.find(u => u.id === userId);
     if (!userToToggle) return;
     
@@ -237,25 +258,29 @@ const UserManagement: React.FC = () => {
     const confirmMessage = `Are you sure you want to ${newStatus ? 'enable' : 'disable'} user "${userToToggle.name}" (${userToToggle.username})?\n\nThis will ${newStatus ? 'allow' : 'prevent'} them from logging into the system.`;
     
     if (window.confirm(confirmMessage)) {
-      const updatedUsers = users.map(u => 
-        u.id === userId 
-          ? { ...u, enabled: newStatus }
-          : u
-      );
-      localStorage.setItem('case-booking-users', JSON.stringify(updatedUsers));
-      loadUsers();
-      
-      playSound.success();
-      showSuccess('User Status Updated', `User "${userToToggle.name}" has been ${action}.`);
-      addNotification({
-        title: `User Account ${newStatus ? 'Enabled' : 'Disabled'}`,
-        message: `${userToToggle.name} (${userToToggle.username}) has been ${action} in the system.`,
-        type: newStatus ? 'success' : 'warning'
-      });
+      try {
+        const success = await toggleUserEnabled(userId, newStatus);
+        if (success) {
+          loadUsers();
+          
+          playSound.success();
+          showSuccess('User Status Updated', `User "${userToToggle.name}" has been ${action}.`);
+          addNotification({
+            title: `User Account ${newStatus ? 'Enabled' : 'Disabled'}`,
+            message: `${userToToggle.name} (${userToToggle.username}) has been ${action} in the system.`,
+            type: newStatus ? 'success' : 'warning'
+          });
+        } else {
+          showError('Update Failed', 'Failed to update user status. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error updating user status:', error);
+        showError('Update Failed', 'Failed to update user status. Please try again.');
+      }
     }
   };
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -275,8 +300,9 @@ const UserManagement: React.FC = () => {
       return;
     }
 
-    const existingUser = users.find(u => u.username === newUser.username && u.id !== editingUser);
-    if (existingUser) {
+    // Check username availability
+    const isUsernameAvailable = await checkUsernameAvailable(newUser.username, editingUser || undefined);
+    if (!isUsernameAvailable) {
       setError('Username already exists');
       return;
     }
@@ -284,33 +310,41 @@ const UserManagement: React.FC = () => {
     try {
       if (editingUser) {
         // Update existing user
-        const updatedUsers = users.map(u => 
-          u.id === editingUser 
-            ? { ...u, ...newUser }
-            : u
-        );
-        localStorage.setItem('case-booking-users', JSON.stringify(updatedUsers));
-        
-        playSound.success();
-        showSuccess('User Updated', `${newUser.name}'s account has been successfully updated.`);
-        addNotification({
-          title: 'User Account Updated',
-          message: `${newUser.name} (${newUser.username}) account details have been modified.`,
-          type: 'success'
-        });
+        const updatedUser = await updateSupabaseUser(editingUser, newUser);
+        if (updatedUser) {
+          loadUsers();
+          
+          playSound.success();
+          showSuccess('User Updated', `${newUser.name}'s account has been successfully updated.`);
+          addNotification({
+            title: 'User Account Updated',
+            message: `${newUser.name} (${newUser.username}) account details have been modified.`,
+            type: 'success'
+          });
+        } else {
+          setError('Failed to update user. Please try again.');
+          return;
+        }
       } else {
         // Add new user
-        addUser(newUser);
-        
-        playSound.success();
-        showSuccess('User Created', `Welcome ${newUser.name}! New user account has been created successfully.`);
-        addNotification({
-          title: 'New User Account Created',
-          message: `${newUser.name} (${newUser.username}) has been added to the system with ${newUser.role} role.`,
-          type: 'success'
-        });
+        const createdUser = await addSupabaseUser(newUser);
+        if (createdUser) {
+          loadUsers();
+          
+          playSound.success();
+          showSuccess('User Created', `Welcome ${newUser.name}! New user account has been created successfully.`);
+          addNotification({
+            title: 'New User Account Created',
+            message: `${newUser.name} (${newUser.username}) has been added to the system with ${newUser.role} role.`,
+            type: 'success'
+          });
+        } else {
+          setError('Failed to create user. Please try again.');
+          return;
+        }
       }
       
+      // Reset form
       setNewUser({
         username: '',
         password: '',
@@ -323,8 +357,8 @@ const UserManagement: React.FC = () => {
       });
       setEditingUser(null);
       setShowAddUser(false);
-      loadUsers();
     } catch (err) {
+      console.error('Error saving user:', err);
       const errorMessage = editingUser ? 'Failed to update user' : 'Failed to add user';
       setError(errorMessage);
       playSound.error();
