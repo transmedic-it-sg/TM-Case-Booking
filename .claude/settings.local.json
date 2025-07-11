@@ -69,7 +69,9 @@
       "Bash(timeout 30 npm run build)",
       "Bash(timeout 15 npm start)",
       "Bash(timeout 60s npm run build:*)",
-      "Bash(timeout 90s npm run build:*)"
+      "Bash(timeout 90s npm run build:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)"
     ],
     "deny": []
   }

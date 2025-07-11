@@ -792,21 +792,44 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     
     showConfirm('Delete Case', confirmMessage, async () => {
       try {
-        // Get all cases from localStorage
-        const allCases = await getCases();
-        // Filter out the case to delete
-        const updatedCases = allCases.filter(c => c.id !== caseId);
-        // Save back to localStorage
-        localStorage.setItem('case-booking-cases', JSON.stringify(updatedCases));
+        // Use the proper storage service to delete from Supabase
+        const { deleteSupabaseCase } = await import('../../utils/supabaseCaseService');
+        await deleteSupabaseCase(caseId);
+        
+        // Fallback to localStorage if Supabase fails
+        try {
+          // Get all cases from localStorage
+          const allCases = await getCases();
+          // Filter out the case to delete
+          const updatedCases = allCases.filter(c => c.id !== caseId);
+          // Save back to localStorage
+          localStorage.setItem('case-booking-cases', JSON.stringify(updatedCases));
+        } catch (localStorageError) {
+          console.error('localStorage fallback failed:', localStorageError);
+        }
         
         // Reload cases to update the UI
         await loadCases();
         
         // Reset to page 1 (case was deleted, so no need to expand)
         setCurrentPage(1);
+        
+        // Add notification
+        addNotification({
+          title: 'Case Deleted',
+          message: `Case ${caseItem.caseReferenceNumber} has been successfully deleted by ${currentUser.name}`,
+          type: 'warning'
+        });
+        
         // Success handled by UI update
       } catch (error) {
         console.error('Delete failed:', error);
+        // Show error notification
+        addNotification({
+          title: 'Delete Failed',
+          message: `Failed to delete case ${caseItem.caseReferenceNumber}. Please try again.`,
+          type: 'error'
+        });
       }
     });
   };

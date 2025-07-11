@@ -53,12 +53,21 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     // Initialize code tables and permissions
     const initialize = async () => {
-      initializeCodeTables();
-      await initializePermissions();
-      
-      const currentUser = getCurrentUser();
-      if (currentUser) {
-        setUser(currentUser);
+      try {
+        initializeCodeTables();
+        await initializePermissions();
+        
+        const currentUser = getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+        }
+      } catch (error) {
+        console.error('Error during initialization:', error);
+        // Still try to get current user even if initialization fails
+        const currentUser = getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+        }
       }
     };
     
