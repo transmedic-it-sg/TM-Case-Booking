@@ -55,7 +55,13 @@ export const hasPermission = (roleId: string, actionId: string): boolean => {
   }
   
   const permission = permissionsToCheck.find(p => p.roleId === roleId && p.actionId === actionId);
-  const result = permission?.allowed || false;
+  let result = permission?.allowed || false;
+  
+  // If permission not found in dynamic permissions, check default permissions as fallback
+  if (!permission && permissionsToCheck !== defaultPermissions) {
+    const fallbackPermission = defaultPermissions.find(p => p.roleId === roleId && p.actionId === actionId);
+    result = fallbackPermission?.allowed || false;
+  }
   
   // Debug logging for IT role permissions
   if (roleId === 'it' && ['create-case', 'code-table-setup', 'view-users', 'email-config', 'audit-logs'].includes(actionId)) {
@@ -77,9 +83,14 @@ export const hasPermission = (roleId: string, actionId: string): boolean => {
 // Initialize permissions cache
 export const initializePermissions = async (): Promise<void> => {
   try {
-    await getRuntimePermissions();
+    console.log('Initializing permissions system...');
+    const permissions = await getRuntimePermissions();
+    console.log(`Permissions loaded: ${permissions.length} permissions from ${permissionsCache ? 'Supabase' : 'defaults'}`);
   } catch (error) {
-    console.error('Error initializing permissions:', error);
+    console.error('Error initializing permissions, using defaults:', error);
+    // Ensure we use default permissions if initialization fails
+    permissionsCache = null;
+    permissionsCacheTime = 0;
   }
 };
 
