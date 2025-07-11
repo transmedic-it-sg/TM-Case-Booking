@@ -5,34 +5,25 @@ import {
   getConnectionStatusDisplay 
 } from '../utils/databaseConnectivity';
 
-const CONNECTION_CHECK_INTERVAL = 30000; // Check every 30 seconds
-const INITIAL_CHECK_DELAY = 2000; // Wait 2 seconds before first check
-const CONNECTION_TIMEOUT = 5000; // 5 second timeout for connection tests
+const CONNECTION_CHECK_INTERVAL = 60000; // Check every 60 seconds (reduced frequency)
+const INITIAL_CHECK_DELAY = 1000; // Wait 1 second before first check
+const CONNECTION_TIMEOUT = 3000; // 3 second timeout for faster checks
 
 export const useDatabaseConnection = () => {
   const [connectionInfo, setConnectionInfo] = useState<DatabaseConnectionInfo>({
-    status: 'checking',
+    status: 'connected', // Start optimistically
     lastChecked: new Date(),
     usingFallback: false
   });
   const [isVisible, setIsVisible] = useState(false);
 
-  // Test connection function
-  const testConnection = useCallback(async () => {
-    setConnectionInfo(prev => ({ ...prev, status: 'checking' }));
-    
+  // Test connection function for background checks (no visual feedback)
+  const testConnectionSilently = useCallback(async () => {
     try {
       const result = await testConnectionWithTimeout(CONNECTION_TIMEOUT);
       setConnectionInfo(result);
-      
-      // Show indicator briefly if status changed
-      if (result.status !== connectionInfo.status) {
-        setIsVisible(true);
-        setTimeout(() => setIsVisible(false), 3000);
-      }
-      
     } catch (error) {
-      console.error('Connection test failed:', error);
+      console.error('Background connection test failed:', error);
       setConnectionInfo({
         status: 'disconnected',
         lastChecked: new Date(),
@@ -40,13 +31,26 @@ export const useDatabaseConnection = () => {
         errorMessage: error instanceof Error ? error.message : 'Connection test failed'
       });
     }
-  }, [connectionInfo.status]);
+  }, []);
 
-  // Force a connection test
-  const forceCheck = useCallback(() => {
+  // Force a connection test (with visual feedback)
+  const forceCheck = useCallback(async () => {
     setIsVisible(true);
-    testConnection();
-  }, [testConnection]);
+    setConnectionInfo(prev => ({ ...prev, status: 'checking' }));
+    
+    try {
+      const result = await testConnectionWithTimeout(CONNECTION_TIMEOUT);
+      setConnectionInfo(result);
+    } catch (error) {
+      console.error('Manual connection test failed:', error);
+      setConnectionInfo({
+        status: 'disconnected',
+        lastChecked: new Date(),
+        usingFallback: true,
+        errorMessage: error instanceof Error ? error.message : 'Connection test failed'
+      });
+    }
+  }, []);
 
   // Toggle visibility
   const toggleVisibility = useCallback(() => {
@@ -60,31 +64,31 @@ export const useDatabaseConnection = () => {
   useEffect(() => {
     // Initial check after delay
     const initialTimeout = setTimeout(() => {
-      testConnection();
+      testConnectionSilently();
     }, INITIAL_CHECK_DELAY);
 
     // Periodic checks
     const interval = setInterval(() => {
-      testConnection();
+      testConnectionSilently();
     }, CONNECTION_CHECK_INTERVAL);
 
     return () => {
       clearTimeout(initialTimeout);
       clearInterval(interval);
     };
-  }, [testConnection]);
+  }, [testConnectionSilently]);
 
   // Check connection when coming back from background
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        testConnection();
+        testConnectionSilently();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [testConnection]);
+  }, [testConnectionSilently]);
 
   return {
     connectionInfo,
