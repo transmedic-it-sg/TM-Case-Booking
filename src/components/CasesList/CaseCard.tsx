@@ -225,8 +225,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
     // Admin can amend any case unlimited times
     if (currentUser.role === 'admin') return true;
     
-    // Check if user has amend permission
-    const canAmend = ['sales', 'sales-manager', 'operations', 'operations-manager'].includes(currentUser.role);
+    // Check if user has amend permission using permission system
+    const { hasPermission, PERMISSION_ACTIONS } = require('../../utils/permissions');
+    const canAmend = hasPermission(currentUser.role, PERMISSION_ACTIONS.AMEND_CASE);
     
     // Check if case hasn't been amended yet (for non-admin users)
     const notAmended = !caseItem.isAmended;
@@ -410,7 +411,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 <strong>Prepared at:</strong> {formatDateTime(caseItem.processedAt)}
               </div>
             )}
-            {caseItem.statusHistory && caseItem.statusHistory.length > 0 && (
+            {caseItem.statusHistory && caseItem.statusHistory.length > 0 && caseItem.status !== 'Case Booked' && (
               <div className="detail-item full-width">
                 <div className="status-history-header-container">
                   <strong>Status Updates:</strong>

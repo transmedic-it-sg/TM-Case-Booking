@@ -16,7 +16,7 @@ import { userHasDepartmentAccess } from '../../utils/departmentUtils';
 
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
-  const { modal, closeModal, showConfirm } = useModal();
+  const { modal, closeModal, showConfirm, showConfirmWithCustomButtons } = useModal();
   const [cases, setCases] = useState<CaseBooking[]>([]);
   const [filteredCases, setFilteredCases] = useState<CaseBooking[]>([]);
   const [availableSubmitters, setAvailableSubmitters] = useState<string[]>([]);
@@ -744,7 +744,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     const caseItem = cases.find(c => c.id === caseId);
     const confirmMessage = `Are you sure you want to cancel case "${caseItem?.caseReferenceNumber}"?\n\nThis action will mark the case as cancelled and cannot be undone.`;
     
-    showConfirm('Cancel Case', confirmMessage, async () => {
+    showConfirmWithCustomButtons('Cancel Case', confirmMessage, async () => {
       try {
         await updateCaseStatus(caseId, 'Case Cancelled', currentUser.id, 'Case cancelled by user request');
         await loadCases();
@@ -766,7 +766,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       } catch (error) {
         console.error('Failed to cancel case:', error);
       }
-    });
+    }, 'Cancel Case');
   };
 
   const handleCancelReceived = () => {
@@ -821,7 +821,9 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
           type: 'warning'
         });
         
-        // Success handled by UI update
+        // Show success popup
+        setSuccessMessage(`Case ${caseItem.caseReferenceNumber} has been successfully deleted`);
+        setShowSuccessPopup(true);
       } catch (error) {
         console.error('Delete failed:', error);
         // Show error notification
@@ -1046,7 +1048,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
             style: 'secondary'
           },
           {
-            label: 'Delete',
+            label: modal.confirmLabel || 'Delete',
             onClick: modal.onConfirm || closeModal,
             style: 'danger'
           }

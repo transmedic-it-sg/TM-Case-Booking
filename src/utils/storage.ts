@@ -145,13 +145,15 @@ export const updateCaseStatus = async (caseId: string, status: CaseBooking['stat
     // Initialize status history if it doesn't exist
     if (!caseData.statusHistory) {
       caseData.statusHistory = [];
-      // Add initial status
-      caseData.statusHistory.push({
-        status: 'Case Booked',
-        timestamp: caseData.submittedAt,
-        processedBy: caseData.submittedBy,
-        details: 'Case created'
-      });
+      // Add initial status only if not already a Case Booked status
+      if (caseData.status === 'Case Booked') {
+        caseData.statusHistory.push({
+          status: 'Case Booked',
+          timestamp: caseData.submittedAt,
+          processedBy: caseData.submittedBy,
+          details: 'Case initially submitted'
+        });
+      }
     }
     
     // Add new status to history
