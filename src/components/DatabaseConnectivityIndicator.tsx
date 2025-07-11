@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useDatabaseConnection } from '../hooks/useDatabaseConnection';
 import './DatabaseConnectivityIndicator.css';
 
@@ -11,6 +11,7 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
   showDetails = false, 
   className = '' 
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const { 
     connectionInfo, 
     displayInfo, 
@@ -26,8 +27,42 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
+  // Handle click outside to close panel
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isVisible && containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        toggleVisibility();
+      }
+    };
+
+    if (isVisible) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isVisible, toggleVisibility]);
+
+  // Handle escape key to close panel
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (isVisible && event.key === 'Escape') {
+        toggleVisibility();
+      }
+    };
+
+    if (isVisible) {
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [isVisible, toggleVisibility]);
+
   return (
-    <div className={`database-connectivity-indicator ${className}`}>
+    <div ref={containerRef} className={`database-connectivity-indicator ${className}`}>
       {/* Always visible status light */}
       <div 
         className={`connection-status-light ${connectionInfo.status}`}
