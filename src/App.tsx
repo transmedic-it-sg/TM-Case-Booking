@@ -229,7 +229,7 @@ const AppContent: React.FC = () => {
                     
                     {adminPanelExpanded && (
                       <div className="header-admin-submenu">
-                        {hasPermission(user.role, 'code-table-setup') && (
+                        {hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) && (
                           <button
                             onClick={() => {
                               setActivePage('codetables');
@@ -335,7 +335,7 @@ const AppContent: React.FC = () => {
             📋 View All Cases
           </button>
           <StatusLegend />
-          {hasPermission(user.role, 'booking-calendar') && (
+          {hasPermission(user.role, PERMISSION_ACTIONS.BOOKING_CALENDAR) && (
             <button
               onClick={() => {
                 setActivePage('calendar');
@@ -432,7 +432,7 @@ const AppContent: React.FC = () => {
           <SimplifiedEmailConfig />
         )}
         
-        {activePage === 'calendar' && hasPermission(user.role, 'booking-calendar') && (
+        {activePage === 'calendar' && hasPermission(user.role, PERMISSION_ACTIONS.BOOKING_CALENDAR) && (
           <BookingCalendar onCaseClick={handleCalendarCaseClick} />
         )}
         
@@ -444,7 +444,7 @@ const AppContent: React.FC = () => {
           <Reports />
         )}
         
-        {activePage === 'codetables' && hasPermission(user.role, 'code-table-setup') && (
+        {activePage === 'codetables' && hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) && (
           <CodeTableSetup />
         )}
       </main>

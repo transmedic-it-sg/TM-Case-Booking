@@ -120,6 +120,7 @@ export interface User {
   selectedCountry?: string;
   email?: string;
   enabled?: boolean;
+  passwordResetRequired?: boolean;
 }
 
 export interface CaseBooking {

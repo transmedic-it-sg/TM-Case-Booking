@@ -69,7 +69,8 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User 
       countries: data.countries || [],
       selectedCountry: data.selected_country,
       enabled: data.enabled !== undefined ? data.enabled : true,
-      email: data.email || ''
+      email: data.email || '',
+      passwordResetRequired: data.password_reset_required || false
     };
   } catch (error) {
     console.error('Error in addSupabaseUser:', error);
@@ -115,11 +116,36 @@ export const updateSupabaseUser = async (userId: string, userData: Partial<User>
       countries: data.countries || [],
       selectedCountry: data.selected_country,
       enabled: data.enabled !== undefined ? data.enabled : true,
-      email: data.email || ''
+      email: data.email || '',
+      passwordResetRequired: data.password_reset_required || false
     };
   } catch (error) {
     console.error('Error in updateSupabaseUser:', error);
     return null;
+  }
+};
+
+// Reset user password in Supabase
+export const resetSupabaseUserPassword = async (userId: string, newPassword: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ 
+        password: newPassword,
+        password_reset_required: true, // Flag to force password change on next login
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+    
+    if (error) {
+      console.error('Error resetting password:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in resetSupabaseUserPassword:', error);
+    return false;
   }
 };
 

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CaseBooking, FilterOptions, CaseStatus } from '../../types';
-import { getCases, filterCases, updateCaseStatus, amendCase, cleanupProcessOrderDetails, processCaseOrder } from '../../utils/storage';
+import { getCases, filterCases, updateCaseStatus, amendCase, cleanupProcessOrderDetails, cleanupDuplicateStatusEntries, processCaseOrder } from '../../utils/storage';
 import { getCurrentUser } from '../../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -10,7 +10,7 @@ import CaseCard from './CaseCard';
 import StatusChangeSuccessPopup from '../StatusChangeSuccessPopup';
 import CustomModal from '../CustomModal';
 import { useModal } from '../../hooks/useModal';
-import { USER_ROLES } from '../../constants/permissions';
+// import { USER_ROLES } from '../../constants/permissions'; // Removed - not used
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { userHasDepartmentAccess } from '../../utils/departmentUtils';
 
@@ -86,6 +86,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   useEffect(() => {
     // Clean up any corrupted data on component mount
     cleanupProcessOrderDetails();
+    cleanupDuplicateStatusEntries();
     const loadData = async () => {
       await loadCases();
     };
@@ -112,8 +113,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     };
     
     // Country-based filtering for non-admin/IT users
-    const isAdminOrIT = currentUser && (currentUser.role === 'admin' || currentUser.role === 'it');
-    if (currentUser && !isAdminOrIT) {
+    const isCurrentUserAdminOrIT = currentUser && (currentUser.role === 'admin' || currentUser.role === 'it');
+    if (currentUser && !isCurrentUserAdminOrIT) {
       if (currentUser.countries && currentUser.countries.length > 0) {
         // Convert user's country names to country codes and filter cases
         const userCountryCodes = currentUser.countries.map(country => getCountryCode(country));
@@ -178,7 +179,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
   }, [highlightedCaseId, onClearHighlight, filteredCases, casesPerPage]);
 
-  const loadCases = async () => {
+  const loadCases = useCallback(async () => {
     try {
       // Convert country name to country code for database operations
       const getCountryCode = (country: string) => {
@@ -226,6 +227,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setAvailableHospitals(uniqueHospitals);
       
       // Admin and IT can view all cases, others are filtered by country
+      const isAdminOrIT = currentUser && (currentUser.role === 'admin' || currentUser.role === 'it');
       if (isAdminOrIT) {
         setCases(allCases);
       } else {
@@ -245,7 +247,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         type: 'error'
       });
     }
-  };
+  }, [currentUser, addNotification]);
 
   const handleFilterChange = (field: keyof FilterOptions, value: string) => {
     setTempFilters(prev => ({

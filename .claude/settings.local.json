@@ -70,7 +70,10 @@
       "Bash(timeout 15 npm start)",
       "Bash(timeout 60s npm run build:*)",
       "Bash(timeout 90s npm run build:*)",
-      "Bash(git cherry-pick:*)"
+      "Bash(git cherry-pick:*)",
+      "Bash(timeout 30s npm run build)",
+      "Bash(timeout 15s npm start)",
+      "WebFetch(domain:localhost)"
     ],
     "deny": []
   }
