@@ -104,8 +104,19 @@ const getCasesFromLocalStorage = async (): Promise<CaseBooking[]> => {
 
 export const updateCaseStatus = async (caseId: string, status: CaseBooking['status'], processedBy?: string, details?: string): Promise<void> => {
   try {
+    // Extract attachments from details if present
+    let attachments: string[] | undefined;
+    if (details) {
+      try {
+        const parsedDetails = JSON.parse(details);
+        attachments = parsedDetails.attachments;
+      } catch {
+        // If details are not JSON, no attachments
+      }
+    }
+    
     // Try to update in Supabase first
-    await updateSupabaseCaseStatus(caseId, status, processedBy || 'unknown', details);
+    await updateSupabaseCaseStatus(caseId, status, processedBy || 'unknown', details, attachments);
     return;
   } catch (error) {
     console.error('Error updating case status in Supabase, falling back to localStorage:', error);
@@ -125,7 +136,7 @@ export const updateCaseStatus = async (caseId: string, status: CaseBooking['stat
         status: 'Case Booked',
         timestamp: caseData.submittedAt,
         processedBy: caseData.submittedBy,
-        details: 'Case initially submitted'
+        details: 'Case created'
       });
     }
     
