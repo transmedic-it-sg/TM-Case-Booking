@@ -253,6 +253,12 @@ export const permissionActions: PermissionAction[] = [
     description: 'View system audit trail and logs',
     category: 'System Settings'
   },
+  {
+    id: 'permission-matrix',
+    name: 'Permission Matrix',
+    description: 'Manage user permissions and role assignments',
+    category: 'System Settings'
+  },
   
   // File Operations
   {
@@ -314,6 +320,7 @@ export const permissions: Permission[] = [
   { actionId: 'download-files', roleId: 'admin', allowed: true },
   { actionId: 'delete-files', roleId: 'admin', allowed: true },
   { actionId: 'cancel-case', roleId: 'admin', allowed: true },
+  { actionId: 'permission-matrix', roleId: 'admin', allowed: true },
   
   // Operations - Order processing and case management
   { actionId: 'create-case', roleId: 'operations', allowed: true },

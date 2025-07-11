@@ -161,6 +161,7 @@ export const PERMISSION_ACTIONS = {
   CODE_TABLE_SETUP: 'code-table-setup',
   BACKUP_RESTORE: 'backup-restore',
   AUDIT_LOGS: 'audit-logs',
+  PERMISSION_MATRIX: 'permission-matrix',
   
   // Data Operations
   EXPORT_DATA: 'export-data',

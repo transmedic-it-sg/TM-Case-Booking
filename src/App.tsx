@@ -241,7 +241,7 @@ const AppContent: React.FC = () => {
                             📊 Code Table Setup
                           </button>
                         )}
-                        {user.role === 'admin' && (
+                        {hasPermission(user.role, PERMISSION_ACTIONS.PERMISSION_MATRIX) && (
                           <button
                             onClick={() => {
                               setActivePage('permissions');
@@ -424,7 +424,7 @@ const AppContent: React.FC = () => {
           <AuditLogs />
         )}
         
-        {activePage === 'permissions' && user.role === 'admin' && (
+        {activePage === 'permissions' && hasPermission(user.role, PERMISSION_ACTIONS.PERMISSION_MATRIX) && (
           <PermissionMatrixPage />
         )}
         

@@ -111,8 +111,9 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       return countryMap[country] || 'SG';
     };
     
-    // Country-based filtering for ALL non-admin/IT users
-    if (currentUser && currentUser.role !== USER_ROLES.ADMIN && currentUser.role !== USER_ROLES.IT) {
+    // Country-based filtering for non-admin/IT users
+    const isAdminOrIT = currentUser && (currentUser.role === 'admin' || currentUser.role === 'it');
+    if (currentUser && !isAdminOrIT) {
       if (currentUser.countries && currentUser.countries.length > 0) {
         // Convert user's country names to country codes and filter cases
         const userCountryCodes = currentUser.countries.map(country => getCountryCode(country));
@@ -123,10 +124,12 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
     
     // Department-based filtering (excluding Operations Managers who have broader access)
-    if (currentUser?.departments && currentUser.departments.length > 0 && 
-        currentUser.role !== USER_ROLES.ADMIN && 
-        currentUser.role !== USER_ROLES.OPERATIONS_MANAGER && 
-        currentUser.role !== USER_ROLES.IT) {
+    const hasFullAccess = currentUser && (
+      currentUser.role === 'admin' || 
+      currentUser.role === 'operations-manager' || 
+      currentUser.role === 'it'
+    );
+    if (currentUser?.departments && currentUser.departments.length > 0 && !hasFullAccess) {
       
       // Clean department names - remove country prefixes like "Singapore:", "Malaysia:"
       const cleanDepartmentName = (department: string) => {
@@ -223,7 +226,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setAvailableHospitals(uniqueHospitals);
       
       // Admin and IT can view all cases, others are filtered by country
-      if (currentUser?.role === 'admin' || currentUser?.role === 'it') {
+      if (isAdminOrIT) {
         setCases(allCases);
       } else {
         const countryCases = countryCode 
