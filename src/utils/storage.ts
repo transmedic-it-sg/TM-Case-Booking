@@ -8,7 +8,6 @@ import {
   generateCaseReferenceNumber as generateSupabaseReferenceNumber, 
   getCategorizedSets as getSupabaseCategorizedSets, 
   saveCategorizedSets as saveSupabaseCategorizedSets, 
-  checkCasesExist, 
   migrateCasesFromLocalStorage 
 } from './supabaseCaseService';
 
@@ -32,26 +31,41 @@ export const generateCaseReferenceNumber = async (country: string = 'SG'): Promi
 
 export const getCases = async (country?: string): Promise<CaseBooking[]> => {
   try {
-    // Check if cases exist in Supabase
-    const casesExist = await checkCasesExist();
+    console.log('Loading cases from Supabase...');
+    // Try to get cases directly from Supabase
+    const supabaseCases = await getSupabaseCases(country);
     
-    if (casesExist) {
-      return await getSupabaseCases(country);
-    } else {
-      // If no cases in Supabase, check localStorage and migrate
-      const stored = localStorage.getItem(CASES_KEY);
-      if (stored) {
-        console.log('Migrating cases from localStorage to Supabase...');
-        await migrateCasesFromLocalStorage();
-        return await getSupabaseCases(country);
-      }
-      return [];
+    // If we got cases from Supabase, return them
+    if (supabaseCases && supabaseCases.length > 0) {
+      console.log(`Loaded ${supabaseCases.length} cases from Supabase`);
+      return supabaseCases;
     }
+    
+    // If no cases in Supabase, check localStorage and migrate if needed
+    const stored = localStorage.getItem(CASES_KEY);
+    if (stored) {
+      console.log('No cases in Supabase, migrating from localStorage...');
+      try {
+        await migrateCasesFromLocalStorage();
+        const migratedCases = await getSupabaseCases(country);
+        console.log(`Migrated ${migratedCases.length} cases to Supabase`);
+        return migratedCases;
+      } catch (migrationError) {
+        console.error('Migration failed, using localStorage cases:', migrationError);
+        return JSON.parse(stored);
+      }
+    }
+    
+    // No cases anywhere, return empty array
+    console.log('No cases found in Supabase or localStorage');
+    return [];
   } catch (error) {
     console.error('Error getting cases from Supabase, falling back to localStorage:', error);
     // Fallback to localStorage
     const stored = localStorage.getItem(CASES_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const fallbackCases = stored ? JSON.parse(stored) : [];
+    console.log(`Using localStorage fallback: ${fallbackCases.length} cases`);
+    return fallbackCases;
   }
 };
 
