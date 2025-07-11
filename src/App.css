@@ -7926,3 +7926,60 @@ textarea:focus {
     font-size: 13px;
   }
 }
+
+/* Header Database Connectivity Indicator Styles */
+.header-left h1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.header-db-indicator {
+  flex-shrink: 0;
+}
+
+.header-db-indicator .connection-status-light {
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-db-indicator .connection-status-light:hover {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.header-db-indicator .status-text {
+  display: none; /* Hide text in header to save space */
+}
+
+/* Position the details panel correctly for header */
+.header-db-indicator .connection-details-panel {
+  top: calc(100% + 8px);
+  left: 0;
+  transform: none;
+}
+
+/* Responsive adjustments for header */
+@media (max-width: 768px) {
+  .header-left h1 {
+    font-size: 20px;
+    gap: 8px;
+  }
+  
+  .header-db-indicator .connection-status-light {
+    padding: 3px 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-left h1 {
+    font-size: 18px;
+    gap: 6px;
+  }
+}

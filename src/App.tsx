@@ -15,6 +15,7 @@ import AuditLogs from './components/AuditLogs';
 import SimplifiedEmailConfig from './components/SimplifiedEmailConfig';
 import LogoutConfirmation from './components/LogoutConfirmation';
 import SSOCallback from './components/SSOCallback';
+import DatabaseConnectivityIndicator from './components/DatabaseConnectivityIndicator';
 import { User, CaseBooking } from './types';
 import { getCurrentUser, logout } from './utils/auth';
 import { hasPermission, PERMISSION_ACTIONS, initializePermissions } from './utils/permissions';
@@ -195,7 +196,10 @@ const AppContent: React.FC = () => {
       <header className="app-header">
         <div className="header-content">
           <div className="header-left">
-            <h1>🏥 Transmedic Case Booking</h1>
+            <h1>
+              <DatabaseConnectivityIndicator className="header-db-indicator" />
+              Transmedic Case Booking
+            </h1>
             <div className="header-info">
               <div className="role-country-info">
                 <span className="info-label">Role:</span>
