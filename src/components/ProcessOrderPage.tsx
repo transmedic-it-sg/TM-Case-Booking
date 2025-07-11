@@ -52,7 +52,9 @@ const ProcessOrderPage: React.FC<ProcessOrderPageProps> = ({
         caseData.id,
         'Order Prepared',
         currentUser.name,
-        processOrderDetails
+        JSON.stringify({
+          processDetails: processOrderDetails
+        })
       );
 
       setTimeout(() => {

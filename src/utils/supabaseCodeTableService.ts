@@ -112,13 +112,21 @@ export const saveSupabaseCodeTables = async (
 
       // Add new items
       if (newItems.length > 0) {
-        const itemsToInsert = newItems.map(item => ({
-          country,
-          table_type: codeTable.id,
-          code: generateCode(item),
-          display_name: item,
-          is_active: true
-        }));
+        const itemsToInsert = newItems.map(item => {
+          const insertData: any = {
+            table_type: codeTable.id,
+            code: generateCode(item),
+            display_name: item,
+            is_active: true
+          };
+          
+          // Only set country if it's provided and not null
+          if (country && country !== null) {
+            insertData.country = country;
+          }
+          
+          return insertData;
+        });
 
         const { error: insertError } = await supabase
           .from('code_tables')
@@ -194,10 +202,11 @@ export const addSupabaseCodeTableItem = async (
       is_active: true
     };
     
-    // Only set country if it's provided (for country-specific tables)
-    if (country) {
+    // Only set country if it's provided and not null (for country-specific tables)
+    if (country && country !== null) {
       insertData.country = country;
     }
+    // For global tables, do not set country field at all (let database handle default)
     
     const { error: insertError } = await supabase
       .from('code_tables')

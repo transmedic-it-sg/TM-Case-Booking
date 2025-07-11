@@ -64,7 +64,7 @@ export const hasPermission = (roleId: string, actionId: string): boolean => {
   }
   
   // Debug logging for IT role permissions
-  if (roleId === 'it' && ['create-case', 'code-table-setup', 'view-users', 'email-config', 'audit-logs'].includes(actionId)) {
+  if (roleId === 'it' && ['create-case', 'code-table-setup', 'view-users', 'email-config', 'audit-logs', 'edit-countries'].includes(actionId)) {
     console.log(`Permission check for IT ${actionId}: ${result}`, {
       roleId,
       actionId,
@@ -154,6 +154,9 @@ export const PERMISSION_ACTIONS = {
   DELETE_USER: 'delete-user',
   VIEW_USERS: 'view-users',
   ENABLE_DISABLE_USER: 'enable-disable-user',
+  RESET_PASSWORD: 'reset-password',
+  EDIT_COUNTRIES: 'edit-countries',
+  GLOBAL_TABLES: 'global-tables',
   
   // System Settings
   SYSTEM_SETTINGS: 'system-settings',
@@ -161,6 +164,7 @@ export const PERMISSION_ACTIONS = {
   CODE_TABLE_SETUP: 'code-table-setup',
   BACKUP_RESTORE: 'backup-restore',
   AUDIT_LOGS: 'audit-logs',
+  PERMISSION_MATRIX: 'permission-matrix',
   
   // Data Operations
   EXPORT_DATA: 'export-data',

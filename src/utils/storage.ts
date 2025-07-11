@@ -145,13 +145,25 @@ export const updateCaseStatus = async (caseId: string, status: CaseBooking['stat
     // Initialize status history if it doesn't exist
     if (!caseData.statusHistory) {
       caseData.statusHistory = [];
-      // Add initial status
-      caseData.statusHistory.push({
-        status: 'Case Booked',
-        timestamp: caseData.submittedAt,
-        processedBy: caseData.submittedBy,
-        details: 'Case created'
-      });
+      // Add initial status only if not already a Case Booked status
+      if (caseData.status === 'Case Booked') {
+        caseData.statusHistory.push({
+          status: 'Case Booked',
+          timestamp: caseData.submittedAt,
+          processedBy: caseData.submittedBy,
+          details: 'Case created'
+        });
+      }
+    }
+    
+    // Check if we're adding a duplicate status
+    const existingStatusEntry = caseData.statusHistory.find(entry => 
+      entry.status === status && entry.timestamp === timestamp
+    );
+    
+    if (existingStatusEntry) {
+      console.log('Duplicate status entry detected, skipping:', { status, timestamp });
+      return;
     }
     
     // Add new status to history
@@ -261,6 +273,44 @@ export const cleanupProcessOrderDetails = async (): Promise<void> => {
   
   if (hasChanges) {
     localStorage.setItem(CASES_KEY, JSON.stringify(cases));
+  }
+};
+
+// Utility function to clean up duplicate status entries
+export const cleanupDuplicateStatusEntries = async (): Promise<void> => {
+  const cases = await getCasesFromLocalStorage();
+  let hasChanges = false;
+  
+  cases.forEach(caseData => {
+    if (caseData.statusHistory && caseData.statusHistory.length > 1) {
+      // Remove duplicate "Case Booked" entries
+      const uniqueStatuses = new Map<string, any>();
+      const cleanedHistory: any[] = [];
+      
+      caseData.statusHistory.forEach(entry => {
+        const key = `${entry.status}-${entry.processedBy}`;
+        if (entry.status === 'Case Booked') {
+          // Keep only the first "Case Booked" entry
+          if (!uniqueStatuses.has('Case Booked')) {
+            uniqueStatuses.set('Case Booked', entry);
+            cleanedHistory.push(entry);
+          }
+        } else {
+          // Keep all other status entries
+          cleanedHistory.push(entry);
+        }
+      });
+      
+      if (cleanedHistory.length !== caseData.statusHistory.length) {
+        caseData.statusHistory = cleanedHistory;
+        hasChanges = true;
+      }
+    }
+  });
+  
+  if (hasChanges) {
+    localStorage.setItem(CASES_KEY, JSON.stringify(cases));
+    console.log('Cleaned up duplicate status entries');
   }
 };
 

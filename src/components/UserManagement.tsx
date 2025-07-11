@@ -7,7 +7,8 @@ import {
   updateSupabaseUser, 
   deleteSupabaseUser, 
   toggleUserEnabled, 
-  checkUsernameAvailable 
+  checkUsernameAvailable,
+  resetSupabaseUserPassword 
 } from '../utils/supabaseUserService';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useToast } from './ToastContainer';
@@ -64,6 +65,9 @@ const UserManagement: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>(''); // For searching users
   const [tempFilters, setTempFilters] = useState({searchQuery: '', selectedRoleFilter: '', selectedStatusFilter: '', selectedCountryFilter: ''}); // Temp filters for Apply button
   const [showFilters, setShowFilters] = useState(false); // Show/hide advanced filters
+  const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
+  const [tempPassword, setTempPassword] = useState('');
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   // Removed expandedBadges and columnWidths - simplified table design
   // Removed availableDepartments since we now use CountryGroupedDepartments exclusively
   const canCreateUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CREATE_USER) : false;
@@ -71,9 +75,10 @@ const UserManagement: React.FC = () => {
   // Ref for the add user form to handle click outside
   const addUserFormRef = useRef<HTMLDivElement>(null);
   const canEditUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_USER) : false;
-  const canEditCountries = currentUser ? hasPermission(currentUser.role, 'edit-countries') : false;
+  const canEditCountries = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_COUNTRIES) : false;
   const canDeleteUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.DELETE_USER) : false;
   const canEnableDisableUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.ENABLE_DISABLE_USER) : false;
+  const canResetPassword = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.RESET_PASSWORD) : false;
   
   const { addNotification } = useNotifications();
   const { showSuccess, showError } = useToast();
@@ -199,7 +204,7 @@ const UserManagement: React.FC = () => {
     setEditingUser(user.id);
     setNewUser({
       username: user.username,
-      password: user.password,
+      password: '', // Clear password field to indicate it's optional
       name: user.name,
       role: user.role,
       departments: user.departments || [],
@@ -220,6 +225,47 @@ const UserManagement: React.FC = () => {
         });
       }
     }, 100);
+  };
+
+  const handleResetPassword = (user: User) => {
+    setResetPasswordUser(user);
+    setTempPassword('');
+    setShowResetPasswordModal(true);
+  };
+
+  const handleConfirmResetPassword = async () => {
+    if (!resetPasswordUser || !tempPassword) {
+      setError('Please enter a temporary password');
+      return;
+    }
+
+    if (tempPassword.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
+    try {
+      const success = await resetSupabaseUserPassword(resetPasswordUser.id, tempPassword);
+      if (success) {
+        setShowResetPasswordModal(false);
+        setResetPasswordUser(null);
+        setTempPassword('');
+        setError('');
+        
+        playSound.success();
+        showSuccess('Password Reset', `Password has been reset for ${resetPasswordUser.name}. They will be required to change it on next login.`);
+        addNotification({
+          title: 'Password Reset',
+          message: `Temporary password set for ${resetPasswordUser.name} (${resetPasswordUser.username}). User must change password on next login.`,
+          type: 'success'
+        });
+      } else {
+        setError('Failed to reset password. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      setError('Failed to reset password. Please try again.');
+    }
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -284,8 +330,16 @@ const UserManagement: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    if (!newUser.username || !newUser.password || !newUser.name) {
-      setError('Username, password, and full name are required');
+    // For new users, require username, password, and name
+    // For existing users, only require username and name (password is optional)
+    if (!newUser.username || !newUser.name) {
+      setError('Username and full name are required');
+      return;
+    }
+    
+    // Password is only required for new users
+    if (!editingUser && !newUser.password) {
+      setError('Password is required for new users');
       return;
     }
 
@@ -310,7 +364,10 @@ const UserManagement: React.FC = () => {
     try {
       if (editingUser) {
         // Update existing user
-        const updatedUser = await updateSupabaseUser(editingUser, newUser);
+        // Don't send password if it's empty (keep current password)
+        const { password, ...updateDataWithoutPassword } = newUser;
+        const updateData: Partial<User> = newUser.password ? newUser : updateDataWithoutPassword;
+        const updatedUser = await updateSupabaseUser(editingUser, updateData);
         if (updatedUser) {
           loadUsers();
           
@@ -519,14 +576,17 @@ const UserManagement: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="newPassword" className="required">Password</label>
+                <label htmlFor="newPassword" className={editingUser ? '' : 'required'}>
+                  {editingUser ? 'Password (leave blank to keep current)' : 'Password'}
+                </label>
                 <div className="password-input-wrapper">
                   <input
                     type={showPasswordFor === 'new' ? 'text' : 'password'}
                     id="newPassword"
                     value={newUser.password}
                     onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                    required
+                    required={!editingUser}
+                    placeholder={editingUser ? 'Leave blank to keep current password' : 'Enter password'}
                   />
                   <button
                     type="button"
@@ -925,6 +985,15 @@ const UserManagement: React.FC = () => {
                             Edit
                           </button>
                         )}
+                        {canResetPassword && (
+                          <button 
+                            className="btn btn-outline-warning btn-sm" 
+                            onClick={() => handleResetPassword(user)}
+                            title="Reset Password"
+                          >
+                            Reset Password
+                          </button>
+                        )}
                         {canEnableDisableUsers && (
                           <button 
                             className={`btn btn-sm ${userEnabled ? 'btn-warning' : 'btn-success'}`}
@@ -988,6 +1057,69 @@ const UserManagement: React.FC = () => {
             </div>
             <div className="popup-footer">
               <p className="popup-info">Press ESC or click outside to close</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Password Modal */}
+      {showResetPasswordModal && resetPasswordUser && (
+        <div className="user-management-modal">
+          <div className="modal-overlay" onClick={() => setShowResetPasswordModal(false)}>
+            <div className="modal-content reset-password-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>🔑 Reset Password</h3>
+                <button 
+                  className="modal-close" 
+                  onClick={() => setShowResetPasswordModal(false)}
+                  aria-label="Close modal"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="reset-password-info">
+                  <p>Reset password for <strong>{resetPasswordUser.name}</strong> ({resetPasswordUser.username})?</p>
+                  <div className="warning-banner">
+                    <span className="warning-icon">⚠️</span>
+                    <span className="warning-text">The user will be required to change this password on their next login.</span>
+                  </div>
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="tempPassword" className="required">Temporary Password</label>
+                  <div className="password-input-wrapper">
+                    <input
+                      type="password"
+                      id="tempPassword"
+                      value={tempPassword}
+                      onChange={(e) => setTempPassword(e.target.value)}
+                      placeholder="Enter temporary password (min 6 characters)"
+                      minLength={6}
+                      required
+                      className="modern-input"
+                    />
+                    <span className="input-helper-text">Minimum 6 characters required</span>
+                  </div>
+                </div>
+                
+                {error && <div className="error-message">{error}</div>}
+              </div>
+              <div className="modal-footer">
+                <button 
+                  className="btn btn-secondary btn-md" 
+                  onClick={() => setShowResetPasswordModal(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="btn btn-warning btn-md" 
+                  onClick={handleConfirmResetPassword}
+                  disabled={!tempPassword || tempPassword.length < 6}
+                >
+                  🔄 Reset Password
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getCurrentUser } from '../utils/auth';
-import { hasPermission } from '../data/permissionMatrixData';
+import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { useToast } from './ToastContainer';
 import { useSound } from '../contexts/SoundContext';
 import { COUNTRIES } from '../types';
@@ -16,7 +16,7 @@ import {
 import {
   categorizeCodeTables,
   getFilteredTablesForUser,
-  getUserAccessibleCountries,
+  // getUserAccessibleCountries, // Removed - not used after removing countries dropdown
   getDeleteConfirmationMessages
 } from '../utils/codeTableHelpers';
 import CustomModal from './CustomModal';
@@ -46,8 +46,8 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
   const { playSound } = useSound();
   
   const currentUser = getCurrentUser();
-  const canManageCodeTables = currentUser ? hasPermission(currentUser.role, 'code-table-setup') : false;
-  const canManageGlobalTables = currentUser ? hasPermission(currentUser.role, 'global-tables') : false;
+  const canManageCodeTables = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) : false;
+  const canManageGlobalTables = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.GLOBAL_TABLES) : false;
 
   // Calculate current table based on state - this will recalculate when tables change
   const currentTable = useMemo(() => {
@@ -556,24 +556,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
         <p>Manage system reference data and lookup tables</p>
       </div>
 
-      {/* Country Selection - Only show for users with multiple countries and Country-Based Tables */}
-      {currentUser && currentUser.countries && currentUser.countries.length > 1 && selectedCategory === 'country' && (
-        <div className="country-selector">
-          <div className="country-selector-header">
-            <h3>🌍 Select Country:</h3>
-            <p>Country-based code tables are managed separately for each country</p>
-          </div>
-          <div className="country-dropdown">
-            <SearchableDropdown
-              options={getUserAccessibleCountries(availableCountries, currentUser)}
-              value={selectedCountry}
-              onChange={(value) => setSelectedCountry(value)}
-              placeholder="Select a country..."
-              className="country-select-dropdown"
-            />
-          </div>
-        </div>
-      )}
+      {/* Country Selection - Removed from Country-Based Tables section */}
 
       {/* Category Selection */}
       <div className="category-selector">

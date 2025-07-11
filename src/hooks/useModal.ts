@@ -8,6 +8,7 @@ interface ModalState {
   onConfirm?: () => void;
   autoClose?: boolean;
   autoCloseDelay?: number;
+  confirmLabel?: string;
 }
 
 const initialState: ModalState = {
@@ -49,6 +50,21 @@ export const useModal = () => {
         closeModal();
       },
       autoClose: false
+    });
+  }, [closeModal]);
+
+  const showConfirmWithCustomButtons = useCallback((title: string, message: string, onConfirm: () => void, confirmLabel: string = 'Confirm') => {
+    setModal({
+      isOpen: true,
+      title,
+      message,
+      type: 'confirm',
+      onConfirm: () => {
+        onConfirm();
+        closeModal();
+      },
+      autoClose: false,
+      confirmLabel
     });
   }, [closeModal]);
 
@@ -98,6 +114,7 @@ export const useModal = () => {
   return {
     modal,
     closeModal,
+    showConfirmWithCustomButtons,
     showAlert,
     showConfirm,
     alert,

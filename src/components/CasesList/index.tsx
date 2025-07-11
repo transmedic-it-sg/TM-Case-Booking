@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CaseBooking, FilterOptions, CaseStatus } from '../../types';
-import { getCases, filterCases, updateCaseStatus, amendCase, cleanupProcessOrderDetails, processCaseOrder } from '../../utils/storage';
+import { getCases, filterCases, updateCaseStatus, amendCase, cleanupProcessOrderDetails, cleanupDuplicateStatusEntries, processCaseOrder } from '../../utils/storage';
 import { getCurrentUser } from '../../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -10,13 +10,13 @@ import CaseCard from './CaseCard';
 import StatusChangeSuccessPopup from '../StatusChangeSuccessPopup';
 import CustomModal from '../CustomModal';
 import { useModal } from '../../hooks/useModal';
-import { USER_ROLES } from '../../constants/permissions';
+// import { USER_ROLES } from '../../constants/permissions'; // Removed - not used
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { userHasDepartmentAccess } from '../../utils/departmentUtils';
 
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
-  const { modal, closeModal, showConfirm } = useModal();
+  const { modal, closeModal, showConfirm, showConfirmWithCustomButtons } = useModal();
   const [cases, setCases] = useState<CaseBooking[]>([]);
   const [filteredCases, setFilteredCases] = useState<CaseBooking[]>([]);
   const [availableSubmitters, setAvailableSubmitters] = useState<string[]>([]);
@@ -86,6 +86,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   useEffect(() => {
     // Clean up any corrupted data on component mount
     cleanupProcessOrderDetails();
+    cleanupDuplicateStatusEntries();
     const loadData = async () => {
       await loadCases();
     };
@@ -111,8 +112,9 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       return countryMap[country] || 'SG';
     };
     
-    // Country-based filtering for ALL non-admin/IT users
-    if (currentUser && currentUser.role !== USER_ROLES.ADMIN && currentUser.role !== USER_ROLES.IT) {
+    // Country-based filtering for non-admin/IT users
+    const isCurrentUserAdminOrIT = currentUser && (currentUser.role === 'admin' || currentUser.role === 'it');
+    if (currentUser && !isCurrentUserAdminOrIT) {
       if (currentUser.countries && currentUser.countries.length > 0) {
         // Convert user's country names to country codes and filter cases
         const userCountryCodes = currentUser.countries.map(country => getCountryCode(country));
@@ -123,10 +125,12 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
     
     // Department-based filtering (excluding Operations Managers who have broader access)
-    if (currentUser?.departments && currentUser.departments.length > 0 && 
-        currentUser.role !== USER_ROLES.ADMIN && 
-        currentUser.role !== USER_ROLES.OPERATIONS_MANAGER && 
-        currentUser.role !== USER_ROLES.IT) {
+    const hasFullAccess = currentUser && (
+      currentUser.role === 'admin' || 
+      currentUser.role === 'operations-manager' || 
+      currentUser.role === 'it'
+    );
+    if (currentUser?.departments && currentUser.departments.length > 0 && !hasFullAccess) {
       
       // Clean department names - remove country prefixes like "Singapore:", "Malaysia:"
       const cleanDepartmentName = (department: string) => {
@@ -175,7 +179,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
   }, [highlightedCaseId, onClearHighlight, filteredCases, casesPerPage]);
 
-  const loadCases = async () => {
+  const loadCases = useCallback(async () => {
     try {
       // Convert country name to country code for database operations
       const getCountryCode = (country: string) => {
@@ -223,7 +227,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setAvailableHospitals(uniqueHospitals);
       
       // Admin and IT can view all cases, others are filtered by country
-      if (currentUser?.role === 'admin' || currentUser?.role === 'it') {
+      const isAdminOrIT = currentUser && (currentUser.role === 'admin' || currentUser.role === 'it');
+      if (isAdminOrIT) {
         setCases(allCases);
       } else {
         const countryCases = countryCode 
@@ -242,7 +247,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         type: 'error'
       });
     }
-  };
+  }, [currentUser, addNotification]);
 
   const handleFilterChange = (field: keyof FilterOptions, value: string) => {
     setTempFilters(prev => ({
@@ -744,7 +749,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     const caseItem = cases.find(c => c.id === caseId);
     const confirmMessage = `Are you sure you want to cancel case "${caseItem?.caseReferenceNumber}"?\n\nThis action will mark the case as cancelled and cannot be undone.`;
     
-    showConfirm('Cancel Case', confirmMessage, async () => {
+    showConfirmWithCustomButtons('Cancel Case', confirmMessage, async () => {
       try {
         await updateCaseStatus(caseId, 'Case Cancelled', currentUser.id, 'Case cancelled by user request');
         await loadCases();
@@ -766,7 +771,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       } catch (error) {
         console.error('Failed to cancel case:', error);
       }
-    });
+    }, 'Cancel Case');
   };
 
   const handleCancelReceived = () => {
@@ -821,7 +826,9 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
           type: 'warning'
         });
         
-        // Success handled by UI update
+        // Show success popup
+        setSuccessMessage(`Case ${caseItem.caseReferenceNumber} has been successfully deleted`);
+        setShowSuccessPopup(true);
       } catch (error) {
         console.error('Delete failed:', error);
         // Show error notification
@@ -1046,7 +1053,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
             style: 'secondary'
           },
           {
-            label: 'Delete',
+            label: modal.confirmLabel || 'Delete',
             onClick: modal.onConfirm || closeModal,
             style: 'danger'
           }

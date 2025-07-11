@@ -192,6 +192,12 @@ export const permissionActions: PermissionAction[] = [
     category: 'User Management'
   },
   {
+    id: 'reset-password',
+    name: 'Reset Password',
+    description: 'Reset user passwords with temporary passwords. Users will be required to change temporary passwords on next login.',
+    category: 'User Management'
+  },
+  {
     id: 'delete-user',
     name: 'Delete User',
     description: 'Remove users from the system',
@@ -253,6 +259,12 @@ export const permissionActions: PermissionAction[] = [
     description: 'View system audit trail and logs',
     category: 'System Settings'
   },
+  {
+    id: 'permission-matrix',
+    name: 'Permission Matrix',
+    description: 'Manage user permissions and role assignments',
+    category: 'System Settings'
+  },
   
   // File Operations
   {
@@ -301,6 +313,7 @@ export const permissions: Permission[] = [
   { actionId: 'create-user', roleId: 'admin', allowed: true },
   { actionId: 'edit-user', roleId: 'admin', allowed: true },
   { actionId: 'edit-countries', roleId: 'admin', allowed: true },
+  { actionId: 'reset-password', roleId: 'admin', allowed: true },
   { actionId: 'delete-user', roleId: 'admin', allowed: true },
   { actionId: 'view-users', roleId: 'admin', allowed: true },
   { actionId: 'enable-disable-user', roleId: 'admin', allowed: true },
@@ -314,6 +327,7 @@ export const permissions: Permission[] = [
   { actionId: 'download-files', roleId: 'admin', allowed: true },
   { actionId: 'delete-files', roleId: 'admin', allowed: true },
   { actionId: 'cancel-case', roleId: 'admin', allowed: true },
+  { actionId: 'permission-matrix', roleId: 'admin', allowed: true },
   
   // Operations - Order processing and case management
   { actionId: 'create-case', roleId: 'operations', allowed: true },
@@ -389,6 +403,7 @@ export const permissions: Permission[] = [
   { actionId: 'create-user', roleId: 'it', allowed: true },
   { actionId: 'edit-user', roleId: 'it', allowed: true },
   { actionId: 'edit-countries', roleId: 'it', allowed: true },
+  { actionId: 'reset-password', roleId: 'it', allowed: true },
   { actionId: 'delete-user', roleId: 'it', allowed: true },
   { actionId: 'enable-disable-user', roleId: 'it', allowed: true },
   { actionId: 'system-settings', roleId: 'it', allowed: true },
