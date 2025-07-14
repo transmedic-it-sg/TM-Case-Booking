@@ -98,7 +98,7 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
         {showDetails && (
           <span className="status-text">{displayInfo.text}</span>
         )}
-        <span className="database-name">Connected to: {getDatabaseStatus()}</span>
+        <span className="database-name">Connected to: {getDatabaseName()}</span>
       </div>
 
       {/* Detailed info panel */}
