@@ -27,6 +27,26 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
+  // Determine which database is connected based on the URL
+  const getDatabaseName = () => {
+    const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+    if (!supabaseUrl) return 'Unknown Database';
+    
+    if (supabaseUrl.includes('aqzjzjygflmxkcbfnjbe')) {
+      return 'Production DB';
+    } else if (supabaseUrl.includes('rqcrsrdlcdpkxxkqwvyo')) {
+      return 'UAT DB';
+    } else {
+      return 'Custom DB';
+    }
+  };
+
+  // Get database status for display
+  const getDatabaseStatus = () => {
+    if (!isConnected) return 'Local Storage';
+    return getDatabaseName();
+  };
+
   // Handle click outside to close panel
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -78,6 +98,7 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
         {showDetails && (
           <span className="status-text">{displayInfo.text}</span>
         )}
+        <span className="database-name">Connected to: {getDatabaseStatus()}</span>
       </div>
 
       {/* Detailed info panel */}
@@ -120,7 +141,7 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
             <div className="status-row">
               <span className="label">Data Source:</span>
               <span className="value">
-                {isConnected ? 'Supabase Database' : 'Local Storage (Fallback)'}
+                {isConnected ? getDatabaseName() : 'Local Storage (Fallback)'}
               </span>
             </div>
             
