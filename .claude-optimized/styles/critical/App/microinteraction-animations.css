@@ -1,9 +1,0 @@
-.notification-bell:hover {
-  animation: bellRing 0.5s ease-in-out;
-}
-
-@keyframes bellRing {
-  0%, 50%, 100% { transform: rotate(0deg); }
-  10%, 30% { transform: rotate(-10deg); }
-  20%, 40% { transform: rotate(10deg); }
-}

@@ -1,7 +1,0 @@
-.success-checkmark,
-  .loading-spinner,
-  .status-success-popup {
-    animation-duration: revert !important;
-    animation-iteration-count: revert !important;
-  }
-}

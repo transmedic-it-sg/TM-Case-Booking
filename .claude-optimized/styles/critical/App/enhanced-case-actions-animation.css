@@ -1,7 +1,0 @@
-.case-actions .case-action-button {
-  transition: all 0.2s ease;
-}
-
-.case-actions .case-action-button:hover {
-  transform: scale(1.05);
-}
