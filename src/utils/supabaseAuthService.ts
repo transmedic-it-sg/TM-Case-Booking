@@ -243,32 +243,51 @@ export const checkUsernameAvailable = async (username: string, excludeUserId?: s
 
 /**
  * Authenticate user with username and password
+ * Username is case-insensitive, password is case-sensitive
  */
 export const authenticateUser = async (username: string, password: string): Promise<User | null> => {
   try {
-    const { data, error } = await supabase
+    // First, find user by case-insensitive username
+    const { data: users, error: searchError } = await supabase
       .from('users')
       .select('*')
-      .eq('username', username)
-      .eq('password', password)
-      .eq('enabled', true)
-      .single();
+      .eq('enabled', true);
     
-    if (error) {
-      console.error('Authentication error:', error);
+    if (searchError) {
+      console.error('Authentication search error:', searchError);
       return null;
     }
     
+    // Find user with username and password match
+    // First try exact username match
+    let matchedUser = users.find(user => 
+      user.username === username && user.password === password
+    );
+    
+    // If no exact match, try case-insensitive username with exact password
+    if (!matchedUser) {
+      matchedUser = users.find(user => 
+        user.username.toLowerCase() === username.toLowerCase() && 
+        user.password === password
+      );
+    }
+    
+    if (!matchedUser) {
+      console.log('No user found with username and password combination:', username);
+      return null;
+    }
+    
+    console.log('Authentication successful for user:', matchedUser.username);
     return {
-      id: data.id,
-      username: data.username,
-      password: data.password,
-      role: data.role as User['role'],
-      name: data.name,
-      departments: data.departments || [],
-      countries: data.countries || [],
-      selectedCountry: data.selected_country,
-      enabled: data.enabled
+      id: matchedUser.id,
+      username: matchedUser.username,
+      password: matchedUser.password,
+      role: matchedUser.role as User['role'],
+      name: matchedUser.name,
+      departments: matchedUser.departments || [],
+      countries: matchedUser.countries || [],
+      selectedCountry: matchedUser.selected_country,
+      enabled: matchedUser.enabled
     };
   } catch (error) {
     console.error('Error in authenticateUser:', error);

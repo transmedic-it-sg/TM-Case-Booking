@@ -65,6 +65,15 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
+.database-name {
+  color: rgb(0, 0, 0);
+  font-size: 11px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  margin-left: 8px;
+  padding: 2px 8px;
+}
+
 /* Connection Details Panel */
 .connection-details-panel {
   position: absolute;
