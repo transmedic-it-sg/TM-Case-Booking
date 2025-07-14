@@ -76,7 +76,8 @@
       "Bash(timeout 30s npm run build)",
       "Bash(timeout 15s npm start)",
       "WebFetch(domain:localhost)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(./vercel-uat-deploy.sh:*)"
     ],
     "deny": []
   }
