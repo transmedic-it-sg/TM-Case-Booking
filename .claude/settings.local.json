@@ -24,12 +24,8 @@
       "Bash(npx tsc:*)",
       "Bash(timeout 60 npm run build)",
       "Bash(git checkout:*)",
-      "Bash(npm start)",
       "Bash(npx kill-port:*)",
       "Bash(PORT=3001 npm start)",
-      "Bash(grep:*)",
-      "Bash(git add:*)",
-      "Bash(find:*)",
       "Bash(chmod:*)",
       "Bash(source:*)",
       "Bash(component_summary)",
@@ -123,7 +119,17 @@
       "Bash(MICROSOFT_AUTH_TEST.md )",
       "Bash(OAUTH_TROUBLESHOOTING.md )",
       "Bash(RELEASE_NOTES_v1.2.0.md)",
-      "Bash(git rev-parse:*)"
+      "Bash(git rev-parse:*)",
+      "Bash(timeout:*)",
+      "Bash(sudo apt-get:*)",
+      "Bash(sudo apt-get install:*)",
+      "Bash(./scripts/migrate-prod-to-uat.sh:*)",
+      "Bash(supabase:*)",
+      "Bash(command -v:*)",
+      "Bash(sudo mv:*)",
+      "Bash(./node_modules/supabase/bin/supabase:*)",
+      "Bash(ping:*)",
+      "Bash(nslookup:*)"
     ],
     "deny": []
   }
