@@ -24,7 +24,7 @@ import MultiSelectDropdown from './MultiSelectDropdown';
 import SearchableDropdown from './SearchableDropdown';
 import CountryGroupedDepartments from './CountryGroupedDepartments';
 import RoleManagement from './RoleManagement';
-import '../styles/department-management.css';
+import '../assets/components/department-management.css';
 
 const UserManagement: React.FC = () => {
   const currentUser = getCurrentUser();
@@ -560,175 +560,171 @@ const UserManagement: React.FC = () => {
       {activeTab === 'users' && (
         <div className="tab-content">
           {showAddUser && (
-        <div className="add-user-form" ref={addUserFormRef}>
-          <h3>{editingUser ? 'Edit User' : 'Add New User'}</h3>
-          <form onSubmit={handleAddUser}>
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="newUsername" className="required">Username</label>
-                <input
-                  type="text"
-                  id="newUsername"
-                  value={newUser.username}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
-                  required
-                />
-              </div>
+            <div className="add-user-form" ref={addUserFormRef}>
+              <h3>{editingUser ? 'Edit User' : 'Add New User'}</h3>
+              <form onSubmit={handleAddUser}>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="newUsername" className="required">Username</label>
+                    <input
+                      type="text"
+                      id="newUsername"
+                      value={newUser.username}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
+                      required
+                    />
+                  </div>
 
-              <div className="form-group">
-                <label htmlFor="newPassword" className={editingUser ? '' : 'required'}>
-                  {editingUser ? 'Password (leave blank to keep current)' : 'Password'}
-                </label>
-                <div className="password-input-wrapper">
-                  <input
-                    type={showPasswordFor === 'new' ? 'text' : 'password'}
-                    id="newPassword"
-                    value={newUser.password}
-                    onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                    required={!editingUser}
-                    placeholder={editingUser ? 'Leave blank to keep current password' : 'Enter password'}
-                  />
+                  <div className="form-group">
+                    <label htmlFor="newPassword" className={editingUser ? '' : 'required'}>
+                      {editingUser ? 'Password (leave blank to keep current)' : 'Password'}
+                    </label>
+                    <div className="password-input-wrapper">
+                      <input
+                        type={showPasswordFor === 'new' ? 'text' : 'password'}
+                        id="newPassword"
+                        value={newUser.password}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                        required={!editingUser}
+                        placeholder={editingUser ? 'Leave blank to keep current password' : 'Enter password'}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle-user"
+                        onClick={() => setShowPasswordFor(showPasswordFor === 'new' ? null : 'new')}
+                        aria-label={showPasswordFor === 'new' ? 'Hide password' : 'Show password'}
+                      >
+                        {showPasswordFor === 'new' ? '👁️' : '👁️‍🗨️'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="newName" className="required">Full Name</label>
+                    <input
+                      type="text"
+                      id="newName"
+                      value={newUser.name}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="newEmail">Email Address</label>
+                    <input
+                      type="email"
+                      id="newEmail"
+                      value={newUser.email}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="user@example.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="newRole" className="required">Role</label>
+                    <SearchableDropdown
+                      options={availableRoles}
+                      value={newUser.role}
+                      onChange={(value) => setNewUser(prev => ({ ...prev, role: value }))}
+                      placeholder="Select Role"
+                    />
+                  </div>
+
+                  {canEditCountries && (
+                    <div className="form-group">
+                      <MultiSelectDropdown
+                        id="newCountries"
+                        label="Countries"
+                        options={availableCountries}
+                        value={newUser.countries}
+                        onChange={(values) => {
+                          // Get valid departments for the selected countries
+                          const validDepartmentsForCountries = values.length > 0 ? getDepartmentsForCountries(values) : [];
+                          
+                          // Filter out departments that don't exist in the selected countries
+                          const validDepartments = newUser.departments.filter(dept => 
+                            validDepartmentsForCountries.includes(dept)
+                          );
+                          
+                          setNewUser(prev => ({ 
+                            ...prev, 
+                            countries: values,
+                            departments: validDepartments
+                          }));
+                        }}
+                        placeholder="Select countries..."
+                        required={false}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="userEnabled">User Status</label>
+                    <div className="checkbox-wrapper">
+                      <input
+                        type="checkbox"
+                        id="userEnabled"
+                        checked={newUser.enabled}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, enabled: e.target.checked }))}
+                      />
+                      <label htmlFor="userEnabled" className="checkbox-label">
+                        {newUser.enabled ? 'Account Enabled' : 'Account Disabled'}
+                      </label>
+                    </div>
+                    <small className="form-helper-text">
+                      {newUser.enabled 
+                        ? 'User can log in and access the system' 
+                        : 'User cannot log in (account disabled)'
+                      }
+                    </small>
+                  </div>
+                </div>
+
+                {/* Departments - Now as the last field, full width */}
+                <div className="form-row">
+                  <div className="form-group form-group-full">
+                    <label>Departments</label>
+                    <p className="form-helper-text departments-hint">
+                      Select departments for the assigned countries. Departments are organised by country.
+                    </p>
+                    <CountryGroupedDepartments
+                      selectedDepartments={newUser.departments}
+                      onChange={(departments) => {
+                        // CountryGroupedDepartments always sends country-specific format, no migration needed
+                        setNewUser(prev => ({ ...prev, departments }));
+                      }}
+                      userCountries={newUser.countries}
+                      compact={true}
+                    />
+                  </div>
+                </div>
+
+                {error && <div className="error-message">{error}</div>}
+
+                <div className="form-actions">
                   <button
                     type="button"
-                    className="password-toggle-user"
-                    onClick={() => setShowPasswordFor(showPasswordFor === 'new' ? null : 'new')}
-                    aria-label={showPasswordFor === 'new' ? 'Hide password' : 'Show password'}
+                    onClick={handleCancelEdit}
+                    className="btn btn-outline-secondary btn-lg cancel-button"
                   >
-                    {showPasswordFor === 'new' ? '👁️' : '👁️‍🗨️'}
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary btn-lg submit-button">
+                    {editingUser ? 'Update User' : 'Add User'}
                   </button>
                 </div>
-              </div>
+              </form>
             </div>
+          )}
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="newName" className="required">Full Name</label>
-                <input
-                  type="text"
-                  id="newName"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="newEmail">Email Address</label>
-                <input
-                  type="email"
-                  id="newEmail"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="user@example.com"
-                />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="newRole" className="required">Role</label>
-                <SearchableDropdown
-                  options={availableRoles}
-                  value={newUser.role}
-                  onChange={(value) => setNewUser(prev => ({ ...prev, role: value }))}
-                  placeholder="Select Role"
-                />
-              </div>
-
-              {canEditCountries && (
-                <div className="form-group">
-                  <MultiSelectDropdown
-                    id="newCountries"
-                    label="Countries"
-                    options={availableCountries}
-                    value={newUser.countries}
-                    onChange={(values) => {
-                      // Get valid departments for the selected countries
-                      const validDepartmentsForCountries = values.length > 0 ? getDepartmentsForCountries(values) : [];
-                      
-                      // Filter out departments that don't exist in the selected countries
-                      const validDepartments = newUser.departments.filter(dept => 
-                        validDepartmentsForCountries.includes(dept)
-                      );
-                      
-                      setNewUser(prev => ({ 
-                        ...prev, 
-                        countries: values,
-                        departments: validDepartments
-                      }));
-                    }}
-                    placeholder="Select countries..."
-                    required={false}
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="userEnabled">User Status</label>
-                <div className="checkbox-wrapper">
-                  <input
-                    type="checkbox"
-                    id="userEnabled"
-                    checked={newUser.enabled}
-                    onChange={(e) => setNewUser(prev => ({ ...prev, enabled: e.target.checked }))}
-                  />
-                  <label htmlFor="userEnabled" className="checkbox-label">
-                    {newUser.enabled ? 'Account Enabled' : 'Account Disabled'}
-                  </label>
-                </div>
-                <small className="form-helper-text">
-                  {newUser.enabled 
-                    ? 'User can log in and access the system' 
-                    : 'User cannot log in (account disabled)'
-                  }
-                </small>
-              </div>
-            </div>
-
-            {/* Departments - Now as the last field, full width */}
-            <div className="form-row">
-              <div className="form-group form-group-full">
-                <label>Departments</label>
-                <p className="form-helper-text departments-hint">
-                  Select departments for the assigned countries. Departments are organised by country.
-                </p>
-                <CountryGroupedDepartments
-                  selectedDepartments={newUser.departments}
-                  onChange={(departments) => {
-                    // CountryGroupedDepartments always sends country-specific format, no migration needed
-                    setNewUser(prev => ({ ...prev, departments }));
-                  }}
-                  userCountries={newUser.countries}
-                  compact={true}
-                />
-              </div>
-            </div>
-
-            {error && <div className="error-message">{error}</div>}
-
-            <div className="form-actions">
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="btn btn-outline-secondary btn-lg cancel-button"
-              >
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary btn-lg submit-button">
-                {editingUser ? 'Update User' : 'Add User'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      <div className="users-table">
-        <div className="users-table-header">
-          <h3>Existing Users ({getFilteredUsers().length})</h3>
-          
-          {/* Modern Advanced Filters - Similar to View All Cases */}
+          {/* Modern Advanced Filters - Outside of users table */}
           <div className="modern-filters-section">
             <div className="filters-header" onClick={() => setShowFilters(!showFilters)}>
               <div className="filters-title">
@@ -889,138 +885,141 @@ const UserManagement: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
-        
-        <table>
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Full Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Department</th>
-              <th>Countries</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {getCurrentPageUsers().map(user => {
-              const userEnabled = user.enabled !== undefined ? user.enabled : true;
-              return (
-                <tr key={user.id} className={!userEnabled ? 'user-disabled' : ''}>
-                  <td>{user.username}</td>
-                  <td>{user.name}</td>
-                  <td>{user.email || 'N/A'}</td>
-                  <td>
-                    <span className={`badge badge-role badge-role-${user.role}`}>
-                      {user.role.replace(/-/g, ' ').toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="department-column">
-                    <div className="badge-container-vertical">
-                      {user.departments && user.departments.length > 0 ? (
-                        <>
-                          <div className="badge-grid">
-                            {user.departments.slice(0, 4).map((dept, index) => (
-                              <span key={index} className="badge badge-department" title={dept}>
-                                {dept}
-                              </span>
-                            ))}
-                          </div>
-                          {user.departments.length > 4 && (
-                            <button
-                              className="badge badge-expandable"
-                              onClick={() => handleShowMore('departments', user.departments!, user.name)}
-                              title="Show all departments"
-                            >
-                              +{user.departments.length - 4} more
-                            </button>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-muted">No departments</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="countries-column">
-                    <div className="badge-container-vertical">
-                      {user.countries && user.countries.length > 0 ? (
-                        <>
-                          <div className="badge-grid">
-                            {user.countries.slice(0, 4).map((country, index) => (
-                              <span key={index} className="badge badge-country" title={country}>
-                                {country}
-                              </span>
-                            ))}
-                          </div>
-                          {user.countries.length > 4 && (
-                            <button
-                              className="badge badge-expandable"
-                              onClick={() => handleShowMore('countries', user.countries!, user.name)}
-                              title="Show all countries"
-                            >
-                              +{user.countries.length - 4} more
-                            </button>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-muted">No countries</span>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`user-status ${userEnabled ? 'enabled' : 'disabled'}`}>
-                      {userEnabled ? 'Enabled' : 'Disabled'}
-                    </span>
-                  </td>
-                  <td>
-                    {user.username !== 'Admin' && (
-                      <div className="user-actions vertical">
-                        {canEditUsers && (
-                          <button 
-                            className="btn btn-outline-secondary btn-sm" 
-                            onClick={() => handleEditUser(user)}
-                          >
-                            Edit
-                          </button>
-                        )}
-                        {canResetPassword && (
-                          <button 
-                            className="btn btn-outline-warning btn-sm" 
-                            onClick={() => handleResetPassword(user)}
-                            title="Reset Password"
-                          >
-                            Reset Password
-                          </button>
-                        )}
-                        {canEnableDisableUsers && (
-                          <button 
-                            className={`btn btn-sm ${userEnabled ? 'btn-warning' : 'btn-success'}`}
-                            onClick={() => handleToggleUserStatus(user.id, userEnabled)}
-                            title={userEnabled ? 'Disable User' : 'Enable User'}
-                          >
-                            {userEnabled ? 'Disable' : 'Enable'}
-                          </button>
-                        )}
-                        {canDeleteUsers && (
-                          <button 
-                            className="btn btn-danger btn-sm"
-                            onClick={() => handleDeleteUser(user.id)}
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </td>
+
+          <div className="users-table">
+            <div className="users-table-header">
+              <h3>Existing Users ({getFilteredUsers().length})</h3>
+            </div>
+            
+            <table>
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Full Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Department</th>
+                  <th>Countries</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        
-      </div>
+              </thead>
+              <tbody>
+                {getCurrentPageUsers().map(user => {
+                  const userEnabled = user.enabled !== undefined ? user.enabled : true;
+                  return (
+                    <tr key={user.id} className={!userEnabled ? 'user-disabled' : ''}>
+                      <td>{user.username}</td>
+                      <td>{user.name}</td>
+                      <td>{user.email || 'N/A'}</td>
+                      <td>
+                        <span className={`badge badge-role badge-role-${user.role}`}>
+                          {user.role.replace(/-/g, ' ').toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="department-column">
+                        <div className="badge-container-vertical">
+                          {user.departments && user.departments.length > 0 ? (
+                            <>
+                              <div className="badge-grid">
+                                {user.departments.slice(0, 4).map((dept, index) => (
+                                  <span key={index} className="badge badge-department" title={dept}>
+                                    {dept}
+                                  </span>
+                                ))}
+                              </div>
+                              {user.departments.length > 4 && (
+                                <button
+                                  className="badge badge-expandable"
+                                  onClick={() => handleShowMore('departments', user.departments!, user.name)}
+                                  title="Show all departments"
+                                >
+                                  +{user.departments.length - 4} more
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-muted">No departments</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="countries-column">
+                        <div className="badge-container-vertical">
+                          {user.countries && user.countries.length > 0 ? (
+                            <>
+                              <div className="badge-grid">
+                                {user.countries.slice(0, 4).map((country, index) => (
+                                  <span key={index} className="badge badge-country" title={country}>
+                                    {country}
+                                  </span>
+                                ))}
+                              </div>
+                              {user.countries.length > 4 && (
+                                <button
+                                  className="badge badge-expandable"
+                                  onClick={() => handleShowMore('countries', user.countries!, user.name)}
+                                  title="Show all countries"
+                                >
+                                  +{user.countries.length - 4} more
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-muted">No countries</span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`user-status ${userEnabled ? 'enabled' : 'disabled'}`}>
+                          {userEnabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </td>
+                      <td>
+                        {user.username !== 'Admin' && (
+                          <div className="user-actions vertical">
+                            {canEditUsers && (
+                              <button 
+                                className="btn btn-outline-secondary btn-sm" 
+                                onClick={() => handleEditUser(user)}
+                              >
+                                Edit
+                              </button>
+                            )}
+                            {canResetPassword && (
+                              <button 
+                                className="btn btn-outline-warning btn-sm" 
+                                onClick={() => handleResetPassword(user)}
+                                title="Reset Password"
+                              >
+                                Reset Password
+                              </button>
+                            )}
+                            {canEnableDisableUsers && (
+                              <button 
+                                className={`btn btn-sm ${userEnabled ? 'btn-warning' : 'btn-success'}`}
+                                onClick={() => handleToggleUserStatus(user.id, userEnabled)}
+                                title={userEnabled ? 'Disable User' : 'Enable User'}
+                              >
+                                {userEnabled ? 'Disable' : 'Enable'}
+                              </button>
+                            )}
+                            {canDeleteUsers && (
+                              <button 
+                                className="btn btn-danger btn-sm"
+                                onClick={() => handleDeleteUser(user.id)}
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
