@@ -138,7 +138,8 @@
       "Bash(xxd:*)",
       "Bash(npx react-scripts:*)",
       "Bash(npm start:*)",
-      "Bash(REACT_APP_SUPABASE_URL=https://aqzjzjygflmxkcbfnjbe.supabase.co REACT_APP_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxemp6anlnZmxteGtjYmZuamJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5NjEzMjgsImV4cCI6MjA2NzUzNzMyOH0.h_NnNbz68anh_EOjgqAL81Lx6IJGw6hlVc0D10XqlLw node supabase_data_flow_test.js)"
+      "Bash(REACT_APP_SUPABASE_URL=https://aqzjzjygflmxkcbfnjbe.supabase.co REACT_APP_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxemp6anlnZmxteGtjYmZuamJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5NjEzMjgsImV4cCI6MjA2NzUzNzMyOH0.h_NnNbz68anh_EOjgqAL81Lx6IJGw6hlVc0D10XqlLw node supabase_data_flow_test.js)",
+      "Bash(git merge:*)"
     ],
     "deny": []
   }
