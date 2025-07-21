@@ -26,7 +26,8 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     timeOfProcedure: caseItem.timeOfProcedure || '',
     specialInstruction: caseItem.specialInstruction || '',
     surgerySetSelection: caseItem.surgerySetSelection || [],
-    implantBox: caseItem.implantBox || []
+    implantBox: caseItem.implantBox || [],
+    amendmentReason: ''
   });
 
   const [departments, setDepartments] = useState<string[]>([]);
@@ -67,6 +68,9 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     }
     if (!formData.procedureName.trim()) {
       newErrors.procedureName = 'Procedure name is required';
+    }
+    if (!formData.amendmentReason.trim()) {
+      newErrors.amendmentReason = 'Amendment reason is required';
     }
 
     setErrors(newErrors);
@@ -211,10 +215,14 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
           <div className="amendment-reason">
             <label className="required">Reason for Amendment</label>
             <textarea
+              value={formData.amendmentReason}
+              onChange={(e) => handleInputChange('amendmentReason', e.target.value)}
               placeholder="Please provide a reason for this amendment"
               rows={2}
+              className={errors.amendmentReason ? 'error' : ''}
               required
             />
+            {errors.amendmentReason && <span className="error-text">{errors.amendmentReason}</span>}
           </div>
 
           <div className="amendment-form-actions">

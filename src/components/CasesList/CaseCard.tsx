@@ -4,7 +4,7 @@ import { getStatusColor, getNextResponsibleRole, formatDateTime } from './utils'
 import CaseActions from './CaseActions';
 import { getCurrentUser } from '../../utils/auth';
 import { getAllProcedureTypes } from '../../utils/storage';
-import { getDepartments, initializeCodeTables } from '../../utils/codeTable';
+import { getDepartments, initializeCodeTables, getCodeTables, getDepartmentNamesForUser } from '../../utils/codeTable';
 import { useUserNames } from '../../hooks/useUserNames';
 import TimePicker from '../common/TimePicker';
 import { formatDate, getTodayForInput } from '../../utils/dateFormat';
@@ -112,6 +112,33 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
   const availableDepartments = useMemo(() => {
     try {
+      const currentUser = getCurrentUser();
+      if (!currentUser) {
+        return getDepartments();
+      }
+      
+      // Get departments for user's current country
+      const userCountry = currentUser.selectedCountry || currentUser.countries?.[0];
+      if (userCountry) {
+        // Load country-specific departments from Code Table Setup
+        const countryTables = getCodeTables(userCountry);
+        const departmentsTable = countryTables.find(table => table.id === 'departments');
+        const countrySpecificDepts = departmentsTable?.items || [];
+        
+        // Admin and IT users can access all departments for their country
+        if (currentUser.role === 'admin' || currentUser.role === 'it') {
+          return countrySpecificDepts.sort();
+        }
+        
+        // Other users are restricted to their assigned departments
+        const userDepartments = currentUser.departments || [];
+        
+        // Handle both legacy and new country-specific department formats
+        const userDepartmentNames = getDepartmentNamesForUser(userDepartments, [userCountry]);
+        return countrySpecificDepts.filter(dept => userDepartmentNames.includes(dept)).sort();
+      }
+      
+      // Fallback to global departments
       return getDepartments();
     } catch (error) {
       console.error('Error loading departments:', error);
@@ -337,7 +364,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 <p className="detail-value">{caseItem.specialInstruction}</p>
               </div>
             )}
-            {caseItem.isAmended && caseItem.originalValues && (
+            {caseItem.amendmentHistory && caseItem.amendmentHistory.length > 0 && (
               <div className="detail-item full-width amendment-history">
                 <div className="amendment-header-container">
                   <span className="amendment-badge">AMENDED</span>
@@ -353,57 +380,44 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 </div>
                 {expandedAmendmentHistory.has(caseItem.id) && (
                   <div className="amendment-content">
-                    <div style={{marginBottom: '12px'}}>
-                      <strong>Original Values (Before Amendment):</strong>
-                    </div>
-                    <div className="original-values-grid">
-                      {caseItem.originalValues.hospital && (
-                        <div className="original-value-item">
-                          <span className="original-label">Hospital:</span> {caseItem.originalValues.hospital}
+                    {caseItem.amendmentHistory.map((amendment, index) => (
+                      <div key={amendment.amendmentId} className="amendment-entry">
+                        <div className="amendment-header">
+                          <strong>Amendment #{index + 1}</strong>
+                          <div className="amendment-meta">
+                            <span>By: {getUserName(amendment.amendedBy)}</span>
+                            <span>At: {formatDateTime(amendment.timestamp)}</span>
+                          </div>
                         </div>
-                      )}
-                      {caseItem.originalValues.department && (
-                        <div className="original-value-item">
-                          <span className="original-label">Department:</span> {caseItem.originalValues.department}
+                        
+                        {amendment.reason && (
+                          <div className="amendment-reason">
+                            <strong>Reason:</strong> {amendment.reason}
+                          </div>
+                        )}
+                        
+                        <div className="amendment-changes">
+                          <strong>Changes:</strong>
+                          <div className="changes-grid">
+                            {amendment.changes.map((change, changeIndex) => (
+                              <div key={changeIndex} className="change-item">
+                                <span className="change-field">{change.field}:</span>
+                                <span className="change-from">{change.oldValue}</span>
+                                <span className="change-arrow">→</span>
+                                <span className="change-to">{change.newValue}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      )}
-                      {caseItem.originalValues.dateOfSurgery && (
-                        <div className="original-value-item">
-                          <span className="original-label">Surgery Date:</span> {formatDate(caseItem.originalValues.dateOfSurgery)}
-                        </div>
-                      )}
-                      {caseItem.originalValues.procedureType && (
-                        <div className="original-value-item">
-                          <span className="original-label">Procedure Type:</span> {caseItem.originalValues.procedureType}
-                        </div>
-                      )}
-                      {caseItem.originalValues.doctorName && (
-                        <div className="original-value-item">
-                          <span className="original-label">Doctor Name:</span> {caseItem.originalValues.doctorName}
-                        </div>
-                      )}
-                      {caseItem.originalValues.timeOfProcedure && (
-                        <div className="original-value-item">
-                          <span className="original-label">Time of Procedure:</span> {caseItem.originalValues.timeOfProcedure}
-                        </div>
-                      )}
-                      {caseItem.originalValues.specialInstruction && (
-                        <div className="original-value-item">
-                          <span className="original-label">Special Instructions:</span> {caseItem.originalValues.specialInstruction}
-                        </div>
-                      )}
-                    </div>
-                    <div style={{fontSize: '12px', color: '#666', textAlign: 'right', marginTop: '15px', border: 'none', background: 'none'}}>
-                      <div>Amended by: {caseItem.amendedBy || 'Unknown'}</div>
-                      <div>Amended at: {caseItem.amendedAt ? formatDateTime(caseItem.amendedAt) : 'N/A'}</div>
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
             )}
             {caseItem.processedBy && (
               <div className="detail-item prepared-by">
-                <strong>Prepared by:</strong> {caseItem.processedBy}
+                <strong>Prepared by:</strong> {getUserName(caseItem.processedBy)}
               </div>
             )}
             {caseItem.processedAt && (
@@ -1534,10 +1548,26 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   />
                   {getOriginalValueDisplay('specialInstruction', amendmentData.specialInstruction, caseItem.originalValues?.specialInstruction)}
                 </div>
+                <div className="form-group full-width">
+                  <label>Amendment Reason: <span style={{color: 'red'}}>*</span></label>
+                  <textarea
+                    value={amendmentData.amendmentReason || ''}
+                    onChange={(e) => onAmendmentDataChange({ ...amendmentData, amendmentReason: e.target.value })}
+                    rows={2}
+                    placeholder="Please explain why this case needs to be amended..."
+                    required
+                  />
+                </div>
               </div>
               <div className="amendment-actions">
                 <button 
-                  onClick={() => onSaveAmendment(caseItem.id)}
+                  onClick={() => {
+                    if (!amendmentData.amendmentReason || !amendmentData.amendmentReason.trim()) {
+                      alert('Amendment reason is required. Please provide a reason for this amendment.');
+                      return;
+                    }
+                    onSaveAmendment({ ...amendmentData, caseId: caseItem.id });
+                  }}
                   className="btn btn-primary btn-md save-amendment-button"
                 >
                   Save Amendment
@@ -1636,14 +1666,14 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <div className="processing-actions">
                 <button 
                   onClick={() => onSaveProcessDetails(caseItem.id)}
-                  className="btn btn-primary btn-md save-process-button"
+                  className="btn btn-primary btn-md primary-button"
                   disabled={!processDetails.trim()}
                 >
                   Complete Processing
                 </button>
                 <button 
                   onClick={onCancelProcessing}
-                  className="btn btn-outline-secondary btn-md cancel-process-button"
+                  className="btn btn-outline-secondary btn-md cancel-button"
                 >
                   Cancel
                 </button>
@@ -1731,13 +1761,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <div className="hospital-delivery-actions">
                 <button 
                   onClick={() => onSaveHospitalDelivery(caseItem.id)}
-                  className="btn btn-primary btn-md save-hospital-delivery-button"
+                  className="btn btn-primary btn-md primary-button"
                 >
                   Mark as Pending Delivery
                 </button>
                 <button 
                   onClick={onCancelHospitalDelivery}
-                  className="btn btn-outline-secondary btn-md cancel-hospital-delivery-button"
+                  className="btn btn-outline-secondary btn-md cancel-button"
                 >
                   Cancel
                 </button>
@@ -1783,14 +1813,14 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <div className="received-actions">
                 <button 
                   onClick={() => onSaveOrderReceived(caseItem.id)}
-                  className="btn btn-primary btn-md save-received-button"
+                  className="btn btn-primary btn-md primary-button"
                   disabled={!receivedDetails.trim()}
                 >
                   Confirm Received
                 </button>
                 <button 
                   onClick={onCancelReceived}
-                  className="btn btn-outline-secondary btn-md cancel-received-button"
+                  className="btn btn-outline-secondary btn-md cancel-button"
                 >
                   Cancel
                 </button>
@@ -1871,14 +1901,14 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <div className="completed-actions">
                 <button 
                   onClick={() => onSaveCaseCompleted(caseItem.id)}
-                  className="btn btn-primary btn-md save-completed-button"
+                  className="btn btn-primary btn-md primary-button"
                   disabled={!orderSummary.trim() || !doNumber.trim()}
                 >
                   Complete Case
                 </button>
                 <button 
                   onClick={onCancelCompleted}
-                  className="btn btn-outline-secondary btn-md cancel-completed-button"
+                  className="btn btn-outline-secondary btn-md cancel-button"
                 >
                   Cancel
                 </button>
@@ -1970,13 +2000,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <div className="pending-office-actions">
                 <button 
                   onClick={() => onSavePendingOffice(caseItem.id)}
-                  className="btn btn-primary btn-md save-pending-office-button"
+                  className="btn btn-primary btn-md primary-button"
                 >
                   Mark as Pending Delivery (Office)
                 </button>
                 <button 
                   onClick={onCancelPendingOffice}
-                  className="btn btn-outline-secondary btn-md cancel-pending-office-button"
+                  className="btn btn-outline-secondary btn-md cancel-button"
                 >
                   Cancel
                 </button>
@@ -2068,13 +2098,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <div className="office-delivery-actions">
                 <button 
                   onClick={() => onSaveOfficeDelivery(caseItem.id)}
-                  className="btn btn-primary btn-md save-office-delivery-button"
+                  className="btn btn-primary btn-md primary-button"
                 >
                   Mark as Delivered (Office)
                 </button>
                 <button 
                   onClick={onCancelOfficeDelivery}
-                  className="btn btn-outline-secondary btn-md cancel-office-delivery-button"
+                  className="btn btn-outline-secondary btn-md cancel-button"
                 >
                   Cancel
                 </button>

@@ -162,6 +162,7 @@ export interface CaseBooking {
     specialInstruction?: string;
   };
   amendmentHistory?: AmendmentHistory[];
+  amendmentReason?: string;
 }
 
 export interface FilterOptions {

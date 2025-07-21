@@ -15,7 +15,7 @@ import { useModal } from '../hooks/useModal';
 import { useToast } from './ToastContainer';
 import { useSound } from '../contexts/SoundContext';
 import PermissionMatrix from './PermissionMatrix';
-import './RoleManagement.css';
+import '../assets/components/RoleManagement.css';
 
 interface RoleManagementProps {
   onRoleUpdate?: (updatedRoles: Role[]) => void;

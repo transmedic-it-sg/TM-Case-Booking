@@ -13,6 +13,9 @@ import WelcomePopup from './components/WelcomePopup';
 import PermissionMatrixPage from './components/PermissionMatrixPage';
 import AuditLogs from './components/AuditLogs';
 import SimplifiedEmailConfig from './components/SimplifiedEmailConfig';
+import BackupRestore from './components/BackupRestore';
+import DataImport from './components/DataImport';
+import SystemSettings from './components/SystemSettings';
 import LogoutConfirmation from './components/LogoutConfirmation';
 import SSOCallback from './components/SSOCallback';
 import DatabaseConnectivityIndicator from './components/DatabaseConnectivityIndicator';
@@ -20,17 +23,18 @@ import { User, CaseBooking } from './types';
 import { getCurrentUser, logout } from './utils/auth';
 import { hasPermission, PERMISSION_ACTIONS, initializePermissions } from './utils/permissions';
 import { initializeCodeTables } from './utils/codeTable';
+import { auditLogout } from './utils/auditService';
 import { SoundProvider, useSound } from './contexts/SoundContext';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { ToastProvider, useToast } from './components/ToastContainer';
 import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
 import StatusLegend from './components/StatusLegend';
-import './App.css';
-import './components/CodeTableSetup.css';
-import './components/AuditLogs.css';
+import './assets/components/App.css';
+import './assets/components/CodeTableSetup.css';
+import './assets/components/AuditLogs.css';
 
-type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config';
+type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config' | 'backup-restore' | 'data-import' | 'system-settings';
 
 
 
@@ -114,6 +118,11 @@ const AppContent: React.FC = () => {
   };
 
   const confirmLogout = async () => {
+    // Add audit log for logout before clearing user
+    if (user) {
+      await auditLogout(user.name, user.id, user.role, user.selectedCountry);
+    }
+    
     await logout();
     setUser(null);
     setActivePage('booking');
@@ -229,6 +238,18 @@ const AppContent: React.FC = () => {
                     
                     {adminPanelExpanded && (
                       <div className="header-admin-submenu">
+                        {hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) && (
+                          <button
+                            onClick={() => {
+                              setActivePage('system-settings');
+                              playSound.click();
+                              setAdminPanelExpanded(false);
+                            }}
+                            className={`header-admin-item ${activePage === 'system-settings' ? 'active' : ''}`}
+                          >
+                            ⚙️ System Settings
+                          </button>
+                        )}
                         {hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) && (
                           <button
                             onClick={() => {
@@ -287,6 +308,30 @@ const AppContent: React.FC = () => {
                             className={`header-admin-item ${activePage === 'audit-logs' ? 'active' : ''}`}
                           >
                             📊 Audit Logs
+                          </button>
+                        )}
+                        {hasPermission(user.role, PERMISSION_ACTIONS.BACKUP_RESTORE) && (
+                          <button
+                            onClick={() => {
+                              setActivePage('backup-restore');
+                              playSound.click();
+                              setAdminPanelExpanded(false);
+                            }}
+                            className={`header-admin-item ${activePage === 'backup-restore' ? 'active' : ''}`}
+                          >
+                            💾 Backup & Restore
+                          </button>
+                        )}
+                        {hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) && (
+                          <button
+                            onClick={() => {
+                              setActivePage('data-import');
+                              playSound.click();
+                              setAdminPanelExpanded(false);
+                            }}
+                            className={`header-admin-item ${activePage === 'data-import' ? 'active' : ''}`}
+                          >
+                            📥 Data Import
                           </button>
                         )}
                       </div>
@@ -446,6 +491,18 @@ const AppContent: React.FC = () => {
         
         {activePage === 'codetables' && hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) && (
           <CodeTableSetup />
+        )}
+        
+        {activePage === 'backup-restore' && hasPermission(user.role, PERMISSION_ACTIONS.BACKUP_RESTORE) && (
+          <BackupRestore />
+        )}
+        
+        {activePage === 'data-import' && hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) && (
+          <DataImport />
+        )}
+        
+        {activePage === 'system-settings' && hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) && (
+          <SystemSettings />
         )}
       </main>
 

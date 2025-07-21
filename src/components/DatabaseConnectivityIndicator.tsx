@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useDatabaseConnection } from '../hooks/useDatabaseConnection';
-import './DatabaseConnectivityIndicator.css';
+import { getDatabaseName } from '../utils/getDatabaseName';
+import '../assets/components/DatabaseConnectivityIndicator.css';
 
 interface DatabaseConnectivityIndicatorProps {
   showDetails?: boolean;
@@ -27,25 +28,9 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
-  // Determine which database is connected based on the URL
-  const getDatabaseName = () => {
-    const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-    if (!supabaseUrl) return 'Unknown Database';
-    
-    if (supabaseUrl.includes('aqzjzjygflmxkcbfnjbe')) {
-      return 'Production DB';
-    } else if (supabaseUrl.includes('rqcrsrdlcdpkxxkqwvyo')) {
-      return 'UAT DB';
-    } else {
-      return 'Custom DB';
-    }
-  };
+  // getDatabaseName is now imported from utils
 
-  // Get database status for display
-  const getDatabaseStatus = () => {
-    if (!isConnected) return 'Local Storage';
-    return getDatabaseName();
-  };
+  
 
   // Handle click outside to close panel
   useEffect(() => {
@@ -98,7 +83,9 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
         {showDetails && (
           <span className="status-text">{displayInfo.text}</span>
         )}
-        <span className="database-name">Connected to: {getDatabaseName()}</span>
+        <span className="database-name">
+          Connected to: {isConnected ? getDatabaseName() : 'Local Storage (Fallback)'}
+          </span>
       </div>
 
       {/* Detailed info panel */}
@@ -175,7 +162,7 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
             </div>
             <div className={`indicator ${usingFallback ? 'active' : ''}`}>
               <div className="indicator-dot amber"></div>
-              <span>Fallback</span>
+              <span>Local Storage (Fallback)</span>
             </div>
           </div>
         </div>

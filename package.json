@@ -1,6 +1,6 @@
 {
   "name": "case-booking-app",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "homepage": "/",
   "private": true,
   "dependencies": {
@@ -12,6 +12,7 @@
     "@types/node": "^16.11.41",
     "@types/react": "^18.0.14",
     "@types/react-dom": "^18.0.5",
+    "pg": "^8.16.3",
     "react": "^18.2.0",
     "react-datepicker": "^8.4.0",
     "react-dom": "^18.2.0",

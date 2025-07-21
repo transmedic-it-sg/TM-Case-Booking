@@ -6,6 +6,7 @@
 import React from 'react';
 import { AttachmentManagerProps } from './types';
 import { useAttachments } from './hooks/useAttachments';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const AttachmentManager: React.FC<AttachmentManagerProps> = ({
   caseId,
@@ -14,6 +15,10 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
   maxFiles = 5,
   acceptedFileTypes = ['image/*', '.pdf', '.doc', '.docx', '.txt']
 }) => {
+  const { checkPermission } = usePermissions();
+  const canUploadFiles = checkPermission('upload-files');
+  const canDeleteFiles = checkPermission('delete-files');
+  
   const {
     attachments,
     previews,
@@ -47,11 +52,12 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
         <h4 className="attachment-title">
           Attachments ({fileCount}/{maxFiles})
         </h4>
-        {fileCount > 0 && (
+        {fileCount > 0 && canDeleteFiles && (
           <button
             type="button"
             className="btn btn-outline-secondary btn-sm"
             onClick={clearAll}
+            title="Clear all attachments"
           >
             Clear All
           </button>
@@ -59,7 +65,7 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
       </div>
 
       {/* File Upload Area */}
-      {canAddMore && (
+      {canAddMore && canUploadFiles && (
         <div
           className="file-upload-area"
           onDrop={handleDrop}
@@ -120,17 +126,40 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  className="remove-attachment"
-                  onClick={() => removeFile(index)}
-                  aria-label={`Remove ${fileInfo.name}`}
-                >
-                  ✕
-                </button>
+                {canDeleteFiles && (
+                  <button
+                    type="button"
+                    className="remove-attachment"
+                    onClick={() => removeFile(index)}
+                    aria-label={`Remove ${fileInfo.name}`}
+                    title="Remove attachment"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Permission Messages */}
+      {!canUploadFiles && !canDeleteFiles && (
+        <div className="permission-message">
+          <p>📁 You don't have permission to manage files.</p>
+          <p>Contact your administrator for file upload/download access.</p>
+        </div>
+      )}
+      
+      {!canUploadFiles && canDeleteFiles && (
+        <div className="permission-message">
+          <p>📁 You can view and delete files but cannot upload new ones.</p>
+        </div>
+      )}
+      
+      {canUploadFiles && !canDeleteFiles && (
+        <div className="permission-message">
+          <p>📁 You can upload files but cannot delete existing ones.</p>
         </div>
       )}
 

@@ -139,7 +139,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         const countryCode = getCountryCode(userCountry || 'Singapore');
         const sets = await getCategorizedSets(countryCode);
         setCategorizedSets(sets);
-        console.log('Loaded categorized sets:', sets);
+        // Loaded categorized sets successfully
       } catch (error) {
         console.error('Error loading categorized sets:', error);
       }

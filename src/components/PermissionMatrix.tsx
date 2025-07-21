@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './PermissionMatrix.css';
+import '../assets/components/PermissionMatrix.css';
 
 export interface PermissionAction {
   id: string;

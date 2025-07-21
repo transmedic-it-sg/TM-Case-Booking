@@ -9,7 +9,7 @@ import { formatDate } from '../utils/dateFormat';
 import { useUserNames } from '../hooks/useUserNames';
 import FilterDatePicker from './FilterDatePicker';
 import SearchableDropdown from './SearchableDropdown';
-import './Reports.css';
+import '../assets/components/Reports.css';
 
 interface ReportFilters {
   dateFrom: string;
@@ -338,13 +338,15 @@ const Reports: React.FC = () => {
           <p>Comprehensive case booking analytics and insights</p>
         </div>
         <div className="reports-actions">
-          <button 
-            onClick={exportReport}
-            className="btn btn-outline-primary"
-            title="Export to CSV"
-          >
-            📤 Export
-          </button>
+          {hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.EXPORT_DATA) && (
+            <button 
+              onClick={exportReport}
+              className="btn btn-outline-primary"
+              title="Export to CSV"
+            >
+              📤 Export
+            </button>
+          )}
           <button 
             onClick={printReport}
             className="btn btn-outline-secondary"

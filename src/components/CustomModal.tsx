@@ -1,5 +1,5 @@
 import React from 'react';
-import './CustomModal.css';
+import '../assets/components/CustomModal.css';
 
 interface ModalAction {
   label: string;

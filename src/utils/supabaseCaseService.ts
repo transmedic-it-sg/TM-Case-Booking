@@ -41,6 +41,19 @@ interface SupabaseCaseStatusHistory {
   attachments?: string[];
 }
 
+// Interface for amendment history
+interface SupabaseCaseAmendmentHistory {
+  id: string;
+  amended_by: string;
+  timestamp: string;
+  reason: string | null;
+  changes: Array<{
+    field: string;
+    oldValue: string;
+    newValue: string;
+  }>;
+}
+
 // ================================================
 // CASE REFERENCE NUMBER MANAGEMENT
 // ================================================
@@ -125,6 +138,13 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
           timestamp,
           details,
           attachments
+        ),
+        amendment_history (
+          id,
+          amended_by,
+          timestamp,
+          reason,
+          changes
         )
       `)
       .order('created_at', { ascending: false });
@@ -170,6 +190,13 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
         processedBy: history.processed_by,
         details: history.details,
         attachments: history.attachments
+      })) || [],
+      amendmentHistory: caseData.amendment_history?.map((history: SupabaseCaseAmendmentHistory) => ({
+        amendmentId: history.id,
+        timestamp: history.timestamp,
+        amendedBy: history.amended_by,
+        reason: history.reason || 'No reason provided',
+        changes: history.changes || []
       })) || []
     }));
   } catch (error) {
@@ -219,20 +246,22 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
       throw insertError;
     }
     
-    // Create initial status history entry
-    const { error: historyError } = await supabase
-      .from('status_history')
-      .insert([{
-        case_id: insertedCase.id,
-        status: caseData.status,
-        processed_by: caseData.submittedBy,
-        timestamp: insertedCase.created_at,
-        details: 'Case created'
-      }]);
-    
-    if (historyError) {
-      console.error('Error creating status history:', historyError);
-      // Don't throw here, case was created successfully
+    // Create initial status history entry - only if it's a new case with "Case Booked" status
+    if (caseData.status === 'Case Booked') {
+      const { error: historyError } = await supabase
+        .from('status_history')
+        .insert([{
+          case_id: insertedCase.id,
+          status: caseData.status,
+          processed_by: caseData.submittedBy,
+          timestamp: insertedCase.created_at,
+          details: 'Case created'
+        }]);
+      
+      if (historyError) {
+        console.error('Error creating status history:', historyError);
+        // Don't throw here, case was created successfully
+      }
     }
     
     // Transform back to CaseBooking interface
@@ -259,12 +288,7 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
       isAmended: insertedCase.is_amended,
       amendedBy: insertedCase.amended_by,
       amendedAt: insertedCase.amended_at,
-      statusHistory: [{
-        status: insertedCase.status as CaseStatus,
-        timestamp: insertedCase.created_at,
-        processedBy: insertedCase.submitted_by,
-        details: 'Case created'
-      }]
+      statusHistory: []
     };
   } catch (error) {
     console.error('Error in saveSupabaseCase:', error);
@@ -297,21 +321,42 @@ export const updateSupabaseCaseStatus = async (
       throw updateError;
     }
     
-    // Add status history entry
-    const { error: historyError } = await supabase
-      .from('status_history')
-      .insert([{
-        case_id: caseId,
-        status: newStatus,
-        processed_by: changedBy,
-        timestamp: new Date().toISOString(),
-        details: details || null,
-        attachments: attachments || null
-      }]);
+    // Check if this is a status change that might create duplicates
+    let shouldAddHistoryEntry = true;
     
-    if (historyError) {
-      console.error('Error creating status history:', historyError);
-      throw historyError;
+    // Prevent duplicate "Case Booked" entries
+    if (newStatus === 'Case Booked') {
+      // Check if there's already a "Case Booked" entry for this case
+      const { data: existingHistory } = await supabase
+        .from('status_history')
+        .select('*')
+        .eq('case_id', caseId)
+        .eq('status', 'Case Booked');
+      
+      // If there's already a "Case Booked" entry, don't add another one
+      if (existingHistory && existingHistory.length > 0) {
+        shouldAddHistoryEntry = false;
+        console.log('Prevented duplicate "Case Booked" entry for case:', caseId);
+      }
+    }
+    
+    // Add status history entry only if it's not a duplicate
+    if (shouldAddHistoryEntry) {
+      const { error: historyError } = await supabase
+        .from('status_history')
+        .insert([{
+          case_id: caseId,
+          status: newStatus,
+          processed_by: changedBy,
+          timestamp: new Date().toISOString(),
+          details: details || null,
+          attachments: attachments || null
+        }]);
+      
+      if (historyError) {
+        console.error('Error creating status history:', historyError);
+        throw historyError;
+      }
     }
   } catch (error) {
     console.error('Error in updateSupabaseCaseStatus:', error);
@@ -376,7 +421,20 @@ export const amendSupabaseCase = async (
   amendedBy: string
 ): Promise<void> => {
   try {
-    // Prepare update data
+    // First, get the current case data to track changes
+    const { data: currentCase, error: fetchError } = await supabase
+      .from('case_bookings')
+      .select('*')
+      .eq('id', caseId)
+      .single();
+    
+    if (fetchError) {
+      console.error('Error fetching current case:', fetchError);
+      throw fetchError;
+    }
+    
+    // Track what's being changed
+    const changes: { field: string; oldValue: string; newValue: string }[] = [];
     const updateData: any = {
       is_amended: true,
       amended_by: amendedBy,
@@ -384,17 +442,93 @@ export const amendSupabaseCase = async (
       updated_at: new Date().toISOString()
     };
     
-    // Map amendments to database columns
-    if (amendments.hospital) updateData.hospital = amendments.hospital;
-    if (amendments.department) updateData.department = amendments.department;
-    if (amendments.dateOfSurgery) updateData.date_of_surgery = amendments.dateOfSurgery;
-    if (amendments.procedureType) updateData.procedure_type = amendments.procedureType;
-    if (amendments.procedureName) updateData.procedure_name = amendments.procedureName;
-    if (amendments.doctorName) updateData.doctor_name = amendments.doctorName;
-    if (amendments.timeOfProcedure) updateData.time_of_procedure = amendments.timeOfProcedure;
-    if (amendments.surgerySetSelection) updateData.surgery_set_selection = amendments.surgerySetSelection;
-    if (amendments.implantBox) updateData.implant_box = amendments.implantBox;
-    if (amendments.specialInstruction) updateData.special_instruction = amendments.specialInstruction;
+    // Map amendments to database columns and track changes
+    if (amendments.hospital !== undefined && amendments.hospital !== currentCase.hospital) {
+      updateData.hospital = amendments.hospital;
+      changes.push({
+        field: 'Hospital',
+        oldValue: currentCase.hospital || '',
+        newValue: amendments.hospital || ''
+      });
+    }
+    if (amendments.department !== undefined && amendments.department !== currentCase.department) {
+      updateData.department = amendments.department;
+      changes.push({
+        field: 'Department',
+        oldValue: currentCase.department || '',
+        newValue: amendments.department || ''
+      });
+    }
+    if (amendments.dateOfSurgery !== undefined && amendments.dateOfSurgery !== currentCase.date_of_surgery) {
+      updateData.date_of_surgery = amendments.dateOfSurgery;
+      changes.push({
+        field: 'Date of Surgery',
+        oldValue: currentCase.date_of_surgery || '',
+        newValue: amendments.dateOfSurgery || ''
+      });
+    }
+    if (amendments.procedureType !== undefined && amendments.procedureType !== currentCase.procedure_type) {
+      updateData.procedure_type = amendments.procedureType;
+      changes.push({
+        field: 'Procedure Type',
+        oldValue: currentCase.procedure_type || '',
+        newValue: amendments.procedureType || ''
+      });
+    }
+    if (amendments.procedureName !== undefined && amendments.procedureName !== currentCase.procedure_name) {
+      updateData.procedure_name = amendments.procedureName;
+      changes.push({
+        field: 'Procedure Name',
+        oldValue: currentCase.procedure_name || '',
+        newValue: amendments.procedureName || ''
+      });
+    }
+    if (amendments.doctorName !== undefined && amendments.doctorName !== currentCase.doctor_name) {
+      updateData.doctor_name = amendments.doctorName;
+      changes.push({
+        field: 'Doctor Name',
+        oldValue: currentCase.doctor_name || '',
+        newValue: amendments.doctorName || ''
+      });
+    }
+    if (amendments.timeOfProcedure !== undefined && amendments.timeOfProcedure !== currentCase.time_of_procedure) {
+      updateData.time_of_procedure = amendments.timeOfProcedure;
+      changes.push({
+        field: 'Time of Procedure',
+        oldValue: currentCase.time_of_procedure || '',
+        newValue: amendments.timeOfProcedure || ''
+      });
+    }
+    if (amendments.surgerySetSelection !== undefined && JSON.stringify(amendments.surgerySetSelection) !== JSON.stringify(currentCase.surgery_set_selection)) {
+      updateData.surgery_set_selection = amendments.surgerySetSelection;
+      changes.push({
+        field: 'Surgery Set Selection',
+        oldValue: (currentCase.surgery_set_selection || []).join(', '),
+        newValue: (amendments.surgerySetSelection || []).join(', ')
+      });
+    }
+    if (amendments.implantBox !== undefined && JSON.stringify(amendments.implantBox) !== JSON.stringify(currentCase.implant_box)) {
+      updateData.implant_box = amendments.implantBox;
+      changes.push({
+        field: 'Implant Box',
+        oldValue: (currentCase.implant_box || []).join(', '),
+        newValue: (amendments.implantBox || []).join(', ')
+      });
+    }
+    if (amendments.specialInstruction !== undefined && amendments.specialInstruction !== currentCase.special_instruction) {
+      updateData.special_instruction = amendments.specialInstruction;
+      changes.push({
+        field: 'Special Instruction',
+        oldValue: currentCase.special_instruction || '',
+        newValue: amendments.specialInstruction || ''
+      });
+    }
+    
+    // Only proceed if there are actual changes
+    if (changes.length === 0) {
+      console.log('No changes detected for case amendment');
+      return;
+    }
     
     // Update case
     const { error: updateError } = await supabase
@@ -407,10 +541,97 @@ export const amendSupabaseCase = async (
       throw updateError;
     }
     
-    // Note: No status history entry needed for amendments since status doesn't change
-    // The amendment tracking is handled via the is_amended, amended_by, and amended_at fields
+    // Create amendment history entry
+    const historyEntry = {
+      case_id: caseId,
+      amended_by: amendedBy,
+      timestamp: new Date().toISOString(),
+      reason: (amendments as any).amendmentReason || 'No reason provided',
+      changes: changes
+    };
+    
+    const { error: historyError } = await supabase
+      .from('amendment_history')
+      .insert([historyEntry]);
+    
+    if (historyError) {
+      console.error('Error creating amendment history:', historyError);
+      throw historyError;
+    }
+    
+    console.log('Case amended successfully with', changes.length, 'changes tracked.');
   } catch (error) {
     console.error('Error in amendSupabaseCase:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update a case in Supabase (for general updates, not amendments)
+ */
+export const updateSupabaseCase = async (caseId: string, updates: Partial<CaseBooking>): Promise<CaseBooking> => {
+  try {
+    // Map updates to database columns
+    const updateData: any = {
+      updated_at: new Date().toISOString()
+    };
+    
+    if (updates.hospital !== undefined) updateData.hospital = updates.hospital;
+    if (updates.department !== undefined) updateData.department = updates.department;
+    if (updates.dateOfSurgery !== undefined) updateData.date_of_surgery = updates.dateOfSurgery;
+    if (updates.procedureType !== undefined) updateData.procedure_type = updates.procedureType;
+    if (updates.procedureName !== undefined) updateData.procedure_name = updates.procedureName;
+    if (updates.doctorName !== undefined) updateData.doctor_name = updates.doctorName;
+    if (updates.timeOfProcedure !== undefined) updateData.time_of_procedure = updates.timeOfProcedure;
+    if (updates.surgerySetSelection !== undefined) updateData.surgery_set_selection = updates.surgerySetSelection;
+    if (updates.implantBox !== undefined) updateData.implant_box = updates.implantBox;
+    if (updates.specialInstruction !== undefined) updateData.special_instruction = updates.specialInstruction;
+    if (updates.status !== undefined) updateData.status = updates.status;
+    if (updates.processedBy !== undefined) updateData.processed_by = updates.processedBy;
+    if (updates.processedAt !== undefined) updateData.processed_at = updates.processedAt;
+    if (updates.processOrderDetails !== undefined) updateData.process_order_details = updates.processOrderDetails;
+    
+    // Update case
+    const { data: updatedCase, error: updateError } = await supabase
+      .from('case_bookings')
+      .update(updateData)
+      .eq('id', caseId)
+      .select()
+      .single();
+    
+    if (updateError) {
+      console.error('Error updating case:', updateError);
+      throw updateError;
+    }
+    
+    // Return updated case in CaseBooking format
+    return {
+      id: updatedCase.id,
+      caseReferenceNumber: updatedCase.case_reference_number,
+      hospital: updatedCase.hospital,
+      department: updatedCase.department,
+      dateOfSurgery: updatedCase.date_of_surgery,
+      procedureType: updatedCase.procedure_type,
+      procedureName: updatedCase.procedure_name,
+      doctorName: updatedCase.doctor_name,
+      timeOfProcedure: updatedCase.time_of_procedure,
+      surgerySetSelection: updatedCase.surgery_set_selection || [],
+      implantBox: updatedCase.implant_box || [],
+      specialInstruction: updatedCase.special_instruction,
+      status: updatedCase.status as CaseStatus,
+      submittedBy: updatedCase.submitted_by,
+      submittedAt: updatedCase.submitted_at,
+      processedBy: updatedCase.processed_by,
+      processedAt: updatedCase.processed_at,
+      processOrderDetails: updatedCase.process_order_details,
+      country: updatedCase.country,
+      isAmended: updatedCase.is_amended,
+      amendedBy: updatedCase.amended_by,
+      amendedAt: updatedCase.amended_at,
+      statusHistory: [] // Will be loaded separately
+    };
+  } catch (error) {
+    console.error('Error in updateSupabaseCase:', error);
     throw error;
   }
 };

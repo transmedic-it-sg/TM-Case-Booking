@@ -83,9 +83,9 @@ export const hasPermission = (roleId: string, actionId: string): boolean => {
 // Initialize permissions cache
 export const initializePermissions = async (): Promise<void> => {
   try {
-    console.log('Initializing permissions system...');
-    const permissions = await getRuntimePermissions();
-    console.log(`Permissions loaded: ${permissions.length} permissions from ${permissionsCache ? 'Supabase' : 'defaults'}`);
+    // Initializing permissions system...
+    await getRuntimePermissions();
+    // Permissions loaded successfully
   } catch (error) {
     console.error('Error initializing permissions, using defaults:', error);
     // Ensure we use default permissions if initialization fails

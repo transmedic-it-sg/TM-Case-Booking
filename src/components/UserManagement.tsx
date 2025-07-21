@@ -337,10 +337,15 @@ const UserManagement: React.FC = () => {
       return;
     }
     
-    // Password is only required for new users
-    if (!editingUser && !newUser.password) {
+    // Password is only required for new users when admin
+    if (!editingUser && !newUser.password && currentUser?.role === 'admin') {
       setError('Password is required for new users');
       return;
+    }
+    
+    // For non-admin users, set a default password if creating new user
+    if (!editingUser && currentUser?.role !== 'admin' && !newUser.password) {
+      setNewUser(prev => ({ ...prev, password: 'TempPassword123!' }));
     }
 
     if (newUser.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.email)) {
@@ -575,29 +580,32 @@ const UserManagement: React.FC = () => {
                     />
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="newPassword" className={editingUser ? '' : 'required'}>
-                      {editingUser ? 'Password (leave blank to keep current)' : 'Password'}
-                    </label>
-                    <div className="password-input-wrapper">
-                      <input
-                        type={showPasswordFor === 'new' ? 'text' : 'password'}
-                        id="newPassword"
-                        value={newUser.password}
-                        onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                        required={!editingUser}
-                        placeholder={editingUser ? 'Leave blank to keep current password' : 'Enter password'}
-                      />
-                      <button
-                        type="button"
-                        className="password-toggle-user"
-                        onClick={() => setShowPasswordFor(showPasswordFor === 'new' ? null : 'new')}
-                        aria-label={showPasswordFor === 'new' ? 'Hide password' : 'Show password'}
-                      >
-                        {showPasswordFor === 'new' ? '👁️' : '👁️‍🗨️'}
-                      </button>
+                  {/* Only show password field for admin users */}
+                  {currentUser?.role === 'admin' && (
+                    <div className="form-group">
+                      <label htmlFor="newPassword" className={editingUser ? '' : 'required'}>
+                        {editingUser ? 'Password (leave blank to keep current)' : 'Password'}
+                      </label>
+                      <div className="password-input-wrapper">
+                        <input
+                          type={showPasswordFor === 'new' ? 'text' : 'password'}
+                          id="newPassword"
+                          value={newUser.password}
+                          onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                          required={!editingUser}
+                          placeholder={editingUser ? 'Leave blank to keep current password' : 'Enter password'}
+                        />
+                        <button
+                          type="button"
+                          className="password-toggle-user"
+                          onClick={() => setShowPasswordFor(showPasswordFor === 'new' ? null : 'new')}
+                          aria-label={showPasswordFor === 'new' ? 'Hide password' : 'Show password'}
+                        >
+                          {showPasswordFor === 'new' ? '👁️' : '👁️‍🗨️'}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="form-row">
@@ -989,9 +997,10 @@ const UserManagement: React.FC = () => {
                               <button 
                                 className="btn btn-outline-warning btn-sm" 
                                 onClick={() => handleResetPassword(user)}
-                                title="Reset Password"
+                                title="Reset Pass"
+                                style={{ padding: '4px 8px', minWidth: '90px' }}
                               >
-                                Reset Password
+                                Reset Pass
                               </button>
                             )}
                             {canEnableDisableUsers && (
@@ -1065,7 +1074,16 @@ const UserManagement: React.FC = () => {
       {showResetPasswordModal && resetPasswordUser && (
         <div className="user-management-modal">
           <div className="modal-overlay" onClick={() => setShowResetPasswordModal(false)}>
-            <div className="modal-content reset-password-modal" onClick={(e) => e.stopPropagation()}>
+            <div 
+              className="modal-content reset-password-modal" 
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setShowResetPasswordModal(false);
+                }
+              }}
+              tabIndex={-1}
+            >
               <div className="modal-header">
                 <h3>🔑 Reset Password</h3>
                 <button 

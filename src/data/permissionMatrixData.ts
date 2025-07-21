@@ -396,9 +396,20 @@ export const permissions: Permission[] = [
   { actionId: 'upload-files', roleId: 'driver', allowed: true },
   { actionId: 'download-files', roleId: 'driver', allowed: true },
   
-  // IT - System management and technical support + user management
+  // IT - System management and technical support + user management + status transitions
   { actionId: 'view-cases', roleId: 'it', allowed: true },
+  { actionId: 'create-case', roleId: 'it', allowed: true },
+  { actionId: 'amend-case', roleId: 'it', allowed: true },
   { actionId: 'edit-sets', roleId: 'it', allowed: true },
+  { actionId: 'process-order', roleId: 'it', allowed: true },
+  { actionId: 'order-processed', roleId: 'it', allowed: true },
+  { actionId: 'pending-delivery-hospital', roleId: 'it', allowed: true },
+  { actionId: 'delivered-hospital', roleId: 'it', allowed: true },
+  { actionId: 'case-completed', roleId: 'it', allowed: true },
+  { actionId: 'pending-delivery-office', roleId: 'it', allowed: true },
+  { actionId: 'delivered-office', roleId: 'it', allowed: true },
+  { actionId: 'to-be-billed', roleId: 'it', allowed: true },
+  { actionId: 'case-closed', roleId: 'it', allowed: true },
   { actionId: 'view-users', roleId: 'it', allowed: true },
   { actionId: 'create-user', roleId: 'it', allowed: true },
   { actionId: 'edit-user', roleId: 'it', allowed: true },

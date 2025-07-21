@@ -4,6 +4,7 @@
  */
 
 import { CaseBooking, CaseStatus, StatusHistory } from '../types';
+import { auditCaseAmended } from '../utils/auditService';
 import userService from './userService';
 import notificationService from './notificationService';
 
@@ -81,6 +82,71 @@ class CaseService {
       return true;
     } catch (error) {
       console.error('Error saving case:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Amend case with audit logging
+   */
+  async amendCase(caseId: string, amendmentData: any): Promise<boolean> {
+    try {
+      const caseItem = this.getCaseById(caseId);
+      if (!caseItem) {
+        console.error('Case not found:', caseId);
+        return false;
+      }
+
+      const currentUser = userService.getCurrentUser();
+      if (!currentUser) {
+        console.error('No current user found');
+        return false;
+      }
+
+      // Track changes for audit
+      const changes: string[] = [];
+      Object.keys(amendmentData).forEach(key => {
+        if (key !== 'amendmentReason' && (caseItem as any)[key] !== amendmentData[key]) {
+          changes.push(`${key}: "${(caseItem as any)[key]}" → "${amendmentData[key]}"`);
+        }
+      });
+
+      // Create amended case
+      const updatedCase: CaseBooking = {
+        ...caseItem,
+        ...amendmentData,
+        isAmended: true,
+        amendedBy: currentUser.name,
+        amendedAt: new Date().toISOString(),
+        amendmentReason: amendmentData.amendmentReason
+      };
+
+      const success = this.saveCase(updatedCase);
+      
+      if (success) {
+        // Add audit log
+        await auditCaseAmended(
+          currentUser.name,
+          currentUser.id,
+          currentUser.role,
+          caseItem.caseReferenceNumber,
+          changes,
+          caseItem.country,
+          caseItem.department
+        );
+
+        // Send notification
+        notificationService.addNotification({
+          title: 'Case Amended',
+          message: `Case ${caseItem.caseReferenceNumber} has been amended by ${currentUser.name}`,
+          type: 'success',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      return success;
+    } catch (error) {
+      console.error('Error amending case:', error);
       return false;
     }
   }

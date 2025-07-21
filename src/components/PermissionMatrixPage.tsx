@@ -12,7 +12,7 @@ import {
 import { clearPermissionsCache } from '../utils/permissions';
 import { useModal } from '../hooks/useModal';
 import CustomModal from './CustomModal';
-import './PermissionMatrixPage.css';
+import '../assets/components/PermissionMatrixPage.css';
 
 const PermissionMatrixPage: React.FC = () => {
   const [permissions, setPermissions] = useState<Permission[]>([]);

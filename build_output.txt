@@ -1,0 +1,37 @@
+
+> case-booking-app@1.2.2 build
+> react-scripts build
+
+Creating an optimized production build...
+Compiled with warnings.
+
+[eslint] 
+src/components/CasesList/CaseCard.tsx
+  Line 147:6:  React Hook useMemo has unnecessary dependencies: 'currentUser.countries', 'currentUser.departments', 'currentUser.role', and 'currentUser.selectedCountry'. Either exclude them or remove the dependency array  react-hooks/exhaustive-deps
+
+src/utils/storage.ts
+  Line 1:38:   'StatusHistory' is defined but never used                      @typescript-eslint/no-unused-vars
+  Line 1:53:   'AmendmentHistory' is defined but never used                   @typescript-eslint/no-unused-vars
+  Line 2:10:   'sendStatusChangeNotification' is defined but never used       @typescript-eslint/no-unused-vars
+  Line 128:7:  'getCasesFromLocalStorage' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+File sizes after gzip:
+
+  213.56 kB  build/static/js/main.8f5a11d3.js
+  38.28 kB   build/static/css/main.127c9d9e.css
+
+The project was built assuming it is hosted at /.
+You can control this with the homepage field in your package.json.
+
+The build folder is ready to be deployed.
+You may serve it with a static server:
+
+  serve -s build
+
+Find out more about deployment here:
+
+  https://cra.link/deployment
+

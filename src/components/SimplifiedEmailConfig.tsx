@@ -19,7 +19,7 @@ import {
   UserInfo,
   AuthTokens
 } from '../utils/simplifiedOAuth';
-import './EmailConfiguration.css';
+import '../assets/components/EmailConfiguration.css';
 
 interface EmailProvider {
   provider: 'google' | 'microsoft';

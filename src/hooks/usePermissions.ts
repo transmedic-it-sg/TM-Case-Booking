@@ -56,8 +56,8 @@ export const usePermissions = () => {
       
       // Admin permissions
       canViewAuditLogs: hasPermission(userRole, PERMISSION_ACTIONS.AUDIT_LOGS),
-      canManageUsers: userRole === 'admin',
-      canManagePermissions: userRole === 'admin',
+      canManageUsers: hasPermission(userRole, PERMISSION_ACTIONS.VIEW_USERS),
+      canManagePermissions: hasPermission(userRole, PERMISSION_ACTIONS.PERMISSION_MATRIX),
       canViewSettings: hasPermission(userRole, PERMISSION_ACTIONS.SYSTEM_SETTINGS),
       canManageCodeTables: hasPermission(userRole, PERMISSION_ACTIONS.CODE_TABLE_SETUP),
       

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '../types';
 import { getCountries, initializeCodeTables } from '../utils/codeTable';
+import { auditLogin } from '../utils/auditService';
 import SearchableDropdown from './SearchableDropdown';
 
 interface SupabaseLoginProps {
@@ -126,6 +127,9 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
 
       // Store user session
       localStorage.setItem('case-booking-session', JSON.stringify(user));
+
+      // Add audit log for successful login
+      await auditLogin(user.name, user.id, user.role, user.selectedCountry);
 
       onLogin(user);
     } catch (error: any) {

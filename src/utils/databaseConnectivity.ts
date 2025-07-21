@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { getDatabaseName } from './getDatabaseName';
 
 export type ConnectionStatus = 'connected' | 'disconnected' | 'checking' | 'fallback';
 
@@ -92,7 +93,7 @@ export const getConnectionStatusDisplay = (info: DatabaseConnectionInfo) => {
         color: '#22c55e', // Green
         icon: '🟢',
         text: 'Database Connected',
-        description: `Connected to Supabase (${info.responseTime}ms)`,
+        description: `Connected to: ${getDatabaseName()} (${info.responseTime}ms)`,
         bgColor: '#dcfce7'
       };
     case 'disconnected':

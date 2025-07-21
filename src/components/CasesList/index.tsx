@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CaseBooking, FilterOptions, CaseStatus } from '../../types';
-import { getCases, filterCases, updateCaseStatus, amendCase, cleanupProcessOrderDetails, cleanupDuplicateStatusEntries, processCaseOrder } from '../../utils/storage';
+import { getCases, filterCases, updateCaseStatus, amendCase, processCaseOrder } from '../../utils/storage';
 import { getCurrentUser } from '../../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -9,6 +9,7 @@ import CasesFilter from './CasesFilter';
 import CaseCard from './CaseCard';
 import StatusChangeSuccessPopup from '../StatusChangeSuccessPopup';
 import CustomModal from '../CustomModal';
+import AmendmentForm from '../CaseCard/AmendmentForm';
 import { useModal } from '../../hooks/useModal';
 // import { USER_ROLES } from '../../constants/permissions'; // Removed - not used
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -84,9 +85,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   useEffect(() => {
-    // Clean up any corrupted data on component mount
-    cleanupProcessOrderDetails();
-    cleanupDuplicateStatusEntries();
+    // Load data from Supabase (cleanup is now handled at the Supabase level)
     const loadData = async () => {
       await loadCases();
     };
@@ -338,32 +337,84 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       department: caseItem.department,
       dateOfSurgery: caseItem.dateOfSurgery,
       procedureType: caseItem.procedureType,
+      procedureName: caseItem.procedureName,
       doctorName: caseItem.doctorName,
       timeOfProcedure: caseItem.timeOfProcedure,
-      specialInstruction: caseItem.specialInstruction
+      specialInstruction: caseItem.specialInstruction,
+      amendmentReason: ''
     });
   };
 
-  const handleSaveAmendment = async (caseId: string) => {
+  const handleSaveAmendment = async (amendmentFormData: any) => {
     const currentUser = getCurrentUser();
-    if (!currentUser) return;
+    if (!currentUser || !amendingCase) return;
 
     try {
+      // Extract caseId from amendmentFormData if provided, otherwise use amendingCase
+      const caseId = amendmentFormData.caseId || amendingCase;
+      const { caseId: _, ...amendments } = amendmentFormData; // Remove caseId from amendments
+      
+      const caseItem = cases.find(c => c.id === caseId);
       const isAdmin = currentUser.role === 'admin';
-      await amendCase(caseId, amendmentData, currentUser.id, isAdmin);
+      
+      // Validate that amendment reason is provided
+      if (!amendments.amendmentReason || !amendments.amendmentReason.trim()) {
+        throw new Error('Amendment reason is required');
+      }
+      
+      await amendCase(caseId, amendments, currentUser.id, isAdmin);
+      
       setAmendingCase(null);
       setAmendmentData({});
       await loadCases();
       
-      // Reset to page 1 and expand the updated case
+      // Reset to page 1 and expand the updated case AND amendment history
       setCurrentPage(1);
       setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
+      setExpandedAmendmentHistory(prev => new Set([...Array.from(prev), caseId]));
       
       // Show success popup
-      setSuccessMessage('Case amended successfully!');
+      setSuccessMessage('Case amended successfully! Check the Amendment History section below.');
       setShowSuccessPopup(true);
+      
+      // Add notification for amendment
+      addNotification({
+        title: 'Case Amended',
+        message: `Case ${caseItem?.caseReferenceNumber || caseId} has been successfully amended by ${currentUser.name}`,
+        type: 'success'
+      }, 'case-amended', caseItem?.country, caseItem?.department);
+      
+      // Add audit log
+      const { auditCaseAmended } = await import('../../utils/auditService');
+      const changes = Object.keys(amendments).filter(key => amendments[key as keyof typeof amendments] && key !== 'amendmentReason');
+      await auditCaseAmended(
+        currentUser.name, 
+        currentUser.id, 
+        currentUser.role, 
+        caseItem?.caseReferenceNumber || amendingCase,
+        changes,
+        caseItem?.country,
+        caseItem?.department
+      );
     } catch (error) {
       console.error('Failed to amend case:', error);
+      // Add error notification with specific messages
+      let errorMessage = 'Unknown error';
+      if (error instanceof Error) {
+        if (error.message.includes('Amendment reason is required')) {
+          errorMessage = 'Amendment reason is required. Please provide a reason for this change.';
+        } else if (error.message.includes('already been amended')) {
+          errorMessage = 'This case has already been amended and cannot be amended again (unless you are an admin).';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      addNotification({
+        title: 'Amendment Failed',
+        message: `Failed to amend case: ${errorMessage}`,
+        type: 'error'
+      });
     }
   };
 
@@ -931,7 +982,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
                     onStatusChange={handleStatusChange}
                     onAmendCase={handleAmendCase}
                     onSaveAmendment={handleSaveAmendment}
-                    onCancelAmendment={handleCancelAmendment}
+                    onCancelAmendment={() => setAmendingCase(null)}
                     onOrderProcessed={handleOrderProcessed}
                     onSaveProcessDetails={handleSaveProcessDetails}
                     onCancelProcessing={handleCancelProcessing}
@@ -1059,6 +1110,16 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
           }
         ] : undefined}
       />
+      
+      {/* Amendment Form Modal */}
+      {amendingCase && (
+        <AmendmentForm
+          caseItem={cases.find(c => c.id === amendingCase)!}
+          amendmentData={amendmentData}
+          onSave={handleSaveAmendment}
+          onCancel={handleCancelAmendment}
+        />
+      )}
     </div>
   );
 };

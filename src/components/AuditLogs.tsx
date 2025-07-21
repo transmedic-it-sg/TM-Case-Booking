@@ -1,25 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
-import { useNotifications } from '../contexts/NotificationContext';
+import { getAuditLogs, getFilteredAuditLogs, clearOldAuditLogs, exportAuditLogs, AuditLogEntry } from '../utils/auditService';
 import SearchableDropdown from './SearchableDropdown';
 import FilterDatePicker from './FilterDatePicker';
 
-interface AuditLogEntry {
-  id: string;
-  timestamp: string;
-  user: string;
-  action: string;
-  category: string;
-  target: string;
-  details: string;
-  ipAddress: string;
-  status: 'success' | 'warning' | 'error';
-}
-
 const AuditLogs: React.FC = () => {
   const currentUser = getCurrentUser();
-  const { notifications } = useNotifications();
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<AuditLogEntry[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -45,90 +32,42 @@ const AuditLogs: React.FC = () => {
   // Check permission
   const canViewAuditLogs = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.AUDIT_LOGS) : false;
 
-  const loadAuditLogs = useCallback(() => {
-    // Convert notifications to audit logs and add system logs
-    const systemLogs: AuditLogEntry[] = [
-      {
-        id: 'sys001',
-        timestamp: new Date().toISOString(),
-        user: 'System',
-        action: 'Application Started',
-        category: 'System',
-        target: 'Application',
-        details: 'Case booking application initialized',
-        ipAddress: '127.0.0.1',
-        status: 'success'
-      },
-      {
-        id: 'sys002',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        user: 'System',
-        action: 'Permission Check',
-        category: 'Security',
-        target: 'Permission Matrix',
-        details: 'Audit logs permission verified',
-        ipAddress: '127.0.0.1',
-        status: 'success'
+  const loadAuditLogs = useCallback(async () => {
+    try {
+      const logs = await getAuditLogs();
+      setAuditLogs(logs);
+    } catch (error) {
+      console.error('Failed to load audit logs:', error);
+      setAuditLogs([]);
+    }
+  }, []);
+
+  const applyFilters = useCallback(async () => {
+    try {
+      const filtered = await getFilteredAuditLogs({
+        category: filters.category || undefined,
+        action: filters.action || undefined,
+        status: filters.status || undefined,
+        dateFrom: filters.dateFrom || undefined,
+        dateTo: filters.dateTo || undefined,
+        // Filter by user name if provided
+        ...(filters.user && { userId: filters.user })
+      });
+
+      // Additional client-side filtering for user name search
+      let finalFiltered = filtered;
+      if (filters.user) {
+        finalFiltered = filtered.filter(log => 
+          log.user.toLowerCase().includes(filters.user.toLowerCase())
+        );
       }
-    ];
 
-    // Convert notifications to audit logs
-    const notificationLogs: AuditLogEntry[] = notifications.map((notification, index) => ({
-      id: `notif-${index}`,
-      timestamp: notification.timestamp,
-      user: notification.title.includes('User') ? 'Admin' : 'System',
-      action: notification.title,
-      category: getActionCategory(notification.title),
-      target: extractTarget(notification.message),
-      details: notification.message,
-      ipAddress: '192.168.1.100',
-      status: notification.type === 'error' ? 'error' : notification.type === 'warning' ? 'warning' : 'success'
-    }));
-
-    const allLogs = [...systemLogs, ...notificationLogs].sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-
-    setAuditLogs(allLogs);
-  }, [notifications]);
-
-  const applyFilters = useCallback(() => {
-    let filtered = auditLogs;
-
-    if (filters.category) {
-      filtered = filtered.filter(log => log.category === filters.category);
+      setFilteredLogs(finalFiltered);
+      setCurrentPage(1);
+    } catch (error) {
+      console.error('Failed to apply filters:', error);
+      setFilteredLogs(auditLogs);
     }
-
-    if (filters.action) {
-      filtered = filtered.filter(log => 
-        log.action.toLowerCase().includes(filters.action.toLowerCase())
-      );
-    }
-
-    if (filters.user) {
-      filtered = filtered.filter(log => 
-        log.user.toLowerCase().includes(filters.user.toLowerCase())
-      );
-    }
-
-    if (filters.status) {
-      filtered = filtered.filter(log => log.status === filters.status);
-    }
-
-    if (filters.dateFrom) {
-      filtered = filtered.filter(log => 
-        new Date(log.timestamp) >= new Date(filters.dateFrom)
-      );
-    }
-
-    if (filters.dateTo) {
-      filtered = filtered.filter(log => 
-        new Date(log.timestamp) <= new Date(filters.dateTo + 'T23:59:59')
-      );
-    }
-
-    setFilteredLogs(filtered);
-    setCurrentPage(1);
   }, [auditLogs, filters]);
 
   useEffect(() => {
@@ -141,22 +80,34 @@ const AuditLogs: React.FC = () => {
     applyFilters();
   }, [applyFilters]);
 
-  const getActionCategory = (title: string): string => {
-    if (title.includes('User')) return 'User Management';
-    if (title.includes('Case')) return 'Case Management';
-    if (title.includes('Status')) return 'Status Change';
-    if (title.includes('Permission')) return 'Security';
-    return 'System';
+  const handleExportLogs = async () => {
+    try {
+      const exportData = await exportAuditLogs(filters);
+      const blob = new Blob([exportData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to export audit logs:', error);
+    }
   };
 
-  const extractTarget = (message: string): string => {
-    const caseMatch = message.match(/TMC\d+/);
-    if (caseMatch) return caseMatch[0];
-    
-    const userMatch = message.match(/(\w+\s+\w+)\s*\(/);
-    if (userMatch) return userMatch[1];
-    
-    return 'System';
+  const handleClearOldLogs = async () => {
+    if (window.confirm('Are you sure you want to clear audit logs older than 90 days? This action cannot be undone.')) {
+      try {
+        const deletedCount = await clearOldAuditLogs(90);
+        alert(`Successfully cleared ${deletedCount} old audit log entries.`);
+        await loadAuditLogs();
+      } catch (error) {
+        console.error('Failed to clear old logs:', error);
+        alert('Failed to clear old logs. Please try again.');
+      }
+    }
   };
 
   const handleFilterChange = (key: string, value: string) => {
@@ -418,6 +369,22 @@ const AuditLogs: React.FC = () => {
                 >
                   🔄 Refresh
                 </button>
+                {hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.EXPORT_DATA) && (
+                  <button 
+                    onClick={handleExportLogs} 
+                    className="btn btn-success btn-md"
+                  >
+                    📥 Export
+                  </button>
+                )}
+                {currentUser?.role === 'admin' && (
+                  <button 
+                    onClick={handleClearOldLogs} 
+                    className="btn btn-warning btn-md"
+                  >
+                    🗑️ Clear Old
+                  </button>
+                )}
               </div>
             </div>
 
@@ -463,11 +430,13 @@ const AuditLogs: React.FC = () => {
             <tr>
               <th>Timestamp</th>
               <th>User</th>
+              <th>Role</th>
               <th>Action</th>
               <th>Category</th>
               <th>Target</th>
               <th>Status</th>
-              <th>IP Address</th>
+              <th>Country</th>
+              <th>Department</th>
               <th>Details</th>
             </tr>
           </thead>
@@ -479,6 +448,9 @@ const AuditLogs: React.FC = () => {
                 </td>
                 <td className="user-cell">
                   <strong>{log.user}</strong>
+                </td>
+                <td className="role-cell">
+                  <span className="role-badge">{log.userRole || 'N/A'}</span>
                 </td>
                 <td className="action-cell">
                   {log.action}
@@ -494,12 +466,15 @@ const AuditLogs: React.FC = () => {
                     {log.status.toUpperCase()}
                   </span>
                 </td>
-                <td className="ip-cell">
-                  {log.ipAddress}
+                <td className="country-cell">
+                  {log.country || 'N/A'}
+                </td>
+                <td className="department-cell">
+                  {log.department || 'N/A'}
                 </td>
                 <td className="details-cell">
                   <div className="details-preview" title={log.details}>
-                    {log.details.length > 50 ? `${log.details.substring(0, 50)}...` : log.details}
+                    {log.details.length > 40 ? `${log.details.substring(0, 40)}...` : log.details}
                   </div>
                 </td>
               </tr>

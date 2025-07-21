@@ -1,5 +1,4 @@
-import { CaseBooking, FilterOptions, StatusHistory, AmendmentHistory } from '../types';
-import { sendStatusChangeNotification } from './emailNotificationService';
+import { CaseBooking, FilterOptions } from '../types';
 import { 
   getSupabaseCases, 
   saveSupabaseCase, 
@@ -38,10 +37,46 @@ export const getCases = async (country?: string): Promise<CaseBooking[]> => {
     // If we got cases from Supabase, return them
     if (supabaseCases && supabaseCases.length > 0) {
       console.log(`Loaded ${supabaseCases.length} cases from Supabase`);
-      return supabaseCases;
+      
+      // Clean up duplicate status entries in Supabase cases
+      const cleanedCases = supabaseCases.map(caseData => {
+        if (caseData.statusHistory && caseData.statusHistory.length > 1) {
+          const uniqueEntries = new Map<string, any>();
+          
+          caseData.statusHistory.forEach(entry => {
+            // For "Case Booked" entries, be more aggressive about deduplication
+            if (entry.status === 'Case Booked') {
+              const key = 'Case Booked';
+              // Only keep the first "Case Booked" entry, or prefer the one with "Case created" details
+              if (!uniqueEntries.has(key) || entry.details === 'Case created') {
+                uniqueEntries.set(key, entry);
+              }
+            } else {
+              // For other entries, create a unique key based on status, timestamp, and processedBy
+              const key = `${entry.status}-${entry.timestamp}-${entry.processedBy}`;
+              if (!uniqueEntries.has(key)) {
+                uniqueEntries.set(key, entry);
+              }
+            }
+          });
+          
+          const originalLength = caseData.statusHistory.length;
+          const cleanedHistory = Array.from(uniqueEntries.values())
+            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          
+          if (originalLength > cleanedHistory.length) {
+            console.log(`Cleaned ${originalLength - cleanedHistory.length} duplicate status entries for case ${caseData.caseReferenceNumber}`);
+          }
+          
+          return { ...caseData, statusHistory: cleanedHistory };
+        }
+        return caseData;
+      });
+      
+      return cleanedCases;
     }
     
-    // If no cases in Supabase, check localStorage and migrate if needed
+    // If no cases in Supabase, check localStorage and migrate if needed (one time only)
     const stored = localStorage.getItem(CASES_KEY);
     if (stored) {
       console.log('No cases in Supabase, migrating from localStorage...');
@@ -49,23 +84,24 @@ export const getCases = async (country?: string): Promise<CaseBooking[]> => {
         await migrateCasesFromLocalStorage();
         const migratedCases = await getSupabaseCases(country);
         console.log(`Migrated ${migratedCases.length} cases to Supabase`);
+        
+        // Clear localStorage after successful migration
+        localStorage.removeItem(CASES_KEY);
+        console.log('Cleared localStorage after successful migration');
+        
         return migratedCases;
       } catch (migrationError) {
-        console.error('Migration failed, using localStorage cases:', migrationError);
-        return JSON.parse(stored);
+        console.error('Migration failed:', migrationError);
+        throw migrationError; // Don't fall back to localStorage
       }
     }
     
     // No cases anywhere, return empty array
-    console.log('No cases found in Supabase or localStorage');
+    console.log('No cases found in Supabase');
     return [];
   } catch (error) {
-    console.error('Error getting cases from Supabase, falling back to localStorage:', error);
-    // Fallback to localStorage
-    const stored = localStorage.getItem(CASES_KEY);
-    const fallbackCases = stored ? JSON.parse(stored) : [];
-    console.log(`Using localStorage fallback: ${fallbackCases.length} cases`);
-    return fallbackCases;
+    console.error('Error getting cases from Supabase:', error);
+    throw error; // Don't fall back to localStorage, throw error to inform user
   }
 };
 
@@ -73,48 +109,21 @@ export const saveCase = async (caseData: CaseBooking): Promise<CaseBooking> => {
   try {
     // If case has an ID, it's an update; otherwise it's a new case
     if (caseData.id && caseData.id !== '') {
-      // This is an update - not implemented in current Supabase service
-      // For now, fall back to localStorage
-      const cases = await getCasesFromLocalStorage();
-      const existingIndex = cases.findIndex(c => c.id === caseData.id);
-      
-      if (existingIndex >= 0) {
-        cases.splice(existingIndex, 1);
-        cases.unshift(caseData);
-      } else {
-        cases.unshift(caseData);
-      }
-      
-      localStorage.setItem(CASES_KEY, JSON.stringify(cases));
-      return caseData;
+      // This is an update - use Supabase update function
+      const { updateSupabaseCase } = await import('./supabaseCaseService');
+      return await updateSupabaseCase(caseData.id, caseData);
     } else {
       // New case - save to Supabase
-      const { id, caseReferenceNumber, submittedAt, statusHistory, ...caseWithoutGeneratedFields } = caseData;
+      const { id, caseReferenceNumber, submittedAt, statusHistory, amendmentHistory, ...caseWithoutGeneratedFields } = caseData;
       return await saveSupabaseCase(caseWithoutGeneratedFields);
     }
   } catch (error) {
-    console.error('Error saving case to Supabase, falling back to localStorage:', error);
-    // Fallback to localStorage
-    const cases = await getCasesFromLocalStorage();
-    const existingIndex = cases.findIndex(c => c.id === caseData.id);
-    
-    if (existingIndex >= 0) {
-      cases.splice(existingIndex, 1);
-      cases.unshift(caseData);
-    } else {
-      cases.unshift(caseData);
-    }
-    
-    localStorage.setItem(CASES_KEY, JSON.stringify(cases));
-    return caseData;
+    console.error('Error saving case to Supabase:', error);
+    throw error; // Don't fall back to localStorage, throw error to inform user
   }
 };
 
-// Helper function to get cases from localStorage
-const getCasesFromLocalStorage = async (): Promise<CaseBooking[]> => {
-  const stored = localStorage.getItem(CASES_KEY);
-  return stored ? JSON.parse(stored) : [];
-};
+// Helper function removed - using Supabase exclusively
 
 export const updateCaseStatus = async (caseId: string, status: CaseBooking['status'], processedBy?: string, details?: string): Promise<void> => {
   try {
@@ -129,259 +138,42 @@ export const updateCaseStatus = async (caseId: string, status: CaseBooking['stat
       }
     }
     
-    // Try to update in Supabase first
+    // Always use Supabase for status updates
     await updateSupabaseCaseStatus(caseId, status, processedBy || 'unknown', details, attachments);
+    console.log('Case status updated successfully in Supabase');
     return;
   } catch (error) {
-    console.error('Error updating case status in Supabase, falling back to localStorage:', error);
-    // Fallback to localStorage
-    const cases = await getCasesFromLocalStorage();
-    const caseIndex = cases.findIndex(c => c.id === caseId);
-    
-    if (caseIndex >= 0) {
-    const caseData = cases[caseIndex];
-    const timestamp = new Date().toISOString();
-    
-    // Initialize status history if it doesn't exist
-    if (!caseData.statusHistory) {
-      caseData.statusHistory = [];
-      // Add initial status only if not already a Case Booked status
-      if (caseData.status === 'Case Booked') {
-        caseData.statusHistory.push({
-          status: 'Case Booked',
-          timestamp: caseData.submittedAt,
-          processedBy: caseData.submittedBy,
-          details: 'Case created'
-        });
-      }
-    }
-    
-    // Check if we're adding a duplicate status
-    const existingStatusEntry = caseData.statusHistory.find(entry => 
-      entry.status === status && entry.timestamp === timestamp
-    );
-    
-    if (existingStatusEntry) {
-      console.log('Duplicate status entry detected, skipping:', { status, timestamp });
-      return;
-    }
-    
-    // Add new status to history
-    const statusEntry: StatusHistory = {
-      status,
-      timestamp,
-      processedBy: processedBy || 'System',
-      details: details
-    };
-    caseData.statusHistory.push(statusEntry);
-    
-    // Update current status
-    caseData.status = status;
-    if (processedBy) {
-      caseData.processedBy = processedBy;
-      caseData.processedAt = timestamp;
-    }
-    // Handle different types of details based on status
-    if (details) {
-      try {
-        const parsedDetails = JSON.parse(details);
-        
-        if (status === 'Delivered (Hospital)' && parsedDetails.deliveryDetails !== undefined) {
-          // Handle delivery details
-          caseData.deliveryDetails = parsedDetails.deliveryDetails;
-          caseData.deliveryImage = parsedDetails.deliveryImage;
-        } else if (status === 'Case Completed' && parsedDetails.attachments !== undefined) {
-          // Handle case completion details
-          caseData.attachments = parsedDetails.attachments;
-          caseData.orderSummary = parsedDetails.orderSummary;
-          caseData.doNumber = parsedDetails.doNumber;
-        } else if (status === 'Order Prepared' || status === 'Order Preparation') {
-          // Handle process order details
-          caseData.processOrderDetails = details;
-        }
-      } catch (error) {
-        // If it's not JSON, treat as regular process details
-        if (status === 'Order Prepared' || status === 'Order Preparation') {
-          caseData.processOrderDetails = details;
-        }
-      }
-    }
-    
-    // Move updated case to front for better visibility
-    cases.splice(caseIndex, 1);
-    cases.unshift(caseData);
-    
-    localStorage.setItem(CASES_KEY, JSON.stringify(cases));
-    
-    // Send email notification for status change (async, don't block the UI)
-    const previousStatus = caseData.statusHistory[caseData.statusHistory.length - 2]?.status || 'Unknown';
-    sendStatusChangeNotification(caseData, status, previousStatus, processedBy || 'System').then(emailSent => {
-      if (emailSent) {
-        console.log('✅ Email notification sent for status change:', {
-          caseRef: caseData.caseReferenceNumber,
-          status: status,
-          previousStatus: previousStatus
-        });
-      } else {
-        console.warn('⚠️ Failed to send email notification for status change:', caseData.caseReferenceNumber);
-      }
-    }).catch(error => {
-      console.error('💥 Error sending status change email notification:', error);
-    });
-    }
+    console.error('Error updating case status in Supabase:', error);
+    throw error; // Don't fall back to localStorage, throw error to inform user
   }
 };
 
 // Process order with specific order details
 export const processCaseOrder = async (caseId: string, processedBy: string, processOrderDetails: string): Promise<void> => {
   try {
-    // Try to update in Supabase first using the specific processing function
+    // Always use Supabase for order processing
     await updateSupabaseCaseProcessing(caseId, processedBy, processOrderDetails, 'Order Prepared');
+    console.log('Case order processed successfully in Supabase');
     return;
   } catch (error) {
-    console.error('Error processing case order in Supabase, falling back to localStorage:', error);
-    
-    // Fallback to localStorage using regular updateCaseStatus
-    const additionalData = {
-      processDetails: processOrderDetails,
-      attachments: []
-    };
-    await updateCaseStatus(caseId, 'Order Prepared', processedBy, JSON.stringify(additionalData));
+    console.error('Error processing case order in Supabase:', error);
+    throw error; // Don't fall back to localStorage, throw error to inform user
   }
 };
 
-// Utility function to clean up corrupted processOrderDetails
-export const cleanupProcessOrderDetails = async (): Promise<void> => {
-  const cases = await getCasesFromLocalStorage();
-  let hasChanges = false;
-  
-  cases.forEach(caseData => {
-    // Check if processOrderDetails contains JSON delivery data
-    if (caseData.processOrderDetails && caseData.processOrderDetails.includes('deliveryDetails')) {
-      try {
-        const parsed = JSON.parse(caseData.processOrderDetails);
-        if (parsed.deliveryDetails || parsed.deliveryImage || parsed.attachments) {
-          // This is corrupted data, clear it
-          delete caseData.processOrderDetails;
-          hasChanges = true;
-        }
-      } catch (error) {
-        // If it's not valid JSON, it might be legitimate process details
-      }
-    }
-  });
-  
-  if (hasChanges) {
-    localStorage.setItem(CASES_KEY, JSON.stringify(cases));
-  }
-};
-
-// Utility function to clean up duplicate status entries
-export const cleanupDuplicateStatusEntries = async (): Promise<void> => {
-  const cases = await getCasesFromLocalStorage();
-  let hasChanges = false;
-  
-  cases.forEach(caseData => {
-    if (caseData.statusHistory && caseData.statusHistory.length > 1) {
-      // Remove duplicate "Case Booked" entries
-      const uniqueStatuses = new Map<string, any>();
-      const cleanedHistory: any[] = [];
-      
-      caseData.statusHistory.forEach(entry => {
-        const key = `${entry.status}-${entry.processedBy}`;
-        if (entry.status === 'Case Booked') {
-          // Keep only the first "Case Booked" entry
-          if (!uniqueStatuses.has('Case Booked')) {
-            uniqueStatuses.set('Case Booked', entry);
-            cleanedHistory.push(entry);
-          }
-        } else {
-          // Keep all other status entries
-          cleanedHistory.push(entry);
-        }
-      });
-      
-      if (cleanedHistory.length !== caseData.statusHistory.length) {
-        caseData.statusHistory = cleanedHistory;
-        hasChanges = true;
-      }
-    }
-  });
-  
-  if (hasChanges) {
-    localStorage.setItem(CASES_KEY, JSON.stringify(cases));
-    console.log('Cleaned up duplicate status entries');
-  }
-};
+// Note: Utility functions for localStorage cleanup have been removed since we now use Supabase exclusively
+// Data cleanup is now handled at the Supabase level during data retrieval and saving
 
 export const amendCase = async (caseId: string, amendments: Partial<CaseBooking>, amendedBy: string, isAdmin: boolean = false): Promise<void> => {
-  const cases = await getCases();
-  const caseIndex = cases.findIndex(c => c.id === caseId);
-  
-  if (caseIndex >= 0) {
-    const caseToAmend = cases[caseIndex];
-    
-    // Check if case has already been amended (Admin can bypass this restriction)
-    if (caseToAmend.isAmended && !isAdmin) {
-      throw new Error('This case has already been amended and cannot be amended again.');
-    }
-    
-    // Store original values before first amendment
-    let originalValues = caseToAmend.originalValues;
-    if (!originalValues) {
-      originalValues = {
-        hospital: caseToAmend.hospital,
-        department: caseToAmend.department,
-        dateOfSurgery: caseToAmend.dateOfSurgery,
-        procedureType: caseToAmend.procedureType,
-        doctorName: caseToAmend.doctorName,
-        timeOfProcedure: caseToAmend.timeOfProcedure,
-        specialInstruction: caseToAmend.specialInstruction
-      };
-    }
-    
-    // Track what's being changed
-    const changes: { field: string; oldValue: string; newValue: string }[] = [];
-    const amendableFields = ['hospital', 'department', 'dateOfSurgery', 'procedureType', 'doctorName', 'timeOfProcedure', 'specialInstruction'];
-    
-    amendableFields.forEach(field => {
-      if (amendments[field as keyof CaseBooking] !== undefined) {
-        const oldValue = caseToAmend[field as keyof CaseBooking] as string || '';
-        const newValue = amendments[field as keyof CaseBooking] as string || '';
-        if (oldValue !== newValue) {
-          changes.push({
-            field: field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1'),
-            oldValue,
-            newValue
-          });
-        }
-      }
-    });
-    
-    // Create amendment history entry
-    const amendmentEntry: AmendmentHistory = {
-      amendmentId: Date.now().toString(),
-      timestamp: new Date().toISOString(),
-      amendedBy,
-      changes
-    };
-    
-    // Initialize amendment history if it doesn't exist
-    const amendmentHistory = caseToAmend.amendmentHistory || [];
-    amendmentHistory.push(amendmentEntry);
-    
-    // Update the case with amendments
-    cases[caseIndex] = {
-      ...caseToAmend,
-      ...amendments,
-      amendedBy,
-      amendedAt: new Date().toISOString(),
-      isAmended: true,
-      originalValues,
-      amendmentHistory
-    };
-    
-    localStorage.setItem(CASES_KEY, JSON.stringify(cases));
+  try {
+    // Always use Supabase for amendments
+    const { amendSupabaseCase } = await import('./supabaseCaseService');
+    await amendSupabaseCase(caseId, amendments, amendedBy);
+    console.log('Case amended successfully in Supabase');
+    return;
+  } catch (error) {
+    console.error('Error amending case in Supabase:', error);
+    throw error; // Don't fall back to localStorage, throw error to inform user
   }
 };
 

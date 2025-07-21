@@ -22,7 +22,7 @@ import { useCaseActions } from './hooks/useCaseActions';
 import { useCaseData } from './hooks/useCaseData';
 
 // Styles
-import './CaseCard.css';
+import '../../assets/components/CaseCard.css';
 
 const CaseCard: React.FC<CaseCardProps> = ({
   caseItem,

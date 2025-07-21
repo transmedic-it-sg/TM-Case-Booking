@@ -2930,6 +2930,9 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
 }
 
 .case-buttons {
@@ -3097,6 +3100,9 @@ body {
 
 .users-table {
   padding: 24px;
+  max-height: 600px;
+  overflow-y: auto;
+  position: relative;
 }
 
 .users-table table {
@@ -3117,6 +3123,10 @@ body {
   font-weight: 600;
   color: var(--text-primary);
   font-size: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .users-table td {
@@ -3899,16 +3909,42 @@ textarea:focus {
   transform: scale(1.05);
 }
 
-/* Form Action Buttons */
+/* Form Action Buttons - Standardized positioning */
+.processing-actions,
+.hospital-delivery-actions,
 .received-actions,
-.completed-actions {
+.completed-actions,
+.pending-office-actions,
+.office-delivery-actions {
   display: flex;
   gap: 12px;
-  justify-content: flex-end;
+  justify-content: flex-start;
   margin-top: 24px;
   padding-top: 16px;
   border-top: 1px solid var(--border-light);
 }
+
+/* Left-aligned primary action buttons */
+.processing-actions .primary-button,
+.hospital-delivery-actions .primary-button,
+.received-actions .primary-button,
+.completed-actions .primary-button,
+.pending-office-actions .primary-button,
+.office-delivery-actions .primary-button {
+  order: 1;
+}
+
+/* Right-aligned cancel buttons */
+.processing-actions .cancel-button,
+.hospital-delivery-actions .cancel-button,
+.received-actions .cancel-button,
+.completed-actions .cancel-button,
+.pending-office-actions .cancel-button,
+.office-delivery-actions .cancel-button {
+  order: 2;
+}
+
+/* Spacing between status actions and case actions is handled in the main .case-actions definition above */
 
 .save-received-button,
 .save-completed-button {
@@ -5015,6 +5051,10 @@ textarea:focus {
   background: #28a745;
 }
 
+.toggle-switch.disabled {
+  background: #ccc;
+}
+
 .toggle-slider {
   position: absolute;
   top: 2px;
@@ -5029,6 +5069,10 @@ textarea:focus {
 
 .toggle-switch.enabled .toggle-slider {
   transform: translateX(24px);
+}
+
+.toggle-switch.disabled .toggle-slider {
+  transform: translateX(0);
 }
 
 /* Volume Control */
@@ -7640,6 +7684,89 @@ textarea:focus {
   margin-bottom: 2px;
   font-size: 12px;
   color: #666;
+}
+
+/* New Amendment History Layout */
+.amendment-entry {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  background: #fafafa;
+}
+
+.amendment-entry .amendment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.amendment-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #666;
+}
+
+.amendment-reason {
+  margin-bottom: 12px;
+  padding: 8px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.amendment-changes {
+  margin-top: 8px;
+}
+
+.changes-grid {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.change-item {
+  display: grid;
+  grid-template-columns: 120px 1fr 20px 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  background: white;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  font-size: 13px;
+}
+
+.change-field {
+  font-weight: 600;
+  color: #333;
+}
+
+.change-from {
+  color: #dc3545;
+  font-family: monospace;
+  background: #fff5f5;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.change-arrow {
+  text-align: center;
+  color: #666;
+  font-weight: bold;
+}
+
+.change-to {
+  color: #28a745;
+  font-family: monospace;
+  background: #f5fff5;
+  padding: 2px 4px;
+  border-radius: 3px;
 }
 
 /* EditSets Admin Country Selector */

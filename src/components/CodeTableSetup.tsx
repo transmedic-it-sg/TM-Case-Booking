@@ -79,19 +79,9 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
         
         // If countries table doesn't exist or is empty, seed it with COUNTRIES constant
         if (!countriesTable || countriesTable.items.length === 0) {
-          // Create countries table with all countries from COUNTRIES constant
-          try {
-            // Add each country to the global code tables
-            for (const country of COUNTRIES) {
-              await addSupabaseCodeTableItem('countries', country); // No country parameter for global
-            }
-            
-            // Reload global tables to get the updated countries
-            const updatedGlobalTablesData = await getSupabaseCodeTables();
-            countriesTable = updatedGlobalTablesData.find(t => t.id === 'countries');
-          } catch (error) {
-            console.error('Error seeding countries in global tables:', error);
-          }
+          console.log('Seeding countries table...');
+          // Don't seed countries as they should already be in the database
+          // If needed, this should be done through database migrations
         }
         
         // Use countries from Supabase, fallback to COUNTRIES constant if still empty
@@ -145,81 +135,60 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
         // Update global tables immediately
         setGlobalTables(filteredGlobalTables);
         
-        // If country is selected, also load country-based tables
-        if (selectedCountry) {
-          // Reset selected table when country changes to avoid showing wrong data
-          setSelectedTable('');
-          setShowAddItem(false);
-          setEditingItem(null);
-          
-          // Convert country name to country code
-          const getCountryCode = (country: string) => {
-            const countryMap: { [key: string]: string } = {
-              'Singapore': 'SG',
-              'Malaysia': 'MY',
-              'Philippines': 'PH',
-              'Indonesia': 'ID',
-              'Vietnam': 'VN',
-              'Hong Kong': 'HK',
-              'Thailand': 'TH'
-            };
-            return countryMap[country] || 'SG';
-          };
-          
-          const countryCode = getCountryCode(selectedCountry);
-          
-          // Load country-based tables (hospitals, departments) from Supabase
-          let countryTablesData = await getSupabaseCodeTables(countryCode);
-          
-          // Check if hospitals table exists for this country, if not seed with sample hospitals
-          const hospitalsTable = countryTablesData.find(t => t.id === 'hospitals');
-          if (!hospitalsTable || hospitalsTable.items.length === 0) {
-            try {
-              // Add sample hospitals for this country
-              const sampleHospitals = [
-                `${selectedCountry} General Hospital`,
-                `${selectedCountry} Medical Center`,
-                `${selectedCountry} Specialist Hospital`,
-                `${selectedCountry} Regional Hospital`
-              ];
-              
-              for (const hospital of sampleHospitals) {
-                await addSupabaseCodeTableItem('hospitals', hospital, countryCode);
-              }
-              
-              // Reload country tables to get the updated hospitals
-              countryTablesData = await getSupabaseCodeTables(countryCode);
-            } catch (error) {
-              console.error('Error seeding hospitals for country:', error);
-            }
+        // Load country-based tables with actual data from Supabase
+        const countryBasedTablesData = [];
+        
+        // Load hospitals for the selected country
+        try {
+          const hospitalsData = await getSupabaseCodeTables(selectedCountry);
+          const hospitalsTable = hospitalsData.find(t => t.id === 'hospitals');
+          if (hospitalsTable) {
+            countryBasedTablesData.push(hospitalsTable);
+          } else {
+            countryBasedTablesData.push({
+              id: 'hospitals',
+              name: 'Hospitals',
+              description: 'Manage hospitals for each country',
+              items: []
+            });
           }
-          
-          // Check if departments table exists for this country, if not seed with DEPARTMENTS
-          const departmentsTable = countryTablesData.find(t => t.id === 'departments');
-          if (!departmentsTable || departmentsTable.items.length === 0) {
-            try {
-              // Add all departments from DEPARTMENTS constant
-              const { DEPARTMENTS } = await import('../types');
-              for (const department of DEPARTMENTS) {
-                await addSupabaseCodeTableItem('departments', department, countryCode);
-              }
-              
-              // Reload country tables to get the updated departments
-              countryTablesData = await getSupabaseCodeTables(countryCode);
-            } catch (error) {
-              console.error('Error seeding departments for country:', error);
-            }
-          }
-          
-          const filteredCountryTables = getFilteredTablesForUser(countryTablesData, currentUser);
-          
-          // Set country-based tables
-          setCountryBasedTables(filteredCountryTables);
-          
-        } else {
-          // No country selected - don't show any country-based tables
-          setCountryBasedTables([]);
+        } catch (error) {
+          console.error('Error loading hospitals data:', error);
+          countryBasedTablesData.push({
+            id: 'hospitals',
+            name: 'Hospitals',
+            description: 'Manage hospitals for each country',
+            items: []
+          });
         }
+        
+        // Load departments for the selected country
+        try {
+          const departmentsData = await getSupabaseCodeTables(selectedCountry);
+          const departmentsTable = departmentsData.find(t => t.id === 'departments');
+          if (departmentsTable) {
+            countryBasedTablesData.push(departmentsTable);
+          } else {
+            countryBasedTablesData.push({
+              id: 'departments',
+              name: 'Departments', 
+              description: 'Manage departments for each country',
+              items: []
+            });
+          }
+        } catch (error) {
+          console.error('Error loading departments data:', error);
+          countryBasedTablesData.push({
+            id: 'departments',
+            name: 'Departments', 
+            description: 'Manage departments for each country',
+            items: []
+          });
+        }
+        
+        // Apply user filtering to country-based tables
+        const filteredCountryTables = getFilteredTablesForUser(countryBasedTablesData, currentUser);
+        setCountryBasedTables(filteredCountryTables);
       } catch (error) {
         console.error('Error loading code tables from Supabase:', error);
         // You could add fallback to localStorage here if needed
@@ -228,7 +197,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     
     loadTables();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCountry, currentUser?.id, currentUser?.role, isLoading]);
+  }, [currentUser?.id, currentUser?.role, selectedCountry, isLoading]);
 
   // Set initial table selection when category changes or tables are loaded
   useEffect(() => {
@@ -556,7 +525,30 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
         <p>Manage system reference data and lookup tables</p>
       </div>
 
-      {/* Country Selection - Removed from Country-Based Tables section */}
+      {/* Country-Based Tables Section - Show country selection for admin only */}
+      {selectedCategory === 'country' && countryBasedTables.length > 0 && currentUser?.role === 'admin' && (
+        <div className="country-selector">
+          <div className="country-selector-header">
+            <h3>🏥 Country Selection:</h3>
+            <p>Select the country to manage {selectedTable ? getTableOptions().find(opt => opt.value === selectedTable)?.label || selectedTable : 'tables'}</p>
+          </div>
+          
+          <div className="dropdown-input-container" style={{ maxWidth: '300px' }}>
+            <label htmlFor="country-select">Country:</label>
+            <SearchableDropdown
+              options={availableCountries.map(country => ({
+                value: country,
+                label: country
+              }))}
+              value={selectedCountry}
+              onChange={setSelectedCountry}
+              placeholder="Select a country..."
+              className="country-select-dropdown"
+            />
+          </div>
+        </div>
+      )}
+
 
       {/* Category Selection */}
       <div className="category-selector">
@@ -594,19 +586,19 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       </div>
 
       {/* Table Selection - Only show when category is selected and conditions are met */}
-      {(selectedCategory === 'global' && globalTables.length > 0) || (selectedCategory === 'country' && selectedCountry && countryBasedTables.length > 0) ? (
+      {(selectedCategory === 'global' && globalTables.length > 0) || (selectedCategory === 'country' && countryBasedTables.length > 0) ? (
         <div className="table-selector">
           <div className="table-selector-header">
             <h3>
               {selectedCategory === 'global' 
                 ? '🌍 Select Global Code Table:' 
-                : `🏥 Select Code Table for ${selectedCountry}:`
+                : '🏥 Select Country-Based Code Table:'
               }
             </h3>
             <p>
               {selectedCategory === 'global'
                 ? 'These tables apply to all countries'
-                : 'These tables are specific to the selected country'
+                : 'These tables are specific to individual countries'
               }
             </p>
           </div>
@@ -654,50 +646,42 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
               </div>
             ) : (
               <div>
-                <h4>🏥 {selectedCountry ? `No Tables Available for ${selectedCountry}` : 'Select a Country First'}</h4>
-                <p>{selectedCountry ? 
-                  'Country-based tables are being loaded or there are no tables configured for this country.' :
-                  'Please select a country above to view and manage country-based tables.'
-                }</p>
-                {selectedCountry && (
-                  <button 
-                    onClick={async () => {
-                      try {
-                        // Convert country name to country code
-                        const getCountryCode = (country: string) => {
-                          const countryMap: { [key: string]: string } = {
-                            'Singapore': 'SG',
-                            'Malaysia': 'MY',
-                            'Philippines': 'PH',
-                            'Indonesia': 'ID',
-                            'Vietnam': 'VN',
-                            'Hong Kong': 'HK',
-                            'Thailand': 'TH'
-                          };
-                          return countryMap[country] || 'SG';
-                        };
-                        
-                        const countryCode = getCountryCode(selectedCountry);
-                        
-                        // Reload country tables from Supabase
-                        const countryTablesData = await getSupabaseCodeTables(countryCode);
-                        const filteredCountryTables = getFilteredTablesForUser(countryTablesData, currentUser);
-                        setCountryBasedTables(filteredCountryTables);
-                        
-                        // Also reload global tables
-                        const globalTablesData = await getSupabaseCodeTables();
-                        const { global: globalOnly } = categorizeCodeTables(globalTablesData);
-                        const filteredGlobalTables = getFilteredTablesForUser(globalOnly, currentUser);
-                        setGlobalTables(filteredGlobalTables);
-                      } catch (error) {
-                        console.error('Error reinitializing country tables:', error);
-                      }
-                    }}
-                    className="btn btn-secondary"
-                  >
-                    Reinitialize {selectedCountry} Tables
-                  </button>
-                )}
+                <h4>🏥 No Country-Based Tables Available</h4>
+                <p>Country-based tables are being loaded or there are no tables configured yet.</p>
+                <button 
+                  onClick={async () => {
+                    try {
+                      // Reload global tables to get countries and create unified country-based tables
+                      const globalTablesData = await getSupabaseCodeTables();
+                      const { global: globalOnly } = categorizeCodeTables(globalTablesData);
+                      const filteredGlobalTables = getFilteredTablesForUser(globalOnly, currentUser);
+                      setGlobalTables(filteredGlobalTables);
+                      
+                      // Create generic country-based tables structure
+                      const genericCountryTables = [
+                        {
+                          id: 'hospitals',
+                          name: 'Hospitals',
+                          description: 'Manage hospitals for each country',
+                          items: []
+                        },
+                        {
+                          id: 'departments',
+                          name: 'Departments',
+                          description: 'Manage departments for each country',
+                          items: []
+                        }
+                      ];
+                      setCountryBasedTables(genericCountryTables);
+                      
+                    } catch (error) {
+                      console.error('Error reinitializing tables:', error);
+                    }
+                  }}
+                  className="btn btn-secondary"
+                >
+                  Reinitialize Country Tables
+                </button>
               </div>
             )}
           </div>
@@ -728,6 +712,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
               </span>
             )}
           </div>
+
 
           {/* Add Item Form - Only for country tables */}
           {showAddItem && selectedCategory !== 'global' && (

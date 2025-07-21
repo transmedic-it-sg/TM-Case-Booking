@@ -11,7 +11,7 @@ import { CaseBooking, COUNTRIES } from '../types';
 import SearchableDropdown from './SearchableDropdown';
 import { getMonthYearDisplay } from '../utils/dateFormat';
 import { getStatusColor } from './CasesList/utils';
-import './BookingCalendar.css';
+import '../assets/components/BookingCalendar.css';
 
 interface BookingCalendarProps {
   onCaseClick?: (caseId: string) => void;
