@@ -315,6 +315,22 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
       await saveCase(newCase);
       
+      // Add audit log for case creation
+      try {
+        const { auditCaseCreated } = await import('../utils/auditService');
+        await auditCaseCreated(
+          currentUser.name,
+          currentUser.id,
+          currentUser.role,
+          newCase.id,
+          newCase.caseReferenceNumber,
+          currentUser.selectedCountry,
+          newCase.department
+        );
+      } catch (error) {
+        console.error('Failed to log case creation audit:', error);
+      }
+      
       // Send email notification for new case
       sendNewCaseNotification(newCase).then(emailSent => {
         if (emailSent) {

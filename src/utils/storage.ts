@@ -125,6 +125,85 @@ export const saveCase = async (caseData: CaseBooking): Promise<CaseBooking> => {
 
 // Helper function removed - using Supabase exclusively
 
+// Function to clean up duplicate status history entries directly in Supabase
+export const cleanupDuplicateStatusHistory = async (): Promise<void> => {
+  try {
+    const { supabase } = await import('../lib/supabase');
+    
+    // Get all cases with status history
+    const { data: cases, error } = await supabase
+      .from('case_bookings')
+      .select(`
+        id,
+        case_reference_number,
+        status_history (
+          id,
+          status,
+          processed_by,
+          timestamp,
+          details
+        )
+      `);
+    
+    if (error) {
+      console.error('Error fetching cases for cleanup:', error);
+      return;
+    }
+    
+    let totalCleaned = 0;
+    
+    for (const caseData of cases || []) {
+      if (!caseData.status_history || caseData.status_history.length <= 1) continue;
+      
+      const statusHistoryMap = new Map<string, any>();
+      const duplicatesToRemove: string[] = [];
+      
+      // Sort by timestamp to keep the earliest entry
+      const sortedHistory = [...caseData.status_history].sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+      
+      sortedHistory.forEach(entry => {
+        if (entry.status === 'Case Booked') {
+          // For "Case Booked", only keep the first one (earliest timestamp)
+          if (!statusHistoryMap.has('Case Booked')) {
+            statusHistoryMap.set('Case Booked', entry);
+          } else {
+            duplicatesToRemove.push(entry.id);
+          }
+        } else {
+          // For other statuses, create unique key based on status + timestamp
+          const key = `${entry.status}-${entry.timestamp}`;
+          if (!statusHistoryMap.has(key)) {
+            statusHistoryMap.set(key, entry);
+          } else {
+            duplicatesToRemove.push(entry.id);
+          }
+        }
+      });
+      
+      // Remove duplicates from database
+      if (duplicatesToRemove.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('status_history')
+          .delete()
+          .in('id', duplicatesToRemove);
+          
+        if (deleteError) {
+          console.error(`Error removing duplicates for case ${caseData.case_reference_number}:`, deleteError);
+        } else {
+          console.log(`Cleaned ${duplicatesToRemove.length} duplicate entries for case ${caseData.case_reference_number}`);
+          totalCleaned += duplicatesToRemove.length;
+        }
+      }
+    }
+    
+    console.log(`Cleanup completed. Total duplicate entries removed: ${totalCleaned}`);
+  } catch (error) {
+    console.error('Error in cleanupDuplicateStatusHistory:', error);
+  }
+};
+
 export const updateCaseStatus = async (caseId: string, status: CaseBooking['status'], processedBy?: string, details?: string): Promise<void> => {
   try {
     // Extract attachments from details if present

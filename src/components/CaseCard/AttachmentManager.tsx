@@ -21,7 +21,7 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
   
   const {
     attachments,
-    previews,
+    previews: _previews, // eslint-disable-line @typescript-eslint/no-unused-vars
     addFiles,
     removeFile,
     clearAll,

@@ -24,6 +24,7 @@ import MultiSelectDropdown from './MultiSelectDropdown';
 import SearchableDropdown from './SearchableDropdown';
 import CountryGroupedDepartments from './CountryGroupedDepartments';
 import RoleManagement from './RoleManagement';
+import { auditUserCreated, auditUserUpdated, auditUserDeleted, auditPasswordReset, addAuditLog } from '../utils/auditService';
 import '../assets/components/department-management.css';
 
 const UserManagement: React.FC = () => {
@@ -247,6 +248,20 @@ const UserManagement: React.FC = () => {
     try {
       const success = await resetSupabaseUserPassword(resetPasswordUser.id, tempPassword);
       if (success) {
+        // Audit log for password reset
+        try {
+          if (currentUser) {
+            await auditPasswordReset(
+              currentUser.name,
+              currentUser.id,
+              currentUser.role,
+              resetPasswordUser.name
+            );
+          }
+        } catch (auditError) {
+          console.error('Failed to log password reset audit:', auditError);
+        }
+        
         setShowResetPasswordModal(false);
         setResetPasswordUser(null);
         setTempPassword('');
@@ -278,6 +293,20 @@ const UserManagement: React.FC = () => {
         if (success) {
           loadUsers();
           
+          // Audit log for user deletion
+          try {
+            if (currentUser && userToDelete) {
+              await auditUserDeleted(
+                currentUser.name,
+                currentUser.id,
+                currentUser.role,
+                userToDelete.name
+              );
+            }
+          } catch (auditError) {
+            console.error('Failed to log user deletion audit:', auditError);
+          }
+          
           playSound.delete();
           showSuccess('User Deleted', `User "${userToDelete?.name}" has been successfully removed from the system.`);
           addNotification({
@@ -308,6 +337,25 @@ const UserManagement: React.FC = () => {
         const success = await toggleUserEnabled(userId, newStatus);
         if (success) {
           loadUsers();
+          
+          // Audit log for user status change
+          try {
+            if (currentUser) {
+              await addAuditLog(
+                currentUser.name,
+                currentUser.id,
+                currentUser.role,
+                `User ${newStatus ? 'Enabled' : 'Disabled'}`,
+                'User Management',
+                userToToggle.name,
+                `User ${userToToggle.name} (${userToToggle.username}) was ${action} by ${currentUser.name}`,
+                'success',
+                { previousStatus: currentStatus, newStatus: newStatus }
+              );
+            }
+          } catch (auditError) {
+            console.error('Failed to log user status change audit:', auditError);
+          }
           
           playSound.success();
           showSuccess('User Status Updated', `User "${userToToggle.name}" has been ${action}.`);
@@ -376,6 +424,26 @@ const UserManagement: React.FC = () => {
         if (updatedUser) {
           loadUsers();
           
+          // Audit log for user update
+          try {
+            if (currentUser) {
+              // Create a list of changes made
+              const changes = [];
+              if (newUser.password) changes.push('password');
+              changes.push('profile updated');
+              
+              await auditUserUpdated(
+                currentUser.name,
+                currentUser.id,
+                currentUser.role,
+                newUser.name,
+                changes
+              );
+            }
+          } catch (auditError) {
+            console.error('Failed to log user update audit:', auditError);
+          }
+          
           playSound.success();
           showSuccess('User Updated', `${newUser.name}'s account has been successfully updated.`);
           addNotification({
@@ -392,6 +460,22 @@ const UserManagement: React.FC = () => {
         const createdUser = await addSupabaseUser(newUser);
         if (createdUser) {
           loadUsers();
+          
+          // Audit log for user creation
+          try {
+            if (currentUser) {
+              await auditUserCreated(
+                currentUser.name,
+                currentUser.id,
+                currentUser.role,
+                newUser.name,
+                newUser.role,
+                newUser.countries
+              );
+            }
+          } catch (auditError) {
+            console.error('Failed to log user creation audit:', auditError);
+          }
           
           playSound.success();
           showSuccess('User Created', `Welcome ${newUser.name}! New user account has been created successfully.`);

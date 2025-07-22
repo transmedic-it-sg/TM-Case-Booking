@@ -307,6 +307,23 @@ export const updateSupabaseCaseStatus = async (
   attachments?: string[]
 ): Promise<void> => {
   try {
+    // Get current case data for audit logging
+    const { data: currentCase, error: fetchError } = await supabase
+      .from('case_bookings')
+      .select('status, case_reference_number, country, department')
+      .eq('id', caseId)
+      .single();
+      
+    if (fetchError) {
+      console.error('Error fetching case data:', fetchError);
+      // Continue with status update even if we can't fetch current data
+    }
+    
+    const oldStatus = currentCase?.status;
+    const caseRef = currentCase?.case_reference_number;
+    const country = currentCase?.country;
+    const department = currentCase?.department;
+    
     // Update case status
     const { error: updateError } = await supabase
       .from('case_bookings')
@@ -324,19 +341,30 @@ export const updateSupabaseCaseStatus = async (
     // Check if this is a status change that might create duplicates
     let shouldAddHistoryEntry = true;
     
-    // Prevent duplicate "Case Booked" entries
-    if (newStatus === 'Case Booked') {
-      // Check if there's already a "Case Booked" entry for this case
-      const { data: existingHistory } = await supabase
-        .from('status_history')
-        .select('*')
-        .eq('case_id', caseId)
-        .eq('status', 'Case Booked');
+    // Prevent duplicate entries, especially for "Case Booked"
+    const { data: existingHistory } = await supabase
+      .from('status_history')
+      .select('*')
+      .eq('case_id', caseId)
+      .eq('status', newStatus);
       
-      // If there's already a "Case Booked" entry, don't add another one
-      if (existingHistory && existingHistory.length > 0) {
+    if (existingHistory && existingHistory.length > 0) {
+      // For "Case Booked", always prevent duplicates
+      if (newStatus === 'Case Booked') {
         shouldAddHistoryEntry = false;
         console.log('Prevented duplicate "Case Booked" entry for case:', caseId);
+      } else {
+        // For other statuses, check if it's a recent duplicate (within 1 minute)
+        const recentDuplicate = existingHistory.find(entry => {
+          const entryTime = new Date(entry.timestamp).getTime();
+          const now = new Date().getTime();
+          return (now - entryTime) < 60000; // 1 minute
+        });
+        
+        if (recentDuplicate) {
+          shouldAddHistoryEntry = false;
+          console.log(`Prevented duplicate "${newStatus}" entry for case:`, caseId);
+        }
       }
     }
     
@@ -356,6 +384,28 @@ export const updateSupabaseCaseStatus = async (
       if (historyError) {
         console.error('Error creating status history:', historyError);
         throw historyError;
+      }
+      
+      // Add audit log for status change (only if history entry was added)
+      if (caseRef && oldStatus !== newStatus) {
+        try {
+          const { auditCaseStatusChange } = await import('./auditService');
+          
+          // Get current user info for audit (simplified approach)
+          const currentUserData = JSON.parse(localStorage.getItem('currentUser') || '{}');
+          await auditCaseStatusChange(
+            currentUserData.name || changedBy,
+            currentUserData.id || 'unknown',
+            currentUserData.role || 'unknown',
+            caseRef,
+            oldStatus || 'unknown',
+            newStatus,
+            country,
+            department
+          );
+        } catch (auditError) {
+          console.error('Failed to log status change audit:', auditError);
+        }
       }
     }
   } catch (error) {
@@ -541,6 +591,18 @@ export const amendSupabaseCase = async (
       throw updateError;
     }
     
+    // Get the current authenticated user (with fallback for session)
+    const { data: { user } } = await supabase.auth.getUser();
+    const session = await supabase.auth.getSession();
+    
+    console.log('Authentication check:', { user: !!user, session: !!session.data.session });
+    
+    // Skip authentication check if neither user nor session is available
+    // The RLS policies will handle the actual authorization
+    if (!user && !session.data.session) {
+      console.warn('No authentication found, but proceeding with RLS policy enforcement');
+    }
+    
     // Create amendment history entry
     const historyEntry = {
       case_id: caseId,
@@ -550,13 +612,31 @@ export const amendSupabaseCase = async (
       changes: changes
     };
     
+    console.log('Inserting amendment history entry:', historyEntry);
+    console.log('Current user:', user);
+    
     const { error: historyError } = await supabase
       .from('amendment_history')
       .insert([historyEntry]);
     
     if (historyError) {
       console.error('Error creating amendment history:', historyError);
-      throw historyError;
+      
+      // Try alternative approach - use upsert instead of insert
+      console.log('Attempting alternative approach with upsert...');
+      const { error: upsertError } = await supabase
+        .from('amendment_history')
+        .upsert([{
+          ...historyEntry,
+          id: `${caseId}_${Date.now()}` // Generate unique ID
+        }]);
+        
+      if (upsertError) {
+        console.error('Upsert also failed:', upsertError);
+        throw historyError; // Throw original error
+      } else {
+        console.log('Amendment history saved via upsert method');
+      }
     }
     
     console.log('Case amended successfully with', changes.length, 'changes tracked.');

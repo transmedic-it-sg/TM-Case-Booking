@@ -61,7 +61,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   ].filter((id): id is string => Boolean(id));
 
   const { getUserName } = useUserNames(userIds);
-  const caseActions = useCaseActions(caseItem);
+  const _caseActions = useCaseActions(caseItem); // eslint-disable-line @typescript-eslint/no-unused-vars
   const caseData = useCaseData(caseItem);
 
 

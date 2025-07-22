@@ -24,7 +24,7 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
   onToBeBilled
 }) => {
   const permissions = usePermissions();
-  const caseActions = useCaseActions(caseItem);
+  const _caseActions = useCaseActions(caseItem); // eslint-disable-line @typescript-eslint/no-unused-vars
 
   const getStatusActions = () => {
     const actions = [];

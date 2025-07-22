@@ -18,8 +18,8 @@ const CaseDetails: React.FC<CaseDetailsProps> = ({
     formattedProcessedDate,
     daysSinceSubmission,
     daysUntilSurgery,
-    displaySets,
-    displayImplants,
+    displaySets: _displaySets, // eslint-disable-line @typescript-eslint/no-unused-vars
+    displayImplants: _displayImplants, // eslint-disable-line @typescript-eslint/no-unused-vars
     hasAmendments,
     amendmentInfo
   } = useCaseData(caseItem);

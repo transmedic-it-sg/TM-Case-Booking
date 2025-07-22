@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase';
 export const createAuditLogsTable = async (): Promise<boolean> => {
   try {
     // First check if the table exists
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase // eslint-disable-line @typescript-eslint/no-unused-vars
       .from('audit_logs')
       .select('*')
       .limit(1);

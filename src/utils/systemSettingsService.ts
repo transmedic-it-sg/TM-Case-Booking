@@ -22,7 +22,7 @@ export interface SystemConfig {
   auditLogRetention: number;
   
   // Amendment Settings
-  amendmentTimeLimit: number; // Time limit in hours for amendments
+  amendmentTimeLimit: number; // Time limit in minutes for amendments
   maxAmendmentsPerCase: number; // Maximum number of amendments allowed per case
   
   // Notification Settings
@@ -48,7 +48,7 @@ const DEFAULT_CONFIG: SystemConfig = {
   passwordComplexity: true,
   twoFactorAuth: false,
   auditLogRetention: 90,
-  amendmentTimeLimit: 24, // 24 hours default
+  amendmentTimeLimit: 1440, // 1440 minutes (24 hours) default
   maxAmendmentsPerCase: 5, // 5 amendments max per case
   emailNotifications: true,
   systemAlerts: true,
@@ -74,6 +74,11 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
         // No settings found, create default settings
         console.log('No system settings found, creating default configuration...');
         return await createDefaultSystemConfig();
+      }
+      if (error.code === '42P01') {
+        // Table doesn't exist
+        console.log('System settings table does not exist, using default configuration');
+        return DEFAULT_CONFIG;
       }
       throw error;
     }
@@ -140,6 +145,12 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
       });
 
     if (error) {
+      if (error.code === '42P01') {
+        // Table doesn't exist, save to localStorage only
+        console.log('System settings table does not exist, saving to localStorage only');
+        saveSystemConfigToLocalStorage(config);
+        return;
+      }
       throw error;
     }
 
