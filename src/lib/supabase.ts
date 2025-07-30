@@ -20,7 +20,7 @@ export interface Database {
       profiles: {
         Row: {
           id: string
-          username: string
+          username: string | null
           name: string
           role: 'admin' | 'operations' | 'operations-manager' | 'sales' | 'sales-manager' | 'driver' | 'it'
           departments: string[]
@@ -190,6 +190,32 @@ export interface Database {
         }
         Update: {
           read?: boolean
+        }
+      }
+      code_tables: {
+        Row: {
+          id: string
+          country: string | null
+          table_type: string
+          code: string
+          display_name: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          country?: string | null
+          table_type: string
+          code: string
+          display_name: string
+          is_active?: boolean
+        }
+        Update: {
+          country?: string | null
+          table_type?: string
+          code?: string
+          display_name?: string
+          is_active?: boolean
         }
       }
     }

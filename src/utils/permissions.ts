@@ -16,7 +16,9 @@ export const getRuntimePermissions = async (): Promise<Permission[]> => {
     permissionsCacheTime = Date.now();
     return permissions;
   } catch (error) {
-    console.error('Error loading runtime permissions:', error);
+    console.error('Error loading runtime permissions, using defaults:', error);
+    // Clear cache on error to prevent stale data
+    clearPermissionsCache();
     return defaultPermissions;
   }
 };
@@ -133,6 +135,7 @@ export const PERMISSION_ACTIONS = {
   VIEW_CASES: 'view-cases',
   AMEND_CASE: 'amend-case',
   DELETE_CASE: 'delete-case',
+  UPDATE_CASE_STATUS: 'update-case-status',
   CANCEL_CASE: 'cancel-case',
   EDIT_SETS: 'edit-sets',
   BOOKING_CALENDAR: 'booking-calendar',

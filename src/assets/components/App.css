@@ -1125,9 +1125,9 @@ body {
 }
 
 .user-management-button, .edit-sets-button, .permissions-button {
-  background: var(--primary-color);
-  color: white;
-  border: none;
+  background: var(--white);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
   padding: 8px 16px;
   border-radius: 20px;
   cursor: pointer;
@@ -1138,12 +1138,15 @@ body {
 }
 
 .user-management-button:hover, .edit-sets-button:hover, .permissions-button:hover {
-  background: var(--primary-dark);
+  background: var(--background-light);
+  border-color: var(--text-primary);
   transform: translateY(-1px);
 }
 
 .user-management-button.active, .edit-sets-button.active, .permissions-button.active {
-  background: var(--primary-dark);
+  background: var(--primary-color);
+  color: var(--white);
+  border-color: var(--primary-color);
   box-shadow: 0 2px 8px rgba(32, 178, 170, 0.3);
 }
 
@@ -3369,6 +3372,9 @@ body {
   .header-admin-item {
     padding: 6px 12px;
     font-size: 10px;
+    min-width: 120px;
+    text-overflow: ellipsis;
+    overflow: hidden;
   }
 
   .app-nav {
@@ -5650,8 +5656,8 @@ textarea:focus {
 }
 
 .filters-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   gap: 24px;
   margin-bottom: 24px;
 }
@@ -5705,12 +5711,12 @@ textarea:focus {
 
 .filter-input-wrapper input,
 .filter-input-wrapper .searchable-dropdown input {
-  padding-left: 36px !important;
+  padding-left: 45px !important;
 }
 
 .modern-filter-input {
   width: 100%;
-  padding: 10px 12px 10px 36px;
+  padding: 10px 12px 10px 45px;
   border: 2px solid #e9ecef;
   border-radius: 8px;
   font-size: 14px;
@@ -7774,7 +7780,7 @@ textarea:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 30px;
 }
 
 .admin-country-selector {
@@ -7982,7 +7988,7 @@ textarea:focus {
   transition: all 0.3s ease;
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: #000000;
   border-bottom: 3px solid transparent;
   position: relative;
   display: flex;
@@ -7999,7 +8005,7 @@ textarea:focus {
 
 .tab-button.active {
   background: var(--white);
-  color: var(--primary-color);
+  color: #ffffff;
   border-bottom-color: var(--primary-color);
   font-weight: 600;
 }

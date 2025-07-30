@@ -16,17 +16,18 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
   onSave,
   onCancel
 }) => {
+  // Initialize state with safe fallbacks
   const [formData, setFormData] = useState({
-    hospital: caseItem.hospital || '',
-    department: caseItem.department || '',
-    dateOfSurgery: caseItem.dateOfSurgery || '',
-    procedureType: caseItem.procedureType || '',
-    procedureName: caseItem.procedureName || '',
-    doctorName: caseItem.doctorName || '',
-    timeOfProcedure: caseItem.timeOfProcedure || '',
-    specialInstruction: caseItem.specialInstruction || '',
-    surgerySetSelection: caseItem.surgerySetSelection || [],
-    implantBox: caseItem.implantBox || [],
+    hospital: caseItem?.hospital || '',
+    department: caseItem?.department || '',
+    dateOfSurgery: caseItem?.dateOfSurgery || '',
+    procedureType: caseItem?.procedureType || '',
+    procedureName: caseItem?.procedureName || '',
+    doctorName: caseItem?.doctorName || '',
+    timeOfProcedure: caseItem?.timeOfProcedure || '',
+    specialInstruction: caseItem?.specialInstruction || '',
+    surgerySetSelection: caseItem?.surgerySetSelection || [],
+    implantBox: caseItem?.implantBox || [],
     amendmentReason: ''
   });
 
@@ -50,6 +51,17 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
       setFormData(prev => ({ ...prev, ...amendmentData }));
     }
   }, [amendmentData]);
+
+  // Handle case where caseItem is null or undefined after all hooks are called
+  if (!caseItem) {
+    console.error('AmendmentForm: caseItem is undefined or null');
+    return (
+      <div className="amendment-form-error">
+        <p>Error: Case data is not available. Please refresh and try again.</p>
+        <button onClick={onCancel} className="btn btn-secondary">Close</button>
+      </div>
+    );
+  }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};

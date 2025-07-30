@@ -515,7 +515,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
             </div>
           )}
         </div>
-        <p>Manage available surgery sets and implant boxes for case bookings, organized by procedure type
+        <p>Manage available surgery sets and implant boxes for case bookings, organised by procedure type
           <span> • <strong>Country: {activeCountry}</strong></span>
         </p>
       </div>

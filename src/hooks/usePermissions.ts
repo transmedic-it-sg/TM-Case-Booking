@@ -17,6 +17,7 @@ export const usePermissions = () => {
         canCreateCase: false,
         canEditCase: false,
         canDeleteCase: false,
+        canViewBookingCalendar: false,
         canProcessOrder: false,
         canMarkDelivered: false,
         canReceiveOrder: false,
@@ -45,6 +46,7 @@ export const usePermissions = () => {
       canCreateCase: hasPermission(userRole, PERMISSION_ACTIONS.CREATE_CASE),
       canEditCase: true, // Default to true, can be refined later
       canDeleteCase: hasPermission(userRole, PERMISSION_ACTIONS.DELETE_CASE),
+      canViewBookingCalendar: hasPermission(userRole, PERMISSION_ACTIONS.BOOKING_CALENDAR),
       
       // Workflow permissions
       canProcessOrder: hasPermission(userRole, PERMISSION_ACTIONS.PROCESS_ORDER),

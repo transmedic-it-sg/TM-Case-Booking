@@ -15,7 +15,9 @@ import {
   resetSystemConfig,
   applySystemConfig
 } from '../utils/systemSettingsService';
+import { getAppVersion } from '../utils/version';
 import '../assets/components/AdminComponents.css';
+import '../assets/components/SystemSettings.css';
 
 const SystemSettings: React.FC = () => {
   const currentUser = getCurrentUser();
@@ -68,7 +70,7 @@ const SystemSettings: React.FC = () => {
       // Fall back to default config so the UI still works
       const defaultConfig = await import('../utils/systemSettingsService').then(m => m.getSystemConfig().catch(() => ({
         appName: 'Transmedic Case Booking',
-        appVersion: '1.2.2',
+        appVersion: getAppVersion(),
         maintenanceMode: false,
         cacheTimeout: 300,
         maxFileSize: 10,
@@ -140,13 +142,84 @@ const SystemSettings: React.FC = () => {
       await applySystemConfig(config);
       
       setOriginalConfig({ ...config });
-      showSuccess('Settings Saved', 'System configuration has been updated successfully');
+      
+      // Validate that settings were actually saved
+      const validationResult = validateSettingsSaved(config);
+      if (validationResult.allValid) {
+        showSuccess('Settings Saved', `System configuration has been updated successfully. ${validationResult.validCount}/${validationResult.totalCount} settings applied.`);
+      } else {
+        showSuccess('Settings Partially Saved', `${validationResult.validCount}/${validationResult.totalCount} settings applied successfully. Check console for details.`);
+        console.warn('Some settings may not have been applied correctly:', validationResult.failedSettings);
+      }
     } catch (error) {
       console.error('Failed to save system configuration:', error);
       showError('Save Failed', 'Failed to save system configuration. Please check your permissions.');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Validate that settings were actually saved and applied
+  const validateSettingsSaved = (savedConfig: SystemConfig) => {
+    const validationResults: Array<{
+      name: string;
+      isValid: boolean;
+      expected: string | null;
+      actual: string | null;
+    }> = [];
+    
+    // Check localStorage settings
+    const checks: Array<{ name: string; expected: string | null; actual: string | null }> = [
+      { name: 'App Name', expected: savedConfig.appName, actual: localStorage.getItem('appName') },
+      { name: 'Session Timeout', expected: (savedConfig.sessionTimeout * 1000).toString(), actual: localStorage.getItem('sessionTimeout') },
+      { name: 'Email Notifications', expected: savedConfig.emailNotifications.toString(), actual: localStorage.getItem('emailNotificationsEnabled') },
+      { name: 'System Alerts', expected: savedConfig.systemAlerts.toString(), actual: localStorage.getItem('systemAlertsEnabled') },
+      { name: 'Default Theme', expected: savedConfig.defaultTheme, actual: localStorage.getItem('defaultTheme') },
+      { name: 'Cache Timeout', expected: savedConfig.cacheTimeout.toString(), actual: localStorage.getItem('cacheTimeout') },
+      { name: 'Max File Size', expected: savedConfig.maxFileSize.toString(), actual: localStorage.getItem('maxFileSize') },
+      { name: 'Audit Log Retention', expected: savedConfig.auditLogRetention.toString(), actual: localStorage.getItem('auditLogRetention') },
+      { name: 'Amendment Time Limit', expected: savedConfig.amendmentTimeLimit.toString(), actual: localStorage.getItem('amendmentTimeLimit') },
+      { name: 'Max Amendments Per Case', expected: savedConfig.maxAmendmentsPerCase.toString(), actual: localStorage.getItem('maxAmendmentsPerCase') },
+      { name: 'Backup Frequency', expected: savedConfig.backupFrequency, actual: localStorage.getItem('backupFrequency') },
+      { name: 'Auto Cleanup', expected: savedConfig.autoCleanup.toString(), actual: localStorage.getItem('autoCleanup') },
+      { name: 'Password Complexity', expected: savedConfig.passwordComplexity.toString(), actual: localStorage.getItem('passwordComplexity') },
+      { name: 'Two Factor Auth', expected: savedConfig.twoFactorAuth.toString(), actual: localStorage.getItem('twoFactorAuth') }
+    ];
+
+    // Special checks for maintenance mode (removed when false)
+    if (savedConfig.maintenanceMode) {
+      checks.push({ name: 'Maintenance Mode', expected: 'true', actual: localStorage.getItem('maintenanceMode') });
+    } else {
+      checks.push({ name: 'Maintenance Mode', expected: null, actual: localStorage.getItem('maintenanceMode') });
+    }
+
+    checks.forEach(check => {
+      const isValid = check.expected === check.actual;
+      validationResults.push({
+        name: check.name,
+        isValid,
+        expected: check.expected,
+        actual: check.actual
+      });
+      
+      if (isValid) {
+        console.log(`✅ ${check.name}: Applied correctly (${check.actual})`);
+      } else {
+        console.warn(`❌ ${check.name}: Expected "${check.expected}", got "${check.actual}"`);
+      }
+    });
+
+    const validCount = validationResults.filter(r => r.isValid).length;
+    const totalCount = validationResults.length;
+    const failedSettings = validationResults.filter(r => !r.isValid).map(r => r.name);
+
+    return {
+      allValid: validCount === totalCount,
+      validCount,
+      totalCount,
+      failedSettings,
+      results: validationResults
+    };
   };
 
   const handleResetConfig = () => {
@@ -222,39 +295,36 @@ const SystemSettings: React.FC = () => {
     title, 
     description, 
     sectionKey, 
+    icon,
     children 
   }: { 
     title: string; 
     description: string; 
     sectionKey: keyof typeof expandedSections; 
+    icon: string;
     children: React.ReactNode; 
   }) => (
-    <div className="admin-section collapsible-section">
+    <div className="settings-section">
       <div 
-        className="section-header clickable" 
+        className={`settings-section-header ${expandedSections[sectionKey] ? 'expanded' : ''}`}
         onClick={() => toggleSection(sectionKey)}
-        style={{ 
-          cursor: 'pointer', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          padding: '16px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '8px',
-          marginBottom: expandedSections[sectionKey] ? '16px' : '0'
-        }}
       >
-        <div>
-          <h3 style={{ margin: 0 }}>{title}</h3>
-          <p style={{ margin: '4px 0 0 0', color: '#666' }}>{description}</p>
+        <div className="section-header-content">
+          <div className="section-header-info">
+            <h2 className="section-title">
+              <span className="section-icon">{icon}</span>
+              {title}
+            </h2>
+            <p className="section-description">{description}</p>
+          </div>
+          <div className={`section-toggle ${expandedSections[sectionKey] ? 'expanded' : ''}`}>
+            {expandedSections[sectionKey] ? '▲' : '▼'}
+          </div>
         </div>
-        <span style={{ fontSize: '18px', color: '#666' }}>
-          {expandedSections[sectionKey] ? '▼' : '▶'}
-        </span>
       </div>
       {expandedSections[sectionKey] && (
-        <div className="section-content" style={{ padding: '0 16px 16px 16px' }}>
-          <div className="settings-grid">
+        <div className="settings-section-content">
+          <div className="settings-items-grid">
             {children}
           </div>
         </div>
@@ -263,116 +333,146 @@ const SystemSettings: React.FC = () => {
   );
 
   return (
-    <div className="admin-container">
-      <div className="admin-header">
-        <h2>System Settings</h2>
-        <p>Configure application settings and system preferences</p>
-        <div className="header-actions">
-          {hasChanges && (
+    <div className="system-settings-container">
+      {/* Modern Header */}
+      <div className="system-settings-header">
+        <div className="settings-header-content">
+          <div className="settings-header-info">
+            <h1 className="settings-title">
+              <span className="settings-title-icon">⚙️</span>
+              System Settings
+            </h1>
+            <p className="settings-subtitle">Configure application settings and system preferences</p>
+          </div>
+          <div className="settings-header-actions">
+            {hasChanges && (
+              <div className="changes-indicator">
+                <span className="changes-indicator-icon">⚡</span>
+                Unsaved Changes
+              </div>
+            )}
+            {hasChanges && (
+              <button
+                onClick={handleSaveConfig}
+                disabled={isSaving}
+                className="settings-save-btn"
+              >
+                <span>💾</span>
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            )}
             <button
-              onClick={handleSaveConfig}
-              disabled={isSaving}
-              className="btn btn-primary btn-lg"
-              style={{ marginRight: '12px' }}
+              onClick={handleResetConfig}
+              className="settings-reset-btn"
             >
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              <span>🔄</span>
+              Reset to Defaults
             </button>
-          )}
-          <button
-            onClick={handleResetConfig}
-            className="btn btn-outline-secondary btn-lg"
-          >
-            Reset to Defaults
-          </button>
+          </div>
         </div>
       </div>
 
-      {/* Application Settings */}
-      <CollapsibleSection 
-        title="Application Settings" 
-        description="General application configuration"
-        sectionKey="application"
-      >
-        <div className="setting-item">
-          <label>Application Name</label>
-          <input
-            type="text"
-            value={config.appName}
-            onChange={(e) => handleConfigChange('appName', e.target.value)}
-            placeholder="Enter application name"
-          />
-          <small>Name displayed in the application header</small>
-        </div>
-        <div className="setting-item">
-          <label>Version</label>
-          <input
-            type="text"
-            value={config.appVersion}
-            disabled
-            title="Version is read-only"
-          />
-          <small>Current application version (read-only)</small>
-        </div>
-        <div className="setting-item">
-          <label>
+      {/* Settings Sections Grid */}
+      <div className="settings-sections-grid">
+
+        {/* Application Settings */}
+        <CollapsibleSection 
+          title="Application Settings" 
+          description="General application configuration"
+          sectionKey="application"
+          icon="🏢"
+        >
+          <div className="modern-setting-item">
+            <label className="modern-setting-label">Application Name</label>
             <input
-              type="checkbox"
-              checked={config.maintenanceMode}
-              onChange={(e) => handleConfigChange('maintenanceMode', e.target.checked)}
+              type="text"
+              className="modern-setting-input"
+              value={config.appName}
+              onChange={(e) => handleConfigChange('appName', e.target.value)}
+              placeholder="Enter application name"
             />
-            Maintenance Mode
-          </label>
-          <small>Prevents users from accessing the system</small>
-        </div>
-      </CollapsibleSection>
+            <small className="modern-setting-description">Name displayed in the application header</small>
+          </div>
+          <div className="modern-setting-item">
+            <label className="modern-setting-label">Version</label>
+            <input
+              type="text"
+              className="modern-setting-input"
+              value={config.appVersion}
+              disabled
+              title="Version is read-only"
+            />
+            <small className="modern-setting-description">Current application version (read-only)</small>
+          </div>
+          <div className="modern-setting-item">
+            <div className="modern-checkbox-container">
+              <input
+                type="checkbox"
+                className="modern-checkbox"
+                checked={config.maintenanceMode}
+                onChange={(e) => handleConfigChange('maintenanceMode', e.target.checked)}
+              />
+              <label className="modern-checkbox-label">Maintenance Mode</label>
+            </div>
+            <small className="modern-setting-description">Prevents users from accessing the system</small>
+          </div>
+        </CollapsibleSection>
 
-      {/* Performance Settings */}
-      <CollapsibleSection 
-        title="Performance Settings" 
-        description="System performance and resource configuration"
-        sectionKey="performance"
-      >
-        <div className="setting-item">
-          <label>Cache Timeout (seconds)</label>
-          <input
-            type="number"
-            value={config.cacheTimeout}
-            onChange={(e) => handleConfigChange('cacheTimeout', parseInt(e.target.value))}
-            min="60"
-            max="3600"
-          />
-          <small>How long to cache data in memory (60-3600 seconds)</small>
-        </div>
-        <div className="setting-item">
-          <label>Max File Size (MB)</label>
-          <input
-            type="number"
-            value={config.maxFileSize}
-            onChange={(e) => handleConfigChange('maxFileSize', parseInt(e.target.value))}
-            min="1"
-            max="100"
-          />
-          <small>Maximum file upload size (1-100 MB)</small>
-        </div>
-        <div className="setting-item">
-          <label>Session Timeout (seconds)</label>
-          <input
-            type="number"
-            value={config.sessionTimeout}
-            onChange={(e) => handleConfigChange('sessionTimeout', parseInt(e.target.value))}
-            min="300"
-            max="86400"
-          />
-          <small>User session timeout (5 minutes - 24 hours)</small>
-        </div>
-      </CollapsibleSection>
+        {/* Performance Settings */}
+        <CollapsibleSection 
+          title="Performance Settings" 
+          description="System performance and resource configuration"
+          sectionKey="performance"
+          icon="⚡"
+        >
+          <div className="modern-setting-item">
+            <label className="modern-setting-label">Cache Timeout</label>
+            <input
+              type="number"
+              className="modern-number-input"
+              value={config.cacheTimeout}
+              onChange={(e) => handleConfigChange('cacheTimeout', parseInt(e.target.value))}
+              min="60"
+              max="3600"
+            />
+            <small className="modern-setting-description">How long to cache data in memory</small>
+            <div className="setting-range">Range: 60-3600 seconds</div>
+          </div>
+          <div className="modern-setting-item">
+            <label className="modern-setting-label">Max File Size</label>
+            <input
+              type="number"
+              className="modern-number-input"
+              value={config.maxFileSize}
+              onChange={(e) => handleConfigChange('maxFileSize', parseInt(e.target.value))}
+              min="1"
+              max="100"
+            />
+            <small className="modern-setting-description">Maximum file upload size</small>
+            <div className="setting-range">Range: 1-100 MB</div>
+          </div>
+          <div className="modern-setting-item">
+            <label className="modern-setting-label">Session Timeout</label>
+            <input
+              type="number"
+              className="modern-number-input"
+              value={config.sessionTimeout}
+              onChange={(e) => handleConfigChange('sessionTimeout', parseInt(e.target.value))}
+              min="300"
+              max="86400"
+            />
+            <small className="modern-setting-description">User session timeout</small>
+            <div className="setting-range">Range: 5 minutes - 24 hours</div>
+          </div>
+        </CollapsibleSection>
 
-      {/* Security Settings */}
-      <CollapsibleSection 
-        title="Security Settings" 
-        description="Authentication and security policies"
-        sectionKey="security"
-      >
+        {/* Security Settings */}
+        <CollapsibleSection 
+          title="Security Settings" 
+          description="Authentication and security policies"
+          sectionKey="security"
+          icon="🔒"
+        >
         <div className="setting-item">
           <label>
             <input
@@ -408,12 +508,13 @@ const SystemSettings: React.FC = () => {
         </div>
       </CollapsibleSection>
 
-      {/* Amendment Settings */}
-      <CollapsibleSection 
-        title="Amendment Settings" 
-        description="Configure case amendment policies and time limits"
-        sectionKey="amendment"
-      >
+        {/* Amendment Settings */}
+        <CollapsibleSection 
+          title="Amendment Settings" 
+          description="Configure case amendment policies and time limits"
+          sectionKey="amendment"
+          icon="📝"
+        >
         <div className="setting-item">
           <label>Amendment Time Limit (minutes)</label>
           <input
@@ -438,12 +539,13 @@ const SystemSettings: React.FC = () => {
         </div>
       </CollapsibleSection>
 
-      {/* Notification Settings */}
-      <CollapsibleSection 
-        title="Notification Settings" 
-        description="Configure system notifications and alerts"
-        sectionKey="notification"
-      >
+        {/* Notification Settings */}
+        <CollapsibleSection 
+          title="Notification Settings" 
+          description="Configure system notifications and alerts"
+          sectionKey="notification"
+          icon="🔔"
+        >
         <div className="setting-item">
           <label>
             <input
@@ -468,12 +570,13 @@ const SystemSettings: React.FC = () => {
         </div>
       </CollapsibleSection>
 
-      {/* Database Settings */}
-      <CollapsibleSection 
-        title="Database Settings" 
-        description="Database maintenance and backup configuration"
-        sectionKey="database"
-      >
+        {/* Database Settings */}
+        <CollapsibleSection 
+          title="Database Settings" 
+          description="Database maintenance and backup configuration"
+          sectionKey="database"
+          icon="🗄️"
+        >
         <div className="setting-item">
           <label>Backup Frequency</label>
           <select
@@ -499,38 +602,8 @@ const SystemSettings: React.FC = () => {
         </div>
       </CollapsibleSection>
 
-      {/* User Interface Settings */}
-      <CollapsibleSection 
-        title="User Interface Settings" 
-        description="Default UI preferences and theme settings"
-        sectionKey="ui"
-      >
-        <div className="setting-item">
-          <label>Default Theme</label>
-          <select
-            value={config.defaultTheme}
-            onChange={(e) => handleConfigChange('defaultTheme', e.target.value)}
-          >
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-            <option value="auto">Auto (System)</option>
-          </select>
-          <small>Default theme for new users</small>
-        </div>
-        <div className="setting-item">
-          <label>Default Language</label>
-          <select
-            value={config.defaultLanguage}
-            onChange={(e) => handleConfigChange('defaultLanguage', e.target.value)}
-          >
-            <option value="en">English</option>
-            <option value="ms">Bahasa Malaysia</option>
-            <option value="zh">中文</option>
-          </select>
-          <small>Default language for the application</small>
-        </div>
-      </CollapsibleSection>
 
+      </div>
     </div>
   );
 };

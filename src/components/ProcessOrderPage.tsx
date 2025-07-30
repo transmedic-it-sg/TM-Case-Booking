@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { CaseBooking } from '../types';
 import { updateCaseStatus } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';
+import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { formatDateTime } from '../utils/dateFormat';
 import { useUserNames } from '../hooks/useUserNames';
 
@@ -16,6 +17,8 @@ const ProcessOrderPage: React.FC<ProcessOrderPageProps> = ({
   onProcessComplete, 
   onBack 
 }) => {
+  const currentUser = getCurrentUser();
+  
   const [processOrderDetails, setProcessOrderDetails] = useState(
     caseData.processOrderDetails || ''
   );
@@ -32,6 +35,21 @@ const ProcessOrderPage: React.FC<ProcessOrderPageProps> = ({
 
   // Hook to resolve user IDs to names
   const { getUserName } = useUserNames(userIds);
+
+  // Check if user has permission to process orders
+  const canProcessOrder = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.PROCESS_ORDER) : false;
+
+  if (!canProcessOrder) {
+    return (
+      <div className="permission-denied">
+        <div className="permission-denied-content">
+          <h2>🚫 Access Denied</h2>
+          <p>You don't have permission to process orders.</p>
+          <p>Contact your administrator to request access.</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleProcessOrder = async () => {
     if (!processOrderDetails.trim()) {

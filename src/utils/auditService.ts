@@ -217,22 +217,57 @@ export const getFilteredAuditLogs = async (filters: {
 };
 
 /**
- * Clear old audit logs (admin only)
+ * Clear old audit logs (admin only) - clears logs older than 6 months
  */
-export const clearOldAuditLogs = async (olderThanDays: number = 90): Promise<number> => {
+export const clearOldAuditLogs = async (): Promise<number> => {
   try {
-    const allLogs = await getAuditLogs();
+    // Calculate cutoff date - 6 months ago (180 days)
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+    cutoffDate.setDate(cutoffDate.getDate() - 180);
+    const cutoffDateString = cutoffDate.toISOString();
     
-    const filteredLogs = allLogs.filter(log => 
-      new Date(log.timestamp) > cutoffDate
-    );
+    console.log('Clearing audit logs older than:', cutoffDateString);
     
-    localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify(filteredLogs));
+    // Delete from Supabase
+    const { data: logsToDelete, error: selectError } = await supabase
+      .from('audit_logs')
+      .select('id')
+      .lt('timestamp', cutoffDateString);
     
-    const deletedCount = allLogs.length - filteredLogs.length;
-    console.log(`Cleared ${deletedCount} old audit logs`);
+    if (selectError) {
+      console.error('Error finding old audit logs:', selectError);
+      throw selectError;
+    }
+    
+    const deletedCount = logsToDelete?.length || 0;
+    
+    if (deletedCount > 0) {
+      const { error: deleteError } = await supabase
+        .from('audit_logs')
+        .delete()
+        .lt('timestamp', cutoffDateString);
+      
+      if (deleteError) {
+        console.error('Error deleting old audit logs:', deleteError);
+        throw deleteError;
+      }
+      
+      console.log(`Successfully cleared ${deletedCount} old audit logs from Supabase`);
+    } else {
+      console.log('No old audit logs found to clear');
+    }
+    
+    // Also clear from localStorage as backup
+    try {
+      const localLogs = await getAuditLogsFromLocalStorage();
+      const filteredLocalLogs = localLogs.filter(log => 
+        new Date(log.timestamp) > cutoffDate
+      );
+      localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify(filteredLocalLogs));
+      console.log('Also cleared old logs from localStorage');
+    } catch (localError) {
+      console.warn('Could not clear localStorage audit logs:', localError);
+    }
     
     return deletedCount;
   } catch (error) {

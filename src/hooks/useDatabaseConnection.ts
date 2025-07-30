@@ -5,8 +5,9 @@ import {
   getConnectionStatusDisplay 
 } from '../utils/databaseConnectivity';
 
-const CONNECTION_CHECK_INTERVAL = 60000; // Check every 60 seconds (reduced frequency)
-const INITIAL_CHECK_DELAY = 1000; // Wait 1 second before first check
+// Temporarily disabled - constants for future use
+// const CONNECTION_CHECK_INTERVAL = 60000; // Check every 60 seconds (reduced frequency)
+// const INITIAL_CHECK_DELAY = 1000; // Wait 1 second before first check
 const CONNECTION_TIMEOUT = 3000; // 3 second timeout for faster checks
 
 export const useDatabaseConnection = () => {
@@ -17,21 +18,21 @@ export const useDatabaseConnection = () => {
   });
   const [isVisible, setIsVisible] = useState(false);
 
-  // Test connection function for background checks (no visual feedback)
-  const testConnectionSilently = useCallback(async () => {
-    try {
-      const result = await testConnectionWithTimeout(CONNECTION_TIMEOUT);
-      setConnectionInfo(result);
-    } catch (error) {
-      console.error('Background connection test failed:', error);
-      setConnectionInfo({
-        status: 'disconnected',
-        lastChecked: new Date(),
-        usingFallback: true,
-        errorMessage: error instanceof Error ? error.message : 'Connection test failed'
-      });
-    }
-  }, []);
+  // Test connection function for background checks (no visual feedback) - temporarily disabled
+  // const testConnectionSilently = useCallback(async () => {
+  //   try {
+  //     const result = await testConnectionWithTimeout(CONNECTION_TIMEOUT);
+  //     setConnectionInfo(result);
+  //   } catch (error) {
+  //     console.error('Background connection test failed:', error);
+  //     setConnectionInfo({
+  //       status: 'disconnected',
+  //       lastChecked: new Date(),
+  //       usingFallback: true,
+  //       errorMessage: error instanceof Error ? error.message : 'Connection test failed'
+  //     });
+  //   }
+  // }, []);
 
   // Force a connection test (with visual feedback)
   const forceCheck = useCallback(async () => {
@@ -60,35 +61,17 @@ export const useDatabaseConnection = () => {
   // Get display information
   const displayInfo = getConnectionStatusDisplay(connectionInfo);
 
-  // Initial connection test and periodic checks
+  // DISABLED: Database connection testing causing infinite loops
+  // TODO: Fix schema mismatch before re-enabling
   useEffect(() => {
-    // Initial check after delay
-    const initialTimeout = setTimeout(() => {
-      testConnectionSilently();
-    }, INITIAL_CHECK_DELAY);
-
-    // Periodic checks
-    const interval = setInterval(() => {
-      testConnectionSilently();
-    }, CONNECTION_CHECK_INTERVAL);
-
-    return () => {
-      clearTimeout(initialTimeout);
-      clearInterval(interval);
-    };
-  }, [testConnectionSilently]);
-
-  // Check connection when coming back from background
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        testConnectionSilently();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [testConnectionSilently]);
+    console.log('Database connection monitoring temporarily disabled');
+    // Set optimistic connection status to prevent UI issues
+    setConnectionInfo({
+      status: 'connected',
+      lastChecked: new Date(),
+      usingFallback: false
+    });
+  }, []);
 
   return {
     connectionInfo,

@@ -14,6 +14,7 @@ import { useModal } from '../../hooks/useModal';
 // import { USER_ROLES } from '../../constants/permissions'; // Removed - not used
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { userHasDepartmentAccess } from '../../utils/departmentUtils';
+import { normalizeCountry } from '../../utils/countryUtils';
 
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
@@ -97,50 +98,42 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     const currentUser = getCurrentUser();
     let filteredResults = filterCases(cases, filters);
     
-    // Convert country name to country code for comparison
-    const getCountryCode = (country: string) => {
-      const countryMap: { [key: string]: string } = {
-        'Singapore': 'SG',
-        'Malaysia': 'MY',
-        'Philippines': 'PH',
-        'Indonesia': 'ID',
-        'Vietnam': 'VN',
-        'Hong Kong': 'HK',
-        'Thailand': 'TH'
-      };
-      return countryMap[country] || 'SG';
-    };
-    
-    // Country-based filtering for non-admin/IT users
-    const isCurrentUserAdminOrIT = currentUser && (currentUser.role === 'admin' || currentUser.role === 'it');
-    if (currentUser && !isCurrentUserAdminOrIT) {
-      if (currentUser.countries && currentUser.countries.length > 0) {
-        // Convert user's country names to country codes and filter cases
-        const userCountryCodes = currentUser.countries.map(country => getCountryCode(country));
-        filteredResults = filteredResults.filter(caseItem => 
-          userCountryCodes.includes(caseItem.country)
-        );
-      }
+    // Admin users see ALL cases without country/department restrictions
+    if (currentUser?.role === 'admin') {
+      // Admin sees everything - no additional filtering
+      setFilteredCases(filteredResults);
+      return;
     }
     
-    // Department-based filtering (excluding Operations Managers who have broader access)
-    const hasFullAccess = currentUser && (
-      currentUser.role === 'admin' || 
-      currentUser.role === 'operations-manager' || 
-      currentUser.role === 'it'
-    );
-    if (currentUser?.departments && currentUser.departments.length > 0 && !hasFullAccess) {
+    // Non-admin users: Apply country and department restrictions
+    if (currentUser) {
+      // Country-based filtering for non-admin users
+      if (currentUser.countries && currentUser.countries.length > 0) {
+        // Normalize user's country names and filter cases by full country names
+        const userCountries = currentUser.countries.map(country => normalizeCountry(country));
+        filteredResults = filteredResults.filter(caseItem => 
+          userCountries.includes(normalizeCountry(caseItem.country))
+        );
+      }
       
-      // Clean department names - remove country prefixes like "Singapore:", "Malaysia:"
-      const cleanDepartmentName = (department: string) => {
-        return department.replace(/^[A-Za-z\s]+:/, '').trim();
-      };
-      
-      const userDepartments = currentUser.departments.map(cleanDepartmentName);
-      
-      filteredResults = filteredResults.filter(caseItem => 
-        userDepartments.includes(cleanDepartmentName(caseItem.department))
+      // Department-based filtering for non-admin users (excluding Operations Managers who have broader access)
+      const hasFullAccess = currentUser && (
+        currentUser.role === 'operations-manager' || 
+        currentUser.role === 'it'
       );
+      
+      if (currentUser.departments && currentUser.departments.length > 0 && !hasFullAccess) {
+        // Clean department names - remove country prefixes like "Singapore:", "Malaysia:"
+        const cleanDepartmentName = (department: string) => {
+          return department.replace(/^[A-Za-z\s]+:/, '').trim();
+        };
+        
+        const userDepartments = currentUser.departments.map(cleanDepartmentName);
+        
+        filteredResults = filteredResults.filter(caseItem => 
+          userDepartments.includes(cleanDepartmentName(caseItem.department))
+        );
+      }
     }
     
     setFilteredCases(filteredResults);
@@ -180,24 +173,19 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
   const loadCases = useCallback(async () => {
     try {
-      // Convert country name to country code for database operations
-      const getCountryCode = (country: string) => {
-        const countryMap: { [key: string]: string } = {
-          'Singapore': 'SG',
-          'Malaysia': 'MY',
-          'Philippines': 'PH',
-          'Indonesia': 'ID',
-          'Vietnam': 'VN',
-          'Hong Kong': 'HK',
-          'Thailand': 'TH'
-        };
-        return countryMap[country] || 'SG';
-      };
+      // Admin and IT users should get ALL cases from ALL countries
+      const isAdminOrIT = currentUser && (currentUser.role === 'admin' || currentUser.role === 'it');
       
-      const userCountry = currentUser?.selectedCountry;
-      const countryCode = userCountry ? getCountryCode(userCountry) : undefined;
-      
-      const allCases = await getCases(countryCode);
+      let allCases;
+      if (isAdminOrIT) {
+        // For admin/IT users, don't pass any country filter to get ALL cases
+        allCases = await getCases();
+      } else {
+        // For regular users, filter by their selected/assigned country
+        const userCountry = currentUser?.selectedCountry;
+        const normalizedCountry = userCountry ? normalizeCountry(userCountry) : undefined;
+        allCases = await getCases(normalizedCountry);
+      }
       
       // Ensure allCases is an array
       if (!Array.isArray(allCases)) {
@@ -225,16 +213,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         .sort();
       setAvailableHospitals(uniqueHospitals);
       
-      // Admin and IT can view all cases, others are filtered by country
-      const isAdminOrIT = currentUser && (currentUser.role === 'admin' || currentUser.role === 'it');
-      if (isAdminOrIT) {
-        setCases(allCases);
-      } else {
-        const countryCases = countryCode 
-          ? allCases.filter(caseItem => caseItem.country === countryCode)
-          : allCases;
-        setCases(countryCases);
-      }
+      // Set the cases directly since we've already applied country filtering during load
+      setCases(allCases);
     } catch (error) {
       console.error('Error loading cases:', error);
       setCases([]);
@@ -1112,14 +1092,24 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       />
       
       {/* Amendment Form Modal */}
-      {amendingCase && (
-        <AmendmentForm
-          caseItem={cases.find(c => c.id === amendingCase)!}
-          amendmentData={amendmentData}
-          onSave={handleSaveAmendment}
-          onCancel={handleCancelAmendment}
-        />
-      )}
+      {amendingCase && (() => {
+        const caseToAmend = cases.find(c => c.id === amendingCase);
+        if (!caseToAmend) {
+          // Case not found, close the amendment modal
+          console.warn(`Case with ID ${amendingCase} not found, closing amendment modal`);
+          setAmendingCase(null);
+          setAmendmentData({});
+          return null;
+        }
+        return (
+          <AmendmentForm
+            caseItem={caseToAmend}
+            amendmentData={amendmentData}
+            onSave={handleSaveAmendment}
+            onCancel={handleCancelAmendment}
+          />
+        );
+      })()}
     </div>
   );
 };

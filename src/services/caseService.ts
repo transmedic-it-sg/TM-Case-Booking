@@ -7,6 +7,7 @@ import { CaseBooking, CaseStatus, StatusHistory } from '../types';
 import { auditCaseAmended } from '../utils/auditService';
 import userService from './userService';
 import notificationService from './notificationService';
+import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 
 class CaseService {
   private static instance: CaseService;
@@ -103,6 +104,12 @@ class CaseService {
         return false;
       }
 
+      // Check if user has permission to amend cases
+      if (!hasPermission(currentUser.role, PERMISSION_ACTIONS.AMEND_CASE)) {
+        console.error('User does not have permission to amend cases:', currentUser.role);
+        return false;
+      }
+
       // Track changes for audit
       const changes: string[] = [];
       Object.keys(amendmentData).forEach(key => {
@@ -170,6 +177,12 @@ class CaseService {
       const currentUser = userService.getCurrentUser();
       if (!currentUser) {
         console.error('No current user found');
+        return false;
+      }
+
+      // Check if user has permission to update case status
+      if (!hasPermission(currentUser.role, PERMISSION_ACTIONS.UPDATE_CASE_STATUS)) {
+        console.error('User does not have permission to update case status:', currentUser.role);
         return false;
       }
 
@@ -284,6 +297,18 @@ class CaseService {
    */
   deleteCase(caseId: string): boolean {
     try {
+      const currentUser = userService.getCurrentUser();
+      if (!currentUser) {
+        console.error('No current user found');
+        return false;
+      }
+
+      // Check if user has permission to delete cases
+      if (!hasPermission(currentUser.role, PERMISSION_ACTIONS.DELETE_CASE)) {
+        console.error('User does not have permission to delete cases:', currentUser.role);
+        return false;
+      }
+
       const cases = this.getAllCases();
       const filteredCases = cases.filter(c => c.id !== caseId);
       

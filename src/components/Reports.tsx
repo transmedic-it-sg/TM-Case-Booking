@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { CaseBooking, CaseStatus, COUNTRIES, DEPARTMENTS } from '../types';
 import { getCountries } from '../utils/codeTable';
 import { getCases } from '../utils/storage';
@@ -81,11 +81,25 @@ const Reports: React.FC = () => {
   // Load cases on component mount
   useEffect(() => {
     const loadCases = async () => {
-      const allCases = await getCases();
+      // Admin and IT users should see ALL cases from ALL countries
+      let allCases: CaseBooking[];
+      
+      if (currentUser?.role === 'admin' || currentUser?.role === 'it') {
+        console.log('Loading ALL cases for admin/IT user...');
+        // Get cases from ALL countries for admin users
+        allCases = await getCases(); // No country filter for admin
+      } else {
+        console.log('Loading country-specific cases for regular user...');
+        // For regular users, get cases only from their countries
+        const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
+        allCases = userCountry ? await getCases(userCountry) : await getCases();
+      }
+      
       const userCases = allCases.filter(caseItem => {
         // Filter by user's access permissions
         if (currentUser?.role === 'admin' || currentUser?.role === 'it') {
-          return true;
+          console.log(`Admin user can see case from ${caseItem.country}: ${caseItem.caseReferenceNumber}`);
+          return true; // Admin sees ALL cases
         }
         
         // Filter by user's countries and departments
@@ -97,6 +111,7 @@ const Reports: React.FC = () => {
         return hasCountryAccess && hasDepartmentAccess;
       });
       
+      console.log(`Loaded ${allCases.length} total cases, showing ${userCases.length} to user`);
       setCases(userCases);
       setFilteredCases(userCases);
     };
@@ -109,8 +124,8 @@ const Reports: React.FC = () => {
     setTempFilters({ ...filters });
   }, [filters]);
 
-  // Apply filters whenever filters change
-  useEffect(() => {
+  // Apply filters whenever filters change - memoized to prevent infinite loops
+  const applyFiltersToCase = useCallback((cases: CaseBooking[], filters: ReportFilters) => {
     let filtered = [...cases];
 
     // Date range filter
@@ -145,8 +160,13 @@ const Reports: React.FC = () => {
       });
     }
 
+    return filtered;
+  }, [getUserName]);
+
+  useEffect(() => {
+    const filtered = applyFiltersToCase(cases, filters);
     setFilteredCases(filtered);
-  }, [cases, filters, getUserName]);
+  }, [cases, filters, applyFiltersToCase]);
 
   // Generate report data
   const reportData: ReportData = useMemo(() => {

@@ -3,6 +3,21 @@
  * Modular styles for the optimized CaseCard component family
  */
 
+/* Amendment Form Error */
+.amendment-form-error {
+  padding: 2rem;
+  text-align: center;
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  color: #dc2626;
+}
+
+.amendment-form-error p {
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
 /* Main Case Card */
 .case-card {
   margin-bottom: 1.5rem;
@@ -383,7 +398,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 1rem;
-  align-items: center;
+  align-items: start;
 }
 
 .status-history-item:last-child {
@@ -412,6 +427,77 @@
   border-radius: var(--border-radius);
   font-size: 0.875rem;
   color: var(--text-primary);
+}
+
+/* Status History Attachments */
+.history-attachments {
+  grid-column: 1 / -1;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: var(--border-radius);
+  border: 1px solid #e2e8f0;
+}
+
+.attachments-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.attachments-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.attachment-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+}
+
+.attachment-preview:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.attachment-thumbnail {
+  max-width: 60px;
+  max-height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.attachment-file {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  max-width: 80px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.attachment-error {
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--danger-color);
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
 }
 
 /* Case Footer */
@@ -659,6 +745,16 @@
   .status-history-item {
     grid-template-columns: 1fr;
     gap: 0.5rem;
+  }
+  
+  .attachments-grid {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .attachment-preview {
+    width: 100%;
+    max-width: 200px;
   }
 
   .case-card-footer {

@@ -13,11 +13,14 @@ import {
 import { useNotifications } from '../contexts/NotificationContext';
 import { useToast } from './ToastContainer';
 import { useSound } from '../contexts/SoundContext';
+import CustomModal from './CustomModal';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { 
   getCountries, 
   initializeCodeTables, 
-  getDepartmentsForCountries
+  getDepartmentsForCountries,
+  getDepartmentsByCountry,
+  migrateDepartmentsToCountrySpecific
 } from '../utils/codeTable';
 import { getAllRoles } from '../data/permissionMatrixData';
 import MultiSelectDropdown from './MultiSelectDropdown';
@@ -26,6 +29,7 @@ import CountryGroupedDepartments from './CountryGroupedDepartments';
 import RoleManagement from './RoleManagement';
 import { auditUserCreated, auditUserUpdated, auditUserDeleted, auditPasswordReset, addAuditLog } from '../utils/auditService';
 import '../assets/components/department-management.css';
+import '../assets/components/UserManagement.css';
 
 const UserManagement: React.FC = () => {
   const currentUser = getCurrentUser();
@@ -69,6 +73,21 @@ const UserManagement: React.FC = () => {
   const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
   const [tempPassword, setTempPassword] = useState('');
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  
+  // Confirmation modal states
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: 'delete' | 'disable' | 'enable' | null;
+    user: User | null;
+  }>({
+    isOpen: false,
+    type: null,
+    user: null
+  });
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 12; // 3 users per row × 4 rows = 12 users per page
   // Removed expandedBadges and columnWidths - simplified table design
   // Removed availableDepartments since we now use CountryGroupedDepartments exclusively
   const canCreateUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CREATE_USER) : false;
@@ -149,6 +168,11 @@ const UserManagement: React.FC = () => {
     };
   }, [popupData.isOpen]);
 
+  // Update pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedRoleFilter, selectedStatusFilter, selectedCountryFilter]);
+
   const loadAvailableRoles = () => {
     const allRoles = getAllRoles();
     const roleOptions = allRoles.map(role => ({
@@ -170,21 +194,79 @@ const UserManagement: React.FC = () => {
   };
 
 
+  // Helper function to format departments with country prefixes
+  const formatDepartmentsWithCountry = (departments: string[], countries: string[]): string[] => {
+    if (!departments || !countries) return [];
+    
+    return departments.map(dept => {
+      // Check if department has country prefix (new format)
+      if (dept.includes(':')) {
+        const [country, departmentName] = dept.split(':');
+        return `${country} - ${departmentName}`;
+      } else {
+        // Legacy format - try to determine which country this department belongs to
+        const departmentsByCountry = getDepartmentsByCountry();
+        for (const country of countries) {
+          if (departmentsByCountry[country] && departmentsByCountry[country].includes(dept)) {
+            return `${country} - ${dept}`;
+          }
+        }
+        // Fallback if country can't be determined
+        return dept;
+      }
+    });
+  };
+
+  const cleanupUserDepartments = (user: User): User => {
+    // DISABLE AUTOMATIC CLEANUP - it's causing more problems than it solves
+    // The departments are being over-cleaned because the validation logic is wrong
+    
+    // For now, return user as-is to prevent data loss
+    // TODO: Fix the department validation logic properly using Supabase
+    return user;
+    
+    /*
+    // OLD CLEANUP LOGIC - DISABLED TO PREVENT DATA LOSS
+    if (!user.departments || user.departments.length === 0 || !user.countries || user.countries.length === 0) {
+      return user;
+    }
+
+    // Get valid departments for the user's countries
+    const validDepartments = getDepartmentsForCountries(user.countries);
+    
+    // Filter out any departments that don't exist in the current code tables
+    const cleanDepartments = user.departments.filter(dept => validDepartments.includes(dept));
+    
+    // If departments were cleaned up, log it for debugging
+    if (cleanDepartments.length !== user.departments.length) {
+      console.log(`Cleaned departments for ${user.name}: ${user.departments.length} → ${cleanDepartments.length}`);
+    }
+    
+    return {
+      ...user,
+      departments: cleanDepartments
+    };
+    */
+  };
+
   const loadUsers = async () => {
     try {
       const allUsers = await getSupabaseUsers();
       
+      // Clean up department data to match current code tables
+      const cleanedUsers = allUsers.map(cleanupUserDepartments);
+      
       // Filter users based on current user's role and country access
-      let filteredUsers = allUsers;
+      let filteredUsers = cleanedUsers;
       
       if (currentUser?.role === 'it' && currentUser.selectedCountry) {
         // IT can only see users from their assigned country
-        filteredUsers = allUsers.filter(user => 
+        filteredUsers = cleanedUsers.filter(user => 
           (user.countries && user.countries.includes(currentUser.selectedCountry!)) || user.role === 'admin'
         );
       } else if (currentUser?.role === 'admin') {
         // Admin can see all users
-        filteredUsers = allUsers;
+        filteredUsers = cleanedUsers;
       }
       
       // Apply country filter if selected
@@ -208,7 +290,7 @@ const UserManagement: React.FC = () => {
       password: '', // Clear password field to indicate it's optional
       name: user.name,
       role: user.role,
-      departments: user.departments || [],
+      departments: migrateDepartmentsToCountrySpecific(user.departments || [], user.countries || []),
       countries: user.countries || [],
       email: user.email || '',
       enabled: user.enabled !== undefined ? user.enabled : true
@@ -283,13 +365,28 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    const userToDelete = users.find(u => u.id === userId);
-    const confirmMessage = `Are you sure you want to delete user "${userToDelete?.name}" (${userToDelete?.username})?\n\nThis action cannot be undone.`;
+  const handleDeleteUser = (userId: string) => {
+    // Validate permission before proceeding
+    if (!canDeleteUsers) {
+      setError('You do not have permission to delete users');
+      return;
+    }
     
-    if (window.confirm(confirmMessage)) {
+    const userToDelete = users.find(u => u.id === userId);
+    if (userToDelete) {
+      setConfirmModal({
+        isOpen: true,
+        type: 'delete',
+        user: userToDelete
+      });
+    }
+  };
+
+  const confirmDeleteUser = async () => {
+    const userToDelete = confirmModal.user;
+    if (userToDelete) {
       try {
-        const success = await deleteSupabaseUser(userId);
+        const success = await deleteSupabaseUser(userToDelete.id);
         if (success) {
           loadUsers();
           
@@ -321,20 +418,39 @@ const UserManagement: React.FC = () => {
         console.error('Error deleting user:', error);
         showError('Delete Failed', 'Failed to delete user. Please try again.');
       }
+      // Close modal after operation
+      setConfirmModal({ isOpen: false, type: null, user: null });
     }
   };
 
-  const handleToggleUserStatus = async (userId: string, currentStatus: boolean) => {
+  const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
+    // Validate permission before proceeding
+    if (!canEnableDisableUsers) {
+      setError('You do not have permission to enable/disable users');
+      return;
+    }
+    
     const userToToggle = users.find(u => u.id === userId);
     if (!userToToggle) return;
     
     const newStatus = !currentStatus;
-    const action = newStatus ? 'enabled' : 'disabled';
-    const confirmMessage = `Are you sure you want to ${newStatus ? 'enable' : 'disable'} user "${userToToggle.name}" (${userToToggle.username})?\n\nThis will ${newStatus ? 'allow' : 'prevent'} them from logging into the system.`;
     
-    if (window.confirm(confirmMessage)) {
+    setConfirmModal({
+      isOpen: true,
+      type: newStatus ? 'enable' : 'disable',
+      user: userToToggle
+    });
+  };
+
+  const confirmToggleUserStatus = async () => {
+    const userToToggle = confirmModal.user;
+    if (userToToggle && confirmModal.type) {
+      const newStatus = confirmModal.type === 'enable';
+      const currentStatus = !newStatus; // Previous status is opposite of new status
+      const action = newStatus ? 'enabled' : 'disabled';
+      
       try {
-        const success = await toggleUserEnabled(userId, newStatus);
+        const success = await toggleUserEnabled(userToToggle.id, newStatus);
         if (success) {
           loadUsers();
           
@@ -371,12 +487,25 @@ const UserManagement: React.FC = () => {
         console.error('Error updating user status:', error);
         showError('Update Failed', 'Failed to update user status. Please try again.');
       }
+      // Close modal after operation
+      setConfirmModal({ isOpen: false, type: null, user: null });
     }
   };
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate permissions before proceeding
+    if (!editingUser && !canCreateUsers) {
+      setError('You do not have permission to create users');
+      return;
+    }
+    
+    if (editingUser && !canEditUsers) {
+      setError('You do not have permission to edit users');
+      return;
+    }
 
     // For new users, require username, password, and name
     // For existing users, only require username and name (password is optional)
@@ -457,7 +586,16 @@ const UserManagement: React.FC = () => {
         }
       } else {
         // Add new user
-        const createdUser = await addSupabaseUser(newUser);
+        // For admin users created by admin, assign all countries and no departments
+        const userDataToSave = currentUser?.role === 'admin' && newUser.role === 'admin' 
+          ? { 
+              ...newUser, 
+              countries: availableCountries, 
+              departments: [] // Admin users don't need department restrictions
+            }
+          : newUser;
+          
+        const createdUser = await addSupabaseUser(userDataToSave);
         if (createdUser) {
           loadUsers();
           
@@ -468,9 +606,9 @@ const UserManagement: React.FC = () => {
                 currentUser.name,
                 currentUser.id,
                 currentUser.role,
-                newUser.name,
-                newUser.role,
-                newUser.countries
+                userDataToSave.name,
+                userDataToSave.role,
+                userDataToSave.countries
               );
             }
           } catch (auditError) {
@@ -478,10 +616,10 @@ const UserManagement: React.FC = () => {
           }
           
           playSound.success();
-          showSuccess('User Created', `Welcome ${newUser.name}! New user account has been created successfully.`);
+          showSuccess('User Created', `Welcome ${userDataToSave.name}! New user account has been created successfully.`);
           addNotification({
             title: 'New User Account Created',
-            message: `${newUser.name} (${newUser.username}) has been added to the system with ${newUser.role} role.`,
+            message: `${userDataToSave.name} (${userDataToSave.username}) has been added to the system with ${userDataToSave.role} role.`,
             type: 'success'
           });
         } else {
@@ -568,12 +706,41 @@ const UserManagement: React.FC = () => {
 
   const getCurrentPageUsers = () => {
     const filteredUsers = getFilteredUsers();
-    // Show minimum 5 users, but allow scrolling if more
-    return filteredUsers;
+    const indexOfLastUser = currentPage * usersPerPage;
+    const indexOfFirstUser = indexOfLastUser - usersPerPage;
+    return filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
   };
+
+  // Calculate pagination info
+  const totalUsers = getFilteredUsers().length;
+  const totalPages = Math.ceil(totalUsers / usersPerPage);
+
 
   // Removed totalUsers as it's no longer displayed in table footer
   
+  // Helper function to group departments by country for popup display
+  const groupDepartmentsByCountry = (formattedDepartments: string[]): { [country: string]: string[] } => {
+    const grouped: { [country: string]: string[] } = {};
+    
+    formattedDepartments.forEach(dept => {
+      if (dept.includes(' - ')) {
+        const [country, departmentName] = dept.split(' - ');
+        if (!grouped[country]) {
+          grouped[country] = [];
+        }
+        grouped[country].push(departmentName);
+      } else {
+        // Fallback for departments without country prefix
+        if (!grouped['Unknown']) {
+          grouped['Unknown'] = [];
+        }
+        grouped['Unknown'].push(dept);
+      }
+    });
+    
+    return grouped;
+  };
+
   // Open popup to show all departments or countries
   const handleShowMore = (type: 'departments' | 'countries', items: string[], userName: string) => {
     setPopupData({
@@ -595,18 +762,28 @@ const UserManagement: React.FC = () => {
   };
 
   return (
-    <div className="user-management">
+    <div className="user-management-container">
+      {/* Modern Header with Stats */}
       <div className="user-management-header">
-        <h2>User Access Matrix</h2>
-        <div className="admin-panel-buttons">
-          {activeTab === 'users' && canCreateUsers && (
-            <button
-              onClick={() => showAddUser ? handleCancelEdit() : setShowAddUser(true)}
-              className="btn btn-primary btn-md add-user-button"
-            >
-              {showAddUser ? 'Cancel' : 'Add New User'}
-            </button>
-          )}
+        <div className="header-content">
+          <div className="header-title">
+            <div className="header-icon">👥</div>
+            <h1>User Management</h1>
+          </div>
+          <div className="header-stats">
+            <div className="stat-card">
+              <span className="stat-number">{users.length}</span>
+              <span className="stat-label">Total Users</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-number">{users.filter(u => u.enabled).length}</span>
+              <span className="stat-label">Active</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-number">{users.filter(u => !u.enabled).length}</span>
+              <span className="stat-label">Disabled</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -619,7 +796,7 @@ const UserManagement: React.FC = () => {
           </div>
           <div className="country-filter-dropdown">
             <SearchableDropdown
-              options={['All Countries', ...(currentUser?.countries || [])]}
+              options={['All Countries', ...(currentUser?.role === 'admin' ? availableCountries : (currentUser?.countries || []))]}
               value={selectedCountryFilter || 'All Countries'}
               onChange={(value) => setSelectedCountryFilter(value === 'All Countries' ? '' : value)}
               placeholder="Select country to filter users..."
@@ -629,19 +806,19 @@ const UserManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Tab Navigation */}
-      <div className="tab-navigation">
+      {/* Modern Tab Navigation */}
+      <div className="user-management-tabs">
         <button
           className={`tab-button ${activeTab === 'users' ? 'active' : ''}`}
           onClick={() => setActiveTab('users')}
         >
-          👥 User Management
+          <span>👥 User Management</span>
         </button>
         <button
           className={`tab-button ${activeTab === 'roles' ? 'active' : ''}`}
           onClick={() => setActiveTab('roles')}
         >
-          🎭 Role Management
+          <span>🎭 Role Management</span>
         </button>
       </div>
 
@@ -649,15 +826,21 @@ const UserManagement: React.FC = () => {
       {activeTab === 'users' && (
         <div className="tab-content">
           {showAddUser && (
-            <div className="add-user-form" ref={addUserFormRef}>
-              <h3>{editingUser ? 'Edit User' : 'Add New User'}</h3>
+            <div className="modal-overlay" onClick={handleCancelEdit}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()} ref={addUserFormRef}>
+                <div className="modal-header">
+                  <h2 className="modal-title">{editingUser ? 'Edit User' : 'Add New User'}</h2>
+                  <button className="close-btn" onClick={handleCancelEdit}>✕</button>
+                </div>
               <form onSubmit={handleAddUser}>
+                <div className="modal-body">
                 <div className="form-row">
                   <div className="form-group">
-                    <label htmlFor="newUsername" className="required">Username</label>
+                    <label htmlFor="newUsername" className="form-label">Username *</label>
                     <input
                       type="text"
                       id="newUsername"
+                      className="form-input"
                       value={newUser.username}
                       onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
                       required
@@ -727,7 +910,8 @@ const UserManagement: React.FC = () => {
                     />
                   </div>
 
-                  {canEditCountries && (
+                  {/* Only show countries field for non-admin users AND when current user has edit-countries permission */}
+                  {newUser.role !== 'admin' && canEditCountries && (
                     <div className="form-group">
                       <MultiSelectDropdown
                         id="newCountries"
@@ -779,40 +963,60 @@ const UserManagement: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Departments - Now as the last field, full width */}
-                <div className="form-row">
-                  <div className="form-group form-group-full">
-                    <label>Departments</label>
-                    <p className="form-helper-text departments-hint">
-                      Select departments for the assigned countries. Departments are organised by country.
-                    </p>
-                    <CountryGroupedDepartments
-                      selectedDepartments={newUser.departments}
-                      onChange={(departments) => {
-                        // CountryGroupedDepartments always sends country-specific format, no migration needed
-                        setNewUser(prev => ({ ...prev, departments }));
-                      }}
-                      userCountries={newUser.countries}
-                      compact={true}
-                    />
+                {/* Only show departments field for non-admin users AND when current user has edit-countries permission */}
+                {newUser.role !== 'admin' && canEditCountries && (
+                  <div className="form-row">
+                    <div className="form-group form-group-full">
+                      <label>Departments</label>
+                      <p className="form-helper-text departments-hint">
+                        Select departments for the assigned countries. Departments are organised by country.
+                      </p>
+                      <CountryGroupedDepartments
+                        selectedDepartments={newUser.departments}
+                        onChange={(departments) => {
+                          // CountryGroupedDepartments always sends country-specific format, no migration needed
+                          setNewUser(prev => ({ ...prev, departments }));
+                        }}
+                        userCountries={newUser.countries}
+                        compact={true}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
+                
+                {/* Show message when user cannot edit countries/departments */}
+                {newUser.role !== 'admin' && !canEditCountries && (
+                  <div className="form-row">
+                    <div className="form-group form-group-full">
+                      <div className="permission-warning">
+                        <div className="warning-icon">⚠️</div>
+                        <div className="warning-content">
+                          <h4>Limited Access</h4>
+                          <p>You don't have permission to assign countries and departments to users.</p>
+                          <p>Contact an administrator to modify user country and department assignments.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {error && <div className="error-message">{error}</div>}
 
-                <div className="form-actions">
+                </div>
+                <div className="form-actions" style={{padding: '1.5rem 2rem', borderTop: '2px solid #f1f5f9', flexShrink: 0}}>
                   <button
                     type="button"
                     onClick={handleCancelEdit}
-                    className="btn btn-outline-secondary btn-lg cancel-button"
+                    className="btn-secondary"
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary btn-lg submit-button">
+                  <button type="submit" className="btn-primary">
                     {editingUser ? 'Update User' : 'Add User'}
                   </button>
                 </div>
               </form>
+              </div>
             </div>
           )}
 
@@ -978,140 +1182,234 @@ const UserManagement: React.FC = () => {
             )}
           </div>
 
-          <div className="users-table">
-            <div className="users-table-header">
-              <h3>Existing Users ({getFilteredUsers().length})</h3>
+          {/* Users Section with Modern Cards */}
+          <div className="users-section">
+            <div className="users-header">
+              <h2 className="users-title">Team Members ({getFilteredUsers().length})</h2>
+              <div className="users-actions">
+                {canCreateUsers && (
+                  <button
+                    onClick={() => showAddUser ? handleCancelEdit() : setShowAddUser(true)}
+                    className="add-user-btn"
+                  >
+                    <span>👤</span>
+                    {showAddUser ? 'Cancel' : 'Add New User'}
+                  </button>
+                )}
+              </div>
             </div>
             
-            <table>
-              <thead>
-                <tr>
-                  <th>Username</th>
-                  <th>Full Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Department</th>
-                  <th>Countries</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {getCurrentPageUsers().map(user => {
-                  const userEnabled = user.enabled !== undefined ? user.enabled : true;
-                  return (
-                    <tr key={user.id} className={!userEnabled ? 'user-disabled' : ''}>
-                      <td>{user.username}</td>
-                      <td>{user.name}</td>
-                      <td>{user.email || 'N/A'}</td>
-                      <td>
-                        <span className={`badge badge-role badge-role-${user.role}`}>
-                          {user.role.replace(/-/g, ' ').toUpperCase()}
+            {/* Users Grid */}
+            <div className="users-grid">
+              {getCurrentPageUsers().map(user => {
+                const userEnabled = user.enabled !== undefined ? user.enabled : true;
+                return (
+                  <div key={user.id} className="user-card">
+                    <div className="user-card-header">
+                      <div className="user-info">
+                        <h3 className="user-name">{user.name}</h3>
+                        <p className="user-username">@{user.username}</p>
+                      </div>
+                      <div className="user-status">
+                        <div className={`status-indicator ${userEnabled ? 'enabled' : 'disabled'}`}></div>
+                        <span className={`status-text ${userEnabled ? 'enabled' : 'disabled'}`}>
+                          {userEnabled ? 'Active' : 'Disabled'}
                         </span>
-                      </td>
-                      <td className="department-column">
-                        <div className="badge-container-vertical">
-                          {user.departments && user.departments.length > 0 ? (
-                            <>
-                              <div className="badge-grid">
-                                {user.departments.slice(0, 4).map((dept, index) => (
-                                  <span key={index} className="badge badge-department" title={dept}>
-                                    {dept}
-                                  </span>
-                                ))}
-                              </div>
-                              {user.departments.length > 4 && (
-                                <button
-                                  className="badge badge-expandable"
-                                  onClick={() => handleShowMore('departments', user.departments!, user.name)}
-                                  title="Show all departments"
-                                >
-                                  +{user.departments.length - 4} more
-                                </button>
-                              )}
-                            </>
-                          ) : (
-                            <span className="text-muted">No departments</span>
-                          )}
+                      </div>
+                    </div>
+                    
+                    <div className="user-details">
+                      <div className="user-role">
+                        <div className="role-icon"></div>
+                        {user.role.replace(/-/g, ' ').toUpperCase()}
+                      </div>
+                      
+                      {user.email && (
+                        <div className="user-email">
+                          <span>✉️</span>
+                          {user.email}
                         </div>
-                      </td>
-                      <td className="countries-column">
-                        <div className="badge-container-vertical">
-                          {user.countries && user.countries.length > 0 ? (
-                            <>
-                              <div className="badge-grid">
-                                {user.countries.slice(0, 4).map((country, index) => (
-                                  <span key={index} className="badge badge-country" title={country}>
-                                    {country}
-                                  </span>
-                                ))}
-                              </div>
-                              {user.countries.length > 4 && (
-                                <button
-                                  className="badge badge-expandable"
-                                  onClick={() => handleShowMore('countries', user.countries!, user.name)}
-                                  title="Show all countries"
-                                >
-                                  +{user.countries.length - 4} more
-                                </button>
+                      )}
+                      
+                      {/* Only show assignments for non-admin users */}
+                      {user.role !== 'admin' && (
+                        <div className="user-assignments">
+                          {/* Countries */}
+                          <div className="assignment-row">
+                            <span className="assignment-label">Countries:</span>
+                            <div className="assignment-value">
+                              {user.countries && user.countries.length > 0 ? (
+                                <div className="badge-container">
+                                  {user.countries.slice(0, 2).map((country, index) => (
+                                    <span key={index} className="assignment-badge country">
+                                      {country}
+                                    </span>
+                                  ))}
+                                  {user.countries.length > 2 && (
+                                    <span 
+                                      className="assignment-badge badge-more"
+                                      onClick={() => handleShowMore('countries', user.countries!, user.name)}
+                                      title="Show all countries"
+                                    >
+                                      +{user.countries.length - 2} more
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span style={{color: '#9ca3af', fontSize: '0.8rem'}}>No countries</span>
                               )}
-                            </>
-                          ) : (
-                            <span className="text-muted">No countries</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`user-status ${userEnabled ? 'enabled' : 'disabled'}`}>
-                          {userEnabled ? 'Enabled' : 'Disabled'}
-                        </span>
-                      </td>
-                      <td>
-                        {user.username !== 'Admin' && (
-                          <div className="user-actions vertical">
-                            {canEditUsers && (
-                              <button 
-                                className="btn btn-outline-secondary btn-sm" 
-                                onClick={() => handleEditUser(user)}
-                              >
-                                Edit
-                              </button>
-                            )}
-                            {canResetPassword && (
-                              <button 
-                                className="btn btn-outline-warning btn-sm" 
-                                onClick={() => handleResetPassword(user)}
-                                title="Reset Pass"
-                                style={{ padding: '4px 8px', minWidth: '90px' }}
-                              >
-                                Reset Pass
-                              </button>
-                            )}
-                            {canEnableDisableUsers && (
-                              <button 
-                                className={`btn btn-sm ${userEnabled ? 'btn-warning' : 'btn-success'}`}
-                                onClick={() => handleToggleUserStatus(user.id, userEnabled)}
-                                title={userEnabled ? 'Disable User' : 'Enable User'}
-                              >
-                                {userEnabled ? 'Disable' : 'Enable'}
-                              </button>
-                            )}
-                            {canDeleteUsers && (
-                              <button 
-                                className="btn btn-danger btn-sm"
-                                onClick={() => handleDeleteUser(user.id)}
-                              >
-                                Delete
-                              </button>
-                            )}
+                            </div>
                           </div>
+                          
+                          {/* Departments */}
+                          <div className="assignment-row">
+                            <span className="assignment-label">Departments:</span>
+                            <div className="assignment-value">
+                              {user.departments && user.departments.length > 0 ? (
+                                <div className="badge-container">
+                                  {formatDepartmentsWithCountry(user.departments, user.countries || []).slice(0, 1).map((dept, index) => (
+                                    <span 
+                                      key={index} 
+                                      className={`assignment-badge ${!(user.countries && user.countries.length > 0) ? 'badge-warning' : ''}`}
+                                      title={!(user.countries && user.countries.length > 0) ? 'Department without country assigned' : dept}
+                                    >
+                                      {!(user.countries && user.countries.length > 0) && '⚠️ '}{dept}
+                                    </span>
+                                  ))}
+                                  {user.departments.length > 1 && (
+                                    <span 
+                                      className="assignment-badge badge-more"
+                                      onClick={() => handleShowMore('departments', formatDepartmentsWithCountry(user.departments!, user.countries || []), user.name)}
+                                      title="Show all departments"
+                                    >
+                                      +{user.departments.length - 1} more
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span style={{color: '#9ca3af', fontSize: '0.8rem'}}>No departments</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Show global access indicator for admin users */}
+                      {user.role === 'admin' && (
+                        <div className="admin-access-indicator">
+                          <div className="assignment-row">
+                            <span className="assignment-label">Access Level:</span>
+                            <div className="assignment-value">
+                              <span className="assignment-badge admin-badge">
+                                🌍 Global Access - All Countries & Departments
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* User Actions */}
+                    {user.username !== 'Admin' && (
+                      <div className="user-actions">
+                        {canEditUsers && (
+                          <button 
+                            className="action-btn edit" 
+                            onClick={() => handleEditUser(user)}
+                            title="Edit User"
+                          >
+                            <span>✏️<br/>Edit</span>
+                          </button>
                         )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        {canResetPassword && (
+                          <button 
+                            className="action-btn reset" 
+                            onClick={() => handleResetPassword(user)}
+                            title="Reset Password"
+                          >
+                            <span>🔑<br/>Reset</span>
+                          </button>
+                        )}
+                        {canEnableDisableUsers && (
+                          <button 
+                            className="action-btn toggle"
+                            onClick={() => handleToggleUserStatus(user.id, userEnabled)}
+                            title={userEnabled ? 'Disable User' : 'Enable User'}
+                          >
+                            <span>{userEnabled ? '🔒' : '🔓'}<br/>{userEnabled ? 'Disable' : 'Enable'}</span>
+                          </button>
+                        )}
+                        {canDeleteUsers && (
+                          <button 
+                            className="action-btn delete"
+                            onClick={() => handleDeleteUser(user.id)}
+                            title="Delete User"
+                          >
+                            <span>🗑️<br/>Delete</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="pagination-container">
+                <div className="pagination-info">
+                  Showing {((currentPage - 1) * usersPerPage) + 1} to {Math.min(currentPage * usersPerPage, totalUsers)} of {totalUsers} users
+                </div>
+                <div className="pagination-controls">
+                  <button
+                    className="pagination-btn prev"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    title="Previous page"
+                  >
+                    ← Previous
+                  </button>
+                  
+                  <div className="pagination-pages">
+                    {[...Array(totalPages)].map((_, index) => {
+                      const pageNumber = index + 1;
+                      // Show first, last, current, and adjacent pages
+                      const showPage = pageNumber === 1 || 
+                                     pageNumber === totalPages || 
+                                     (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1);
+                      
+                      if (!showPage && pageNumber === 2 && currentPage > 3) {
+                        return <span key={pageNumber} className="pagination-ellipsis">...</span>;
+                      }
+                      if (!showPage && pageNumber === totalPages - 1 && currentPage < totalPages - 2) {
+                        return <span key={pageNumber} className="pagination-ellipsis">...</span>;
+                      }
+                      if (!showPage) return null;
+                      
+                      return (
+                        <button
+                          key={pageNumber}
+                          className={`pagination-btn page ${pageNumber === currentPage ? 'active' : ''}`}
+                          onClick={() => setCurrentPage(pageNumber)}
+                        >
+                          {pageNumber}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  <button
+                    className="pagination-btn next"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    title="Next page"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1135,17 +1433,47 @@ const UserManagement: React.FC = () => {
               </button>
             </div>
             <div className="popup-body">
-              <div className="popup-badge-grid">
-                {popupData.items.map((item, index) => (
-                  <span 
-                    key={index} 
-                    className={`badge ${popupData.type === 'departments' ? 'badge-department' : 'badge-country'}`}
-                    title={item}
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
+              {popupData.type === 'departments' ? (
+                // Group departments by country
+                Object.entries(groupDepartmentsByCountry(popupData.items)).map(([country, departments]) => (
+                  <div key={country} style={{ marginBottom: '1.5rem' }}>
+                    <h4 style={{ 
+                      color: 'var(--primary-color)', 
+                      fontSize: '1.1rem', 
+                      fontWeight: '700', 
+                      marginBottom: '0.75rem',
+                      borderBottom: '2px solid #e0f7f7',
+                      paddingBottom: '0.5rem'
+                    }}>
+                      {country}
+                    </h4>
+                    <div className="popup-badge-grid">
+                      {departments.map((dept, index) => (
+                        <span 
+                          key={index} 
+                          className="badge badge-department"
+                          title={dept}
+                        >
+                          {dept}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                // Regular display for countries
+                <div className="popup-badge-grid">
+                  {popupData.items.map((item, index) => (
+                    <span 
+                      key={index} 
+                      className="badge badge-country"
+                      title={item}
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="popup-footer">
               <p className="popup-info">Press ESC or click outside to close</p>
@@ -1156,26 +1484,25 @@ const UserManagement: React.FC = () => {
 
       {/* Reset Password Modal */}
       {showResetPasswordModal && resetPasswordUser && (
-        <div className="user-management-modal">
-          <div className="modal-overlay" onClick={() => setShowResetPasswordModal(false)}>
-            <div 
-              className="modal-content reset-password-modal" 
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  setShowResetPasswordModal(false);
-                }
-              }}
-              tabIndex={-1}
-            >
-              <div className="modal-header">
-                <h3>🔑 Reset Password</h3>
-                <button 
-                  className="modal-close" 
-                  onClick={() => setShowResetPasswordModal(false)}
-                  aria-label="Close modal"
-                >
-                  ×
+        <div className="modal-overlay" onClick={() => setShowResetPasswordModal(false)}>
+          <div 
+            className="modal-content reset-password-modal" 
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setShowResetPasswordModal(false);
+              }
+            }}
+            tabIndex={-1}
+          >
+            <div className="modal-header">
+              <h2 className="modal-title">🔑 Reset Password</h2>
+              <button 
+                className="close-btn" 
+                onClick={() => setShowResetPasswordModal(false)}
+                aria-label="Close modal"
+              >
+                ✕
                 </button>
               </div>
               <div className="modal-body">
@@ -1223,8 +1550,42 @@ const UserManagement: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
       )}
+
+      {/* Confirmation Modal for Delete/Disable/Enable actions */}
+      <CustomModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, type: null, user: null })}
+        title={
+          confirmModal.type === 'delete' ? '🗑️ Delete User' :
+          confirmModal.type === 'disable' ? '❌ Disable User' :
+          confirmModal.type === 'enable' ? '✅ Enable User' : ''
+        }
+        message={
+          confirmModal.type === 'delete' 
+            ? `Are you sure you want to delete user "${confirmModal.user?.name}" (${confirmModal.user?.username})?\n\nThis action cannot be undone and will permanently remove all user data.`
+            : confirmModal.type === 'disable'
+            ? `Are you sure you want to disable user "${confirmModal.user?.name}" (${confirmModal.user?.username})?\n\nThis will prevent them from logging into the system.`
+            : confirmModal.type === 'enable'
+            ? `Are you sure you want to enable user "${confirmModal.user?.name}" (${confirmModal.user?.username})?\n\nThis will allow them to log into the system.`
+            : ''
+        }
+        type={confirmModal.type === 'delete' ? 'warning' : 'confirm'}
+        actions={[
+          {
+            label: 'Cancel',
+            onClick: () => setConfirmModal({ isOpen: false, type: null, user: null }),
+            style: 'secondary'
+          },
+          {
+            label: confirmModal.type === 'delete' ? 'Delete User' : 
+                   confirmModal.type === 'disable' ? 'Disable User' : 
+                   confirmModal.type === 'enable' ? 'Enable User' : 'Confirm',
+            onClick: confirmModal.type === 'delete' ? confirmDeleteUser : confirmToggleUserStatus,
+            style: confirmModal.type === 'delete' ? 'danger' : 'primary'
+          }
+        ]}
+      />
 
     </div>
   );

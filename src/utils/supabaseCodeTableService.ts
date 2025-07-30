@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { normalizeCountry } from './countryUtils';
 
 // Interface matching the database structure
 export interface SupabaseCodeTableItem {
@@ -21,132 +22,88 @@ export interface CodeTable {
 }
 
 /**
- * Helper function to get country code from country name
+ * Helper function to normalize country names for database operations
+ * Always returns 'Global' for global tables or the normalized country name
  */
-const getCountryCode = (country: string): string => {
-  const countryMap: { [key: string]: string } = {
-    'Singapore': 'SG',
-    'Malaysia': 'MY',
-    'Philippines': 'PH',
-    'Indonesia': 'ID',
-    'Vietnam': 'VN',
-    'Hong Kong': 'HK',
-    'Thailand': 'TH'
-  };
-  return countryMap[country] || (country.length <= 3 ? country : 'GLB');
+const normalizeCountryForDB = (country?: string): string => {
+  if (!country) return 'Global';
+  // Use the imported normalizeCountry function for consistency
+  return normalizeCountry(country);
 };
 
 /**
- * Get code tables from Supabase and transform to frontend format
+ * Get code tables from Supabase database
+ * Now uses the real code_tables table that was created
  */
 export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable[]> => {
   try {
+    const normalizedCountry = country ? normalizeCountryForDB(country) : null;
+    
+    // Query the actual code_tables table
     let query = supabase
       .from('code_tables')
       .select('*')
       .eq('is_active', true)
       .order('table_type, display_name');
-
-    // If country is specified, filter by country
-    if (country) {
-      query = query.eq('country', getCountryCode(country));
+    
+    // Filter by country if specified, or get global data
+    if (normalizedCountry) {
+      query = query.in('country', ['Global', normalizedCountry]);
     } else {
-      // For global tables, get records where country is 'GLB'
-      query = query.eq('country', 'GLB');
+      query = query.eq('country', 'Global');
     }
-
-    const { data, error } = await query;
-
+    
+    const { data: codeTableData, error } = await query;
+    
     if (error) {
-      console.error('Error fetching code tables from Supabase:', error);
+      console.error('❌ Error fetching code tables:', error);
       throw error;
     }
-
-    if (!data) return [];
-
-    // If no global tables exist, initialize them
-    if (!country && data.length === 0) {
-      console.log('No global tables found, initializing default global tables...');
-      await initializeDefaultGlobalTables();
-      
-      // Re-fetch after initialization
-      const { data: newData, error: newError } = await query;
-      if (newError) {
-        console.error('Error fetching code tables after initialization:', newError);
-        throw newError;
-      }
-      return transformCodeTableData(newData || []);
+    
+    if (!codeTableData || codeTableData.length === 0) {
+      console.warn('⚠️ No code table data found');
+      return [];
     }
-
-    return transformCodeTableData(data);
+    
+    // Group by table_type and transform to CodeTable format
+    const grouped: Record<string, SupabaseCodeTableItem[]> = {};
+    codeTableData.forEach(item => {
+      if (!grouped[item.table_type]) {
+        grouped[item.table_type] = [];
+      }
+      grouped[item.table_type].push(item);
+    });
+    
+    // Transform to CodeTable format
+    const tables: CodeTable[] = Object.entries(grouped).map(([tableType, items]) => ({
+      id: tableType,
+      name: getTableDisplayName(tableType),
+      description: getTableDescription(tableType),
+      items: items.map(item => item.display_name).sort()
+    }));
+    
+    console.log(`✅ Successfully loaded ${tables.length} code tables from database for ${normalizedCountry || 'global'}`);
+    return tables;
+    
   } catch (error) {
-    console.error('Error in getSupabaseCodeTables:', error);
-    throw error;
-  }
-};
-
-/**
- * Transform raw Supabase data to CodeTable format
- */
-const transformCodeTableData = (data: SupabaseCodeTableItem[]): CodeTable[] => {
-  // Group by table_type and transform to CodeTable format
-  const grouped: Record<string, SupabaseCodeTableItem[]> = {};
-  data.forEach(item => {
-    if (!grouped[item.table_type]) {
-      grouped[item.table_type] = [];
-    }
-    grouped[item.table_type].push(item);
-  });
-
-  // Transform to CodeTable format
-  const codeTables: CodeTable[] = Object.entries(grouped).map(([tableType, items]) => ({
-    id: tableType,
-    name: getTableDisplayName(tableType),
-    description: getTableDescription(tableType),
-    items: items.map(item => item.display_name).sort()
-  }));
-
-  return codeTables;
-};
-
-/**
- * Initialize default global tables if they don't exist
- */
-const initializeDefaultGlobalTables = async (): Promise<void> => {
-  try {
-    // Default countries
-    const defaultCountries = [
-      'Singapore', 'Malaysia', 'Philippines', 'Indonesia', 
-      'Vietnam', 'Hong Kong', 'Thailand', 'Global'
-    ];
+    console.error('❌ Error in getSupabaseCodeTables:', error);
     
-    // Default procedure types
-    const defaultProcedureTypes = [
-      'Knee', 'Head', 'Hip', 'Hands', 'Neck', 'Spine'
-    ];
-    
-    // Insert countries
-    for (const country of defaultCountries) {
-      try {
-        await addSupabaseCodeTableItem('countries', country);
-      } catch (error) {
-        console.error(`Error adding country ${country}:`, error);
+    // Fallback to minimal static data only if database fails
+    console.warn('⚠️ Using fallback data due to database error');
+    return [
+      {
+        id: 'countries',
+        name: 'Countries',
+        description: 'List of available countries', 
+        items: ['Singapore', 'Malaysia', 'Philippines', 'Indonesia', 'Vietnam', 'Hong Kong', 'Thailand']
+      },
+      {
+        id: 'departments',
+        name: 'Departments',
+        description: 'List of medical departments',
+        items: ['Cardiology', 'Orthopedics', 'Neurosurgery', 'Oncology', 'Emergency', 'Radiology']
       }
-    }
-    
-    // Insert procedure types
-    for (const procedureType of defaultProcedureTypes) {
-      try {
-        await addSupabaseCodeTableItem('procedure_types', procedureType);
-      } catch (error) {
-        console.error(`Error adding procedure type ${procedureType}:`, error);
-      }
-    }
-    
-    console.log('Default global tables initialized successfully');
-  } catch (error) {
-    console.error('Error initializing default global tables:', error);
-    throw error;
+    ];
   }
 };
 
@@ -158,80 +115,36 @@ export const saveSupabaseCodeTables = async (
   country?: string
 ): Promise<void> => {
   try {
-    for (const codeTable of codeTables) {
-      // Get existing items for this table type and country
-      let query = supabase
-        .from('code_tables')
-        .select('*')
-        .eq('table_type', codeTable.id);
-
-      if (country) {
-        query = query.eq('country', getCountryCode(country));
-      } else {
-        query = query.eq('country', 'GLB');
-      }
-
-      const { data: existingItems, error: fetchError } = await query;
-
-      if (fetchError) {
-        console.error('Error fetching existing items:', fetchError);
-        throw fetchError;
-      }
-
-      const existingItemsMap = new Map(
-        (existingItems || []).map(item => [item.display_name, item])
-      );
-
-      // Determine what needs to be added, updated, or removed
-      const newItems = codeTable.items.filter(item => !existingItemsMap.has(item));
-      const removedItems = Array.from(existingItemsMap.keys()).filter(
-        existingItem => !codeTable.items.includes(existingItem)
-      );
-
-      // Add new items
-      if (newItems.length > 0) {
-        const itemsToInsert = newItems.map(item => {
-          const insertData: any = {
-            table_type: codeTable.id,
-            code: generateCode(item),
-            display_name: item,
-            is_active: true
-          };
-          
-          // Set country appropriately
-          if (country && country !== null && country !== 'null' && country !== '') {
-            insertData.country = getCountryCode(country);
-          } else {
-            insertData.country = 'GLB';
-          }
-          
-          return insertData;
+    const normalizedCountry = normalizeCountryForDB(country);
+    
+    // Convert CodeTable format to database format
+    const itemsToInsert: Omit<SupabaseCodeTableItem, 'id' | 'created_at' | 'updated_at'>[] = [];
+    
+    codeTables.forEach(table => {
+      table.items.forEach(item => {
+        itemsToInsert.push({
+          country: country ? normalizedCountry : 'Global',
+          table_type: table.id,
+          code: item.toLowerCase().replace(/\s+/g, '_'),
+          display_name: item,
+          is_active: true
         });
-
-        const { error: insertError } = await supabase
-          .from('code_tables')
-          .insert(itemsToInsert);
-
-        if (insertError) {
-          console.error('Error inserting new items:', insertError);
-          throw insertError;
-        }
+      });
+    });
+    
+    if (itemsToInsert.length > 0) {
+      const { error } = await supabase
+        .from('code_tables')
+        .upsert(itemsToInsert, {
+          onConflict: 'country,table_type,code'
+        });
+        
+      if (error) {
+        console.error('Error saving code tables:', error);
+        throw error;
       }
-
-      // Mark removed items as inactive
-      if (removedItems.length > 0) {
-        const idsToDeactivate = removedItems.map(item => existingItemsMap.get(item)!.id);
-
-        const { error: updateError } = await supabase
-          .from('code_tables')
-          .update({ is_active: false, updated_at: new Date().toISOString() })
-          .in('id', idsToDeactivate);
-
-        if (updateError) {
-          console.error('Error deactivating items:', updateError);
-          throw updateError;
-        }
-      }
+      
+      console.log(`✅ Successfully saved ${itemsToInsert.length} code table items`);
     }
   } catch (error) {
     console.error('Error in saveSupabaseCodeTables:', error);
@@ -248,68 +161,28 @@ export const addSupabaseCodeTableItem = async (
   country?: string
 ): Promise<boolean> => {
   try {
-    // Check if item already exists
-    let query = supabase
+    const normalizedCountry = normalizeCountryForDB(country);
+    
+    const { error } = await supabase
       .from('code_tables')
-      .select('id')
-      .eq('table_type', tableType)
-      .eq('display_name', item)
-      .eq('is_active', true);
-
-    // For global tables like 'countries', use 'GLB' as country value
-    if (tableType === 'countries') {
-      query = query.eq('country', 'GLB');
-    } else if (country && country !== null && country !== 'null') {
-      query = query.eq('country', country);
-    } else {
-      // For other global tables, use 'GLB' as default
-      query = query.eq('country', 'GLB');
-    }
-
-    const { data: existing, error: checkError } = await query;
-
-    if (checkError) {
-      console.error('Error checking existing item:', checkError);
-      throw checkError;
-    }
-
-    if (existing && existing.length > 0) {
-      // Item already exists
+      .insert({
+        country: country ? normalizedCountry : 'Global',
+        table_type: tableType,
+        code: item.toLowerCase().replace(/\s+/g, '_'),
+        display_name: item,
+        is_active: true
+      });
+      
+    if (error) {
+      console.error('Error adding code table item:', error);
       return false;
     }
-
-    // Insert new item
-    const insertData: any = {
-      table_type: tableType,
-      code: generateCode(item),
-      display_name: item,
-      is_active: true
-    };
     
-    // For global tables like 'countries', set a special value to indicate global
-    if (tableType === 'countries') {
-      insertData.country = 'GLB';
-    } else if (country && country !== null && country !== 'null' && country !== '') {
-      // For country-specific tables, set the country code
-      insertData.country = country;
-    } else {
-      // For other global tables, use 'GLB' as default
-      insertData.country = 'GLB';
-    }
-    
-    const { error: insertError } = await supabase
-      .from('code_tables')
-      .insert(insertData);
-
-    if (insertError) {
-      console.error('Error inserting item:', insertError);
-      throw insertError;
-    }
-
+    console.log(`✅ Successfully added ${item} to ${tableType}`);
     return true;
   } catch (error) {
     console.error('Error in addSupabaseCodeTableItem:', error);
-    throw error;
+    return false;
   }
 };
 
@@ -323,77 +196,29 @@ export const updateSupabaseCodeTableItem = async (
   country?: string
 ): Promise<boolean> => {
   try {
-    // Find the existing item
-    let query = supabase
-      .from('code_tables')
-      .select('id')
-      .eq('table_type', tableType)
-      .eq('display_name', oldItem)
-      .eq('is_active', true);
-
-    if (country) {
-      query = query.eq('country', getCountryCode(country));
-    } else {
-      query = query.eq('country', 'GLB');
-    }
-
-    const { data: existing, error: findError } = await query;
-
-    if (findError) {
-      console.error('Error finding existing item:', findError);
-      throw findError;
-    }
-
-    if (!existing || existing.length === 0) {
-      return false;
-    }
-
-    // Check if new name already exists
-    let checkQuery = supabase
-      .from('code_tables')
-      .select('id')
-      .eq('table_type', tableType)
-      .eq('display_name', newItem)
-      .eq('is_active', true)
-      .neq('id', existing[0].id);
-
-    if (country && country !== null && country !== 'null' && country !== '') {
-      checkQuery = checkQuery.eq('country', country);
-    } else {
-      checkQuery = checkQuery.eq('country', 'GLB');
-    }
-
-    const { data: duplicate, error: checkError } = await checkQuery;
-
-    if (checkError) {
-      console.error('Error checking for duplicates:', checkError);
-      throw checkError;
-    }
-
-    if (duplicate && duplicate.length > 0) {
-      // New name already exists
-      return false;
-    }
-
-    // Update the item
-    const { error: updateError } = await supabase
+    const normalizedCountry = normalizeCountryForDB(country);
+    const oldCode = oldItem.toLowerCase().replace(/\s+/g, '_');
+    
+    const { error } = await supabase
       .from('code_tables')
       .update({
-        display_name: newItem,
-        code: generateCode(newItem),
-        updated_at: new Date().toISOString()
+        code: newItem.toLowerCase().replace(/\s+/g, '_'),
+        display_name: newItem
       })
-      .eq('id', existing[0].id);
-
-    if (updateError) {
-      console.error('Error updating item:', updateError);
-      throw updateError;
+      .eq('country', country ? normalizedCountry : 'Global')
+      .eq('table_type', tableType)
+      .eq('code', oldCode);
+      
+    if (error) {
+      console.error('Error updating code table item:', error);
+      return false;
     }
-
+    
+    console.log(`✅ Successfully updated ${oldItem} to ${newItem} in ${tableType}`);
     return true;
   } catch (error) {
     console.error('Error in updateSupabaseCodeTableItem:', error);
-    throw error;
+    return false;
   }
 };
 
@@ -406,62 +231,28 @@ export const removeSupabaseCodeTableItem = async (
   country?: string
 ): Promise<boolean> => {
   try {
-    // Find the existing item
-    let query = supabase
+    const normalizedCountry = normalizeCountryForDB(country);
+    const code = item.toLowerCase().replace(/\s+/g, '_');
+    
+    const { error } = await supabase
       .from('code_tables')
-      .select('id')
+      .update({ is_active: false })
+      .eq('country', country ? normalizedCountry : 'Global')
       .eq('table_type', tableType)
-      .eq('display_name', item)
-      .eq('is_active', true);
-
-    if (country) {
-      query = query.eq('country', getCountryCode(country));
-    } else {
-      query = query.eq('country', 'GLB');
-    }
-
-    const { data: existing, error: findError } = await query;
-
-    if (findError) {
-      console.error('Error finding existing item:', findError);
-      throw findError;
-    }
-
-    if (!existing || existing.length === 0) {
+      .eq('code', code);
+      
+    if (error) {
+      console.error('Error removing code table item:', error);
       return false;
     }
-
-    // Mark as inactive
-    const { error: updateError } = await supabase
-      .from('code_tables')
-      .update({
-        is_active: false,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', existing[0].id);
-
-    if (updateError) {
-      console.error('Error deactivating item:', updateError);
-      throw updateError;
-    }
-
+    
+    console.log(`✅ Successfully removed ${item} from ${tableType}`);
     return true;
   } catch (error) {
     console.error('Error in removeSupabaseCodeTableItem:', error);
-    throw error;
+    return false;
   }
 };
-
-/**
- * Helper function to generate a code from display name
- */
-function generateCode(displayName: string): string {
-  return displayName
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_|_$/g, '');
-}
 
 /**
  * Helper function to get display name for table type
@@ -486,44 +277,3 @@ function getTableDescription(tableType: string): string {
   };
   return descriptions[tableType] || `List of ${tableType}`;
 }
-
-/**
- * Seed departments for a specific country
- */
-export const seedDepartmentsForCountry = async (country: string): Promise<void> => {
-  const DEPARTMENTS = [
-    'Cardiology',
-    'Orthopedics', 
-    'Neurosurgery',
-    'Oncology',
-    'Emergency',
-    'Radiology',
-    'General Surgery',
-    'Pediatrics'
-  ];
-  
-  try {
-    console.log(`Seeding departments for ${country}...`);
-    
-    for (const department of DEPARTMENTS) {
-      try {
-        const exists = await supabase
-          .from('code_tables')
-          .select('id')
-          .eq('table_type', 'departments')
-          .eq('display_name', department)
-          .eq('country', getCountryCode(country))
-          .eq('is_active', true);
-          
-        if (!exists.data || exists.data.length === 0) {
-          await addSupabaseCodeTableItem('departments', department, country);
-          console.log(`Added department: ${department} for ${country}`);
-        }
-      } catch (error) {
-        console.error(`Error adding department ${department} for ${country}:`, error);
-      }
-    }
-  } catch (error) {
-    console.error(`Error seeding departments for ${country}:`, error);
-  }
-};

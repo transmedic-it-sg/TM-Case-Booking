@@ -9,13 +9,14 @@ import {
   saveCategorizedSets as saveSupabaseCategorizedSets, 
   migrateCasesFromLocalStorage 
 } from './supabaseCaseService';
+import { normalizeCountry } from './countryUtils';
 
 const CASES_KEY = 'case-booking-cases';
 const CASE_COUNTER_KEY = 'case-booking-counter';
 
-export const generateCaseReferenceNumber = async (country: string = 'SG'): Promise<string> => {
+export const generateCaseReferenceNumber = async (country: string = 'Singapore'): Promise<string> => {
   try {
-    return await generateSupabaseReferenceNumber(country);
+    return await generateSupabaseReferenceNumber(normalizeCountry(country));
   } catch (error) {
     console.error('Error generating Supabase reference number, falling back to localStorage:', error);
     // Fallback to localStorage
@@ -31,8 +32,9 @@ export const generateCaseReferenceNumber = async (country: string = 'SG'): Promi
 export const getCases = async (country?: string): Promise<CaseBooking[]> => {
   try {
     console.log('Loading cases from Supabase...');
+    const normalizedCountry = country ? normalizeCountry(country) : undefined;
     // Try to get cases directly from Supabase
-    const supabaseCases = await getSupabaseCases(country);
+    const supabaseCases = await getSupabaseCases(normalizedCountry);
     
     // If we got cases from Supabase, return them
     if (supabaseCases && supabaseCases.length > 0) {
@@ -141,7 +143,8 @@ export const cleanupDuplicateStatusHistory = async (): Promise<void> => {
           status,
           processed_by,
           timestamp,
-          details
+          details,
+          attachments
         )
       `);
     
@@ -278,7 +281,11 @@ export const filterCases = (cases: CaseBooking[], filters: FilterOptions): CaseB
       return false;
     }
     
-    if (filters.country && caseItem.country !== filters.country) {
+    if (filters.country && normalizeCountry(caseItem.country) !== normalizeCountry(filters.country)) {
+      return false;
+    }
+    
+    if (filters.department && !caseItem.department.toLowerCase().includes(filters.department.toLowerCase())) {
       return false;
     }
     
@@ -333,8 +340,9 @@ const saveCategorizedSetsToLocalStorage = (categorizedSets: CategorizedSets, cou
 export const getCategorizedSets = async (country?: string): Promise<CategorizedSets> => {
   if (country) {
     try {
+      const normalizedCountry = normalizeCountry(country);
       // Try to get from Supabase first
-      const supabaseSets = await getSupabaseCategorizedSets(country);
+      const supabaseSets = await getSupabaseCategorizedSets(normalizedCountry);
       if (Object.keys(supabaseSets).length > 0) {
         // Transform from Supabase format to CategorizedSets format
         const transformedSets: CategorizedSets = {};

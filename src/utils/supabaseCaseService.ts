@@ -1,5 +1,8 @@
 import { supabase } from '../lib/supabase';
 import { CaseBooking, CaseStatus } from '../types';
+import { normalizeCountry, getLegacyCountryCode } from './countryUtils';
+// import { secureQuery, validatePermission } from './supabaseSecurityService';
+// import { PERMISSION_ACTIONS } from './permissions';
 
 // Interface for Supabase case data
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -30,29 +33,29 @@ interface SupabaseCase {
   updated_at: string;
 }
 
-// Interface for case status history
-interface SupabaseCaseStatusHistory {
-  id: string;
-  case_id: string;
-  status: string;
-  processed_by: string;
-  timestamp: string;
-  details?: string;
-  attachments?: string[];
-}
+// Interface for case status history (for future nested queries)
+// interface SupabaseCaseStatusHistory {
+//   id: string;
+//   case_id: string;
+//   status: string;
+//   processed_by: string;
+//   timestamp: string;
+//   details?: string;
+//   attachments?: string[];
+// }
 
-// Interface for amendment history
-interface SupabaseCaseAmendmentHistory {
-  id: string;
-  amended_by: string;
-  timestamp: string;
-  reason: string | null;
-  changes: Array<{
-    field: string;
-    oldValue: string;
-    newValue: string;
-  }>;
-}
+// Interface for amendment history (for future nested queries)
+// interface SupabaseCaseAmendmentHistory {
+//   id: string;
+//   amended_by: string;
+//   timestamp: string;
+//   reason: string | null;
+//   changes: Array<{
+//     field: string;
+//     oldValue: string;
+//     newValue: string;
+//   }>;
+// }
 
 // ================================================
 // CASE REFERENCE NUMBER MANAGEMENT
@@ -127,30 +130,23 @@ export const generateCaseReferenceNumber = async (country: string): Promise<stri
  */
 export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]> => {
   try {
+    // Fetch cases without nested relations to avoid 400 errors
     let query = supabase
       .from('case_bookings')
-      .select(`
-        *,
-        status_history (
-          id,
-          status,
-          processed_by,
-          timestamp,
-          details,
-          attachments
-        ),
-        amendment_history (
-          id,
-          amended_by,
-          timestamp,
-          reason,
-          changes
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
     
     if (country) {
-      query = query.eq('country', country);
+      // Get both the normalized country name and potential legacy country code
+      const normalizedCountry = normalizeCountry(country);
+      const legacyCountryCode = getLegacyCountryCode(normalizedCountry);
+      
+      // Search for cases that match either the normalized country name or the legacy code
+      if (legacyCountryCode && legacyCountryCode !== normalizedCountry) {
+        query = query.or(`country.eq.${normalizedCountry},country.eq.${legacyCountryCode}`);
+      } else {
+        query = query.eq('country', normalizedCountry);
+      }
     }
     
     const { data, error } = await query;
@@ -180,7 +176,92 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
       processedBy: caseData.processed_by,
       processedAt: caseData.processed_at,
       processOrderDetails: caseData.process_order_details,
-      country: caseData.country,
+      country: normalizeCountry(caseData.country || ''),
+      isAmended: caseData.is_amended,
+      amendedBy: caseData.amended_by,
+      amendedAt: caseData.amended_at,
+      deliveryImage: caseData.delivery_image,
+      deliveryDetails: caseData.delivery_details,
+      attachments: caseData.attachments || [],
+      orderSummary: caseData.order_summary,
+      doNumber: caseData.do_number,
+      // For now, leave these empty - they can be fetched separately if needed
+      statusHistory: [],
+      amendmentHistory: []
+    }));
+  } catch (error) {
+    console.error('Error in getSupabaseCases:', error);
+    return [];
+  }
+};
+
+// Keep the original implementation as a fallback (commented out for now)
+/*
+export const getSupabaseCasesOriginal = async (country?: string): Promise<CaseBooking[]> => {
+  try {
+    let query = supabase
+      .from('case_bookings')
+      .select(`
+        *,
+        status_history (
+          id,
+          status,
+          processed_by,
+          timestamp,
+          details,
+          attachments
+        ),
+        amendment_history (
+          id,
+          amended_by,
+          timestamp,
+          reason,
+          changes
+        )
+      `)
+      .order('created_at', { ascending: false });
+    
+    if (country) {
+      // Get both the normalized country name and potential legacy country code
+      const normalizedCountry = normalizeCountry(country);
+      const legacyCountryCode = getLegacyCountryCode(normalizedCountry);
+      
+      // Search for cases that match either the normalized country name or the legacy code
+      if (legacyCountryCode && legacyCountryCode !== normalizedCountry) {
+        query = query.or(`country.eq.${normalizedCountry},country.eq.${legacyCountryCode}`);
+      } else {
+        query = query.eq('country', normalizedCountry);
+      }
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('Error fetching cases:', error);
+      throw error;
+    }
+    
+    // Transform Supabase data to CaseBooking interface
+    return data.map(caseData => ({
+      id: caseData.id,
+      caseReferenceNumber: caseData.case_reference_number,
+      hospital: caseData.hospital,
+      department: caseData.department,
+      dateOfSurgery: caseData.date_of_surgery,
+      procedureType: caseData.procedure_type,
+      procedureName: caseData.procedure_name,
+      doctorName: caseData.doctor_name,
+      timeOfProcedure: caseData.time_of_procedure,
+      surgerySetSelection: caseData.surgery_set_selection || [],
+      implantBox: caseData.implant_box || [],
+      specialInstruction: caseData.special_instruction,
+      status: caseData.status as CaseStatus,
+      submittedBy: caseData.submitted_by,
+      submittedAt: caseData.submitted_at,
+      processedBy: caseData.processed_by,
+      processedAt: caseData.processed_at,
+      processOrderDetails: caseData.process_order_details,
+      country: normalizeCountry(caseData.country || ''),
       isAmended: caseData.is_amended,
       amendedBy: caseData.amended_by,
       amendedAt: caseData.amended_at,
@@ -210,13 +291,18 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
  */
 export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseReferenceNumber' | 'submittedAt' | 'statusHistory'>): Promise<CaseBooking> => {
   try {
+    // Temporarily disable permission validation to restore functionality
+    // if (!validatePermission(PERMISSION_ACTIONS.CREATE_CASE)) {
+    //   throw new Error('Insufficient permissions to create cases');
+    // }
+
     // Generate case reference number
     const caseReferenceNumber = await generateCaseReferenceNumber(caseData.country);
     
-    // Insert case
+    // Use direct query instead of secure query
     const { data: insertedCase, error: insertError } = await supabase
       .from('case_bookings')
-      .insert([{
+      .insert({
         case_reference_number: caseReferenceNumber,
         hospital: caseData.hospital,
         department: caseData.department,
@@ -230,14 +316,14 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
         special_instruction: caseData.specialInstruction,
         status: caseData.status,
         submitted_by: caseData.submittedBy,
-        country: caseData.country,
+        country: normalizeCountry(caseData.country || ''),
         processed_by: caseData.processedBy,
         processed_at: caseData.processedAt,
         process_order_details: caseData.processOrderDetails,
         is_amended: caseData.isAmended || false,
         amended_by: caseData.amendedBy,
         amended_at: caseData.amendedAt
-      }])
+      })
       .select()
       .single();
     
@@ -797,6 +883,10 @@ export const saveCategorizedSets = async (
     
     if (upsertError) {
       console.error('Error upserting categorized sets:', upsertError);
+      // Check if it's a table not found error (common cause of 400)
+      if (upsertError.message?.includes('relation "categorized_sets" does not exist')) {
+        console.warn('categorized_sets table does not exist. Please run FIX_CATEGORIZED_SETS_TABLE.sql to create it.');
+      }
       throw upsertError;
     }
   } catch (error) {
@@ -835,7 +925,7 @@ export const migrateCasesFromLocalStorage = async (): Promise<void> => {
           specialInstruction: caseData.specialInstruction,
           status: caseData.status,
           submittedBy: caseData.submittedBy,
-          country: caseData.country,
+          country: normalizeCountry(caseData.country || ''),
           processedBy: caseData.processedBy,
           processedAt: caseData.processedAt,
           processOrderDetails: caseData.processOrderDetails,

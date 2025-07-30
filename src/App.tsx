@@ -30,6 +30,8 @@ import { ToastProvider, useToast } from './components/ToastContainer';
 import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
 import StatusLegend from './components/StatusLegend';
+// import { SystemHealthMonitor } from './utils/systemHealthMonitor'; // Temporarily disabled
+// import { DataValidationService } from './utils/dataValidationService'; // Unused
 import './assets/components/App.css';
 import './assets/components/CodeTableSetup.css';
 import './assets/components/AuditLogs.css';
@@ -65,6 +67,10 @@ const AppContent: React.FC = () => {
         const currentUser = getCurrentUser();
         if (currentUser) {
           setUser(currentUser);
+
+          // DISABLED: Health monitoring causing infinite loops
+          // TODO: Fix database schema issues before re-enabling
+          console.log('🔍 System health monitoring temporarily disabled');
         }
       } catch (error) {
         console.error('Error during initialization:', error);
@@ -370,15 +376,17 @@ const AppContent: React.FC = () => {
               📝 New Case Booking
             </button>
           )}
-          <button
-            onClick={() => {
-              setActivePage('cases');
-              playSound.click();
-            }}
-            className={activePage === 'cases' ? 'active' : ''}
-          >
-            📋 View All Cases
-          </button>
+          {hasPermission(user.role, PERMISSION_ACTIONS.VIEW_CASES) && (
+            <button
+              onClick={() => {
+                setActivePage('cases');
+                playSound.click();
+              }}
+              className={activePage === 'cases' ? 'active' : ''}
+            >
+              📋 View All Cases
+            </button>
+          )}
           <StatusLegend />
           {hasPermission(user.role, PERMISSION_ACTIONS.BOOKING_CALENDAR) && (
             <button
@@ -440,7 +448,7 @@ const AppContent: React.FC = () => {
           </div>
         )}
         
-        {activePage === 'cases' && (
+        {activePage === 'cases' && hasPermission(user.role, PERMISSION_ACTIONS.VIEW_CASES) && (
           <CasesList 
             onProcessCase={handleProcessCase} 
             currentUser={user} 

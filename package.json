@@ -1,6 +1,6 @@
 {
   "name": "case-booking-app",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "homepage": "/",
   "private": true,
   "dependencies": {
@@ -21,8 +21,8 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "NODE_OPTIONS='--max-old-space-size=8192' react-scripts start",
+    "build": "react-app-rewired build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "typecheck": "npx tsc --noEmit",
@@ -59,6 +59,7 @@
   },
   "devDependencies": {
     "gh-pages": "^6.3.0",
+    "react-app-rewired": "^2.2.1",
     "supabase": "^2.31.4"
   }
 }

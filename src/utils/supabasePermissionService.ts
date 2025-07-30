@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { Permission } from '../components/PermissionMatrix';
-import { permissions as defaultPermissions, getAllPermissions } from '../data/permissionMatrixData';
+import { getAllPermissions } from '../data/permissionMatrixData';
 
 // Create permissions table if it doesn't exist (this should be in your schema)
 export const initializePermissionsTable = async (): Promise<void> => {
@@ -30,25 +30,35 @@ export const getSupabasePermissions = async (): Promise<Permission[]> => {
       .select('*');
     
     if (error) {
-      console.warn('Permissions table not found, using defaults:', error.message);
-      return getAllPermissions();
+      // Check for specific error types
+      if (error.code === '42P01' || error.message.includes('does not exist')) {
+        console.warn('Permissions table does not exist, using defaults');
+        return getAllPermissions();
+      } else if (error.code === '406' || error.message.includes('406')) {
+        console.warn('Database permission denied (406), using defaults');
+        return getAllPermissions();
+      } else {
+        console.warn('Database error, using defaults:', error.message);
+        return getAllPermissions();
+      }
     }
     
     // If no data in table, return defaults including custom roles
     if (!data || data.length === 0) {
-      console.log('No permissions in database, using defaults');
+      console.log('No permissions in database, initializing with defaults');
       return getAllPermissions();
     }
     
     // Transform Supabase data to Permission type
+    // New schema uses: role, resource, action, allowed
     return data.map(perm => ({
-      roleId: perm.role_id,
-      actionId: perm.action_id,
+      roleId: perm.role,
+      actionId: `${perm.resource}-${perm.action}`, // Combine resource and action
       allowed: perm.allowed
     }));
   } catch (error) {
     console.error('Error fetching permissions from Supabase:', error);
-    return defaultPermissions;
+    return getAllPermissions();
   }
 };
 
@@ -59,19 +69,23 @@ export const saveSupabasePermissions = async (permissions: Permission[]): Promis
     const { error: deleteError } = await supabase
       .from('permissions')
       .delete()
-      .neq('id', 'never-matches'); // Delete all rows
+      .gt('id', 0); // Delete all rows using a valid condition
     
     if (deleteError && !deleteError.message.includes('does not exist')) {
       console.error('Error deleting existing permissions:', deleteError);
       return false;
     }
     
-    // Insert new permissions
-    const permissionsData = permissions.map(perm => ({
-      role_id: perm.roleId,
-      action_id: perm.actionId,
-      allowed: perm.allowed
-    }));
+    // Insert new permissions with new schema
+    const permissionsData = permissions.map(perm => {
+      const [resource, action] = perm.actionId.split('-');
+      return {
+        role: perm.roleId,
+        resource: resource,
+        action: action,
+        allowed: perm.allowed
+      };
+    });
     
     const { error: insertError } = await supabase
       .from('permissions')
@@ -97,11 +111,13 @@ export const updateSupabasePermission = async (
 ): Promise<boolean> => {
   try {
     // First check if the permission exists
+    const [resource, action] = actionId.split('-');
     const { data: existing, error: checkError } = await supabase
       .from('permissions')
       .select('id')
-      .eq('role_id', roleId)
-      .eq('action_id', actionId)
+      .eq('role', roleId)
+      .eq('resource', resource)
+      .eq('action', action)
       .single();
     
     if (checkError && checkError.code !== 'PGRST116') {
@@ -114,8 +130,9 @@ export const updateSupabasePermission = async (
       const { error: updateError } = await supabase
         .from('permissions')
         .update({ allowed: allowed })
-        .eq('role_id', roleId)
-        .eq('action_id', actionId);
+        .eq('role', roleId)
+        .eq('resource', resource)
+        .eq('action', action);
       
       if (updateError) {
         console.error('Error updating existing permission:', updateError);
@@ -126,8 +143,9 @@ export const updateSupabasePermission = async (
       const { error: insertError } = await supabase
         .from('permissions')
         .insert({
-          role_id: roleId,
-          action_id: actionId,
+          role: roleId,
+          resource: resource,
+          action: action,
           allowed: allowed
         });
       
@@ -163,11 +181,13 @@ export const hasSupabasePermission = async (roleId: string, actionId: string): P
   }
   
   try {
+    const [resource, action] = actionId.split('-');
     const { data, error } = await supabase
       .from('permissions')
       .select('allowed')
-      .eq('role_id', roleId)
-      .eq('action_id', actionId)
+      .eq('role', roleId)
+      .eq('resource', resource)
+      .eq('action', action)
       .single();
     
     if (error) {
@@ -190,7 +210,7 @@ export const getSupabaseRolePermissions = async (roleId: string): Promise<Permis
     const { data, error } = await supabase
       .from('permissions')
       .select('*')
-      .eq('role_id', roleId)
+      .eq('role', roleId)
       .eq('allowed', true);
     
     if (error) {
@@ -199,8 +219,8 @@ export const getSupabaseRolePermissions = async (roleId: string): Promise<Permis
     }
     
     return data?.map(perm => ({
-      roleId: perm.role_id,
-      actionId: perm.action_id,
+      roleId: perm.role,
+      actionId: `${perm.resource}-${perm.action}`,
       allowed: perm.allowed
     })) || [];
   } catch (error) {

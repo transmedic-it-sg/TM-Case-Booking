@@ -13,6 +13,7 @@ import {
   removeSupabaseCodeTableItem,
   CodeTable
 } from '../utils/supabaseCodeTableService';
+// import { getLegacyCountryCode } from '../utils/countryUtils';
 import {
   categorizeCodeTables,
   getFilteredTablesForUser,
@@ -89,7 +90,10 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
           ? countriesTable.items 
           : [...COUNTRIES];
         
-        setAvailableCountries(countries);
+        // Filter out "Global" as it's not a real country for login
+        const filteredCountries = countries.filter(country => country !== 'Global');
+        
+        setAvailableCountries(filteredCountries);
         
         // Set initial country if not already set
         if (!selectedCountry && currentUser) {
@@ -136,54 +140,47 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
         setGlobalTables(filteredGlobalTables);
         
         // Load country-based tables with actual data from Supabase
-        const countryBasedTablesData = [];
+        let countryBasedTablesData = [];
         
-        // Load hospitals for the selected country
+        // Load all country-specific data in one call
         try {
-          const hospitalsData = await getSupabaseCodeTables(selectedCountry);
-          const hospitalsTable = hospitalsData.find(t => t.id === 'hospitals');
-          if (hospitalsTable) {
-            countryBasedTablesData.push(hospitalsTable);
-          } else {
-            countryBasedTablesData.push({
-              id: 'hospitals',
-              name: 'Hospitals',
-              description: 'Manage hospitals for each country',
-              items: []
-            });
-          }
-        } catch (error) {
-          console.error('Error loading hospitals data:', error);
-          countryBasedTablesData.push({
+          const countryData = await getSupabaseCodeTables(selectedCountry);
+          console.log(`Loaded ${countryData.length} tables for ${selectedCountry}:`, countryData);
+          
+          // Find existing tables or create empty ones
+          const hospitalsTable = countryData.find(t => t.id === 'hospitals') || {
             id: 'hospitals',
             name: 'Hospitals',
             description: 'Manage hospitals for each country',
             items: []
-          });
-        }
-        
-        // Load departments for the selected country
-        try {
-          const departmentsData = await getSupabaseCodeTables(selectedCountry);
-          const departmentsTable = departmentsData.find(t => t.id === 'departments');
-          if (departmentsTable) {
-            countryBasedTablesData.push(departmentsTable);
-          } else {
-            countryBasedTablesData.push({
-              id: 'departments',
-              name: 'Departments', 
-              description: 'Manage departments for each country',
-              items: []
-            });
-          }
-        } catch (error) {
-          console.error('Error loading departments data:', error);
-          countryBasedTablesData.push({
+          };
+          
+          const departmentsTable = countryData.find(t => t.id === 'departments') || {
             id: 'departments',
             name: 'Departments', 
             description: 'Manage departments for each country',
             items: []
-          });
+          };
+          
+          countryBasedTablesData = [hospitalsTable, departmentsTable];
+          
+        } catch (error) {
+          console.error('Error loading country-based data:', error);
+          // Fallback to empty tables
+          countryBasedTablesData = [
+            {
+              id: 'hospitals',
+              name: 'Hospitals',
+              description: 'Manage hospitals for each country',
+              items: []
+            },
+            {
+              id: 'departments',
+              name: 'Departments', 
+              description: 'Manage departments for each country',
+              items: []
+            }
+          ];
         }
         
         // Apply user filtering to country-based tables
@@ -279,24 +276,11 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     setIsManualUpdate(true);
     
     try {
-      // Convert country name to country code
-      const getCountryCode = (country: string) => {
-        const countryMap: { [key: string]: string } = {
-          'Singapore': 'SG',
-          'Malaysia': 'MY',
-          'Philippines': 'PH',
-          'Indonesia': 'ID',
-          'Vietnam': 'VN',
-          'Hong Kong': 'HK',
-          'Thailand': 'TH'
-        };
-        return countryMap[country] || 'SG';
-      };
+      // Legacy country code kept for potential future use
+      // const countryCode = getLegacyCountryCode(selectedCountry) || 'SG';
       
-      const countryCode = getCountryCode(selectedCountry);
-      
-      // Add item to Supabase
-      const success = await addSupabaseCodeTableItem(selectedTable, trimmedName, countryCode);
+      // Add item to Supabase using the selected country (supabaseService will handle normalization)
+      const success = await addSupabaseCodeTableItem(selectedTable, trimmedName, selectedCountry);
       
       if (!success) {
         setItemError('Failed to add item. It may already exist.');
@@ -356,24 +340,11 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     setIsManualUpdate(true);
     
     try {
-      // Convert country name to country code
-      const getCountryCode = (country: string) => {
-        const countryMap: { [key: string]: string } = {
-          'Singapore': 'SG',
-          'Malaysia': 'MY',
-          'Philippines': 'PH',
-          'Indonesia': 'ID',
-          'Vietnam': 'VN',
-          'Hong Kong': 'HK',
-          'Thailand': 'TH'
-        };
-        return countryMap[country] || 'SG';
-      };
+      // Legacy country code kept for potential future use
+      // const countryCode = getLegacyCountryCode(selectedCountry) || 'SG';
       
-      const countryCode = getCountryCode(selectedCountry);
-      
-      // Update item in Supabase
-      const success = await updateSupabaseCodeTableItem(selectedTable, oldName, trimmedName, countryCode);
+      // Update item in Supabase using the selected country (supabaseService will handle normalization)
+      const success = await updateSupabaseCodeTableItem(selectedTable, oldName, trimmedName, selectedCountry);
       
       if (!success) {
         setItemError('Failed to update item. The new name may already exist.');
@@ -439,24 +410,11 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
     setIsManualUpdate(true);
     
     try {
-      // Convert country name to country code
-      const getCountryCode = (country: string) => {
-        const countryMap: { [key: string]: string } = {
-          'Singapore': 'SG',
-          'Malaysia': 'MY',
-          'Philippines': 'PH',
-          'Indonesia': 'ID',
-          'Vietnam': 'VN',
-          'Hong Kong': 'HK',
-          'Thailand': 'TH'
-        };
-        return countryMap[country] || 'SG';
-      };
+      // Legacy country code kept for potential future use
+      // const countryCode = getLegacyCountryCode(selectedCountry) || 'SG';
       
-      const countryCode = getCountryCode(selectedCountry);
-      
-      // Remove item from Supabase
-      const success = await removeSupabaseCodeTableItem(selectedTable, itemName, countryCode);
+      // Remove item from Supabase using the selected country (supabaseService will handle normalization)
+      const success = await removeSupabaseCodeTableItem(selectedTable, itemName, selectedCountry);
       
       if (!success) {
         showError('Delete Failed', `Failed to delete "${itemName}" from ${table.name}`);

@@ -6,6 +6,7 @@ import {
   getCountries
 } from '../utils/codeTable';
 import { getCurrentUser } from '../utils/auth';
+import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getCases } from '../utils/storage';
 import { CaseBooking, COUNTRIES } from '../types';
 import SearchableDropdown from './SearchableDropdown';
@@ -18,6 +19,8 @@ interface BookingCalendarProps {
 }
 
 const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
+  const initialCurrentUser = getCurrentUser();
+  
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [departments, setDepartments] = useState<string[]>([]);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -26,11 +29,14 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
   const [moreCasesData, setMoreCasesData] = useState<{date: string, cases: CaseBooking[]}>({date: '', cases: []});
   const [moreCasesCurrentPage, setMoreCasesCurrentPage] = useState(1);
   const moreCasesPerPage = 10;
-  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+  const [currentUser, setCurrentUser] = useState(initialCurrentUser);
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [showDatePickers, setShowDatePickers] = useState(false);
   const datePickerRef = useRef<HTMLDivElement>(null);
+
+  // Check if user has permission to view booking calendar
+  const canViewCalendar = initialCurrentUser ? hasPermission(initialCurrentUser.role, PERMISSION_ACTIONS.BOOKING_CALENDAR) : false;
 
   // Determine the active country (Admin selected country or user's country)
   const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
@@ -99,24 +105,32 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
         }
         
         const filteredCases = allCases.filter(caseItem => {
-          // Convert country name to country code for comparison
-          const getCountryCode = (country: string) => {
+          // Normalize country names for comparison - handle both full names and codes
+          const normalizeCountryName = (country: string) => {
             const countryMap: { [key: string]: string } = {
-              'Singapore': 'SG',
-              'Malaysia': 'MY',
-              'Philippines': 'PH',
-              'Indonesia': 'ID',
-              'Vietnam': 'VN',
-              'Hong Kong': 'HK',
-              'Thailand': 'TH'
+              'Singapore': 'Singapore',
+              'SG': 'Singapore',
+              'Malaysia': 'Malaysia', 
+              'MY': 'Malaysia',
+              'Philippines': 'Philippines',
+              'PH': 'Philippines',
+              'Indonesia': 'Indonesia',
+              'ID': 'Indonesia',
+              'Vietnam': 'Vietnam',
+              'VN': 'Vietnam',
+              'Hong Kong': 'Hong Kong',
+              'HK': 'Hong Kong',
+              'Thailand': 'Thailand',
+              'TH': 'Thailand'
             };
-            return countryMap[country] || 'SG';
+            return countryMap[country] || country;
           };
           
-          // Filter by active country (convert country name to code)
+          // Filter by active country (normalize both for comparison)
           if (activeCountry) {
-            const activeCountryCode = getCountryCode(activeCountry);
-            if (caseItem.country !== activeCountryCode) {
+            const normalizedActiveCountry = normalizeCountryName(activeCountry);
+            const normalizedCaseCountry = normalizeCountryName(caseItem.country);
+            if (normalizedCaseCountry !== normalizedActiveCountry) {
               return false;
             }
           }
@@ -256,19 +270,24 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
 
   // Get cases for a specific day
   const getCasesForDay = (day: number): CaseBooking[] => {
-    if (!selectedDepartment) return [];
-    
     // Create date string without timezone issues
     const year = currentDate.getFullYear();
     const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
     const dayStr = day.toString().padStart(2, '0');
     const dateStr = `${year}-${month}-${dayStr}`;
     
-    return cases.filter(caseItem => 
-      caseItem.dateOfSurgery === dateStr && 
-      caseItem.department === selectedDepartment &&
-      caseItem.status !== 'Case Cancelled'  // Exclude cancelled cases
-    );
+    return cases.filter(caseItem => {
+      const matchesDate = caseItem.dateOfSurgery === dateStr;
+      const isNotCancelled = caseItem.status !== 'Case Cancelled';
+      
+      // If no department is selected, show all non-cancelled cases for that date
+      if (!selectedDepartment) {
+        return matchesDate && isNotCancelled;
+      }
+      
+      // If department is selected, filter by department as well
+      return matchesDate && caseItem.department === selectedDepartment && isNotCancelled;
+    });
   };
 
   const renderCalendarGrid = () => {
@@ -373,6 +392,18 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
       </div>
     );
   };
+
+  if (!canViewCalendar) {
+    return (
+      <div className="permission-denied">
+        <div className="permission-denied-content">
+          <h2>🚫 Access Denied</h2>
+          <p>You don't have permission to view the booking calendar.</p>
+          <p>Contact your administrator to request access.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="booking-calendar">

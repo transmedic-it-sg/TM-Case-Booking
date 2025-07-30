@@ -146,6 +146,41 @@ const CaseCard: React.FC<CaseCardProps> = ({
                     {history.details && (
                       <div className="history-details">{history.details}</div>
                     )}
+                    {history.attachments && history.attachments.length > 0 && (
+                      <div className="history-attachments">
+                        <div className="attachments-label">📎 Attachments ({history.attachments.length}):</div>
+                        <div className="attachments-grid">
+                          {history.attachments.map((attachmentStr, attachmentIndex) => {
+                            try {
+                              const attachment = JSON.parse(attachmentStr);
+                              const isImage = attachment.type && attachment.type.startsWith('image/');
+                              return (
+                                <div key={attachmentIndex} className="attachment-preview">
+                                  {isImage ? (
+                                    <img 
+                                      src={attachment.data} 
+                                      alt={attachment.name}
+                                      className="attachment-thumbnail"
+                                      title={attachment.name}
+                                    />
+                                  ) : (
+                                    <div className="attachment-file" title={attachment.name}>
+                                      📄 {attachment.name}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            } catch (e) {
+                              return (
+                                <div key={attachmentIndex} className="attachment-error">
+                                  ❌ Invalid attachment data
+                                </div>
+                              );
+                            }
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
