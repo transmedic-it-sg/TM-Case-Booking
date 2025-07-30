@@ -1,6 +1,6 @@
 # Transmedic Case Booking System
 
-## Version 1.2.3
+## Version 1.2.4
 
 A comprehensive React-based case booking application for medical procedures with advanced role-based access control, workflow management, and Supabase integration.
 
@@ -13,12 +13,13 @@ A comprehensive React-based case booking application for medical procedures with
 - **Role-Based Access**: Granular permissions for different user roles
 - **Multi-Country Support**: Singapore, Malaysia, Philippines, Indonesia, Vietnam, Hong Kong, Thailand
 
-### Latest Features (v1.2.3)
-- **✨ Amendment Time Configuration**: System-wide configurable amendment policies
-- **🔧 Enhanced Amendment History**: Professional before/after change tracking with color coding
-- **🛡️ Fixed IT Role Permissions**: Complete status transition access for IT users
-- **🎨 UI Improvements**: Fixed toggle switches, simplified Global Tables interface
-- **⚡ Supabase Integration**: Full database integration with real-time updates
+### Latest Features (v1.2.4)
+- **🗄️ Complete Database Schema Rebuild**: Brand new table structures with proper relationships
+- **🔧 Enhanced User Management**: Enlarged edit modals, standardized confirmation popups
+- **🎨 Advanced Filters Redesign**: Grid layout, fixed emoji overlapping issues
+- **🔐 Improved Authentication**: New profiles table with proper permission matrix
+- **⚡ Resolved Database Connectivity**: Fixed all 400 errors and infinite loops
+- **📱 Better User Experience**: ESC key support, click-outside-to-close modals
 
 ## 🏗️ Architecture
 
@@ -144,12 +145,40 @@ The application is deployed on Vercel:
 ### Branch Structure
 - `main`: Stable release branch
 - `Production`: Production deployment branch  
-- `Version-1.2.3`: Current version branch
+- `Version-1.2.4`: Current version branch
 - `UAT`: User acceptance testing branch
 
 ## 📝 Changelog
 
-### Version 1.2.3 (Latest)
+### Version 1.2.4 (Latest)
+#### 🗄️ Database Improvements
+- **Complete Database Schema Rebuild**: New tables with proper structure (profiles, permissions, code_tables, case_bookings, status_history, amendment_history, notifications)
+- **Fixed Supabase Connectivity**: Resolved all 400 errors and infinite loops
+- **Enhanced Authentication**: New profiles table with role-based permissions
+- **Improved RLS Policies**: Proper row-level security implementation
+- **Schema Standardization**: Consistent data types and relationships
+
+#### 🎨 User Interface Enhancements
+- **Enlarged Edit User Modal**: Increased from 900px to 1200px width, 95vh height
+- **Standardized Confirmation Popups**: Professional modals for Delete/Disable/Enable user actions
+- **Fixed Advanced Filters**: Resolved emoji overlapping with placeholder text
+- **Grid Layout Filters**: Changed from column to responsive grid layout
+- **Enhanced Modal Interactions**: ESC key and click-outside-to-close functionality
+
+#### 🐛 Bug Fixes
+- **Department Display Issue**: Fixed inconsistency between user display and edit forms
+- **TypeScript Compilation**: Resolved all compilation warnings and errors
+- **React Hook Dependencies**: Fixed useEffect dependency issues
+- **Permission Service**: Updated for new database schema
+- **Case Service**: Fixed schema mismatches and data transformation
+
+#### 🧹 Code Quality Improvements
+- **File Cleanup**: Removed unnecessary SQL files and documentation
+- **Import Optimization**: Cleaned up unused imports and variables
+- **Error Handling**: Improved fallback mechanisms and error reporting
+- **Code Organization**: Better structure and component separation
+
+### Version 1.2.3
 - **Enhancement**: Amendment time configuration in System Settings
 - **Enhancement**: Professional amendment history display with change tracking
 - **Fix**: IT role permissions for all status transitions
@@ -159,7 +188,7 @@ The application is deployed on Vercel:
 - **Security**: Fixed audit logs RLS policies
 
 ### Previous Versions
-See `CHANGELOG_v1.2.3.md` for complete version history.
+See version control history for complete changelog.
 
 ## 🛡️ Security
 
@@ -214,7 +243,7 @@ See `CHANGELOG_v1.2.3.md` for complete version history.
 
 ---
 
-**Version**: 1.2.3  
-**Last Updated**: 2025-01-21  
+**Version**: 1.2.4  
+**Last Updated**: 2025-01-30  
 **Deployment**: Production Ready  
 **License**: Proprietary
