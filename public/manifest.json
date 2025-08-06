@@ -1,0 +1,48 @@
+{
+  "short_name": "TM Cases",
+  "name": "TM Case Booking System",
+  "description": "Professional case booking and management system for medical procedures",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#28a745",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["medical", "business", "productivity"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "New Case",
+      "short_name": "New Case",
+      "description": "Create a new case booking",
+      "url": "/?action=new-case",
+      "icons": [
+        {
+          "src": "favicon.ico",
+          "sizes": "32x32"
+        }
+      ]
+    },
+    {
+      "name": "View Cases",
+      "short_name": "View Cases",
+      "description": "View all submitted cases",
+      "url": "/?action=view-cases",
+      "icons": [
+        {
+          "src": "favicon.ico",
+          "sizes": "32x32"
+        }
+      ]
+    }
+  ]
+}

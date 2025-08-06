@@ -1,6 +1,16 @@
 import { supabase } from '../lib/supabase';
 import { normalizeCountry } from './countryUtils';
 
+// Add caching to prevent excessive database requests
+interface CacheEntry {
+  data: CodeTable[];
+  timestamp: number;
+  country: string | null;
+}
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const codeTableCache = new Map<string, CacheEntry>();
+
 // Interface matching the database structure
 export interface SupabaseCodeTableItem {
   id: string;
@@ -38,6 +48,16 @@ const normalizeCountryForDB = (country?: string): string => {
 export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable[]> => {
   try {
     const normalizedCountry = country ? normalizeCountryForDB(country) : null;
+    const cacheKey = normalizedCountry || 'Global';
+    
+    // Check cache first
+    const cached = codeTableCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      console.log(`🎯 Using cached code tables for ${cacheKey}`);
+      return cached.data;
+    }
+    
+    console.log(`🔄 Fetching code tables for ${cacheKey}`);
     
     // Query the actual code_tables table
     let query = supabase
@@ -82,7 +102,14 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
       items: items.map(item => item.display_name).sort()
     }));
     
-    console.log(`✅ Successfully loaded ${tables.length} code tables from database for ${normalizedCountry || 'global'}`);
+    // Cache the result
+    codeTableCache.set(cacheKey, {
+      data: tables,
+      timestamp: Date.now(),
+      country: normalizedCountry
+    });
+    
+    console.log(`✅ Successfully loaded and cached ${tables.length} code tables for ${cacheKey}`);
     return tables;
     
   } catch (error) {

@@ -1,0 +1,272 @@
+/* Mobile Responsive Layout - Minimal adjustments only */
+
+/* Mobile breakpoint for phones and tablets in portrait */
+@media (max-width: 768px), (max-width: 1024px) and (orientation: portrait) {
+  
+  /* Prevent horizontal scrolling on mobile */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  
+  .app {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  
+  /* Reduce padding for mobile - more compact */
+  .app-main {
+    padding: 8px 4px;
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  
+  .app-nav {
+    padding: 8px 8px 12px 8px;
+  }
+  
+  /* Make header more compact */
+  .app-header {
+    padding: 12px 8px;
+  }
+  
+  .header-content {
+    gap: 8px;
+  }
+  
+  .app-header h1 {
+    font-size: 18px;
+    margin: 0;
+  }
+  
+  /* Make tables horizontally scrollable on mobile */
+  .cases-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .cases-table {
+    min-width: 800px;
+  }
+  
+  /* Horizontal scrolling navigation on mobile */
+  .nav-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 4px;
+    scroll-behavior: smooth;
+    min-height: 56px;
+  }
+  
+  .nav-buttons::-webkit-scrollbar {
+    height: 3px;
+  }
+  
+  .nav-buttons::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+  
+  .nav-buttons::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+  }
+  
+  .nav-buttons button {
+    flex-shrink: 0;
+    min-width: 110px;
+    max-width: 140px;
+    height: 36px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 18px;
+    margin: 0;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  
+  .nav-buttons button span {
+    font-size: 12px;
+  }
+  
+  /* Status Legend button - make it compact */
+  .status-legend-button {
+    min-width: 100px !important;
+    max-width: 130px !important;
+    height: 36px !important;
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    border-radius: 18px !important;
+  }
+  
+  /* Ensure form inputs are touch-friendly */
+  .form-group input, 
+  .form-group select, 
+  .form-group textarea {
+    font-size: 16px; /* Prevent zoom on iOS */
+    min-height: 44px;
+  }
+  
+  /* Adjust header for mobile */
+  .header-content {
+    flex-direction: column;
+    gap: 12px;
+    padding: 8px;
+  }
+  
+  /* Case action buttons - compact mobile layout */
+  .case-actions {
+    margin-top: 8px;
+  }
+  
+  .case-actions .case-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .case-action-button {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 12px;
+    margin: 0;
+    font-size: 13px;
+    border-radius: 6px;
+    text-align: center;
+    box-sizing: border-box;
+  }
+  
+  /* Ensure tooltips work well on mobile */
+  .tooltip-container {
+    width: 100%;
+  }
+  
+  /* Case cards - compact mobile spacing */
+  .case-item {
+    padding: 12px 8px;
+    margin-bottom: 8px;
+  }
+  
+  .case-header {
+    padding: 8px 0;
+  }
+  
+  .case-details {
+    padding: 8px 0;
+  }
+  
+  /* Form improvements - more compact */
+  .form-row {
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .form-group {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+  
+  .form-group label {
+    margin-bottom: 4px;
+    font-size: 14px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  
+  .form-actions .btn {
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  
+  /* Card headers and content - compact */
+  .card-header {
+    padding: 12px 8px;
+  }
+  
+  .card-content {
+    padding: 12px 8px;
+  }
+  
+  .card-title {
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+  
+  .card-subtitle {
+    font-size: 13px;
+  }
+  
+  /* Ensure status history and amendment history are visible on mobile */
+  .status-history,
+  .amendment-history,
+  .status-history-section,
+  .status-history-list {
+    display: block !important;
+    width: 100% !important;
+    margin-top: 8px !important;
+  }
+  
+  .status-history-item,
+  .amendment-history-item {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    margin-bottom: 8px !important;
+    padding: 12px !important;
+    border-radius: 6px !important;
+    gap: 8px !important;
+  }
+  
+  .history-status,
+  .history-date,
+  .history-details {
+    display: block !important;
+    margin-bottom: 4px !important;
+  }
+  
+  .expand-history-button {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+    margin-left: 8px !important;
+  }
+  
+  .status-history-header-container,
+  .amendment-history-header-container {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+  }
+  
+  /* Case details section - ensure proper display */
+  .case-details {
+    display: block !important;
+  }
+  
+  .detail-item {
+    display: block !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .detail-item.full-width {
+    width: 100% !important;
+  }
+}

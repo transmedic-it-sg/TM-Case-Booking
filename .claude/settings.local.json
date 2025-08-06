@@ -144,7 +144,12 @@
       "Bash(NODE_OPTIONS=\"--max-old-space-size=8192\" timeout 45s npm start)",
       "Bash(npx madge:*)",
       "Bash(npx babel:*)",
-      "Bash(npm:*)"
+      "Bash(npm:*)",
+      "Bash(npx cap init:*)",
+      "Bash(npx cap add:*)",
+      "Bash(npx cap:*)",
+      "Bash(ipconfig)",
+      "WebFetch(domain:supabase.com)"
     ],
     "deny": []
   }

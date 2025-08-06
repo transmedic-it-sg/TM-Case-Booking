@@ -30,11 +30,14 @@ import { ToastProvider, useToast } from './components/ToastContainer';
 import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
 import StatusLegend from './components/StatusLegend';
+import MobileSidebar from './components/MobileSidebar';
 // import { SystemHealthMonitor } from './utils/systemHealthMonitor'; // Temporarily disabled
 // import { DataValidationService } from './utils/dataValidationService'; // Unused
 import './assets/components/App.css';
 import './assets/components/CodeTableSetup.css';
 import './assets/components/AuditLogs.css';
+import './assets/components/MobileSidebar.css';
+import './assets/components/MobileResponsive.css';
 
 type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config' | 'backup-restore' | 'data-import' | 'system-settings';
 
@@ -211,6 +214,14 @@ const AppContent: React.FC = () => {
       <header className="app-header">
         <div className="header-content">
           <div className="header-left">
+            <MobileSidebar
+              user={user}
+              onLogout={handleLogout}
+              adminPanelExpanded={adminPanelExpanded}
+              setAdminPanelExpanded={setAdminPanelExpanded}
+              setActivePage={setActivePage}
+              onPlaySound={playSound.click}
+            />
             <h1>
               <DatabaseConnectivityIndicator className="header-db-indicator" />
               Transmedic Case Booking
