@@ -149,7 +149,19 @@
       "Bash(npx cap add:*)",
       "Bash(npx cap:*)",
       "Bash(ipconfig)",
-      "WebFetch(domain:supabase.com)"
+      "WebFetch(domain:supabase.com)",
+      "WebFetch(domain:www.eleken.co)",
+      "Bash(expo --version)",
+      "Bash(npx expo start:*)",
+      "Bash(./node_modules/.bin/expo start:*)",
+      "Bash(flutter:*)",
+      "Bash(wget:*)",
+      "Bash(tar:*)",
+      "Bash(sudo apt:*)",
+      "Bash(sudo apt install:*)",
+      "Bash(\"/mnt/c/Users/anrong.low/AppData/Local/Android/Sdk/cmdline-tools/latest/bin/sdkmanager.bat\" --licenses)",
+      "Bash(adb:*)",
+      "Bash(python3:*)"
     ],
     "deny": []
   }

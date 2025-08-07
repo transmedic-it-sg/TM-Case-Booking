@@ -128,6 +128,7 @@ export const generateCaseReferenceNumber = async (country: string): Promise<stri
 /**
  * Get status history for a specific case
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getStatusHistoryForCase = async (caseId: string): Promise<StatusHistory[]> => {
   try {
     const { data, error } = await supabase
@@ -157,6 +158,7 @@ const getStatusHistoryForCase = async (caseId: string): Promise<StatusHistory[]>
 /**
  * Get amendment history for a specific case
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getAmendmentHistoryForCase = async (caseId: string): Promise<AmendmentHistory[]> => {
   try {
     const { data, error } = await supabase
