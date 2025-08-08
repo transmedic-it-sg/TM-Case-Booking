@@ -2,16 +2,18 @@
   "version": 2,
   "name": "prod-case-booking",
   "alias": ["prod-case-booking.vercel.app"],
+  "build": {
+    "env": {
+      "CI": "",
+      "SKIP_PREFLIGHT_CHECK": "true"
+    }
+  },
   "builds": [
     {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
         "distDir": "build"
-      },
-      "env": {
-        "CI": "",
-        "SKIP_PREFLIGHT_CHECK": "true"
       }
     }
   ],
