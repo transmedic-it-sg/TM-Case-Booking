@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import './StatusChangeSuccessPopup.css';
+import '../assets/components/StatusChangeSuccessPopup.css';
 
 interface StatusChangeSuccessPopupProps {
   message: string;

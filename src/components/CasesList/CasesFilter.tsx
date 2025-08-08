@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { FilterOptions, COUNTRIES } from '../../types';
+import React, { useEffect } from 'react';
+import { FilterOptions } from '../../types';
 import FilterDatePicker from '../FilterDatePicker';
 import { statusOptions } from './utils';
 import { getCurrentUser } from '../../utils/auth';
-import { getCountries } from '../../utils/codeTable';
+// import { getCountries } from '../../utils/codeTable'; // Unused
 import SearchableDropdown from '../SearchableDropdown';
 
 interface CasesFilterProps {
@@ -36,14 +36,14 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
   onQuickFilter
 }) => {
   const currentUser = getCurrentUser();
-  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+  // const [availableCountries, setAvailableCountries] = useState<string[]>([]); // Unused
 
-  // Load countries from Global-Table
+  // Load countries from Global-Table - memoized to prevent infinite loops
   useEffect(() => {
-    const globalCountries = getCountries();
-    const countries = globalCountries.length > 0 ? globalCountries : [...COUNTRIES];
-    setAvailableCountries(countries);
-  }, []);
+    // const globalCountries = getCountries(); // Unused
+    // const countries = globalCountries.length > 0 ? globalCountries : [...COUNTRIES]; // Unused
+    // setAvailableCountries(countries); // Unused
+  }, []); // Empty dependency array since getCountries() and COUNTRIES are stable
 
   return (
     <div className="modern-filters-section">
@@ -104,25 +104,46 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
                   </div>
                 </div>
 
-                {currentUser?.role === 'admin' && (
-                  <div className="modern-filter-group">
-                    <label>Country</label>
-                    <div className="filter-input-wrapper">
-                      <SearchableDropdown
-                        options={[
-                          { value: '', label: 'All Countries' },
-                          ...availableCountries.map(country => ({
-                            value: country,
-                            label: country
-                          }))
-                        ]}
-                        value={tempFilters.country || ''}
-                        onChange={(value) => onFilterChange('country', value)}
-                        placeholder="All Countries"
-                      />
-                      <span className="filter-icon">🌍</span>
+                {currentUser?.role !== 'admin' && (
+                  <>
+                    <div className="modern-filter-group">
+                      <label>Country</label>
+                      <div className="filter-input-wrapper">
+                        <SearchableDropdown
+                          options={[
+                            { value: '', label: 'All Assigned Countries' },
+                            ...(currentUser?.countries || []).map(country => ({
+                              value: country,
+                              label: country
+                            }))
+                          ]}
+                          value={tempFilters.country || ''}
+                          onChange={(value) => onFilterChange('country', value)}
+                          placeholder="All Assigned Countries"
+                        />
+                        <span className="filter-icon">🌍</span>
+                      </div>
                     </div>
-                  </div>
+                    
+                    <div className="modern-filter-group">
+                      <label>Department</label>
+                      <div className="filter-input-wrapper">
+                        <SearchableDropdown
+                          options={[
+                            { value: '', label: 'All Assigned Departments' },
+                            ...(currentUser?.departments || []).map(dept => ({
+                              value: dept,
+                              label: dept
+                            }))
+                          ]}
+                          value={tempFilters.department || ''}
+                          onChange={(value) => onFilterChange('department', value)}
+                          placeholder="All Assigned Departments"
+                        />
+                        <span className="filter-icon">🏥</span>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </div>

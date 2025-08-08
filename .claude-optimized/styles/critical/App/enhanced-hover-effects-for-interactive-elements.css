@@ -1,6 +1,0 @@
-.procedure-tab:hover,
-.role-summary-button:hover,
-.add-procedure-type-button:hover {
-  transform: translateY(-1px);
-  transition: transform 0.2s ease;
-}

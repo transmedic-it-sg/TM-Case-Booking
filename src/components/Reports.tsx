@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { CaseBooking, CaseStatus, COUNTRIES, DEPARTMENTS } from '../types';
 import { getCountries } from '../utils/codeTable';
 import { getCases } from '../utils/storage';
@@ -6,9 +6,10 @@ import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getStatusColor } from './CasesList/utils';
 import { formatDate } from '../utils/dateFormat';
+import { useUserNames } from '../hooks/useUserNames';
 import FilterDatePicker from './FilterDatePicker';
 import SearchableDropdown from './SearchableDropdown';
-import './Reports.css';
+import '../assets/components/Reports.css';
 
 interface ReportFilters {
   dateFrom: string;
@@ -57,6 +58,20 @@ const Reports: React.FC = () => {
     reportType: 'overview'
   });
 
+  // Extract user IDs for name resolution - memoized to prevent infinite re-renders
+  const userIds = useMemo(() => {
+    const uniqueUserIds = new Set<string>();
+    cases.forEach(caseItem => {
+      if (caseItem.submittedBy) uniqueUserIds.add(caseItem.submittedBy);
+      if (caseItem.processedBy) uniqueUserIds.add(caseItem.processedBy);
+      if (caseItem.amendedBy) uniqueUserIds.add(caseItem.amendedBy);
+    });
+    return Array.from(uniqueUserIds);
+  }, [cases]);
+
+  // Hook to resolve user IDs to names
+  const { getUserName } = useUserNames(userIds);
+
   // Load countries from Global-Table
   useEffect(() => {
     const countries = getCountries();
@@ -65,24 +80,43 @@ const Reports: React.FC = () => {
 
   // Load cases on component mount
   useEffect(() => {
-    const allCases = getCases();
-    const userCases = allCases.filter(caseItem => {
-      // Filter by user's access permissions
+    const loadCases = async () => {
+      // Admin and IT users should see ALL cases from ALL countries
+      let allCases: CaseBooking[];
+      
       if (currentUser?.role === 'admin' || currentUser?.role === 'it') {
-        return true;
+        console.log('Loading ALL cases for admin/IT user...');
+        // Get cases from ALL countries for admin users
+        allCases = await getCases(); // No country filter for admin
+      } else {
+        console.log('Loading country-specific cases for regular user...');
+        // For regular users, get cases only from their countries
+        const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
+        allCases = userCountry ? await getCases(userCountry) : await getCases();
       }
       
-      // Filter by user's countries and departments
-      const hasCountryAccess = !currentUser?.countries?.length || 
-        currentUser.countries.includes(caseItem.country);
-      const hasDepartmentAccess = !currentUser?.departments?.length || 
-        currentUser.departments.includes(caseItem.department);
+      const userCases = allCases.filter(caseItem => {
+        // Filter by user's access permissions
+        if (currentUser?.role === 'admin' || currentUser?.role === 'it') {
+          console.log(`Admin user can see case from ${caseItem.country}: ${caseItem.caseReferenceNumber}`);
+          return true; // Admin sees ALL cases
+        }
+        
+        // Filter by user's countries and departments
+        const hasCountryAccess = !currentUser?.countries?.length || 
+          currentUser.countries.includes(caseItem.country);
+        const hasDepartmentAccess = !currentUser?.departments?.length || 
+          currentUser.departments.includes(caseItem.department);
+        
+        return hasCountryAccess && hasDepartmentAccess;
+      });
       
-      return hasCountryAccess && hasDepartmentAccess;
-    });
+      console.log(`Loaded ${allCases.length} total cases, showing ${userCases.length} to user`);
+      setCases(userCases);
+      setFilteredCases(userCases);
+    };
     
-    setCases(userCases);
-    setFilteredCases(userCases);
+    loadCases();
   }, [currentUser]);
 
   // Initialize tempFilters with current filters
@@ -90,8 +124,8 @@ const Reports: React.FC = () => {
     setTempFilters({ ...filters });
   }, [filters]);
 
-  // Apply filters whenever filters change
-  useEffect(() => {
+  // Apply filters whenever filters change - memoized to prevent infinite loops
+  const applyFiltersToCase = useCallback((cases: CaseBooking[], filters: ReportFilters) => {
     let filtered = [...cases];
 
     // Date range filter
@@ -119,13 +153,20 @@ const Reports: React.FC = () => {
 
     // Submitter filter
     if (filters.submitter) {
-      filtered = filtered.filter(c => 
-        c.submittedBy.toLowerCase().includes(filters.submitter.toLowerCase())
-      );
+      filtered = filtered.filter(c => {
+        const userName = getUserName(c.submittedBy);
+        return userName.toLowerCase().includes(filters.submitter.toLowerCase()) ||
+               c.submittedBy.toLowerCase().includes(filters.submitter.toLowerCase());
+      });
     }
 
+    return filtered;
+  }, [getUserName]);
+
+  useEffect(() => {
+    const filtered = applyFiltersToCase(cases, filters);
     setFilteredCases(filtered);
-  }, [cases, filters]);
+  }, [cases, filters, applyFiltersToCase]);
 
   // Generate report data
   const reportData: ReportData = useMemo(() => {
@@ -170,7 +211,8 @@ const Reports: React.FC = () => {
     // Top submitters
     const submitterCounts: Record<string, number> = {};
     filteredCases.forEach(c => {
-      submitterCounts[c.submittedBy] = (submitterCounts[c.submittedBy] || 0) + 1;
+      const userName = getUserName(c.submittedBy);
+      submitterCounts[userName] = (submitterCounts[userName] || 0) + 1;
     });
     const topSubmitters = Object.entries(submitterCounts)
       .map(([name, count]) => ({ name, count }))
@@ -204,12 +246,16 @@ const Reports: React.FC = () => {
       urgentCases,
       completionRate
     };
-  }, [filteredCases, globalCountries]);
+  }, [filteredCases, globalCountries, getUserName]);
 
   // Get available options for dropdowns
   const availableSubmitters = useMemo(() => {
-    return Array.from(new Set(cases.map(c => c.submittedBy))).sort();
-  }, [cases]);
+    const userIds = Array.from(new Set(cases.map(c => c.submittedBy)));
+    return userIds.map(userId => ({
+      id: userId,
+      name: getUserName(userId)
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [cases, getUserName]);
 
   const availableCountries = useMemo(() => {
     const userCountries = currentUser?.role === 'admin' || currentUser?.role === 'it' 
@@ -312,13 +358,15 @@ const Reports: React.FC = () => {
           <p>Comprehensive case booking analytics and insights</p>
         </div>
         <div className="reports-actions">
-          <button 
-            onClick={exportReport}
-            className="btn btn-outline-primary"
-            title="Export to CSV"
-          >
-            📤 Export
-          </button>
+          {hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.EXPORT_DATA) && (
+            <button 
+              onClick={exportReport}
+              className="btn btn-outline-primary"
+              title="Export to CSV"
+            >
+              📤 Export
+            </button>
+          )}
           <button 
             onClick={printReport}
             className="btn btn-outline-secondary"
@@ -382,8 +430,8 @@ const Reports: React.FC = () => {
                         options={[
                           { value: '', label: 'All Submitters' },
                           ...availableSubmitters.map(submitter => ({
-                            value: submitter,
-                            label: submitter
+                            value: submitter.name,
+                            label: submitter.name
                           }))
                         ]}
                         value={tempFilters.submitter}
@@ -570,7 +618,7 @@ const Reports: React.FC = () => {
           <PerformanceMetrics data={reportData} />
         )}
         {filters.reportType === 'detailed' && (
-          <DetailedReport cases={filteredCases} />
+          <DetailedReport cases={filteredCases} getUserName={getUserName} />
         )}
       </div>
     </div>
@@ -739,7 +787,7 @@ const PerformanceMetrics: React.FC<{ data: ReportData }> = ({ data }) => (
 );
 
 // Detailed Report Component
-const DetailedReport: React.FC<{ cases: CaseBooking[] }> = ({ cases }) => (
+const DetailedReport: React.FC<{ cases: CaseBooking[]; getUserName: (userId: string) => string }> = ({ cases, getUserName }) => (
   <div className="detailed-report">
     <h3>📋 Detailed Case Report</h3>
     <div className="detailed-table-container">
@@ -784,7 +832,7 @@ const DetailedReport: React.FC<{ cases: CaseBooking[] }> = ({ cases }) => (
                 </span>
               </td>
               <td>{caseItem.country}</td>
-              <td>{caseItem.submittedBy}</td>
+              <td>{getUserName(caseItem.submittedBy)}</td>
             </tr>
           ))}
         </tbody>

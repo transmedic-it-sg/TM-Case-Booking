@@ -16,7 +16,7 @@ export interface Notification {
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
-  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read' | 'userId'>, notificationType?: string) => void;
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read' | 'userId'>, notificationType?: string, targetCountry?: string, targetDepartment?: string) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   clearNotification: (id: string) => void;
@@ -119,11 +119,23 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     return preferenceKey ? preferences[preferenceKey] : true; // Default to true for unknown types
   };
 
-  const addNotification = (notification: Omit<Notification, 'id' | 'timestamp' | 'read' | 'userId'>, notificationType?: string) => {
+  const addNotification = (
+    notification: Omit<Notification, 'id' | 'timestamp' | 'read' | 'userId'>, 
+    notificationType?: string,
+    targetCountry?: string,
+    targetDepartment?: string
+  ) => {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
 
-    // All authenticated users can receive notifications
+    // Check if notification is relevant to user's country and department
+    if (targetCountry && currentUser.selectedCountry && currentUser.selectedCountry !== targetCountry) {
+      return; // Skip notification if not for user's country
+    }
+
+    if (targetDepartment && currentUser.departments && !currentUser.departments.includes(targetDepartment)) {
+      return; // Skip notification if not for user's department
+    }
 
     // Check user notification preferences
     const userPreferences = getUserNotificationPreferences(currentUser.id);
@@ -141,10 +153,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
     setAllNotifications(prev => {
       const updated = [newNotification, ...prev];
-      // Keep only the latest 10 notifications per user
+      // Keep only the latest 50 notifications per user (increased from 10)
       const userNotifications = updated.filter(n => n.userId === currentUser.id);
       const otherNotifications = updated.filter(n => n.userId !== currentUser.id);
-      const limitedUserNotifications = userNotifications.slice(0, 10);
+      const limitedUserNotifications = userNotifications.slice(0, 50);
       return [...limitedUserNotifications, ...otherNotifications];
     });
   };

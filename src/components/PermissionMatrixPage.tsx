@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import PermissionMatrix from './PermissionMatrix';
-import { getAllRoles, permissionActions } from '../data/permissionMatrixData';
+import { getAllRoles, getAllMatrixRoles, permissionActions } from '../data/permissionMatrixData';
+import { getSupabaseRoles } from '../utils/supabaseUserService';
 import { Role, Permission } from './PermissionMatrix';
-import { getRuntimePermissions, saveRuntimePermissions, updatePermission, resetPermissions } from '../utils/permissions';
+import { 
+  getSupabasePermissions, 
+  saveSupabasePermissions, 
+  updateSupabasePermission, 
+  resetSupabasePermissions 
+} from '../utils/supabasePermissionService';
+import { clearPermissionsCache } from '../utils/permissions';
 import { useModal } from '../hooks/useModal';
 import CustomModal from './CustomModal';
-import './PermissionMatrixPage.css';
+import '../assets/components/PermissionMatrixPage.css';
 
 const PermissionMatrixPage: React.FC = () => {
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -13,58 +20,107 @@ const PermissionMatrixPage: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const { modal, closeModal, showConfirm, showSuccess } = useModal();
 
-  // Load runtime permissions and roles on component mount
+  // Load permissions and roles on component mount
   useEffect(() => {
-    // Load roles including custom ones
-    const allRoles = getAllRoles();
-    setRoles(allRoles);
+    // Load roles from both static definitions and custom roles
+    const loadRoles = async () => {
+      try {
+        // Use getAllMatrixRoles which includes both static and custom roles (excluding admin)
+        const allMatrixRoles = getAllMatrixRoles();
+        setRoles(allMatrixRoles);
+      } catch (error) {
+        console.error('Error loading roles:', error);
+        // Fallback to static roles only
+        const allMatrixRoles = getAllMatrixRoles();
+        setRoles(allMatrixRoles);
+      }
+    };
     
-    const runtimePermissions = getRuntimePermissions();
+    // Load permissions from Supabase
+    const loadPermissions = async () => {
+      try {
+        const supabasePermissions = await getSupabasePermissions();
+        setPermissions(supabasePermissions);
+      } catch (error) {
+        console.error('Error loading permissions:', error);
+      }
+    };
     
-    // Debug: Check if admin has code-table-setup permission
-    const adminCodeTablePerm = runtimePermissions.find(p => 
-      p.roleId === 'admin' && p.actionId === 'code-table-setup'
-    );
-    console.log('Admin code-table-setup permission:', adminCodeTablePerm);
-    
-    // Auto-fix if missing
-    if (!adminCodeTablePerm || !adminCodeTablePerm.allowed) {
-      console.log('Admin code-table-setup permission missing or disabled, fixing...');
-      updatePermission('admin', 'code-table-setup', true);
-      const fixedPermissions = getRuntimePermissions();
-      setPermissions(fixedPermissions);
-    } else {
-      setPermissions(runtimePermissions);
-    }
+    loadRoles();
+    loadPermissions();
   }, []);
 
-  const handlePermissionChange = (actionId: string, roleId: string, allowed: boolean) => {
-    // Update the permission in the runtime service
-    updatePermission(roleId, actionId, allowed);
-    
-    // Update local state
-    setPermissions(prevPermissions => {
-      const existingIndex = prevPermissions.findIndex(
-        p => p.actionId === actionId && p.roleId === roleId
-      );
-
-      if (existingIndex >= 0) {
-        // Update existing permission
-        const updated = [...prevPermissions];
-        updated[existingIndex] = { ...updated[existingIndex], allowed };
-        return updated;
-      } else {
-        // Add new permission
-        return [...prevPermissions, { actionId, roleId, allowed }];
+  // Listen for role updates in localStorage and custom events
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'case-booking-custom-roles') {
+        // Reload roles from database
+        reloadRoles();
       }
-    });
+    };
+
+    const handleRolesUpdated = () => {
+      // Reload roles from database
+      reloadRoles();
+    };
+
+    const reloadRoles = async () => {
+      try {
+        const databaseRoles = await getSupabaseRoles();
+        const matrixRoles = databaseRoles.filter(role => role.id !== 'admin');
+        setRoles(matrixRoles);
+      } catch (error) {
+        console.error('Error reloading roles:', error);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('rolesUpdated', handleRolesUpdated);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('rolesUpdated', handleRolesUpdated);
+    };
+  }, []);
+
+  const handlePermissionChange = async (actionId: string, roleId: string, allowed: boolean) => {
+    try {
+      // Update the permission in Supabase
+      await updateSupabasePermission(roleId, actionId, allowed);
+      
+      // Clear the permissions cache to force reload with new permissions
+      clearPermissionsCache();
+      
+      // Update local state
+      setPermissions(prevPermissions => {
+        const existingIndex = prevPermissions.findIndex(
+          p => p.actionId === actionId && p.roleId === roleId
+        );
+
+        if (existingIndex >= 0) {
+          // Update existing permission
+          const updated = [...prevPermissions];
+          updated[existingIndex] = { ...updated[existingIndex], allowed };
+          return updated;
+        } else {
+          // Add new permission
+          return [...prevPermissions, { actionId, roleId, allowed }];
+        }
+      });
+    } catch (error) {
+      console.error('Error updating permission:', error);
+    }
   };
 
-  const handleReset = () => {
-    resetPermissions();
-    const defaultPermissions = getRuntimePermissions();
-    setPermissions(defaultPermissions);
-    setIsEditing(false);
+  const handleReset = async () => {
+    try {
+      await resetSupabasePermissions();
+      const defaultPermissions = await getSupabasePermissions();
+      setPermissions(defaultPermissions);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error resetting permissions:', error);
+    }
   };
 
   const handleSave = () => {
@@ -72,12 +128,19 @@ const PermissionMatrixPage: React.FC = () => {
     const title = 'Confirm Save Changes';
     const message = `Are you sure you want to save the current permission configuration?\n\nThis will update ${changedPermissions} permission(s) and affect system access immediately.`;
     
-    showConfirm(title, message, () => {
-      // Permissions are already saved in real-time via updatePermission
-      // But we can still save the current state to ensure consistency
-      saveRuntimePermissions(permissions);
-      setIsEditing(false);
-      showSuccess('Permissions saved successfully!');
+    showConfirm(title, message, async () => {
+      try {
+        // Permissions are already saved in real-time via updateSupabasePermission
+        // But we can still save the current state to ensure consistency
+        await saveSupabasePermissions(permissions);
+        // Clear the permissions cache to force reload with new permissions
+        clearPermissionsCache();
+        setIsEditing(false);
+        showSuccess('Permissions saved successfully!');
+      } catch (error) {
+        console.error('Error saving permissions:', error);
+        showSuccess('Error saving permissions. Please try again.');
+      }
     });
   };
 
@@ -157,7 +220,7 @@ const PermissionMatrixPage: React.FC = () => {
           </div>
         </div>
         <div className="role-definitions">
-          {roles.map(role => (
+          {getAllRoles().map(role => (
             <div key={role.id} className="role-definition">
               <div className="role-badge" style={{ backgroundColor: role.color }}>
                 {role.displayName}

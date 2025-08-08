@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Login from './components/Login';
+import SupabaseLogin from './components/SupabaseLogin';
+import MobileEntryPage from './components/MobileEntryPage';
+import ErrorBoundary from './components/ErrorBoundary';
 import CaseBookingForm from './components/CaseBookingForm';
 import CasesList from './components/CasesList';
 import ProcessOrderPage from './components/ProcessOrderPage';
@@ -12,29 +14,44 @@ import WelcomePopup from './components/WelcomePopup';
 import PermissionMatrixPage from './components/PermissionMatrixPage';
 import AuditLogs from './components/AuditLogs';
 import SimplifiedEmailConfig from './components/SimplifiedEmailConfig';
+import BackupRestore from './components/BackupRestore';
+import DataImport from './components/DataImport';
+import SystemSettings from './components/SystemSettings';
 import LogoutConfirmation from './components/LogoutConfirmation';
 import SSOCallback from './components/SSOCallback';
+import DatabaseConnectivityIndicator from './components/DatabaseConnectivityIndicator';
 import { User, CaseBooking } from './types';
 import { getCurrentUser, logout } from './utils/auth';
-import { hasPermission, PERMISSION_ACTIONS } from './utils/permissions';
+import { hasPermission, PERMISSION_ACTIONS, initializePermissions } from './utils/permissions';
 import { initializeCodeTables } from './utils/codeTable';
+import { auditLogout } from './utils/auditService';
 import { SoundProvider, useSound } from './contexts/SoundContext';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { ToastProvider, useToast } from './components/ToastContainer';
 import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
 import StatusLegend from './components/StatusLegend';
-import './App.css';
-import './components/CodeTableSetup.css';
-import './components/AuditLogs.css';
+import MobileNavigation from './components/MobileNavigation';
+import MobileHeader from './components/MobileHeader';
+// import { SystemHealthMonitor } from './utils/systemHealthMonitor'; // Temporarily disabled
+// import { DataValidationService } from './utils/dataValidationService'; // Unused
+import './assets/components/App.css';
+import './assets/components/CodeTableSetup.css';
+import './assets/components/AuditLogs.css';
+import './assets/components/MobileNavigation.css';
+import './assets/components/MobileHeader.css';
+import './assets/components/MobileLayout.css';
+import './assets/components/MobileComponents.css';
+import './assets/components/MobileEntryPage.css';
 
-type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config';
+type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config' | 'backup-restore' | 'data-import' | 'system-settings';
 
 
 
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [showMobileEntry, setShowMobileEntry] = useState(true);
   const [activePage, setActivePage] = useState<ActivePage>('booking');
   const [processingCase, setProcessingCase] = useState<CaseBooking | null>(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
@@ -48,14 +65,46 @@ const AppContent: React.FC = () => {
 
   // Check if this is an SSO callback route after all hooks
   const isCallbackRoute = window.location.pathname === '/auth/callback' || window.location.search.includes('code=');
+  
+  // Check if this is a mobile device
+  const isMobileDevice = () => {
+    return window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  };
 
   useEffect(() => {
-    // Initialize code tables first
-    initializeCodeTables();
+    // Initialize code tables and permissions
+    const initialize = async () => {
+      try {
+        initializeCodeTables();
+        await initializePermissions();
+        
+        const currentUser = getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+          setShowMobileEntry(false); // Skip mobile entry if user is already logged in
+
+          // DISABLED: Health monitoring causing infinite loops
+          // TODO: Fix database schema issues before re-enabling
+          console.log('🔍 System health monitoring temporarily disabled');
+        }
+      } catch (error) {
+        console.error('Error during initialization:', error);
+        // Still try to get current user even if initialization fails
+        const currentUser = getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+          setShowMobileEntry(false);
+        }
+      }
+    };
     
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
+    initialize();
+  }, []);
+
+  // Handle mobile entry visibility based on device type
+  useEffect(() => {
+    if (!isMobileDevice()) {
+      setShowMobileEntry(false);
     }
   }, []);
 
@@ -84,6 +133,7 @@ const AppContent: React.FC = () => {
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
     setShowWelcomePopup(true);
+    setShowMobileEntry(false);
     playSound.success();
     showSuccess('Welcome back!', `You're now logged in as ${loggedInUser.name}`);
     addNotification({
@@ -93,16 +143,30 @@ const AppContent: React.FC = () => {
     });
   };
 
+  const handleProceedToLogin = () => {
+    setShowMobileEntry(false);
+    playSound.click();
+  };
+
   const handleLogout = () => {
     setShowLogoutConfirmation(true);
   };
 
-  const confirmLogout = () => {
-    logout();
+  const confirmLogout = async () => {
+    // Add audit log for logout before clearing user
+    if (user) {
+      await auditLogout(user.name, user.id, user.role, user.selectedCountry);
+    }
+    
+    await logout();
     setUser(null);
     setActivePage('booking');
     setProcessingCase(null);
     setShowLogoutConfirmation(false);
+    // Reset mobile entry page for next login if on mobile
+    if (isMobileDevice()) {
+      setShowMobileEntry(true);
+    }
     playSound.click();
     showSuccess('Logged Out', 'You have been successfully logged out of the system');
   };
@@ -155,9 +219,14 @@ const AppContent: React.FC = () => {
   // Helper function to check if user has admin access
   const hasAdminAccess = (user: User | null): boolean => {
     if (!user) return false;
-    return user.role === 'admin' || 
-           hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) ||
-           (user.role === 'it');
+    
+    // Admin and IT roles always have admin access
+    if (user.role === 'admin' || user.role === 'it') {
+      return true;
+    }
+    
+    // For other roles, check specific permissions
+    return hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS);
   };
 
   // Helper function to toggle admin panel
@@ -167,15 +236,33 @@ const AppContent: React.FC = () => {
   };
 
   if (!user) {
-    return <Login onLogin={handleLogin} />;
+    // Show mobile entry page first on mobile devices
+    if (isMobileDevice() && showMobileEntry) {
+      return (
+        <>
+          <MobileEntryPage onProceedToLogin={handleProceedToLogin} />
+          {/* Also render login in background for desktop fallback */}
+          <div style={{ display: 'none' }}>
+            <SupabaseLogin onLogin={handleLogin} />
+          </div>
+        </>
+      );
+    }
+    
+    // Show login directly on desktop or after mobile entry
+    return <SupabaseLogin onLogin={handleLogin} />;
   }
 
   return (
     <div className="app">
-      <header className="app-header">
+      {/* Desktop Header */}
+      <header className="app-header desktop-header">
         <div className="header-content">
           <div className="header-left">
-            <h1>🏥 Transmedic Case Booking</h1>
+            <h1>
+              <DatabaseConnectivityIndicator className="header-db-indicator" />
+              Transmedic Case Booking
+            </h1>
             <div className="header-info">
               <div className="role-country-info">
                 <span className="info-label">Role:</span>
@@ -205,7 +292,19 @@ const AppContent: React.FC = () => {
                     
                     {adminPanelExpanded && (
                       <div className="header-admin-submenu">
-                        {hasPermission(user.role, 'code-table-setup') && (
+                        {hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) && (
+                          <button
+                            onClick={() => {
+                              setActivePage('system-settings');
+                              playSound.click();
+                              setAdminPanelExpanded(false);
+                            }}
+                            className={`header-admin-item ${activePage === 'system-settings' ? 'active' : ''}`}
+                          >
+                            ⚙️ System Settings
+                          </button>
+                        )}
+                        {hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) && (
                           <button
                             onClick={() => {
                               setActivePage('codetables');
@@ -217,7 +316,7 @@ const AppContent: React.FC = () => {
                             📊 Code Table Setup
                           </button>
                         )}
-                        {user.role === 'admin' && (
+                        {hasPermission(user.role, PERMISSION_ACTIONS.PERMISSION_MATRIX) && (
                           <button
                             onClick={() => {
                               setActivePage('permissions');
@@ -265,6 +364,30 @@ const AppContent: React.FC = () => {
                             📊 Audit Logs
                           </button>
                         )}
+                        {hasPermission(user.role, PERMISSION_ACTIONS.BACKUP_RESTORE) && (
+                          <button
+                            onClick={() => {
+                              setActivePage('backup-restore');
+                              playSound.click();
+                              setAdminPanelExpanded(false);
+                            }}
+                            className={`header-admin-item ${activePage === 'backup-restore' ? 'active' : ''}`}
+                          >
+                            💾 Backup & Restore
+                          </button>
+                        )}
+                        {hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) && (
+                          <button
+                            onClick={() => {
+                              setActivePage('data-import');
+                              playSound.click();
+                              setAdminPanelExpanded(false);
+                            }}
+                            className={`header-admin-item ${activePage === 'data-import' ? 'active' : ''}`}
+                          >
+                            📥 Data Import
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -288,6 +411,9 @@ const AppContent: React.FC = () => {
         </div>
       </header>
 
+      {/* Mobile Header */}
+      <MobileHeader user={user} onLogout={handleLogout} />
+
       <nav className="app-nav">
         <div className="nav-buttons">
           {hasPermission(user.role, PERMISSION_ACTIONS.CREATE_CASE) && (
@@ -301,17 +427,19 @@ const AppContent: React.FC = () => {
               📝 New Case Booking
             </button>
           )}
-          <button
-            onClick={() => {
-              setActivePage('cases');
-              playSound.click();
-            }}
-            className={activePage === 'cases' ? 'active' : ''}
-          >
-            📋 View All Cases
-          </button>
+          {hasPermission(user.role, PERMISSION_ACTIONS.VIEW_CASES) && (
+            <button
+              onClick={() => {
+                setActivePage('cases');
+                playSound.click();
+              }}
+              className={activePage === 'cases' ? 'active' : ''}
+            >
+              📋 View All Cases
+            </button>
+          )}
           <StatusLegend />
-          {hasPermission(user.role, 'booking-calendar') && (
+          {hasPermission(user.role, PERMISSION_ACTIONS.BOOKING_CALENDAR) && (
             <button
               onClick={() => {
                 setActivePage('calendar');
@@ -371,7 +499,7 @@ const AppContent: React.FC = () => {
           </div>
         )}
         
-        {activePage === 'cases' && (
+        {activePage === 'cases' && hasPermission(user.role, PERMISSION_ACTIONS.VIEW_CASES) && (
           <CasesList 
             onProcessCase={handleProcessCase} 
             currentUser={user} 
@@ -400,7 +528,7 @@ const AppContent: React.FC = () => {
           <AuditLogs />
         )}
         
-        {activePage === 'permissions' && user.role === 'admin' && (
+        {activePage === 'permissions' && hasPermission(user.role, PERMISSION_ACTIONS.PERMISSION_MATRIX) && (
           <PermissionMatrixPage />
         )}
         
@@ -408,7 +536,7 @@ const AppContent: React.FC = () => {
           <SimplifiedEmailConfig />
         )}
         
-        {activePage === 'calendar' && hasPermission(user.role, 'booking-calendar') && (
+        {activePage === 'calendar' && hasPermission(user.role, PERMISSION_ACTIONS.BOOKING_CALENDAR) && (
           <BookingCalendar onCaseClick={handleCalendarCaseClick} />
         )}
         
@@ -420,8 +548,20 @@ const AppContent: React.FC = () => {
           <Reports />
         )}
         
-        {activePage === 'codetables' && hasPermission(user.role, 'code-table-setup') && (
+        {activePage === 'codetables' && hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) && (
           <CodeTableSetup />
+        )}
+        
+        {activePage === 'backup-restore' && hasPermission(user.role, PERMISSION_ACTIONS.BACKUP_RESTORE) && (
+          <BackupRestore />
+        )}
+        
+        {activePage === 'data-import' && hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) && (
+          <DataImport />
+        )}
+        
+        {activePage === 'system-settings' && hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) && (
+          <SystemSettings />
         )}
       </main>
 
@@ -445,19 +585,32 @@ const AppContent: React.FC = () => {
         onCancel={cancelLogout}
         userName={user?.name}
       />
+
+      {/* Mobile Navigation */}
+      <MobileNavigation
+        user={user}
+        activePage={activePage}
+        onNavigate={(page) => {
+          setActivePage(page);
+          playSound.click();
+        }}
+        onLogout={handleLogout}
+      />
     </div>
   );
 };
 
 const App: React.FC = () => {
   return (
-    <SoundProvider>
-      <NotificationProvider>
-        <ToastProvider>
-          <AppContent />
-        </ToastProvider>
-      </NotificationProvider>
-    </SoundProvider>
+    <ErrorBoundary>
+      <SoundProvider>
+        <NotificationProvider>
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
+        </NotificationProvider>
+      </SoundProvider>
+    </ErrorBoundary>
   );
 };
 

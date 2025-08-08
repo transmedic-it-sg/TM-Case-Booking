@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CaseBooking, FilterOptions, CaseStatus } from '../../types';
-import { getCases, filterCases, updateCaseStatus, amendCase, cleanupProcessOrderDetails } from '../../utils/storage';
+import { getCases, filterCases, updateCaseStatus, amendCase, processCaseOrder } from '../../utils/storage';
 import { getCurrentUser } from '../../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -9,13 +9,16 @@ import CasesFilter from './CasesFilter';
 import CaseCard from './CaseCard';
 import StatusChangeSuccessPopup from '../StatusChangeSuccessPopup';
 import CustomModal from '../CustomModal';
+import AmendmentForm from '../CaseCard/AmendmentForm';
 import { useModal } from '../../hooks/useModal';
-import { USER_ROLES } from '../../constants/permissions';
+// import { USER_ROLES } from '../../constants/permissions'; // Removed - not used
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { userHasDepartmentAccess } from '../../utils/departmentUtils';
+import { normalizeCountry } from '../../utils/countryUtils';
 
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
-  const { modal, closeModal, showConfirm } = useModal();
+  const { modal, closeModal, showConfirm, showConfirmWithCustomButtons } = useModal();
   const [cases, setCases] = useState<CaseBooking[]>([]);
   const [filteredCases, setFilteredCases] = useState<CaseBooking[]>([]);
   const [availableSubmitters, setAvailableSubmitters] = useState<string[]>([]);
@@ -83,30 +86,54 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   useEffect(() => {
-    // Clean up any corrupted data on component mount
-    cleanupProcessOrderDetails();
-    loadCases();
+    // Load data from Supabase (cleanup is now handled at the Supabase level)
+    const loadData = async () => {
+      await loadCases();
+    };
+    loadData();
   }, [currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   useEffect(() => {
     const currentUser = getCurrentUser();
     let filteredResults = filterCases(cases, filters);
     
-    // Country-based filtering for Operations and Operations Manager roles
-    if ((currentUser?.role === USER_ROLES.OPERATIONS || currentUser?.role === USER_ROLES.OPERATIONS_MANAGER) && currentUser.selectedCountry) {
-      filteredResults = filteredResults.filter(caseItem => 
-        caseItem.country === currentUser.selectedCountry
-      );
+    // Admin users see ALL cases without country/department restrictions
+    if (currentUser?.role === 'admin') {
+      // Admin sees everything - no additional filtering
+      setFilteredCases(filteredResults);
+      return;
     }
     
-    // Department-based filtering (excluding Operations Managers who have broader access)
-    if (currentUser?.departments && currentUser.departments.length > 0 && 
-        currentUser.role !== USER_ROLES.ADMIN && 
-        currentUser.role !== USER_ROLES.OPERATIONS_MANAGER && 
-        currentUser.role !== USER_ROLES.IT) {
-      filteredResults = filteredResults.filter(caseItem => 
-        userHasDepartmentAccess(currentUser.departments, caseItem.department)
+    // Non-admin users: Apply country and department restrictions
+    if (currentUser) {
+      // Country-based filtering for non-admin users
+      if (currentUser.countries && currentUser.countries.length > 0) {
+        // Normalize user's country names and filter cases by full country names
+        const userCountries = currentUser.countries.map(country => normalizeCountry(country));
+        filteredResults = filteredResults.filter(caseItem => 
+          userCountries.includes(normalizeCountry(caseItem.country))
+        );
+      }
+      
+      // Department-based filtering for non-admin users (excluding Operations Managers who have broader access)
+      const hasFullAccess = currentUser && (
+        currentUser.role === 'operations-manager' || 
+        currentUser.role === 'it'
       );
+      
+      if (currentUser.departments && currentUser.departments.length > 0 && !hasFullAccess) {
+        // Clean department names - remove country prefixes like "Singapore:", "Malaysia:"
+        const cleanDepartmentName = (department: string) => {
+          return department.replace(/^[A-Za-z\s]+:/, '').trim();
+        };
+        
+        const userDepartments = currentUser.departments.map(cleanDepartmentName);
+        
+        filteredResults = filteredResults.filter(caseItem => 
+          userDepartments.includes(cleanDepartmentName(caseItem.department))
+        );
+      }
     }
     
     setFilteredCases(filteredResults);
@@ -144,31 +171,62 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
   }, [highlightedCaseId, onClearHighlight, filteredCases, casesPerPage]);
 
-  const loadCases = () => {
-    const allCases = getCases();
-    
-    // Extract unique submitters from all cases
-    const uniqueSubmitters = Array.from(new Set(allCases.map(caseItem => caseItem.submittedBy)))
-      .filter(submitter => submitter && submitter.trim())
-      .sort();
-    setAvailableSubmitters(uniqueSubmitters);
+  const loadCases = useCallback(async () => {
+    try {
+      // Admin and IT users should get ALL cases from ALL countries
+      const isAdminOrIT = currentUser && (currentUser.role === 'admin' || currentUser.role === 'it');
+      
+      let allCases;
+      if (isAdminOrIT) {
+        // For admin/IT users, don't pass any country filter to get ALL cases
+        allCases = await getCases();
+      } else {
+        // For regular users, filter by their selected/assigned country
+        const userCountry = currentUser?.selectedCountry;
+        const normalizedCountry = userCountry ? normalizeCountry(userCountry) : undefined;
+        allCases = await getCases(normalizedCountry);
+      }
+      
+      // Ensure allCases is an array
+      if (!Array.isArray(allCases)) {
+        console.error('getCases returned non-array:', allCases);
+        setCases([]);
+        setAvailableSubmitters([]);
+        setAvailableHospitals([]);
+        addNotification({
+          title: 'Data Load Error',
+          message: 'Failed to load cases. Please try refreshing the page.',
+          type: 'error'
+        });
+        return;
+      }
+      
+      // Extract unique submitters from all cases
+      const uniqueSubmitters = Array.from(new Set(allCases.map(caseItem => caseItem.submittedBy)))
+        .filter(submitter => submitter && submitter.trim())
+        .sort();
+      setAvailableSubmitters(uniqueSubmitters);
 
-    // Extract unique hospitals from all cases
-    const uniqueHospitals = Array.from(new Set(allCases.map(caseItem => caseItem.hospital)))
-      .filter(hospital => hospital && hospital.trim())
-      .sort();
-    setAvailableHospitals(uniqueHospitals);
-    
-    // Admin and IT can view all cases, others are filtered by country
-    if (currentUser?.role === 'admin' || currentUser?.role === 'it') {
+      // Extract unique hospitals from all cases
+      const uniqueHospitals = Array.from(new Set(allCases.map(caseItem => caseItem.hospital)))
+        .filter(hospital => hospital && hospital.trim())
+        .sort();
+      setAvailableHospitals(uniqueHospitals);
+      
+      // Set the cases directly since we've already applied country filtering during load
       setCases(allCases);
-    } else {
-      const countryCases = currentUser?.selectedCountry 
-        ? allCases.filter(caseItem => caseItem.country === currentUser.selectedCountry)
-        : allCases;
-      setCases(countryCases);
+    } catch (error) {
+      console.error('Error loading cases:', error);
+      setCases([]);
+      setAvailableSubmitters([]);
+      setAvailableHospitals([]);
+      addNotification({
+        title: 'Data Load Error',
+        message: `Failed to load cases: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        type: 'error'
+      });
     }
-  };
+  }, [currentUser, addNotification]);
 
   const handleFilterChange = (field: keyof FilterOptions, value: string) => {
     setTempFilters(prev => ({
@@ -228,13 +286,13 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     });
   };
 
-  const handleStatusChange = (caseId: string, newStatus: CaseStatus) => {
+  const handleStatusChange = async (caseId: string, newStatus: CaseStatus) => {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
 
     const caseItem = cases.find(c => c.id === caseId);
-    updateCaseStatus(caseId, newStatus, currentUser.name);
-    loadCases();
+    await updateCaseStatus(caseId, newStatus, currentUser.id);
+    await loadCases();
     
     // Reset to page 1 and expand the updated case
     setCurrentPage(1);
@@ -259,32 +317,84 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       department: caseItem.department,
       dateOfSurgery: caseItem.dateOfSurgery,
       procedureType: caseItem.procedureType,
+      procedureName: caseItem.procedureName,
       doctorName: caseItem.doctorName,
       timeOfProcedure: caseItem.timeOfProcedure,
-      specialInstruction: caseItem.specialInstruction
+      specialInstruction: caseItem.specialInstruction,
+      amendmentReason: ''
     });
   };
 
-  const handleSaveAmendment = (caseId: string) => {
+  const handleSaveAmendment = async (amendmentFormData: any) => {
     const currentUser = getCurrentUser();
-    if (!currentUser) return;
+    if (!currentUser || !amendingCase) return;
 
     try {
+      // Extract caseId from amendmentFormData if provided, otherwise use amendingCase
+      const caseId = amendmentFormData.caseId || amendingCase;
+      const { caseId: _, ...amendments } = amendmentFormData; // Remove caseId from amendments
+      
+      const caseItem = cases.find(c => c.id === caseId);
       const isAdmin = currentUser.role === 'admin';
-      amendCase(caseId, amendmentData, currentUser.name, isAdmin);
+      
+      // Validate that amendment reason is provided
+      if (!amendments.amendmentReason || !amendments.amendmentReason.trim()) {
+        throw new Error('Amendment reason is required');
+      }
+      
+      await amendCase(caseId, amendments, currentUser.id, isAdmin);
+      
       setAmendingCase(null);
       setAmendmentData({});
-      loadCases();
+      await loadCases();
       
-      // Reset to page 1 and expand the updated case
+      // Reset to page 1 and expand the updated case AND amendment history
       setCurrentPage(1);
       setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
+      setExpandedAmendmentHistory(prev => new Set([...Array.from(prev), caseId]));
       
       // Show success popup
-      setSuccessMessage('Case amended successfully!');
+      setSuccessMessage('Case amended successfully! Check the Amendment History section below.');
       setShowSuccessPopup(true);
+      
+      // Add notification for amendment
+      addNotification({
+        title: 'Case Amended',
+        message: `Case ${caseItem?.caseReferenceNumber || caseId} has been successfully amended by ${currentUser.name}`,
+        type: 'success'
+      }, 'case-amended', caseItem?.country, caseItem?.department);
+      
+      // Add audit log
+      const { auditCaseAmended } = await import('../../utils/auditService');
+      const changes = Object.keys(amendments).filter(key => amendments[key as keyof typeof amendments] && key !== 'amendmentReason');
+      await auditCaseAmended(
+        currentUser.name, 
+        currentUser.id, 
+        currentUser.role, 
+        caseItem?.caseReferenceNumber || amendingCase,
+        changes,
+        caseItem?.country,
+        caseItem?.department
+      );
     } catch (error) {
       console.error('Failed to amend case:', error);
+      // Add error notification with specific messages
+      let errorMessage = 'Unknown error';
+      if (error instanceof Error) {
+        if (error.message.includes('Amendment reason is required')) {
+          errorMessage = 'Amendment reason is required. Please provide a reason for this change.';
+        } else if (error.message.includes('already been amended')) {
+          errorMessage = 'This case has already been amended and cannot be amended again (unless you are an admin).';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      addNotification({
+        title: 'Amendment Failed',
+        message: `Failed to amend case: ${errorMessage}`,
+        type: 'error'
+      });
     }
   };
 
@@ -299,7 +409,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setProcessAttachments([]);
   };
 
-  const handleSaveProcessDetails = (caseId: string) => {
+  const handleSaveProcessDetails = async (caseId: string) => {
     if (!processDetails.trim()) {
       return;
     }
@@ -311,15 +421,12 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
     try {
       const caseItem = cases.find(c => c.id === caseId);
-      const additionalData = {
-        processDetails,
-        attachments: processAttachments
-      };
-      updateCaseStatus(caseId, 'Order Prepared', currentUser.name, JSON.stringify(additionalData));
+      // Use the specific processCaseOrder function for order processing
+      await processCaseOrder(caseId, currentUser.id, processDetails);
       setProcessingCase(null);
       setProcessDetails('');
       setProcessAttachments([]);
-      loadCases();
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -360,7 +467,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setHospitalDeliveryComments('');
   };
 
-  const handleOrderDelivered = (caseId: string) => {
+  const handleOrderDelivered = async (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.PENDING_DELIVERY_HOSPITAL)) {
       return;
@@ -371,11 +478,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         attachments: hospitalDeliveryAttachments,
         comments: hospitalDeliveryComments
       };
-      updateCaseStatus(caseId, 'Pending Delivery (Hospital)', currentUser.name, JSON.stringify(additionalData));
+      await updateCaseStatus(caseId, 'Pending Delivery (Hospital)', currentUser.id, JSON.stringify(additionalData));
       setHospitalDeliveryCase(null);
       setHospitalDeliveryAttachments([]);
       setHospitalDeliveryComments('');
-      loadCases();
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -403,7 +510,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setReceivedImage('');
   };
 
-  const handleSaveOrderReceived = (caseId: string) => {
+  const handleSaveOrderReceived = async (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.DELIVERED_HOSPITAL)) {
       return;
@@ -431,11 +538,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         comments: receivedDetails,
         attachments: attachments
       };
-      updateCaseStatus(caseId, 'Delivered (Hospital)', currentUser.name, JSON.stringify(additionalData));
+      await updateCaseStatus(caseId, 'Delivered (Hospital)', currentUser.id, JSON.stringify(additionalData));
       setReceivedCase(null);
       setReceivedDetails('');
       setReceivedImage('');
-      loadCases();
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -464,7 +571,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setDoNumber('');
   };
 
-  const handleSaveCaseCompleted = (caseId: string) => {
+  const handleSaveCaseCompleted = async (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.CASE_COMPLETED)) {
       return;
@@ -479,12 +586,12 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         orderSummary,
         doNumber
       };
-      updateCaseStatus(caseId, 'Case Completed', currentUser.name, JSON.stringify(additionalData));
+      await updateCaseStatus(caseId, 'Case Completed', currentUser.id, JSON.stringify(additionalData));
       setCompletedCase(null);
       setAttachments([]);
       setOrderSummary('');
       setDoNumber('');
-      loadCases();
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -506,15 +613,15 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   // Delivered (Office) workflow
-  const handleOrderDeliveredOffice = (caseId: string) => {
+  const handleOrderDeliveredOffice = async (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.DELIVERED_OFFICE)) {
       return;
     }
     try {
       const caseItem = cases.find(c => c.id === caseId);
-      updateCaseStatus(caseId, 'Delivered (Office)', currentUser.name);
-      loadCases();
+      await updateCaseStatus(caseId, 'Delivered (Office)', currentUser.id);
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -536,15 +643,15 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   // To be billed workflow
-  const handleToBeBilled = (caseId: string) => {
+  const handleToBeBilled = async (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
       return;
     }
     try {
       const caseItem = cases.find(c => c.id === caseId);
-      updateCaseStatus(caseId, 'To be billed', currentUser.name);
-      loadCases();
+      await updateCaseStatus(caseId, 'To be billed', currentUser.id);
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -572,7 +679,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setPendingOfficeComments('');
   };
 
-  const handleSavePendingOffice = (caseId: string) => {
+  const handleSavePendingOffice = async (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.PENDING_DELIVERY_OFFICE)) {
       return;
@@ -583,11 +690,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         attachments: pendingOfficeAttachments,
         comments: pendingOfficeComments
       };
-      updateCaseStatus(caseId, 'Pending Delivery (Office)', currentUser.name, JSON.stringify(additionalData));
+      await updateCaseStatus(caseId, 'Pending Delivery (Office)', currentUser.id, JSON.stringify(additionalData));
       setPendingOfficeCase(null);
       setPendingOfficeAttachments([]);
       setPendingOfficeComments('');
-      loadCases();
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -621,7 +728,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setOfficeDeliveryComments('');
   };
 
-  const handleSaveOfficeDelivery = (caseId: string) => {
+  const handleSaveOfficeDelivery = async (caseId: string) => {
     const currentUser = getCurrentUser();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.DELIVERED_OFFICE)) {
       return;
@@ -632,11 +739,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         attachments: officeDeliveryAttachments,
         comments: officeDeliveryComments
       };
-      updateCaseStatus(caseId, 'Delivered (Office)', currentUser.name, JSON.stringify(additionalData));
+      await updateCaseStatus(caseId, 'Delivered (Office)', currentUser.id, JSON.stringify(additionalData));
       setOfficeDeliveryCase(null);
       setOfficeDeliveryAttachments([]);
       setOfficeDeliveryComments('');
-      loadCases();
+      await loadCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -673,10 +780,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     const caseItem = cases.find(c => c.id === caseId);
     const confirmMessage = `Are you sure you want to cancel case "${caseItem?.caseReferenceNumber}"?\n\nThis action will mark the case as cancelled and cannot be undone.`;
     
-    showConfirm('Cancel Case', confirmMessage, () => {
+    showConfirmWithCustomButtons('Cancel Case', confirmMessage, async () => {
       try {
-        updateCaseStatus(caseId, 'Case Cancelled', currentUser.name, 'Case cancelled by user request');
-        loadCases();
+        await updateCaseStatus(caseId, 'Case Cancelled', currentUser.id, 'Case cancelled by user request');
+        await loadCases();
         
         // Reset to page 1 and expand the updated case
         setCurrentPage(1);
@@ -695,7 +802,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       } catch (error) {
         console.error('Failed to cancel case:', error);
       }
-    });
+    }, 'Cancel Case');
   };
 
   const handleCancelReceived = () => {
@@ -719,23 +826,48 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
     const confirmMessage = `Are you sure you want to delete case "${caseItem.caseReferenceNumber}"?\n\nCase Details:\n- Hospital: ${caseItem.hospital}\n- Procedure: ${caseItem.procedureType}\n- Status: ${caseItem.status}\n\nThis action cannot be undone.`;
     
-    showConfirm('Delete Case', confirmMessage, () => {
+    showConfirm('Delete Case', confirmMessage, async () => {
       try {
-        // Get all cases from localStorage
-        const allCases = getCases();
-        // Filter out the case to delete
-        const updatedCases = allCases.filter(c => c.id !== caseId);
-        // Save back to localStorage
-        localStorage.setItem('case-booking-cases', JSON.stringify(updatedCases));
+        // Use the proper storage service to delete from Supabase
+        const { deleteSupabaseCase } = await import('../../utils/supabaseCaseService');
+        await deleteSupabaseCase(caseId);
+        
+        // Fallback to localStorage if Supabase fails
+        try {
+          // Get all cases from localStorage
+          const allCases = await getCases();
+          // Filter out the case to delete
+          const updatedCases = allCases.filter(c => c.id !== caseId);
+          // Save back to localStorage
+          localStorage.setItem('case-booking-cases', JSON.stringify(updatedCases));
+        } catch (localStorageError) {
+          console.error('localStorage fallback failed:', localStorageError);
+        }
         
         // Reload cases to update the UI
-        loadCases();
+        await loadCases();
         
         // Reset to page 1 (case was deleted, so no need to expand)
         setCurrentPage(1);
-        // Success handled by UI update
+        
+        // Add notification
+        addNotification({
+          title: 'Case Deleted',
+          message: `Case ${caseItem.caseReferenceNumber} has been successfully deleted by ${currentUser.name}`,
+          type: 'warning'
+        });
+        
+        // Show success popup
+        setSuccessMessage(`Case ${caseItem.caseReferenceNumber} has been successfully deleted`);
+        setShowSuccessPopup(true);
       } catch (error) {
         console.error('Delete failed:', error);
+        // Show error notification
+        addNotification({
+          title: 'Delete Failed',
+          message: `Failed to delete case ${caseItem.caseReferenceNumber}. Please try again.`,
+          type: 'error'
+        });
       }
     });
   };
@@ -830,7 +962,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
                     onStatusChange={handleStatusChange}
                     onAmendCase={handleAmendCase}
                     onSaveAmendment={handleSaveAmendment}
-                    onCancelAmendment={handleCancelAmendment}
+                    onCancelAmendment={() => setAmendingCase(null)}
                     onOrderProcessed={handleOrderProcessed}
                     onSaveProcessDetails={handleSaveProcessDetails}
                     onCancelProcessing={handleCancelProcessing}
@@ -952,12 +1084,32 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
             style: 'secondary'
           },
           {
-            label: 'Delete',
+            label: modal.confirmLabel || 'Delete',
             onClick: modal.onConfirm || closeModal,
             style: 'danger'
           }
         ] : undefined}
       />
+      
+      {/* Amendment Form Modal */}
+      {amendingCase && (() => {
+        const caseToAmend = cases.find(c => c.id === amendingCase);
+        if (!caseToAmend) {
+          // Case not found, close the amendment modal
+          console.warn(`Case with ID ${amendingCase} not found, closing amendment modal`);
+          setAmendingCase(null);
+          setAmendmentData({});
+          return null;
+        }
+        return (
+          <AmendmentForm
+            caseItem={caseToAmend}
+            amendmentData={amendmentData}
+            onSave={handleSaveAmendment}
+            onCancel={handleCancelAmendment}
+          />
+        );
+      })()}
     </div>
   );
 };

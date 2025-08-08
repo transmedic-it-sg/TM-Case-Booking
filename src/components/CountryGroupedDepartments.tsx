@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  getDepartmentsByCountry, 
-  initializeCodeTables, 
-  initializeCountryCodeTables,
   createCountryDepartmentId
 } from '../utils/codeTable';
 
@@ -30,37 +27,36 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
     const loadDepartments = async () => {
       setIsLoading(true);
       try {
-        // Initialize code tables
-        initializeCodeTables();
+        // Load departments from Supabase for consistency with Code Table Setup
+        const departmentsByCountryFromDB: Record<string, string[]> = {};
         
-        // Initialize country tables only for user's assigned countries
+        // Import the Supabase service
+        const { getSupabaseCodeTables } = await import('../utils/supabaseCodeTableService');
+        
         await Promise.all(
           userCountries.map(async (country) => {
             try {
-              initializeCountryCodeTables(country);
-              return Promise.resolve();
+              const codeTables = await getSupabaseCodeTables(country);
+              const departmentsTable = codeTables.find(table => table.id === 'departments');
+              
+              if (departmentsTable && departmentsTable.items) {
+                departmentsByCountryFromDB[country] = departmentsTable.items;
+              } else {
+                // Fallback to empty array if no departments found
+                departmentsByCountryFromDB[country] = [];
+              }
             } catch (error) {
-              console.error(`Error initializing tables for ${country}:`, error);
-              return Promise.resolve();
+              console.error(`Error loading departments for ${country}:`, error);
+              departmentsByCountryFromDB[country] = [];
             }
           })
         );
         
-        // Reload departments after initialization
-        const updatedDepartmentsByCountry = getDepartmentsByCountry();
-        
-        // Only show departments for user's assigned countries
-        const filteredDepartments = Object.fromEntries(
-          Object.entries(updatedDepartmentsByCountry).filter(([country]) =>
-            userCountries.includes(country)
-          )
-        );
-        
-        setDepartmentsByCountry(filteredDepartments);
+        setDepartmentsByCountry(departmentsByCountryFromDB);
         
         // Auto-expand countries that have selected departments
         const countriesWithSelections = new Set<string>();
-        Object.entries(filteredDepartments).forEach(([country, departments]) => {
+        Object.entries(departmentsByCountryFromDB).forEach(([country, departments]) => {
           const hasSelectedDepartments = departments.some(dept => {
             const countrySpecificId = createCountryDepartmentId(country, dept);
             return selectedDepartments.includes(countrySpecificId);

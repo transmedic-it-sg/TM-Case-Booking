@@ -1,218 +1,261 @@
-import { CaseBooking, FilterOptions, StatusHistory, AmendmentHistory } from '../types';
-import { sendStatusChangeNotification } from './emailNotificationService';
+import { CaseBooking, FilterOptions } from '../types';
+import { 
+  getSupabaseCases, 
+  saveSupabaseCase, 
+  updateSupabaseCaseStatus, 
+  updateSupabaseCaseProcessing,
+  generateCaseReferenceNumber as generateSupabaseReferenceNumber, 
+  getCategorizedSets as getSupabaseCategorizedSets, 
+  saveCategorizedSets as saveSupabaseCategorizedSets, 
+  migrateCasesFromLocalStorage 
+} from './supabaseCaseService';
+import { normalizeCountry } from './countryUtils';
 
 const CASES_KEY = 'case-booking-cases';
 const CASE_COUNTER_KEY = 'case-booking-counter';
 
-export const generateCaseReferenceNumber = (): string => {
-  const currentCounter = localStorage.getItem(CASE_COUNTER_KEY);
-  const counter = currentCounter ? parseInt(currentCounter) + 1 : 1;
-  const paddedCounter = counter.toString().padStart(6, '0');
-  const referenceNumber = `TMC${paddedCounter}`;
-  localStorage.setItem(CASE_COUNTER_KEY, counter.toString());
-  return referenceNumber;
-};
-
-export const getCases = (): CaseBooking[] => {
-  const stored = localStorage.getItem(CASES_KEY);
-  return stored ? JSON.parse(stored) : [];
-};
-
-export const saveCase = (caseData: CaseBooking): void => {
-  const cases = getCases();
-  const existingIndex = cases.findIndex(c => c.id === caseData.id);
-  
-  if (existingIndex >= 0) {
-    // Update existing case - move to front
-    cases.splice(existingIndex, 1);
-    cases.unshift(caseData);
-  } else {
-    // New case - add to front
-    cases.unshift(caseData);
+export const generateCaseReferenceNumber = async (country: string = 'Singapore'): Promise<string> => {
+  try {
+    return await generateSupabaseReferenceNumber(normalizeCountry(country));
+  } catch (error) {
+    console.error('Error generating Supabase reference number, falling back to localStorage:', error);
+    // Fallback to localStorage
+    const currentCounter = localStorage.getItem(CASE_COUNTER_KEY);
+    const counter = currentCounter ? parseInt(currentCounter) + 1 : 1;
+    const paddedCounter = counter.toString().padStart(6, '0');
+    const referenceNumber = `TMC${paddedCounter}`;
+    localStorage.setItem(CASE_COUNTER_KEY, counter.toString());
+    return referenceNumber;
   }
-  
-  localStorage.setItem(CASES_KEY, JSON.stringify(cases));
 };
 
-export const updateCaseStatus = (caseId: string, status: CaseBooking['status'], processedBy?: string, details?: string): void => {
-  const cases = getCases();
-  const caseIndex = cases.findIndex(c => c.id === caseId);
-  
-  if (caseIndex >= 0) {
-    const caseData = cases[caseIndex];
-    const timestamp = new Date().toISOString();
+export const getCases = async (country?: string): Promise<CaseBooking[]> => {
+  try {
+    console.log('Loading cases from Supabase...');
+    const normalizedCountry = country ? normalizeCountry(country) : undefined;
+    // Try to get cases directly from Supabase
+    const supabaseCases = await getSupabaseCases(normalizedCountry);
     
-    // Initialize status history if it doesn't exist
-    if (!caseData.statusHistory) {
-      caseData.statusHistory = [];
-      // Add initial status
-      caseData.statusHistory.push({
-        status: 'Case Booked',
-        timestamp: caseData.submittedAt,
-        processedBy: caseData.submittedBy,
-        details: 'Case initially submitted'
+    // If we got cases from Supabase, return them
+    if (supabaseCases && supabaseCases.length > 0) {
+      console.log(`Loaded ${supabaseCases.length} cases from Supabase`);
+      
+      // Clean up duplicate status entries in Supabase cases
+      const cleanedCases = supabaseCases.map(caseData => {
+        if (caseData.statusHistory && caseData.statusHistory.length > 1) {
+          const uniqueEntries = new Map<string, any>();
+          
+          caseData.statusHistory.forEach(entry => {
+            // For "Case Booked" entries, be more aggressive about deduplication
+            if (entry.status === 'Case Booked') {
+              const key = 'Case Booked';
+              // Only keep the first "Case Booked" entry, or prefer the one with "Case created" details
+              if (!uniqueEntries.has(key) || entry.details === 'Case created') {
+                uniqueEntries.set(key, entry);
+              }
+            } else {
+              // For other entries, create a unique key based on status, timestamp, and processedBy
+              const key = `${entry.status}-${entry.timestamp}-${entry.processedBy}`;
+              if (!uniqueEntries.has(key)) {
+                uniqueEntries.set(key, entry);
+              }
+            }
+          });
+          
+          const originalLength = caseData.statusHistory.length;
+          const cleanedHistory = Array.from(uniqueEntries.values())
+            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          
+          if (originalLength > cleanedHistory.length) {
+            console.log(`Cleaned ${originalLength - cleanedHistory.length} duplicate status entries for case ${caseData.caseReferenceNumber}`);
+          }
+          
+          return { ...caseData, statusHistory: cleanedHistory };
+        }
+        return caseData;
       });
+      
+      return cleanedCases;
     }
     
-    // Add new status to history
-    const statusEntry: StatusHistory = {
-      status,
-      timestamp,
-      processedBy: processedBy || 'System',
-      details: details
-    };
-    caseData.statusHistory.push(statusEntry);
-    
-    // Update current status
-    caseData.status = status;
-    if (processedBy) {
-      caseData.processedBy = processedBy;
-      caseData.processedAt = timestamp;
+    // If no cases in Supabase, check localStorage and migrate if needed (one time only)
+    const stored = localStorage.getItem(CASES_KEY);
+    if (stored) {
+      console.log('No cases in Supabase, migrating from localStorage...');
+      try {
+        await migrateCasesFromLocalStorage();
+        const migratedCases = await getSupabaseCases(country);
+        console.log(`Migrated ${migratedCases.length} cases to Supabase`);
+        
+        // Clear localStorage after successful migration
+        localStorage.removeItem(CASES_KEY);
+        console.log('Cleared localStorage after successful migration');
+        
+        return migratedCases;
+      } catch (migrationError) {
+        console.error('Migration failed:', migrationError);
+        throw migrationError; // Don't fall back to localStorage
+      }
     }
-    // Handle different types of details based on status
+    
+    // No cases anywhere, return empty array
+    console.log('No cases found in Supabase');
+    return [];
+  } catch (error) {
+    console.error('Error getting cases from Supabase:', error);
+    throw error; // Don't fall back to localStorage, throw error to inform user
+  }
+};
+
+export const saveCase = async (caseData: CaseBooking): Promise<CaseBooking> => {
+  try {
+    // If case has an ID, it's an update; otherwise it's a new case
+    if (caseData.id && caseData.id !== '') {
+      // This is an update - use Supabase update function
+      const { updateSupabaseCase } = await import('./supabaseCaseService');
+      return await updateSupabaseCase(caseData.id, caseData);
+    } else {
+      // New case - save to Supabase
+      const { id, caseReferenceNumber, submittedAt, statusHistory, amendmentHistory, ...caseWithoutGeneratedFields } = caseData;
+      return await saveSupabaseCase(caseWithoutGeneratedFields);
+    }
+  } catch (error) {
+    console.error('Error saving case to Supabase:', error);
+    throw error; // Don't fall back to localStorage, throw error to inform user
+  }
+};
+
+// Helper function removed - using Supabase exclusively
+
+// Function to clean up duplicate status history entries directly in Supabase
+export const cleanupDuplicateStatusHistory = async (): Promise<void> => {
+  try {
+    const { supabase } = await import('../lib/supabase');
+    
+    // Get all cases with status history
+    const { data: cases, error } = await supabase
+      .from('case_bookings')
+      .select(`
+        id,
+        case_reference_number,
+        status_history (
+          id,
+          status,
+          processed_by,
+          timestamp,
+          details,
+          attachments
+        )
+      `);
+    
+    if (error) {
+      console.error('Error fetching cases for cleanup:', error);
+      return;
+    }
+    
+    let totalCleaned = 0;
+    
+    for (const caseData of cases || []) {
+      if (!caseData.status_history || caseData.status_history.length <= 1) continue;
+      
+      const statusHistoryMap = new Map<string, any>();
+      const duplicatesToRemove: string[] = [];
+      
+      // Sort by timestamp to keep the earliest entry
+      const sortedHistory = [...caseData.status_history].sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+      
+      sortedHistory.forEach(entry => {
+        if (entry.status === 'Case Booked') {
+          // For "Case Booked", only keep the first one (earliest timestamp)
+          if (!statusHistoryMap.has('Case Booked')) {
+            statusHistoryMap.set('Case Booked', entry);
+          } else {
+            duplicatesToRemove.push(entry.id);
+          }
+        } else {
+          // For other statuses, create unique key based on status + timestamp
+          const key = `${entry.status}-${entry.timestamp}`;
+          if (!statusHistoryMap.has(key)) {
+            statusHistoryMap.set(key, entry);
+          } else {
+            duplicatesToRemove.push(entry.id);
+          }
+        }
+      });
+      
+      // Remove duplicates from database
+      if (duplicatesToRemove.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('status_history')
+          .delete()
+          .in('id', duplicatesToRemove);
+          
+        if (deleteError) {
+          console.error(`Error removing duplicates for case ${caseData.case_reference_number}:`, deleteError);
+        } else {
+          console.log(`Cleaned ${duplicatesToRemove.length} duplicate entries for case ${caseData.case_reference_number}`);
+          totalCleaned += duplicatesToRemove.length;
+        }
+      }
+    }
+    
+    console.log(`Cleanup completed. Total duplicate entries removed: ${totalCleaned}`);
+  } catch (error) {
+    console.error('Error in cleanupDuplicateStatusHistory:', error);
+  }
+};
+
+export const updateCaseStatus = async (caseId: string, status: CaseBooking['status'], processedBy?: string, details?: string): Promise<void> => {
+  try {
+    // Extract attachments from details if present
+    let attachments: string[] | undefined;
     if (details) {
       try {
         const parsedDetails = JSON.parse(details);
-        
-        if (status === 'Delivered (Hospital)' && parsedDetails.deliveryDetails !== undefined) {
-          // Handle delivery details
-          caseData.deliveryDetails = parsedDetails.deliveryDetails;
-          caseData.deliveryImage = parsedDetails.deliveryImage;
-        } else if (status === 'Case Completed' && parsedDetails.attachments !== undefined) {
-          // Handle case completion details
-          caseData.attachments = parsedDetails.attachments;
-          caseData.orderSummary = parsedDetails.orderSummary;
-          caseData.doNumber = parsedDetails.doNumber;
-        } else if (status === 'Order Prepared' || status === 'Order Preparation') {
-          // Handle process order details
-          caseData.processOrderDetails = details;
-        }
-      } catch (error) {
-        // If it's not JSON, treat as regular process details
-        if (status === 'Order Prepared' || status === 'Order Preparation') {
-          caseData.processOrderDetails = details;
-        }
+        attachments = parsedDetails.attachments;
+      } catch {
+        // If details are not JSON, no attachments
       }
     }
     
-    // Move updated case to front for better visibility
-    cases.splice(caseIndex, 1);
-    cases.unshift(caseData);
-    
-    localStorage.setItem(CASES_KEY, JSON.stringify(cases));
-    
-    // Send email notification for status change (async, don't block the UI)
-    const previousStatus = caseData.statusHistory[caseData.statusHistory.length - 2]?.status || 'Unknown';
-    sendStatusChangeNotification(caseData, status, previousStatus, processedBy || 'System').then(emailSent => {
-      if (emailSent) {
-        console.log('✅ Email notification sent for status change:', {
-          caseRef: caseData.caseReferenceNumber,
-          status: status,
-          previousStatus: previousStatus
-        });
-      } else {
-        console.warn('⚠️ Failed to send email notification for status change:', caseData.caseReferenceNumber);
-      }
-    }).catch(error => {
-      console.error('💥 Error sending status change email notification:', error);
-    });
+    // Always use Supabase for status updates
+    await updateSupabaseCaseStatus(caseId, status, processedBy || 'unknown', details, attachments);
+    console.log('Case status updated successfully in Supabase');
+    return;
+  } catch (error) {
+    console.error('Error updating case status in Supabase:', error);
+    throw error; // Don't fall back to localStorage, throw error to inform user
   }
 };
 
-// Utility function to clean up corrupted processOrderDetails
-export const cleanupProcessOrderDetails = (): void => {
-  const cases = getCases();
-  let hasChanges = false;
-  
-  cases.forEach(caseData => {
-    // Check if processOrderDetails contains JSON delivery data
-    if (caseData.processOrderDetails && caseData.processOrderDetails.includes('deliveryDetails')) {
-      try {
-        const parsed = JSON.parse(caseData.processOrderDetails);
-        if (parsed.deliveryDetails || parsed.deliveryImage || parsed.attachments) {
-          // This is corrupted data, clear it
-          delete caseData.processOrderDetails;
-          hasChanges = true;
-        }
-      } catch (error) {
-        // If it's not valid JSON, it might be legitimate process details
-      }
-    }
-  });
-  
-  if (hasChanges) {
-    localStorage.setItem(CASES_KEY, JSON.stringify(cases));
+// Process order with specific order details
+export const processCaseOrder = async (caseId: string, processedBy: string, processOrderDetails: string): Promise<void> => {
+  try {
+    // Always use Supabase for order processing
+    await updateSupabaseCaseProcessing(caseId, processedBy, processOrderDetails, 'Order Prepared');
+    console.log('Case order processed successfully in Supabase');
+    return;
+  } catch (error) {
+    console.error('Error processing case order in Supabase:', error);
+    throw error; // Don't fall back to localStorage, throw error to inform user
   }
 };
 
-export const amendCase = (caseId: string, amendments: Partial<CaseBooking>, amendedBy: string, isAdmin: boolean = false): void => {
-  const cases = getCases();
-  const caseIndex = cases.findIndex(c => c.id === caseId);
-  
-  if (caseIndex >= 0) {
-    const caseToAmend = cases[caseIndex];
-    
-    // Check if case has already been amended (Admin can bypass this restriction)
-    if (caseToAmend.isAmended && !isAdmin) {
-      throw new Error('This case has already been amended and cannot be amended again.');
-    }
-    
-    // Store original values before first amendment
-    let originalValues = caseToAmend.originalValues;
-    if (!originalValues) {
-      originalValues = {
-        hospital: caseToAmend.hospital,
-        department: caseToAmend.department,
-        dateOfSurgery: caseToAmend.dateOfSurgery,
-        procedureType: caseToAmend.procedureType,
-        doctorName: caseToAmend.doctorName,
-        timeOfProcedure: caseToAmend.timeOfProcedure,
-        specialInstruction: caseToAmend.specialInstruction
-      };
-    }
-    
-    // Track what's being changed
-    const changes: { field: string; oldValue: string; newValue: string }[] = [];
-    const amendableFields = ['hospital', 'department', 'dateOfSurgery', 'procedureType', 'doctorName', 'timeOfProcedure', 'specialInstruction'];
-    
-    amendableFields.forEach(field => {
-      if (amendments[field as keyof CaseBooking] !== undefined) {
-        const oldValue = caseToAmend[field as keyof CaseBooking] as string || '';
-        const newValue = amendments[field as keyof CaseBooking] as string || '';
-        if (oldValue !== newValue) {
-          changes.push({
-            field: field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1'),
-            oldValue,
-            newValue
-          });
-        }
-      }
-    });
-    
-    // Create amendment history entry
-    const amendmentEntry: AmendmentHistory = {
-      amendmentId: Date.now().toString(),
-      timestamp: new Date().toISOString(),
-      amendedBy,
-      changes
-    };
-    
-    // Initialize amendment history if it doesn't exist
-    const amendmentHistory = caseToAmend.amendmentHistory || [];
-    amendmentHistory.push(amendmentEntry);
-    
-    // Update the case with amendments
-    cases[caseIndex] = {
-      ...caseToAmend,
-      ...amendments,
-      amendedBy,
-      amendedAt: new Date().toISOString(),
-      isAmended: true,
-      originalValues,
-      amendmentHistory
-    };
-    
-    localStorage.setItem(CASES_KEY, JSON.stringify(cases));
+// Note: Utility functions for localStorage cleanup have been removed since we now use Supabase exclusively
+// Data cleanup is now handled at the Supabase level during data retrieval and saving
+
+export const amendCase = async (caseId: string, amendments: Partial<CaseBooking>, amendedBy: string, isAdmin: boolean = false): Promise<void> => {
+  try {
+    // Always use Supabase for amendments
+    const { amendSupabaseCase } = await import('./supabaseCaseService');
+    await amendSupabaseCase(caseId, amendments, amendedBy);
+    console.log('Case amended successfully in Supabase');
+    return;
+  } catch (error) {
+    console.error('Error amending case in Supabase:', error);
+    throw error; // Don't fall back to localStorage, throw error to inform user
   }
 };
 
@@ -238,7 +281,11 @@ export const filterCases = (cases: CaseBooking[], filters: FilterOptions): CaseB
       return false;
     }
     
-    if (filters.country && caseItem.country !== filters.country) {
+    if (filters.country && normalizeCountry(caseItem.country) !== normalizeCountry(filters.country)) {
+      return false;
+    }
+    
+    if (filters.department && !caseItem.department.toLowerCase().includes(filters.department.toLowerCase())) {
       return false;
     }
     
@@ -255,19 +302,63 @@ export interface CategorizedSets {
 }
 
 // Country-specific categorized sets storage
-export const saveCategorizedSets = (categorizedSets: CategorizedSets, country?: string): void => {
+export const saveCategorizedSets = async (categorizedSets: CategorizedSets, country?: string): Promise<void> => {
   if (country) {
-    // Save country-specific sets
-    localStorage.setItem(`categorized-sets-${country}`, JSON.stringify(categorizedSets));
+    try {
+      // Transform from CategorizedSets format to Supabase format
+      const transformedSets: Record<string, { surgerySets: string[], implantBoxes: string[] }> = {};
+      Object.entries(categorizedSets).forEach(([procedureType, data]) => {
+        transformedSets[procedureType] = {
+          surgerySets: data.surgerySets || [],
+          implantBoxes: data.implantBoxes || []
+        };
+      });
+      
+      // Try to save to Supabase first
+      await saveSupabaseCategorizedSets(transformedSets, country);
+      return;
+    } catch (error) {
+      console.error('Error saving categorized sets to Supabase:', error);
+      // Fallback to localStorage
+      saveCategorizedSetsToLocalStorage(categorizedSets, country);
+    }
   } else {
     // Legacy support - save global sets
     localStorage.setItem('categorized-sets', JSON.stringify(categorizedSets));
   }
 };
 
-export const getCategorizedSets = (country?: string): CategorizedSets => {
+// Helper function for localStorage fallback
+const saveCategorizedSetsToLocalStorage = (categorizedSets: CategorizedSets, country?: string): void => {
   if (country) {
-    // Try to get country-specific sets first
+    localStorage.setItem(`categorized-sets-${country}`, JSON.stringify(categorizedSets));
+  } else {
+    localStorage.setItem('categorized-sets', JSON.stringify(categorizedSets));
+  }
+};
+
+export const getCategorizedSets = async (country?: string): Promise<CategorizedSets> => {
+  if (country) {
+    try {
+      const normalizedCountry = normalizeCountry(country);
+      // Try to get from Supabase first
+      const supabaseSets = await getSupabaseCategorizedSets(normalizedCountry);
+      if (Object.keys(supabaseSets).length > 0) {
+        // Transform from Supabase format to CategorizedSets format
+        const transformedSets: CategorizedSets = {};
+        Object.entries(supabaseSets).forEach(([procedureType, data]) => {
+          transformedSets[procedureType] = {
+            surgerySets: data.surgerySets || [],
+            implantBoxes: data.implantBoxes || []
+          };
+        });
+        return transformedSets;
+      }
+    } catch (error) {
+      console.error('Error getting categorized sets from Supabase:', error);
+    }
+    
+    // Fallback to localStorage
     const countryStored = localStorage.getItem(`categorized-sets-${country}`);
     if (countryStored) {
       return JSON.parse(countryStored);
@@ -281,15 +372,42 @@ export const getCategorizedSets = (country?: string): CategorizedSets => {
     
     // If we have a country and global sets exist, migrate them to country-specific
     if (country && Object.keys(globalSets).length > 0) {
-      saveCategorizedSets(globalSets, country);
+      try {
+        // Transform from CategorizedSets format to Supabase format
+        const transformedSets: Record<string, { surgerySets: string[], implantBoxes: string[] }> = {};
+        Object.entries(globalSets as CategorizedSets).forEach(([procedureType, data]) => {
+          transformedSets[procedureType] = {
+            surgerySets: data.surgerySets || [],
+            implantBoxes: data.implantBoxes || []
+          };
+        });
+        
+        await saveSupabaseCategorizedSets(transformedSets, country);
+      } catch (error) {
+        console.error('Error saving categorized sets to Supabase:', error);
+        // Fallback to localStorage
+        saveCategorizedSetsToLocalStorage(globalSets, country);
+      }
       return globalSets;
     }
     
     return globalSets;
   }
   
-  // Return empty object if no categorized sets found
-  return {};
+  // If no sets found anywhere, initialize with defaults
+  const { initializeCategorizedSets } = await import('../components/EditSets/utils');
+  const defaultSets = initializeCategorizedSets();
+  
+  // Save the default sets to Supabase for future use
+  if (country) {
+    try {
+      await saveCategorizedSets(defaultSets, country);
+    } catch (error) {
+      console.error('Error saving default categorized sets:', error);
+    }
+  }
+  
+  return defaultSets;
 };
 
 // Dynamic Procedure Types Management - Country-specific

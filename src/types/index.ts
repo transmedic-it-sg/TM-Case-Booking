@@ -28,8 +28,8 @@ export const DEPARTMENTS = [
   'Oncology',
   'Emergency',
   'Radiology',
-  'General Surgery',
-  'Pediatrics'
+  'Anesthesiology',
+  'Gastroenterology'
 ] as const;
 
 export const PROCEDURE_TYPES = [
@@ -120,6 +120,7 @@ export interface User {
   selectedCountry?: string;
   email?: string;
   enabled?: boolean;
+  passwordResetRequired?: boolean;
 }
 
 export interface CaseBooking {
@@ -161,6 +162,7 @@ export interface CaseBooking {
     specialInstruction?: string;
   };
   amendmentHistory?: AmendmentHistory[];
+  amendmentReason?: string;
 }
 
 export interface FilterOptions {
@@ -168,6 +170,7 @@ export interface FilterOptions {
   hospital?: string;
   status?: CaseStatus;
   country?: string;
+  department?: string;
   dateFrom?: string;
   dateTo?: string;
   search?: string;

@@ -1,21 +1,35 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { User } from '../types';
-import { getUsers, addUser, getCurrentUser } from '../utils/auth';
+import { getCurrentUser } from '../utils/auth';
+import { 
+  getSupabaseUsers, 
+  addSupabaseUser, 
+  updateSupabaseUser, 
+  deleteSupabaseUser, 
+  toggleUserEnabled, 
+  checkUsernameAvailable,
+  resetSupabaseUserPassword 
+} from '../utils/supabaseUserService';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useToast } from './ToastContainer';
 import { useSound } from '../contexts/SoundContext';
+import CustomModal from './CustomModal';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { 
   getCountries, 
   initializeCodeTables, 
-  getDepartmentsForCountries
+  getDepartmentsForCountries,
+  getDepartmentsByCountry,
+  migrateDepartmentsToCountrySpecific
 } from '../utils/codeTable';
 import { getAllRoles } from '../data/permissionMatrixData';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import SearchableDropdown from './SearchableDropdown';
 import CountryGroupedDepartments from './CountryGroupedDepartments';
 import RoleManagement from './RoleManagement';
-import '../styles/department-management.css';
+import { auditUserCreated, auditUserUpdated, auditUserDeleted, auditPasswordReset, addAuditLog } from '../utils/auditService';
+import '../assets/components/department-management.css';
+import '../assets/components/UserManagement.css';
 
 const UserManagement: React.FC = () => {
   const currentUser = getCurrentUser();
@@ -56,6 +70,24 @@ const UserManagement: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>(''); // For searching users
   const [tempFilters, setTempFilters] = useState({searchQuery: '', selectedRoleFilter: '', selectedStatusFilter: '', selectedCountryFilter: ''}); // Temp filters for Apply button
   const [showFilters, setShowFilters] = useState(false); // Show/hide advanced filters
+  const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
+  const [tempPassword, setTempPassword] = useState('');
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  
+  // Confirmation modal states
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: 'delete' | 'disable' | 'enable' | null;
+    user: User | null;
+  }>({
+    isOpen: false,
+    type: null,
+    user: null
+  });
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 12; // 3 users per row × 4 rows = 12 users per page
   // Removed expandedBadges and columnWidths - simplified table design
   // Removed availableDepartments since we now use CountryGroupedDepartments exclusively
   const canCreateUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CREATE_USER) : false;
@@ -63,9 +95,10 @@ const UserManagement: React.FC = () => {
   // Ref for the add user form to handle click outside
   const addUserFormRef = useRef<HTMLDivElement>(null);
   const canEditUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_USER) : false;
-  const canEditCountries = currentUser ? hasPermission(currentUser.role, 'edit-countries') : false;
+  const canEditCountries = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_COUNTRIES) : false;
   const canDeleteUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.DELETE_USER) : false;
   const canEnableDisableUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.ENABLE_DISABLE_USER) : false;
+  const canResetPassword = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.RESET_PASSWORD) : false;
   
   const { addNotification } = useNotifications();
   const { showSuccess, showError } = useToast();
@@ -135,6 +168,11 @@ const UserManagement: React.FC = () => {
     };
   }, [popupData.isOpen]);
 
+  // Update pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedRoleFilter, selectedStatusFilter, selectedCountryFilter]);
+
   const loadAvailableRoles = () => {
     const allRoles = getAllRoles();
     const roleOptions = allRoles.map(role => ({
@@ -156,40 +194,103 @@ const UserManagement: React.FC = () => {
   };
 
 
-  const loadUsers = () => {
-    const allUsers = getUsers();
+  // Helper function to format departments with country prefixes
+  const formatDepartmentsWithCountry = (departments: string[], countries: string[]): string[] => {
+    if (!departments || !countries) return [];
     
-    // Filter users based on current user's role and country access
-    let filteredUsers = allUsers;
+    return departments.map(dept => {
+      // Check if department has country prefix (new format)
+      if (dept.includes(':')) {
+        const [country, departmentName] = dept.split(':');
+        return `${country} - ${departmentName}`;
+      } else {
+        // Legacy format - try to determine which country this department belongs to
+        const departmentsByCountry = getDepartmentsByCountry();
+        for (const country of countries) {
+          if (departmentsByCountry[country] && departmentsByCountry[country].includes(dept)) {
+            return `${country} - ${dept}`;
+          }
+        }
+        // Fallback if country can't be determined
+        return dept;
+      }
+    });
+  };
+
+  const cleanupUserDepartments = (user: User): User => {
+    // DISABLE AUTOMATIC CLEANUP - it's causing more problems than it solves
+    // The departments are being over-cleaned because the validation logic is wrong
     
-    if (currentUser?.role === 'it' && currentUser.selectedCountry) {
-      // IT can only see users from their assigned country
-      filteredUsers = allUsers.filter(user => 
-        (user.countries && user.countries.includes(currentUser.selectedCountry!)) || user.role === 'admin'
-      );
-    } else if (currentUser?.role === 'admin') {
-      // Admin can see all users
-      filteredUsers = allUsers;
+    // For now, return user as-is to prevent data loss
+    // TODO: Fix the department validation logic properly using Supabase
+    return user;
+    
+    /*
+    // OLD CLEANUP LOGIC - DISABLED TO PREVENT DATA LOSS
+    if (!user.departments || user.departments.length === 0 || !user.countries || user.countries.length === 0) {
+      return user;
+    }
+
+    // Get valid departments for the user's countries
+    const validDepartments = getDepartmentsForCountries(user.countries);
+    
+    // Filter out any departments that don't exist in the current code tables
+    const cleanDepartments = user.departments.filter(dept => validDepartments.includes(dept));
+    
+    // If departments were cleaned up, log it for debugging
+    if (cleanDepartments.length !== user.departments.length) {
+      console.log(`Cleaned departments for ${user.name}: ${user.departments.length} → ${cleanDepartments.length}`);
     }
     
-    // Apply country filter if selected
-    if (selectedCountryFilter) {
-      filteredUsers = filteredUsers.filter(user => 
-        user.countries && user.countries.includes(selectedCountryFilter)
-      );
+    return {
+      ...user,
+      departments: cleanDepartments
+    };
+    */
+  };
+
+  const loadUsers = async () => {
+    try {
+      const allUsers = await getSupabaseUsers();
+      
+      // Clean up department data to match current code tables
+      const cleanedUsers = allUsers.map(cleanupUserDepartments);
+      
+      // Filter users based on current user's role and country access
+      let filteredUsers = cleanedUsers;
+      
+      if (currentUser?.role === 'it' && currentUser.selectedCountry) {
+        // IT can only see users from their assigned country
+        filteredUsers = cleanedUsers.filter(user => 
+          (user.countries && user.countries.includes(currentUser.selectedCountry!)) || user.role === 'admin'
+        );
+      } else if (currentUser?.role === 'admin') {
+        // Admin can see all users
+        filteredUsers = cleanedUsers;
+      }
+      
+      // Apply country filter if selected
+      if (selectedCountryFilter) {
+        filteredUsers = filteredUsers.filter(user => 
+          user.countries && user.countries.includes(selectedCountryFilter)
+        );
+      }
+      
+      setUsers(filteredUsers);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      showError('Database Error', 'Failed to load users from database');
     }
-    
-    setUsers(filteredUsers);
   };
 
   const handleEditUser = (user: User) => {
     setEditingUser(user.id);
     setNewUser({
       username: user.username,
-      password: user.password,
+      password: '', // Clear password field to indicate it's optional
       name: user.name,
       role: user.role,
-      departments: user.departments || [],
+      departments: migrateDepartmentsToCountrySpecific(user.departments || [], user.countries || []),
       countries: user.countries || [],
       email: user.email || '',
       enabled: user.enabled !== undefined ? user.enabled : true
@@ -209,59 +310,219 @@ const UserManagement: React.FC = () => {
     }, 100);
   };
 
+  const handleResetPassword = (user: User) => {
+    setResetPasswordUser(user);
+    setTempPassword('');
+    setShowResetPasswordModal(true);
+  };
+
+  const handleConfirmResetPassword = async () => {
+    if (!resetPasswordUser || !tempPassword) {
+      setError('Please enter a temporary password');
+      return;
+    }
+
+    if (tempPassword.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
+    try {
+      const success = await resetSupabaseUserPassword(resetPasswordUser.id, tempPassword);
+      if (success) {
+        // Audit log for password reset
+        try {
+          if (currentUser) {
+            await auditPasswordReset(
+              currentUser.name,
+              currentUser.id,
+              currentUser.role,
+              resetPasswordUser.name
+            );
+          }
+        } catch (auditError) {
+          console.error('Failed to log password reset audit:', auditError);
+        }
+        
+        setShowResetPasswordModal(false);
+        setResetPasswordUser(null);
+        setTempPassword('');
+        setError('');
+        
+        playSound.success();
+        showSuccess('Password Reset', `Password has been reset for ${resetPasswordUser.name}. They will be required to change it on next login.`);
+        addNotification({
+          title: 'Password Reset',
+          message: `Temporary password set for ${resetPasswordUser.name} (${resetPasswordUser.username}). User must change password on next login.`,
+          type: 'success'
+        });
+      } else {
+        setError('Failed to reset password. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      setError('Failed to reset password. Please try again.');
+    }
+  };
+
   const handleDeleteUser = (userId: string) => {
-    const userToDelete = users.find(u => u.id === userId);
-    const confirmMessage = `Are you sure you want to delete user "${userToDelete?.name}" (${userToDelete?.username})?\n\nThis action cannot be undone.`;
+    // Validate permission before proceeding
+    if (!canDeleteUsers) {
+      setError('You do not have permission to delete users');
+      return;
+    }
     
-    if (window.confirm(confirmMessage)) {
-      const updatedUsers = users.filter(u => u.id !== userId);
-      localStorage.setItem('case-booking-users', JSON.stringify(updatedUsers));
-      loadUsers();
-      
-      playSound.delete();
-      showSuccess('User Deleted', `User "${userToDelete?.name}" has been successfully removed from the system.`);
-      addNotification({
-        title: 'User Account Deleted',
-        message: `${userToDelete?.name} (${userToDelete?.username}) has been removed from the user access matrix.`,
-        type: 'warning'
+    const userToDelete = users.find(u => u.id === userId);
+    if (userToDelete) {
+      setConfirmModal({
+        isOpen: true,
+        type: 'delete',
+        user: userToDelete
       });
+    }
+  };
+
+  const confirmDeleteUser = async () => {
+    const userToDelete = confirmModal.user;
+    if (userToDelete) {
+      try {
+        const success = await deleteSupabaseUser(userToDelete.id);
+        if (success) {
+          loadUsers();
+          
+          // Audit log for user deletion
+          try {
+            if (currentUser && userToDelete) {
+              await auditUserDeleted(
+                currentUser.name,
+                currentUser.id,
+                currentUser.role,
+                userToDelete.name
+              );
+            }
+          } catch (auditError) {
+            console.error('Failed to log user deletion audit:', auditError);
+          }
+          
+          playSound.delete();
+          showSuccess('User Deleted', `User "${userToDelete?.name}" has been successfully removed from the system.`);
+          addNotification({
+            title: 'User Account Deleted',
+            message: `${userToDelete?.name} (${userToDelete?.username}) has been removed from the user access matrix.`,
+            type: 'warning'
+          });
+        } else {
+          showError('Delete Failed', 'Failed to delete user. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        showError('Delete Failed', 'Failed to delete user. Please try again.');
+      }
+      // Close modal after operation
+      setConfirmModal({ isOpen: false, type: null, user: null });
     }
   };
 
   const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
+    // Validate permission before proceeding
+    if (!canEnableDisableUsers) {
+      setError('You do not have permission to enable/disable users');
+      return;
+    }
+    
     const userToToggle = users.find(u => u.id === userId);
     if (!userToToggle) return;
     
     const newStatus = !currentStatus;
-    const action = newStatus ? 'enabled' : 'disabled';
-    const confirmMessage = `Are you sure you want to ${newStatus ? 'enable' : 'disable'} user "${userToToggle.name}" (${userToToggle.username})?\n\nThis will ${newStatus ? 'allow' : 'prevent'} them from logging into the system.`;
     
-    if (window.confirm(confirmMessage)) {
-      const updatedUsers = users.map(u => 
-        u.id === userId 
-          ? { ...u, enabled: newStatus }
-          : u
-      );
-      localStorage.setItem('case-booking-users', JSON.stringify(updatedUsers));
-      loadUsers();
+    setConfirmModal({
+      isOpen: true,
+      type: newStatus ? 'enable' : 'disable',
+      user: userToToggle
+    });
+  };
+
+  const confirmToggleUserStatus = async () => {
+    const userToToggle = confirmModal.user;
+    if (userToToggle && confirmModal.type) {
+      const newStatus = confirmModal.type === 'enable';
+      const currentStatus = !newStatus; // Previous status is opposite of new status
+      const action = newStatus ? 'enabled' : 'disabled';
       
-      playSound.success();
-      showSuccess('User Status Updated', `User "${userToToggle.name}" has been ${action}.`);
-      addNotification({
-        title: `User Account ${newStatus ? 'Enabled' : 'Disabled'}`,
-        message: `${userToToggle.name} (${userToToggle.username}) has been ${action} in the system.`,
-        type: newStatus ? 'success' : 'warning'
-      });
+      try {
+        const success = await toggleUserEnabled(userToToggle.id, newStatus);
+        if (success) {
+          loadUsers();
+          
+          // Audit log for user status change
+          try {
+            if (currentUser) {
+              await addAuditLog(
+                currentUser.name,
+                currentUser.id,
+                currentUser.role,
+                `User ${newStatus ? 'Enabled' : 'Disabled'}`,
+                'User Management',
+                userToToggle.name,
+                `User ${userToToggle.name} (${userToToggle.username}) was ${action} by ${currentUser.name}`,
+                'success',
+                { previousStatus: currentStatus, newStatus: newStatus }
+              );
+            }
+          } catch (auditError) {
+            console.error('Failed to log user status change audit:', auditError);
+          }
+          
+          playSound.success();
+          showSuccess('User Status Updated', `User "${userToToggle.name}" has been ${action}.`);
+          addNotification({
+            title: `User Account ${newStatus ? 'Enabled' : 'Disabled'}`,
+            message: `${userToToggle.name} (${userToToggle.username}) has been ${action} in the system.`,
+            type: newStatus ? 'success' : 'warning'
+          });
+        } else {
+          showError('Update Failed', 'Failed to update user status. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error updating user status:', error);
+        showError('Update Failed', 'Failed to update user status. Please try again.');
+      }
+      // Close modal after operation
+      setConfirmModal({ isOpen: false, type: null, user: null });
     }
   };
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!newUser.username || !newUser.password || !newUser.name) {
-      setError('Username, password, and full name are required');
+    // Validate permissions before proceeding
+    if (!editingUser && !canCreateUsers) {
+      setError('You do not have permission to create users');
       return;
+    }
+    
+    if (editingUser && !canEditUsers) {
+      setError('You do not have permission to edit users');
+      return;
+    }
+
+    // For new users, require username, password, and name
+    // For existing users, only require username and name (password is optional)
+    if (!newUser.username || !newUser.name) {
+      setError('Username and full name are required');
+      return;
+    }
+    
+    // Password is only required for new users when admin
+    if (!editingUser && !newUser.password && currentUser?.role === 'admin') {
+      setError('Password is required for new users');
+      return;
+    }
+    
+    // For non-admin users, set a default password if creating new user
+    if (!editingUser && currentUser?.role !== 'admin' && !newUser.password) {
+      setNewUser(prev => ({ ...prev, password: 'TempPassword123!' }));
     }
 
     if (newUser.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.email)) {
@@ -275,8 +536,9 @@ const UserManagement: React.FC = () => {
       return;
     }
 
-    const existingUser = users.find(u => u.username === newUser.username && u.id !== editingUser);
-    if (existingUser) {
+    // Check username availability
+    const isUsernameAvailable = await checkUsernameAvailable(newUser.username, editingUser || undefined);
+    if (!isUsernameAvailable) {
       setError('Username already exists');
       return;
     }
@@ -284,33 +546,89 @@ const UserManagement: React.FC = () => {
     try {
       if (editingUser) {
         // Update existing user
-        const updatedUsers = users.map(u => 
-          u.id === editingUser 
-            ? { ...u, ...newUser }
-            : u
-        );
-        localStorage.setItem('case-booking-users', JSON.stringify(updatedUsers));
-        
-        playSound.success();
-        showSuccess('User Updated', `${newUser.name}'s account has been successfully updated.`);
-        addNotification({
-          title: 'User Account Updated',
-          message: `${newUser.name} (${newUser.username}) account details have been modified.`,
-          type: 'success'
-        });
+        // Don't send password if it's empty (keep current password)
+        const { password, ...updateDataWithoutPassword } = newUser;
+        const updateData: Partial<User> = newUser.password ? newUser : updateDataWithoutPassword;
+        const updatedUser = await updateSupabaseUser(editingUser, updateData);
+        if (updatedUser) {
+          loadUsers();
+          
+          // Audit log for user update
+          try {
+            if (currentUser) {
+              // Create a list of changes made
+              const changes = [];
+              if (newUser.password) changes.push('password');
+              changes.push('profile updated');
+              
+              await auditUserUpdated(
+                currentUser.name,
+                currentUser.id,
+                currentUser.role,
+                newUser.name,
+                changes
+              );
+            }
+          } catch (auditError) {
+            console.error('Failed to log user update audit:', auditError);
+          }
+          
+          playSound.success();
+          showSuccess('User Updated', `${newUser.name}'s account has been successfully updated.`);
+          addNotification({
+            title: 'User Account Updated',
+            message: `${newUser.name} (${newUser.username}) account details have been modified.`,
+            type: 'success'
+          });
+        } else {
+          setError('Failed to update user. Please try again.');
+          return;
+        }
       } else {
         // Add new user
-        addUser(newUser);
-        
-        playSound.success();
-        showSuccess('User Created', `Welcome ${newUser.name}! New user account has been created successfully.`);
-        addNotification({
-          title: 'New User Account Created',
-          message: `${newUser.name} (${newUser.username}) has been added to the system with ${newUser.role} role.`,
-          type: 'success'
-        });
+        // For admin users created by admin, assign all countries and no departments
+        const userDataToSave = currentUser?.role === 'admin' && newUser.role === 'admin' 
+          ? { 
+              ...newUser, 
+              countries: availableCountries, 
+              departments: [] // Admin users don't need department restrictions
+            }
+          : newUser;
+          
+        const createdUser = await addSupabaseUser(userDataToSave);
+        if (createdUser) {
+          loadUsers();
+          
+          // Audit log for user creation
+          try {
+            if (currentUser) {
+              await auditUserCreated(
+                currentUser.name,
+                currentUser.id,
+                currentUser.role,
+                userDataToSave.name,
+                userDataToSave.role,
+                userDataToSave.countries
+              );
+            }
+          } catch (auditError) {
+            console.error('Failed to log user creation audit:', auditError);
+          }
+          
+          playSound.success();
+          showSuccess('User Created', `Welcome ${userDataToSave.name}! New user account has been created successfully.`);
+          addNotification({
+            title: 'New User Account Created',
+            message: `${userDataToSave.name} (${userDataToSave.username}) has been added to the system with ${userDataToSave.role} role.`,
+            type: 'success'
+          });
+        } else {
+          setError('Failed to create user. Please try again.');
+          return;
+        }
       }
       
+      // Reset form
       setNewUser({
         username: '',
         password: '',
@@ -323,8 +641,8 @@ const UserManagement: React.FC = () => {
       });
       setEditingUser(null);
       setShowAddUser(false);
-      loadUsers();
     } catch (err) {
+      console.error('Error saving user:', err);
       const errorMessage = editingUser ? 'Failed to update user' : 'Failed to add user';
       setError(errorMessage);
       playSound.error();
@@ -388,12 +706,41 @@ const UserManagement: React.FC = () => {
 
   const getCurrentPageUsers = () => {
     const filteredUsers = getFilteredUsers();
-    // Show minimum 5 users, but allow scrolling if more
-    return filteredUsers;
+    const indexOfLastUser = currentPage * usersPerPage;
+    const indexOfFirstUser = indexOfLastUser - usersPerPage;
+    return filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
   };
+
+  // Calculate pagination info
+  const totalUsers = getFilteredUsers().length;
+  const totalPages = Math.ceil(totalUsers / usersPerPage);
+
 
   // Removed totalUsers as it's no longer displayed in table footer
   
+  // Helper function to group departments by country for popup display
+  const groupDepartmentsByCountry = (formattedDepartments: string[]): { [country: string]: string[] } => {
+    const grouped: { [country: string]: string[] } = {};
+    
+    formattedDepartments.forEach(dept => {
+      if (dept.includes(' - ')) {
+        const [country, departmentName] = dept.split(' - ');
+        if (!grouped[country]) {
+          grouped[country] = [];
+        }
+        grouped[country].push(departmentName);
+      } else {
+        // Fallback for departments without country prefix
+        if (!grouped['Unknown']) {
+          grouped['Unknown'] = [];
+        }
+        grouped['Unknown'].push(dept);
+      }
+    });
+    
+    return grouped;
+  };
+
   // Open popup to show all departments or countries
   const handleShowMore = (type: 'departments' | 'countries', items: string[], userName: string) => {
     setPopupData({
@@ -415,18 +762,28 @@ const UserManagement: React.FC = () => {
   };
 
   return (
-    <div className="user-management">
+    <div className="user-management-container">
+      {/* Modern Header with Stats */}
       <div className="user-management-header">
-        <h2>User Access Matrix</h2>
-        <div className="admin-panel-buttons">
-          {activeTab === 'users' && canCreateUsers && (
-            <button
-              onClick={() => showAddUser ? handleCancelEdit() : setShowAddUser(true)}
-              className="btn btn-primary btn-md add-user-button"
-            >
-              {showAddUser ? 'Cancel' : 'Add New User'}
-            </button>
-          )}
+        <div className="header-content">
+          <div className="header-title">
+            <div className="header-icon">👥</div>
+            <h1>User Management</h1>
+          </div>
+          <div className="header-stats">
+            <div className="stat-card">
+              <span className="stat-number">{users.length}</span>
+              <span className="stat-label">Total Users</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-number">{users.filter(u => u.enabled).length}</span>
+              <span className="stat-label">Active</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-number">{users.filter(u => !u.enabled).length}</span>
+              <span className="stat-label">Disabled</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -439,7 +796,7 @@ const UserManagement: React.FC = () => {
           </div>
           <div className="country-filter-dropdown">
             <SearchableDropdown
-              options={['All Countries', ...(currentUser?.countries || [])]}
+              options={['All Countries', ...(currentUser?.role === 'admin' ? availableCountries : (currentUser?.countries || []))]}
               value={selectedCountryFilter || 'All Countries'}
               onChange={(value) => setSelectedCountryFilter(value === 'All Countries' ? '' : value)}
               placeholder="Select country to filter users..."
@@ -449,19 +806,19 @@ const UserManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Tab Navigation */}
-      <div className="tab-navigation">
+      {/* Modern Tab Navigation */}
+      <div className="user-management-tabs">
         <button
           className={`tab-button ${activeTab === 'users' ? 'active' : ''}`}
           onClick={() => setActiveTab('users')}
         >
-          👥 User Management
+          <span>👥 User Management</span>
         </button>
         <button
           className={`tab-button ${activeTab === 'roles' ? 'active' : ''}`}
           onClick={() => setActiveTab('roles')}
         >
-          🎭 Role Management
+          <span>🎭 Role Management</span>
         </button>
       </div>
 
@@ -469,172 +826,201 @@ const UserManagement: React.FC = () => {
       {activeTab === 'users' && (
         <div className="tab-content">
           {showAddUser && (
-        <div className="add-user-form" ref={addUserFormRef}>
-          <h3>{editingUser ? 'Edit User' : 'Add New User'}</h3>
-          <form onSubmit={handleAddUser}>
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="newUsername" className="required">Username</label>
-                <input
-                  type="text"
-                  id="newUsername"
-                  value={newUser.username}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
-                  required
-                />
-              </div>
+            <div className="modal-overlay" onClick={handleCancelEdit}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()} ref={addUserFormRef}>
+                <div className="modal-header">
+                  <h2 className="modal-title">{editingUser ? 'Edit User' : 'Add New User'}</h2>
+                  <button className="close-btn" onClick={handleCancelEdit}>✕</button>
+                </div>
+              <form onSubmit={handleAddUser}>
+                <div className="modal-body">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="newUsername" className="form-label">Username *</label>
+                    <input
+                      type="text"
+                      id="newUsername"
+                      className="form-input"
+                      value={newUser.username}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
+                      required
+                    />
+                  </div>
 
-              <div className="form-group">
-                <label htmlFor="newPassword" className="required">Password</label>
-                <div className="password-input-wrapper">
-                  <input
-                    type={showPasswordFor === 'new' ? 'text' : 'password'}
-                    id="newPassword"
-                    value={newUser.password}
-                    onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                    required
-                  />
+                  {/* Only show password field for admin users */}
+                  {currentUser?.role === 'admin' && (
+                    <div className="form-group">
+                      <label htmlFor="newPassword" className={editingUser ? '' : 'required'}>
+                        {editingUser ? 'Password (leave blank to keep current)' : 'Password'}
+                      </label>
+                      <div className="password-input-wrapper">
+                        <input
+                          type={showPasswordFor === 'new' ? 'text' : 'password'}
+                          id="newPassword"
+                          value={newUser.password}
+                          onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                          required={!editingUser}
+                          placeholder={editingUser ? 'Leave blank to keep current password' : 'Enter password'}
+                        />
+                        <button
+                          type="button"
+                          className="password-toggle-user"
+                          onClick={() => setShowPasswordFor(showPasswordFor === 'new' ? null : 'new')}
+                          aria-label={showPasswordFor === 'new' ? 'Hide password' : 'Show password'}
+                        >
+                          {showPasswordFor === 'new' ? '👁️' : '👁️‍🗨️'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="newName" className="required">Full Name</label>
+                    <input
+                      type="text"
+                      id="newName"
+                      value={newUser.name}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="newEmail">Email Address</label>
+                    <input
+                      type="email"
+                      id="newEmail"
+                      value={newUser.email}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="user@example.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="newRole" className="required">Role</label>
+                    <SearchableDropdown
+                      options={availableRoles}
+                      value={newUser.role}
+                      onChange={(value) => setNewUser(prev => ({ ...prev, role: value }))}
+                      placeholder="Select Role"
+                    />
+                  </div>
+
+                  {/* Only show countries field for non-admin users AND when current user has edit-countries permission */}
+                  {newUser.role !== 'admin' && canEditCountries && (
+                    <div className="form-group">
+                      <MultiSelectDropdown
+                        id="newCountries"
+                        label="Countries"
+                        options={availableCountries}
+                        value={newUser.countries}
+                        onChange={(values) => {
+                          // Get valid departments for the selected countries
+                          const validDepartmentsForCountries = values.length > 0 ? getDepartmentsForCountries(values) : [];
+                          
+                          // Filter out departments that don't exist in the selected countries
+                          const validDepartments = newUser.departments.filter(dept => 
+                            validDepartmentsForCountries.includes(dept)
+                          );
+                          
+                          setNewUser(prev => ({ 
+                            ...prev, 
+                            countries: values,
+                            departments: validDepartments
+                          }));
+                        }}
+                        placeholder="Select countries..."
+                        required={false}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="userEnabled">User Status</label>
+                    <div className="checkbox-wrapper">
+                      <input
+                        type="checkbox"
+                        id="userEnabled"
+                        checked={newUser.enabled}
+                        onChange={(e) => setNewUser(prev => ({ ...prev, enabled: e.target.checked }))}
+                      />
+                      <label htmlFor="userEnabled" className="checkbox-label">
+                        {newUser.enabled ? 'Account Enabled' : 'Account Disabled'}
+                      </label>
+                    </div>
+                    <small className="form-helper-text">
+                      {newUser.enabled 
+                        ? 'User can log in and access the system' 
+                        : 'User cannot log in (account disabled)'
+                      }
+                    </small>
+                  </div>
+                </div>
+
+                {/* Only show departments field for non-admin users AND when current user has edit-countries permission */}
+                {newUser.role !== 'admin' && canEditCountries && (
+                  <div className="form-row">
+                    <div className="form-group form-group-full">
+                      <label>Departments</label>
+                      <p className="form-helper-text departments-hint">
+                        Select departments for the assigned countries. Departments are organised by country.
+                      </p>
+                      <CountryGroupedDepartments
+                        selectedDepartments={newUser.departments}
+                        onChange={(departments) => {
+                          // CountryGroupedDepartments always sends country-specific format, no migration needed
+                          setNewUser(prev => ({ ...prev, departments }));
+                        }}
+                        userCountries={newUser.countries}
+                        compact={true}
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {/* Show message when user cannot edit countries/departments */}
+                {newUser.role !== 'admin' && !canEditCountries && (
+                  <div className="form-row">
+                    <div className="form-group form-group-full">
+                      <div className="permission-warning">
+                        <div className="warning-icon">⚠️</div>
+                        <div className="warning-content">
+                          <h4>Limited Access</h4>
+                          <p>You don't have permission to assign countries and departments to users.</p>
+                          <p>Contact an administrator to modify user country and department assignments.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {error && <div className="error-message">{error}</div>}
+
+                </div>
+                <div className="form-actions" style={{padding: '1.5rem 2rem', borderTop: '2px solid #f1f5f9', flexShrink: 0}}>
                   <button
                     type="button"
-                    className="password-toggle-user"
-                    onClick={() => setShowPasswordFor(showPasswordFor === 'new' ? null : 'new')}
-                    aria-label={showPasswordFor === 'new' ? 'Hide password' : 'Show password'}
+                    onClick={handleCancelEdit}
+                    className="btn-secondary"
                   >
-                    {showPasswordFor === 'new' ? '👁️' : '👁️‍🗨️'}
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-primary">
+                    {editingUser ? 'Update User' : 'Add User'}
                   </button>
                 </div>
+              </form>
               </div>
             </div>
+          )}
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="newName" className="required">Full Name</label>
-                <input
-                  type="text"
-                  id="newName"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="newEmail">Email Address</label>
-                <input
-                  type="email"
-                  id="newEmail"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="user@example.com"
-                />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="newRole" className="required">Role</label>
-                <SearchableDropdown
-                  options={availableRoles}
-                  value={newUser.role}
-                  onChange={(value) => setNewUser(prev => ({ ...prev, role: value }))}
-                  placeholder="Select Role"
-                />
-              </div>
-
-              {canEditCountries && (
-                <div className="form-group">
-                  <MultiSelectDropdown
-                    id="newCountries"
-                    label="Countries"
-                    options={availableCountries}
-                    value={newUser.countries}
-                    onChange={(values) => {
-                      // Get valid departments for the selected countries
-                      const validDepartmentsForCountries = values.length > 0 ? getDepartmentsForCountries(values) : [];
-                      
-                      // Filter out departments that don't exist in the selected countries
-                      const validDepartments = newUser.departments.filter(dept => 
-                        validDepartmentsForCountries.includes(dept)
-                      );
-                      
-                      setNewUser(prev => ({ 
-                        ...prev, 
-                        countries: values,
-                        departments: validDepartments
-                      }));
-                    }}
-                    placeholder="Select countries..."
-                    required={false}
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="userEnabled">User Status</label>
-                <div className="checkbox-wrapper">
-                  <input
-                    type="checkbox"
-                    id="userEnabled"
-                    checked={newUser.enabled}
-                    onChange={(e) => setNewUser(prev => ({ ...prev, enabled: e.target.checked }))}
-                  />
-                  <label htmlFor="userEnabled" className="checkbox-label">
-                    {newUser.enabled ? 'Account Enabled' : 'Account Disabled'}
-                  </label>
-                </div>
-                <small className="form-helper-text">
-                  {newUser.enabled 
-                    ? 'User can log in and access the system' 
-                    : 'User cannot log in (account disabled)'
-                  }
-                </small>
-              </div>
-            </div>
-
-            {/* Departments - Now as the last field, full width */}
-            <div className="form-row">
-              <div className="form-group form-group-full">
-                <label>Departments</label>
-                <p className="form-helper-text departments-hint">
-                  Select departments for the assigned countries. Departments are organised by country.
-                </p>
-                <CountryGroupedDepartments
-                  selectedDepartments={newUser.departments}
-                  onChange={(departments) => {
-                    // CountryGroupedDepartments always sends country-specific format, no migration needed
-                    setNewUser(prev => ({ ...prev, departments }));
-                  }}
-                  userCountries={newUser.countries}
-                  compact={true}
-                />
-              </div>
-            </div>
-
-            {error && <div className="error-message">{error}</div>}
-
-            <div className="form-actions">
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="btn btn-outline-secondary btn-lg cancel-button"
-              >
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary btn-lg submit-button">
-                {editingUser ? 'Update User' : 'Add User'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      <div className="users-table">
-        <div className="users-table-header">
-          <h3>Existing Users ({getFilteredUsers().length})</h3>
-          
-          {/* Modern Advanced Filters - Similar to View All Cases */}
+          {/* Modern Advanced Filters - Outside of users table */}
           <div className="modern-filters-section">
             <div className="filters-header" onClick={() => setShowFilters(!showFilters)}>
               <div className="filters-title">
@@ -795,129 +1181,236 @@ const UserManagement: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
-        
-        <table>
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Full Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Department</th>
-              <th>Countries</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {getCurrentPageUsers().map(user => {
-              const userEnabled = user.enabled !== undefined ? user.enabled : true;
-              return (
-                <tr key={user.id} className={!userEnabled ? 'user-disabled' : ''}>
-                  <td>{user.username}</td>
-                  <td>{user.name}</td>
-                  <td>{user.email || 'N/A'}</td>
-                  <td>
-                    <span className={`badge badge-role badge-role-${user.role}`}>
-                      {user.role.replace(/-/g, ' ').toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="department-column">
-                    <div className="badge-container-vertical">
-                      {user.departments && user.departments.length > 0 ? (
-                        <>
-                          <div className="badge-grid">
-                            {user.departments.slice(0, 4).map((dept, index) => (
-                              <span key={index} className="badge badge-department" title={dept}>
-                                {dept}
-                              </span>
-                            ))}
+
+          {/* Users Section with Modern Cards */}
+          <div className="users-section">
+            <div className="users-header">
+              <h2 className="users-title">Team Members ({getFilteredUsers().length})</h2>
+              <div className="users-actions">
+                {canCreateUsers && (
+                  <button
+                    onClick={() => showAddUser ? handleCancelEdit() : setShowAddUser(true)}
+                    className="add-user-btn"
+                  >
+                    <span>👤</span>
+                    {showAddUser ? 'Cancel' : 'Add New User'}
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* Users Grid */}
+            <div className="users-grid">
+              {getCurrentPageUsers().map(user => {
+                const userEnabled = user.enabled !== undefined ? user.enabled : true;
+                return (
+                  <div key={user.id} className="user-card">
+                    <div className="user-card-header">
+                      <div className="user-info">
+                        <h3 className="user-name">{user.name}</h3>
+                        <p className="user-username">@{user.username}</p>
+                      </div>
+                      <div className="user-status">
+                        <div className={`status-indicator ${userEnabled ? 'enabled' : 'disabled'}`}></div>
+                        <span className={`status-text ${userEnabled ? 'enabled' : 'disabled'}`}>
+                          {userEnabled ? 'Active' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="user-details">
+                      <div className="user-role">
+                        <div className="role-icon"></div>
+                        {user.role.replace(/-/g, ' ').toUpperCase()}
+                      </div>
+                      
+                      {user.email && (
+                        <div className="user-email">
+                          <span>✉️</span>
+                          {user.email}
+                        </div>
+                      )}
+                      
+                      {/* Only show assignments for non-admin users */}
+                      {user.role !== 'admin' && (
+                        <div className="user-assignments">
+                          {/* Countries */}
+                          <div className="assignment-row">
+                            <span className="assignment-label">Countries:</span>
+                            <div className="assignment-value">
+                              {user.countries && user.countries.length > 0 ? (
+                                <div className="badge-container">
+                                  {user.countries.slice(0, 2).map((country, index) => (
+                                    <span key={index} className="assignment-badge country">
+                                      {country}
+                                    </span>
+                                  ))}
+                                  {user.countries.length > 2 && (
+                                    <span 
+                                      className="assignment-badge badge-more"
+                                      onClick={() => handleShowMore('countries', user.countries!, user.name)}
+                                      title="Show all countries"
+                                    >
+                                      +{user.countries.length - 2} more
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span style={{color: '#9ca3af', fontSize: '0.8rem'}}>No countries</span>
+                              )}
+                            </div>
                           </div>
-                          {user.departments.length > 4 && (
-                            <button
-                              className="badge badge-expandable"
-                              onClick={() => handleShowMore('departments', user.departments!, user.name)}
-                              title="Show all departments"
-                            >
-                              +{user.departments.length - 4} more
-                            </button>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-muted">No departments</span>
+                          
+                          {/* Departments */}
+                          <div className="assignment-row">
+                            <span className="assignment-label">Departments:</span>
+                            <div className="assignment-value">
+                              {user.departments && user.departments.length > 0 ? (
+                                <div className="badge-container">
+                                  {formatDepartmentsWithCountry(user.departments, user.countries || []).slice(0, 1).map((dept, index) => (
+                                    <span 
+                                      key={index} 
+                                      className={`assignment-badge ${!(user.countries && user.countries.length > 0) ? 'badge-warning' : ''}`}
+                                      title={!(user.countries && user.countries.length > 0) ? 'Department without country assigned' : dept}
+                                    >
+                                      {!(user.countries && user.countries.length > 0) && '⚠️ '}{dept}
+                                    </span>
+                                  ))}
+                                  {user.departments.length > 1 && (
+                                    <span 
+                                      className="assignment-badge badge-more"
+                                      onClick={() => handleShowMore('departments', formatDepartmentsWithCountry(user.departments!, user.countries || []), user.name)}
+                                      title="Show all departments"
+                                    >
+                                      +{user.departments.length - 1} more
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span style={{color: '#9ca3af', fontSize: '0.8rem'}}>No departments</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Show global access indicator for admin users */}
+                      {user.role === 'admin' && (
+                        <div className="admin-access-indicator">
+                          <div className="assignment-row">
+                            <span className="assignment-label">Access Level:</span>
+                            <div className="assignment-value">
+                              <span className="assignment-badge admin-badge">
+                                🌍 Global Access - All Countries & Departments
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </td>
-                  <td className="countries-column">
-                    <div className="badge-container-vertical">
-                      {user.countries && user.countries.length > 0 ? (
-                        <>
-                          <div className="badge-grid">
-                            {user.countries.slice(0, 4).map((country, index) => (
-                              <span key={index} className="badge badge-country" title={country}>
-                                {country}
-                              </span>
-                            ))}
-                          </div>
-                          {user.countries.length > 4 && (
-                            <button
-                              className="badge badge-expandable"
-                              onClick={() => handleShowMore('countries', user.countries!, user.name)}
-                              title="Show all countries"
-                            >
-                              +{user.countries.length - 4} more
-                            </button>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-muted">No countries</span>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`user-status ${userEnabled ? 'enabled' : 'disabled'}`}>
-                      {userEnabled ? 'Enabled' : 'Disabled'}
-                    </span>
-                  </td>
-                  <td>
+                    
+                    {/* User Actions */}
                     {user.username !== 'Admin' && (
-                      <div className="user-actions vertical">
+                      <div className="user-actions">
                         {canEditUsers && (
                           <button 
-                            className="btn btn-outline-secondary btn-sm" 
+                            className="action-btn edit" 
                             onClick={() => handleEditUser(user)}
+                            title="Edit User"
                           >
-                            Edit
+                            <span>✏️<br/>Edit</span>
+                          </button>
+                        )}
+                        {canResetPassword && (
+                          <button 
+                            className="action-btn reset" 
+                            onClick={() => handleResetPassword(user)}
+                            title="Reset Password"
+                          >
+                            <span>🔑<br/>Reset</span>
                           </button>
                         )}
                         {canEnableDisableUsers && (
                           <button 
-                            className={`btn btn-sm ${userEnabled ? 'btn-warning' : 'btn-success'}`}
+                            className="action-btn toggle"
                             onClick={() => handleToggleUserStatus(user.id, userEnabled)}
                             title={userEnabled ? 'Disable User' : 'Enable User'}
                           >
-                            {userEnabled ? 'Disable' : 'Enable'}
+                            <span>{userEnabled ? '🔒' : '🔓'}<br/>{userEnabled ? 'Disable' : 'Enable'}</span>
                           </button>
                         )}
                         {canDeleteUsers && (
                           <button 
-                            className="btn btn-danger btn-sm"
+                            className="action-btn delete"
                             onClick={() => handleDeleteUser(user.id)}
+                            title="Delete User"
                           >
-                            Delete
+                            <span>🗑️<br/>Delete</span>
                           </button>
                         )}
                       </div>
                     )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        
-      </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="pagination-container">
+                <div className="pagination-info">
+                  Showing {((currentPage - 1) * usersPerPage) + 1} to {Math.min(currentPage * usersPerPage, totalUsers)} of {totalUsers} users
+                </div>
+                <div className="pagination-controls">
+                  <button
+                    className="pagination-btn prev"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    title="Previous page"
+                  >
+                    ← Previous
+                  </button>
+                  
+                  <div className="pagination-pages">
+                    {[...Array(totalPages)].map((_, index) => {
+                      const pageNumber = index + 1;
+                      // Show first, last, current, and adjacent pages
+                      const showPage = pageNumber === 1 || 
+                                     pageNumber === totalPages || 
+                                     (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1);
+                      
+                      if (!showPage && pageNumber === 2 && currentPage > 3) {
+                        return <span key={pageNumber} className="pagination-ellipsis">...</span>;
+                      }
+                      if (!showPage && pageNumber === totalPages - 1 && currentPage < totalPages - 2) {
+                        return <span key={pageNumber} className="pagination-ellipsis">...</span>;
+                      }
+                      if (!showPage) return null;
+                      
+                      return (
+                        <button
+                          key={pageNumber}
+                          className={`pagination-btn page ${pageNumber === currentPage ? 'active' : ''}`}
+                          onClick={() => setCurrentPage(pageNumber)}
+                        >
+                          {pageNumber}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  <button
+                    className="pagination-btn next"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    title="Next page"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -940,17 +1433,47 @@ const UserManagement: React.FC = () => {
               </button>
             </div>
             <div className="popup-body">
-              <div className="popup-badge-grid">
-                {popupData.items.map((item, index) => (
-                  <span 
-                    key={index} 
-                    className={`badge ${popupData.type === 'departments' ? 'badge-department' : 'badge-country'}`}
-                    title={item}
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
+              {popupData.type === 'departments' ? (
+                // Group departments by country
+                Object.entries(groupDepartmentsByCountry(popupData.items)).map(([country, departments]) => (
+                  <div key={country} style={{ marginBottom: '1.5rem' }}>
+                    <h4 style={{ 
+                      color: 'var(--primary-color)', 
+                      fontSize: '1.1rem', 
+                      fontWeight: '700', 
+                      marginBottom: '0.75rem',
+                      borderBottom: '2px solid #e0f7f7',
+                      paddingBottom: '0.5rem'
+                    }}>
+                      {country}
+                    </h4>
+                    <div className="popup-badge-grid">
+                      {departments.map((dept, index) => (
+                        <span 
+                          key={index} 
+                          className="badge badge-department"
+                          title={dept}
+                        >
+                          {dept}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                // Regular display for countries
+                <div className="popup-badge-grid">
+                  {popupData.items.map((item, index) => (
+                    <span 
+                      key={index} 
+                      className="badge badge-country"
+                      title={item}
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="popup-footer">
               <p className="popup-info">Press ESC or click outside to close</p>
@@ -958,6 +1481,111 @@ const UserManagement: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Reset Password Modal */}
+      {showResetPasswordModal && resetPasswordUser && (
+        <div className="modal-overlay" onClick={() => setShowResetPasswordModal(false)}>
+          <div 
+            className="modal-content reset-password-modal" 
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setShowResetPasswordModal(false);
+              }
+            }}
+            tabIndex={-1}
+          >
+            <div className="modal-header">
+              <h2 className="modal-title">🔑 Reset Password</h2>
+              <button 
+                className="close-btn" 
+                onClick={() => setShowResetPasswordModal(false)}
+                aria-label="Close modal"
+              >
+                ✕
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="reset-password-info">
+                  <p>Reset password for <strong>{resetPasswordUser.name}</strong> ({resetPasswordUser.username})?</p>
+                  <div className="warning-banner">
+                    <span className="warning-icon">⚠️</span>
+                    <span className="warning-text">The user will be required to change this password on their next login.</span>
+                  </div>
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="tempPassword" className="required">Temporary Password</label>
+                  <div className="password-input-wrapper">
+                    <input
+                      type="password"
+                      id="tempPassword"
+                      value={tempPassword}
+                      onChange={(e) => setTempPassword(e.target.value)}
+                      placeholder="Enter temporary password (min 6 characters)"
+                      minLength={6}
+                      required
+                      className="modern-input"
+                    />
+                    <span className="input-helper-text">Minimum 6 characters required</span>
+                  </div>
+                </div>
+                
+                {error && <div className="error-message">{error}</div>}
+              </div>
+              <div className="modal-footer">
+                <button 
+                  className="btn btn-secondary btn-md" 
+                  onClick={() => setShowResetPasswordModal(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="btn btn-warning btn-md" 
+                  onClick={handleConfirmResetPassword}
+                  disabled={!tempPassword || tempPassword.length < 6}
+                >
+                  🔄 Reset Password
+                </button>
+              </div>
+            </div>
+          </div>
+      )}
+
+      {/* Confirmation Modal for Delete/Disable/Enable actions */}
+      <CustomModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, type: null, user: null })}
+        title={
+          confirmModal.type === 'delete' ? '🗑️ Delete User' :
+          confirmModal.type === 'disable' ? '❌ Disable User' :
+          confirmModal.type === 'enable' ? '✅ Enable User' : ''
+        }
+        message={
+          confirmModal.type === 'delete' 
+            ? `Are you sure you want to delete user "${confirmModal.user?.name}" (${confirmModal.user?.username})?\n\nThis action cannot be undone and will permanently remove all user data.`
+            : confirmModal.type === 'disable'
+            ? `Are you sure you want to disable user "${confirmModal.user?.name}" (${confirmModal.user?.username})?\n\nThis will prevent them from logging into the system.`
+            : confirmModal.type === 'enable'
+            ? `Are you sure you want to enable user "${confirmModal.user?.name}" (${confirmModal.user?.username})?\n\nThis will allow them to log into the system.`
+            : ''
+        }
+        type={confirmModal.type === 'delete' ? 'warning' : 'confirm'}
+        actions={[
+          {
+            label: 'Cancel',
+            onClick: () => setConfirmModal({ isOpen: false, type: null, user: null }),
+            style: 'secondary'
+          },
+          {
+            label: confirmModal.type === 'delete' ? 'Delete User' : 
+                   confirmModal.type === 'disable' ? 'Disable User' : 
+                   confirmModal.type === 'enable' ? 'Enable User' : 'Confirm',
+            onClick: confirmModal.type === 'delete' ? confirmDeleteUser : confirmToggleUserStatus,
+            style: confirmModal.type === 'delete' ? 'danger' : 'primary'
+          }
+        ]}
+      />
 
     </div>
   );

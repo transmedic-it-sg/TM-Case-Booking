@@ -7,6 +7,7 @@
 import React, { useState, useCallback } from 'react';
 import { CaseCardProps } from './types';
 import { useCurrentUser, usePermissions } from '../../hooks';
+import { useUserNames } from '../../hooks/useUserNames';
 
 // Sub-components
 import CaseHeader from './CaseHeader';
@@ -21,7 +22,7 @@ import { useCaseActions } from './hooks/useCaseActions';
 import { useCaseData } from './hooks/useCaseData';
 
 // Styles
-import './CaseCard.css';
+import '../../assets/components/CaseCard.css';
 
 const CaseCard: React.FC<CaseCardProps> = ({
   caseItem,
@@ -50,8 +51,19 @@ const CaseCard: React.FC<CaseCardProps> = ({
 }) => {
   const { user } = useCurrentUser();
   const permissions = usePermissions();
-  const caseActions = useCaseActions(caseItem);
+  
+  // Get user IDs from status history and case data
+  const userIds = [
+    caseItem.submittedBy,
+    caseItem.processedBy,
+    caseItem.amendedBy,
+    ...(caseItem.statusHistory || []).map(h => h.processedBy)
+  ].filter((id): id is string => Boolean(id));
+
+  const { getUserName } = useUserNames(userIds);
+  const _caseActions = useCaseActions(caseItem); // eslint-disable-line @typescript-eslint/no-unused-vars
   const caseData = useCaseData(caseItem);
+
 
   // Local state for UI interactions
   const [showStatusHistory, setShowStatusHistory] = useState(false);
@@ -129,10 +141,45 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 {caseData.statusHistory.map((history, index) => (
                   <div key={index} className="status-history-item">
                     <div className="history-status">{history.status}</div>
-                    <div className="history-user">{history.user}</div>
+                    <div className="history-user">{getUserName(history.processedBy)}</div>
                     <div className="history-time">{history.formattedTimestamp}</div>
                     {history.details && (
                       <div className="history-details">{history.details}</div>
+                    )}
+                    {history.attachments && history.attachments.length > 0 && (
+                      <div className="history-attachments">
+                        <div className="attachments-label">📎 Attachments ({history.attachments.length}):</div>
+                        <div className="attachments-grid">
+                          {history.attachments.map((attachmentStr, attachmentIndex) => {
+                            try {
+                              const attachment = JSON.parse(attachmentStr);
+                              const isImage = attachment.type && attachment.type.startsWith('image/');
+                              return (
+                                <div key={attachmentIndex} className="attachment-preview">
+                                  {isImage ? (
+                                    <img 
+                                      src={attachment.data} 
+                                      alt={attachment.name}
+                                      className="attachment-thumbnail"
+                                      title={attachment.name}
+                                    />
+                                  ) : (
+                                    <div className="attachment-file" title={attachment.name}>
+                                      📄 {attachment.name}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            } catch (e) {
+                              return (
+                                <div key={attachmentIndex} className="attachment-error">
+                                  ❌ Invalid attachment data
+                                </div>
+                              );
+                            }
+                          })}
+                        </div>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -153,7 +200,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
               
               {showAmendmentHistory && caseData.amendmentInfo && (
                 <div className="amendment-history-details">
-                  <div>Amended by: {caseData.amendmentInfo.amendedBy}</div>
+                  <div>Amended by: {getUserName(caseData.amendmentInfo.amendedBy || '')}</div>
                   <div>Date: {caseData.amendmentInfo.amendedAt}</div>
                 </div>
               )}
@@ -202,7 +249,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
       <div className="case-card-footer">
         <div className="case-meta-info">
           <span className="submission-info">
-            Submitted {caseData.daysSinceSubmission} days ago by {caseItem.submittedBy}
+            Submitted {caseData.daysSinceSubmission} days ago by {getUserName(caseItem.submittedBy)}
           </span>
           {caseData.isUrgent && (
             <span className="urgency-warning">

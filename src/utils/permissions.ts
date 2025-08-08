@@ -1,74 +1,131 @@
 import { Permission } from '../components/PermissionMatrix';
 import { permissions as defaultPermissions } from '../data/permissionMatrixData';
+import { getSupabasePermissions } from './supabasePermissionService';
 
-// Storage key for runtime permissions
-const RUNTIME_PERMISSIONS_KEY = 'app_runtime_permissions';
+// Cache for permissions to avoid repeated async calls
+let permissionsCache: Permission[] | null = null;
+let permissionsCacheTime = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-// Get current runtime permissions (from localStorage or default)
-export const getRuntimePermissions = (): Permission[] => {
+// Get current runtime permissions (from Supabase or default)
+export const getRuntimePermissions = async (): Promise<Permission[]> => {
   try {
-    const stored = localStorage.getItem(RUNTIME_PERMISSIONS_KEY);
-    if (stored) {
-      const permissions = JSON.parse(stored);
-      
-      // Validate that admin has all permissions (auto-fix if missing)
-      const adminPermissions = permissions.filter((p: Permission) => p.roleId === 'admin' && p.allowed);
-      const totalActions = defaultPermissions.filter(p => p.roleId === 'admin' && p.allowed).length;
-      
-      if (adminPermissions.length < totalActions) {
-        console.log('Admin permissions incomplete, resetting to defaults...');
-        const fixed = defaultPermissions;
-        saveRuntimePermissions(fixed);
-        return fixed;
-      }
-      
-      return permissions;
-    }
+    const permissions = await getSupabasePermissions();
+    // Update cache
+    permissionsCache = permissions;
+    permissionsCacheTime = Date.now();
+    return permissions;
   } catch (error) {
-    console.error('Error loading runtime permissions:', error);
+    console.error('Error loading runtime permissions, using defaults:', error);
+    // Clear cache on error to prevent stale data
+    clearPermissionsCache();
+    return defaultPermissions;
   }
-  return defaultPermissions;
 };
 
-// Save runtime permissions to localStorage
-export const saveRuntimePermissions = (permissions: Permission[]): void => {
+// Save runtime permissions to Supabase
+export const saveRuntimePermissions = async (permissions: Permission[]): Promise<void> => {
   try {
-    localStorage.setItem(RUNTIME_PERMISSIONS_KEY, JSON.stringify(permissions));
+    const { saveSupabasePermissions } = await import('./supabasePermissionService');
+    await saveSupabasePermissions(permissions);
+    // Clear cache first, then update with new permissions
+    clearPermissionsCache();
+    permissionsCache = permissions;
+    permissionsCacheTime = Date.now();
+    console.log('Permissions saved and cache updated');
   } catch (error) {
     console.error('Error saving runtime permissions:', error);
+    // Clear cache on error to force reload from Supabase
+    clearPermissionsCache();
   }
 };
 
 // Check if a role has permission for a specific action
 export const hasPermission = (roleId: string, actionId: string): boolean => {
-  const permissions = getRuntimePermissions();
-  const permission = permissions.find(p => p.roleId === roleId && p.actionId === actionId);
-  return permission?.allowed || false;
+  // Admin has all permissions
+  if (roleId === 'admin') {
+    return true;
+  }
+  
+  // Use cached permissions if available and not expired
+  let permissionsToCheck = defaultPermissions;
+  if (permissionsCache && (Date.now() - permissionsCacheTime < CACHE_DURATION)) {
+    permissionsToCheck = permissionsCache;
+    // console.log(`Using cached permissions for ${roleId} - ${actionId}`);
+  } else {
+    // console.log(`Using default permissions for ${roleId} - ${actionId} (cache expired or not available)`);
+  }
+  
+  const permission = permissionsToCheck.find(p => p.roleId === roleId && p.actionId === actionId);
+  let result = permission?.allowed || false;
+  
+  // If permission not found in dynamic permissions, check default permissions as fallback
+  if (!permission && permissionsToCheck !== defaultPermissions) {
+    const fallbackPermission = defaultPermissions.find(p => p.roleId === roleId && p.actionId === actionId);
+    result = fallbackPermission?.allowed || false;
+  }
+  
+  // Debug logging for IT role permissions
+  if (roleId === 'it' && ['create-case', 'code-table-setup', 'view-users', 'email-config', 'audit-logs', 'edit-countries'].includes(actionId)) {
+    console.log(`Permission check for IT ${actionId}: ${result}`, {
+      roleId,
+      actionId,
+      permission,
+      usingCache: permissionsCache && (Date.now() - permissionsCacheTime < CACHE_DURATION),
+      cacheTime: permissionsCacheTime,
+      now: Date.now(),
+      cacheAge: Date.now() - permissionsCacheTime,
+      cacheDuration: CACHE_DURATION
+    });
+  }
+  
+  return result;
+};
+
+// Initialize permissions cache
+export const initializePermissions = async (): Promise<void> => {
+  try {
+    // Initializing permissions system...
+    await getRuntimePermissions();
+    // Permissions loaded successfully
+  } catch (error) {
+    console.error('Error initializing permissions, using defaults:', error);
+    // Ensure we use default permissions if initialization fails
+    permissionsCache = null;
+    permissionsCacheTime = 0;
+  }
+};
+
+// Clear permissions cache to force reload
+export const clearPermissionsCache = (): void => {
+  permissionsCache = null;
+  permissionsCacheTime = 0;
+  console.log('Permissions cache cleared');
 };
 
 // Get all permissions for a specific role
 export const getRolePermissions = (roleId: string): Permission[] => {
-  const permissions = getRuntimePermissions();
-  return permissions.filter(p => p.roleId === roleId && p.allowed);
+  return defaultPermissions.filter(p => p.roleId === roleId && p.allowed);
 };
 
 // Update a specific permission
-export const updatePermission = (roleId: string, actionId: string, allowed: boolean): void => {
-  const permissions = getRuntimePermissions();
-  const existingIndex = permissions.findIndex(p => p.roleId === roleId && p.actionId === actionId);
-  
-  if (existingIndex >= 0) {
-    permissions[existingIndex] = { ...permissions[existingIndex], allowed };
-  } else {
-    permissions.push({ roleId, actionId, allowed });
+export const updatePermission = async (roleId: string, actionId: string, allowed: boolean): Promise<void> => {
+  try {
+    const { updateSupabasePermission } = await import('./supabasePermissionService');
+    await updateSupabasePermission(roleId, actionId, allowed);
+  } catch (error) {
+    console.error('Error updating permission:', error);
   }
-  
-  saveRuntimePermissions(permissions);
 };
 
 // Reset permissions to default
-export const resetPermissions = (): void => {
-  localStorage.removeItem(RUNTIME_PERMISSIONS_KEY);
+export const resetPermissions = async (): Promise<void> => {
+  try {
+    const { resetSupabasePermissions } = await import('./supabasePermissionService');
+    await resetSupabasePermissions();
+  } catch (error) {
+    console.error('Error resetting permissions:', error);
+  }
 };
 
 // Permission action IDs for easy reference
@@ -78,6 +135,7 @@ export const PERMISSION_ACTIONS = {
   VIEW_CASES: 'view-cases',
   AMEND_CASE: 'amend-case',
   DELETE_CASE: 'delete-case',
+  UPDATE_CASE_STATUS: 'update-case-status',
   CANCEL_CASE: 'cancel-case',
   EDIT_SETS: 'edit-sets',
   BOOKING_CALENDAR: 'booking-calendar',
@@ -99,6 +157,9 @@ export const PERMISSION_ACTIONS = {
   DELETE_USER: 'delete-user',
   VIEW_USERS: 'view-users',
   ENABLE_DISABLE_USER: 'enable-disable-user',
+  RESET_PASSWORD: 'reset-password',
+  EDIT_COUNTRIES: 'edit-countries',
+  GLOBAL_TABLES: 'global-tables',
   
   // System Settings
   SYSTEM_SETTINGS: 'system-settings',
@@ -106,6 +167,7 @@ export const PERMISSION_ACTIONS = {
   CODE_TABLE_SETUP: 'code-table-setup',
   BACKUP_RESTORE: 'backup-restore',
   AUDIT_LOGS: 'audit-logs',
+  PERMISSION_MATRIX: 'permission-matrix',
   
   // Data Operations
   EXPORT_DATA: 'export-data',

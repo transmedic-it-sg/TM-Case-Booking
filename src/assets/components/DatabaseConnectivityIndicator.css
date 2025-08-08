@@ -1,0 +1,301 @@
+/* Database Connectivity Indicator Styles */
+.database-connectivity-indicator {
+  position: relative;
+  display: flex;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Status Light */
+.connection-status-light {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.connection-status-light:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.status-light {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.light-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.light-dot.pulse {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+}
+
+.status-text {
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.database-name {
+  color: rgb(0, 0, 0);
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+  padding: 2px 8px;
+}
+
+/* Connection Details Panel */
+.connection-details-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  width: 320px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  z-index: 1001;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.status-icon {
+  font-size: 16px;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.close-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #1e293b;
+}
+
+.panel-content {
+  padding: 16px;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.status-row.error {
+  color: #dc2626;
+}
+
+.label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.value {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.status-value {
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.status-value.connected {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-value.disconnected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.status-value.checking {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-value.fallback {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.description {
+  margin-top: 12px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.panel-actions {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  justify-content: center;
+}
+
+.panel-actions .btn {
+  min-width: 120px;
+}
+
+/* Connection Indicators */
+.connection-indicators {
+  display: flex;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.indicator.active {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  opacity: 0.4;
+  transition: all 0.2s ease;
+}
+
+.indicator.active .indicator-dot {
+  opacity: 1;
+}
+
+.indicator-dot.green {
+  background: #22c55e;
+}
+
+.indicator-dot.amber {
+  background: #f59e0b;
+}
+
+.indicator-dot.red {
+  background: #ef4444;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .connection-details-panel {
+    width: 280px;
+    right: 0;
+    left: auto;
+    z-index: 1050 !important;
+    position: fixed !important;
+    top: 60px !important;
+    margin-top: 0 !important;
+  }
+  
+  .status-text {
+    display: none;
+  }
+  
+  .database-connectivity-indicator {
+    z-index: 1040 !important;
+  }
+}
+
+/* Status-specific styles */
+.connection-status-light.connected {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.connection-status-light.disconnected {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.connection-status-light.checking {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.connection-status-light.fallback {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+}

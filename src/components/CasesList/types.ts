@@ -43,7 +43,7 @@ export interface CaseCardProps {
   onToggleAmendmentHistory: (caseId: string) => void;
   onStatusChange: (caseId: string, newStatus: CaseStatus) => void;
   onAmendCase: (caseItem: CaseBooking) => void;
-  onSaveAmendment: (caseId: string) => void;
+  onSaveAmendment: (amendmentData: any) => void;
   onCancelAmendment: () => void;
   onOrderProcessed: (caseId: string) => void;
   onSaveProcessDetails: (caseId: string) => void;

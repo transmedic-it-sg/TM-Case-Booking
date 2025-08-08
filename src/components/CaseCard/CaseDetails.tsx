@@ -6,6 +6,7 @@
 import React from 'react';
 import { CaseDetailsProps } from './types';
 import { useCaseData } from './hooks/useCaseData';
+import { useUserNames } from '../../hooks/useUserNames';
 
 const CaseDetails: React.FC<CaseDetailsProps> = ({
   caseItem,
@@ -17,11 +18,21 @@ const CaseDetails: React.FC<CaseDetailsProps> = ({
     formattedProcessedDate,
     daysSinceSubmission,
     daysUntilSurgery,
-    displaySets,
-    displayImplants,
+    displaySets: _displaySets, // eslint-disable-line @typescript-eslint/no-unused-vars
+    displayImplants: _displayImplants, // eslint-disable-line @typescript-eslint/no-unused-vars
     hasAmendments,
     amendmentInfo
   } = useCaseData(caseItem);
+
+  // Get user IDs that need to be resolved to names
+  const userIds = [
+    caseItem.submittedBy,
+    caseItem.processedBy,
+    caseItem.amendedBy
+  ].filter((id): id is string => Boolean(id));
+
+  const { getUserName } = useUserNames(userIds);
+
 
   if (!isExpanded) return null;
 
@@ -51,7 +62,7 @@ const CaseDetails: React.FC<CaseDetailsProps> = ({
 
         <div className="case-info-item">
           <span className="case-info-label">Submitted By</span>
-          <span className="case-info-value">{caseItem.submittedBy}</span>
+          <span className="case-info-value">{getUserName(caseItem.submittedBy)}</span>
         </div>
 
         <div className="case-info-item">
@@ -69,7 +80,7 @@ const CaseDetails: React.FC<CaseDetailsProps> = ({
         {caseItem.processedBy && (
           <div className="case-info-item">
             <span className="case-info-label">Processed By</span>
-            <span className="case-info-value">{caseItem.processedBy}</span>
+            <span className="case-info-value">{getUserName(caseItem.processedBy)}</span>
           </div>
         )}
       </div>
@@ -136,7 +147,7 @@ const CaseDetails: React.FC<CaseDetailsProps> = ({
         <div className="amendment-info">
           <h4 className="amendment-title">Amendment Information</h4>
           <div className="amendment-details">
-            <span className="amendment-by">Amended by: {amendmentInfo.amendedBy}</span>
+            <span className="amendment-by">Amended by: {getUserName(amendmentInfo.amendedBy || '')}</span>
             <span className="amendment-date">Date: {amendmentInfo.amendedAt}</span>
           </div>
         </div>

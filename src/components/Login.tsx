@@ -15,6 +15,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const countrySelectRef = useRef<HTMLSelectElement>(null);
 
@@ -23,6 +24,21 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     initializeCodeTables();
     const countries = getCountries();
     setAvailableCountries(countries);
+    
+    // Load remembered credentials
+    const savedCredentials = localStorage.getItem('rememberMe');
+    if (savedCredentials) {
+      try {
+        const { username: savedUsername, password: savedPassword, country: savedCountry } = JSON.parse(savedCredentials);
+        setUsername(savedUsername || '');
+        setPassword(savedPassword || '');
+        setCountry(savedCountry || '');
+        setRememberMe(true);
+      } catch (error) {
+        console.warn('Failed to load saved credentials:', error);
+        localStorage.removeItem('rememberMe');
+      }
+    }
   }, []);
 
   // Set custom validation message for country select
@@ -60,16 +76,29 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
-    // Simulate loading for better UX
-    setTimeout(() => {
-      const result = authenticate(username, password, country);
+    try {
+      const result = await authenticate(username, password, country);
       if (result.user) {
+        // Save credentials if remember me is checked
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', JSON.stringify({
+            username,
+            password,
+            country
+          }));
+        } else {
+          localStorage.removeItem('rememberMe');
+        }
         onLogin(result.user);
       } else {
         setError(result.error || 'Login failed');
         setIsLoading(false);
       }
-    }, 1000);
+    } catch (error) {
+      console.error('Authentication error:', error);
+      setError('Authentication failed. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -152,6 +181,19 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <div className="input-underline"></div>
               </div>
 
+              <div className="remember-me-group">
+                <label className="remember-me-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    disabled={isLoading}
+                  />
+                  <span className="checkmark"></span>
+                  <span className="remember-me-text">Remember me</span>
+                </label>
+              </div>
+
               <div className="dropdown-input-group">
                 <label htmlFor="country" className="dropdown-label required">Country</label>
                 <SearchableDropdown
@@ -190,15 +232,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 )}
               </button>
             </form>
-
-            <div className="login-footer">
-              <div className="demo-credentials">
-                <p className="demo-title">Demo Credentials:</p>
-                <div className="credential-item">
-                  <strong>Admin:</strong> Admin / Admin
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

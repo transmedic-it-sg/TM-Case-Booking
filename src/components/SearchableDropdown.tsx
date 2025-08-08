@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import './SearchableDropdown.css';
+import '../assets/components/SearchableDropdown.css';
 
 interface DropdownOption {
   value: string;

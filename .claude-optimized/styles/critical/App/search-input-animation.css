@@ -1,4 +1,0 @@
-.search-input:focus {
-  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1), 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: box-shadow 0.3s ease;
-}

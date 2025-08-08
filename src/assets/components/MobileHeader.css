@@ -1,0 +1,136 @@
+/* Mobile Header Styles */
+.mobile-header {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background: var(--white);
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: var(--shadow-light);
+  display: none;
+}
+
+.mobile-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  max-width: 100%;
+  margin: 0 auto;
+  min-height: 48px;
+}
+
+.mobile-header-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-db-indicator {
+  flex-shrink: 0;
+  transform: scale(0.8);
+}
+
+.mobile-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mobile-logout-btn {
+  background: var(--danger-color);
+  border: none;
+  font-size: 12px;
+  color: var(--white);
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 32px;
+}
+
+.mobile-logout-btn:hover,
+.mobile-logout-btn:focus {
+  background: #c53030;
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.mobile-logout-btn:active {
+  transform: scale(0.95);
+}
+
+/* Show mobile header on small screens */
+@media screen and (max-width: 768px) {
+  .mobile-header {
+    display: block;
+  }
+  
+  /* Hide the regular desktop header elements */
+  .app-header .header-info,
+  .app-header .logged-in-info {
+    display: none;
+  }
+  
+  .app-header .header-left h1 {
+    font-size: 16px;
+  }
+  
+  .app-header .header-actions {
+    gap: 4px;
+  }
+  
+  .app-header .logout-button {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+/* Compact mobile header for very small screens */
+@media screen and (max-width: 480px) {
+  .mobile-header-content {
+    padding: 10px 12px;
+    min-height: 56px;
+  }
+  
+  .mobile-header-title h1 {
+    font-size: 16px;
+  }
+  
+  .mobile-country-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+  
+  .mobile-header-right {
+    gap: 6px;
+  }
+  
+  .mobile-logout-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+}
+
+/* Safe area handling */
+@supports (padding: max(0px)) {
+  .mobile-header-content {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+}
+
+/* Focus styles for accessibility */
+.mobile-logout-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}

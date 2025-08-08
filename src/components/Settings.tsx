@@ -229,7 +229,7 @@ const Settings: React.FC = () => {
                   <small>Play audio feedback for user actions</small>
                 </div>
                 <button
-                  className={`btn btn-secondary btn-sm toggle-switch ${isEnabled ? 'enabled' : 'disabled'}`}
+                  className={`toggle-switch ${isEnabled ? 'enabled' : 'disabled'}`}
                   onClick={handleSoundToggle}
                 >
                   <span className="toggle-slider"></span>

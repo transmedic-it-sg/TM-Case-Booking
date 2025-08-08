@@ -1,10 +1,10 @@
 {
   "name": "case-booking-app",
-  "version": "1.2.0",
-  "homepage": "https://mika-nim.github.io/Live-CaseBooking",
+  "version": "1.2.5",
+  "homepage": "/",
   "private": true,
   "dependencies": {
-    "@supabase/supabase-js": "^2.50.2",
+    "@supabase/supabase-js": "^2.50.5",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^13.5.0",
@@ -12,7 +12,7 @@
     "@types/node": "^16.11.41",
     "@types/react": "^18.0.14",
     "@types/react-dom": "^18.0.5",
-    "dotenv": "^17.0.1",
+    "pg": "^8.16.3",
     "react": "^18.2.0",
     "react-datepicker": "^8.4.0",
     "react-dom": "^18.2.0",
@@ -21,8 +21,8 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "NODE_OPTIONS='--max-old-space-size=8192' react-scripts start",
+    "build": "react-app-rewired build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "typecheck": "npx tsc --noEmit",
@@ -35,7 +35,9 @@
     "claude-overview": "node scripts/claude-speed-optimizer.js --overview-only",
     "claude-analyze": "find src -name '*.tsx' -o -name '*.ts' -o -name '*.css' | xargs wc -c | sort -nr",
     "claude-clean": "rm -rf .claude-optimized",
-    "claude-report": "cat .claude-optimized/size-report.md 2>/dev/null || echo 'Run npm run claude-optimize first'"
+    "claude-report": "cat .claude-optimized/size-report.md 2>/dev/null || echo 'Run npm run claude-optimize first'",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
@@ -54,5 +56,10 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0",
+    "react-app-rewired": "^2.2.1",
+    "supabase": "^2.31.4"
   }
 }

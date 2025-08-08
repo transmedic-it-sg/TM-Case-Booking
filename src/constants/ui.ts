@@ -64,7 +64,7 @@ export const VALIDATION = {
   MIN_PASSWORD_LENGTH: 6,
   MAX_TEXT_LENGTH: 1000,
   MAX_INSTRUCTION_LENGTH: 2000,
-  PHONE_PATTERN: /^[\+]?[1-9][\d]{0,15}$/,
+  PHONE_PATTERN: /^[+]?[1-9][\d]{0,15}$/,
   EMAIL_PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 } as const;
 

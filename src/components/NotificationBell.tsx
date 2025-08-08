@@ -4,7 +4,7 @@ import { useSound } from '../contexts/SoundContext';
 import { formatDate } from '../utils/dateFormat';
 import { getCurrentUser } from '../utils/auth';
 import NotificationSettings from './NotificationSettings';
-import './NotificationSettings.css';
+import '../assets/components/NotificationSettings.css';
 
 const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);

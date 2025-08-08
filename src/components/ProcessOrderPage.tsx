@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { CaseBooking } from '../types';
 import { updateCaseStatus } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';
+import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { formatDateTime } from '../utils/dateFormat';
+import { useUserNames } from '../hooks/useUserNames';
 
 interface ProcessOrderPageProps {
   caseData: CaseBooking;
@@ -15,10 +17,39 @@ const ProcessOrderPage: React.FC<ProcessOrderPageProps> = ({
   onProcessComplete, 
   onBack 
 }) => {
+  const currentUser = getCurrentUser();
+  
   const [processOrderDetails, setProcessOrderDetails] = useState(
     caseData.processOrderDetails || ''
   );
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Extract user IDs for name resolution - memoized to prevent infinite re-renders
+  const userIds = useMemo(() => {
+    const ids = [];
+    if (caseData.submittedBy) ids.push(caseData.submittedBy);
+    if (caseData.processedBy) ids.push(caseData.processedBy);
+    if (caseData.amendedBy) ids.push(caseData.amendedBy);
+    return ids;
+  }, [caseData.submittedBy, caseData.processedBy, caseData.amendedBy]);
+
+  // Hook to resolve user IDs to names
+  const { getUserName } = useUserNames(userIds);
+
+  // Check if user has permission to process orders
+  const canProcessOrder = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.PROCESS_ORDER) : false;
+
+  if (!canProcessOrder) {
+    return (
+      <div className="permission-denied">
+        <div className="permission-denied-content">
+          <h2>🚫 Access Denied</h2>
+          <p>You don't have permission to process orders.</p>
+          <p>Contact your administrator to request access.</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleProcessOrder = async () => {
     if (!processOrderDetails.trim()) {
@@ -39,7 +70,9 @@ const ProcessOrderPage: React.FC<ProcessOrderPageProps> = ({
         caseData.id,
         'Order Prepared',
         currentUser.name,
-        processOrderDetails
+        JSON.stringify({
+          processDetails: processOrderDetails
+        })
       );
 
       setTimeout(() => {
@@ -81,7 +114,7 @@ const ProcessOrderPage: React.FC<ProcessOrderPageProps> = ({
             <strong>Surgery Time:</strong> {caseData.timeOfProcedure || 'Not specified'}
           </div>
           <div className="summary-item">
-            <strong>Submitted by:</strong> {caseData.submittedBy}
+            <strong>Submitted by:</strong> {getUserName(caseData.submittedBy)}
           </div>
           <div className="summary-item">
             <strong>Submitted at:</strong> {formatDateTime(caseData.submittedAt)}

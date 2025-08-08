@@ -1,30 +1,30 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
-import { useNotifications } from '../contexts/NotificationContext';
+import { getAuditLogs, getFilteredAuditLogs, clearOldAuditLogs, exportAuditLogs, AuditLogEntry } from '../utils/auditService';
+import { getSupabaseUsers } from '../utils/supabaseUserService';
+import { User } from '../types';
 import SearchableDropdown from './SearchableDropdown';
 import FilterDatePicker from './FilterDatePicker';
-
-interface AuditLogEntry {
-  id: string;
-  timestamp: string;
-  user: string;
-  action: string;
-  category: string;
-  target: string;
-  details: string;
-  ipAddress: string;
-  status: 'success' | 'warning' | 'error';
-}
+import '../assets/components/AuditLogs.css';
 
 const AuditLogs: React.FC = () => {
   const currentUser = getCurrentUser();
-  const { notifications } = useNotifications();
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<AuditLogEntry[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [logsPerPage] = useState(20);
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Modal states
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedLogDetails, setSelectedLogDetails] = useState<string>('');
+  const [showActiveUsersModal, setShowActiveUsersModal] = useState(false);
+  const [showClearLogsModal, setShowClearLogsModal] = useState(false);
+  const [clearLogsConfirmText, setClearLogsConfirmText] = useState('');
+  const [isClearingLogs, setIsClearingLogs] = useState(false);
+  const [activeUsers, setActiveUsers] = useState<{username: string, userId: string, lastActivity?: string, isActive: boolean, status: string}[]>([]);
+  const [userMap, setUserMap] = useState<Map<string, User>>(new Map());
   const [filters, setFilters] = useState({
     category: '',
     action: '',
@@ -45,118 +45,128 @@ const AuditLogs: React.FC = () => {
   // Check permission
   const canViewAuditLogs = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.AUDIT_LOGS) : false;
 
-  const loadAuditLogs = useCallback(() => {
-    // Convert notifications to audit logs and add system logs
-    const systemLogs: AuditLogEntry[] = [
-      {
-        id: 'sys001',
-        timestamp: new Date().toISOString(),
-        user: 'System',
-        action: 'Application Started',
-        category: 'System',
-        target: 'Application',
-        details: 'Case booking application initialized',
-        ipAddress: '127.0.0.1',
-        status: 'success'
-      },
-      {
-        id: 'sys002',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        user: 'System',
-        action: 'Permission Check',
-        category: 'Security',
-        target: 'Permission Matrix',
-        details: 'Audit logs permission verified',
-        ipAddress: '127.0.0.1',
-        status: 'success'
+  // Load users for mapping user IDs to usernames
+  const loadUsers = useCallback(async () => {
+    try {
+      const users = await getSupabaseUsers();
+      const map = new Map<string, User>();
+      users.forEach(user => {
+        map.set(user.id, user);
+      });
+      setUserMap(map);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+  }, []);
+
+  const loadAuditLogs = useCallback(async () => {
+    try {
+      const logs = await getAuditLogs();
+      setAuditLogs(logs);
+    } catch (error) {
+      console.error('Failed to load audit logs:', error);
+      setAuditLogs([]);
+    }
+  }, []);
+
+  // Helper function to get actual user name from userMap, fallback to log.user
+  const getUserDisplayName = useCallback((log: AuditLogEntry): string => {
+    const user = userMap.get(log.userId);
+    if (user && user.name) {
+      return user.name;
+    }
+    // Fallback to stored user name, but check if it looks like a UUID
+    if (log.user && !log.user.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      return log.user;
+    }
+    // If stored user name looks like UUID, try to find name from userId
+    return user?.username || log.user || 'Unknown User';
+  }, [userMap]);
+
+  const applyFilters = useCallback(async () => {
+    try {
+      const filtered = await getFilteredAuditLogs({
+        category: filters.category || undefined,
+        action: filters.action || undefined,
+        status: filters.status || undefined,
+        dateFrom: filters.dateFrom || undefined,
+        dateTo: filters.dateTo || undefined,
+        // Filter by user name if provided
+        ...(filters.user && { userId: filters.user })
+      });
+
+      // Additional client-side filtering for user name search
+      let finalFiltered = filtered;
+      if (filters.user) {
+        finalFiltered = filtered.filter(log => 
+          getUserDisplayName(log).toLowerCase().includes(filters.user.toLowerCase())
+        );
       }
-    ];
 
-    // Convert notifications to audit logs
-    const notificationLogs: AuditLogEntry[] = notifications.map((notification, index) => ({
-      id: `notif-${index}`,
-      timestamp: notification.timestamp,
-      user: notification.title.includes('User') ? 'Admin' : 'System',
-      action: notification.title,
-      category: getActionCategory(notification.title),
-      target: extractTarget(notification.message),
-      details: notification.message,
-      ipAddress: '192.168.1.100',
-      status: notification.type === 'error' ? 'error' : notification.type === 'warning' ? 'warning' : 'success'
-    }));
-
-    const allLogs = [...systemLogs, ...notificationLogs].sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-
-    setAuditLogs(allLogs);
-  }, [notifications]);
-
-  const applyFilters = useCallback(() => {
-    let filtered = auditLogs;
-
-    if (filters.category) {
-      filtered = filtered.filter(log => log.category === filters.category);
+      setFilteredLogs(finalFiltered);
+      setCurrentPage(1);
+    } catch (error) {
+      console.error('Failed to apply filters:', error);
+      setFilteredLogs(auditLogs);
     }
-
-    if (filters.action) {
-      filtered = filtered.filter(log => 
-        log.action.toLowerCase().includes(filters.action.toLowerCase())
-      );
-    }
-
-    if (filters.user) {
-      filtered = filtered.filter(log => 
-        log.user.toLowerCase().includes(filters.user.toLowerCase())
-      );
-    }
-
-    if (filters.status) {
-      filtered = filtered.filter(log => log.status === filters.status);
-    }
-
-    if (filters.dateFrom) {
-      filtered = filtered.filter(log => 
-        new Date(log.timestamp) >= new Date(filters.dateFrom)
-      );
-    }
-
-    if (filters.dateTo) {
-      filtered = filtered.filter(log => 
-        new Date(log.timestamp) <= new Date(filters.dateTo + 'T23:59:59')
-      );
-    }
-
-    setFilteredLogs(filtered);
-    setCurrentPage(1);
-  }, [auditLogs, filters]);
+  }, [auditLogs, filters, getUserDisplayName]);
 
   useEffect(() => {
     if (canViewAuditLogs) {
       loadAuditLogs();
+      loadUsers();
     }
-  }, [canViewAuditLogs, loadAuditLogs]);
+  }, [canViewAuditLogs, loadAuditLogs, loadUsers]);
 
   useEffect(() => {
     applyFilters();
   }, [applyFilters]);
 
-  const getActionCategory = (title: string): string => {
-    if (title.includes('User')) return 'User Management';
-    if (title.includes('Case')) return 'Case Management';
-    if (title.includes('Status')) return 'Status Change';
-    if (title.includes('Permission')) return 'Security';
-    return 'System';
+  const handleExportLogs = async () => {
+    try {
+      const exportData = await exportAuditLogs(filters);
+      const blob = new Blob([exportData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to export audit logs:', error);
+    }
   };
 
-  const extractTarget = (message: string): string => {
-    const caseMatch = message.match(/TMC\d+/);
-    if (caseMatch) return caseMatch[0];
-    
-    const userMatch = message.match(/(\w+\s+\w+)\s*\(/);
-    if (userMatch) return userMatch[1];
-    
-    return 'System';
+  const handleClearOldLogs = () => {
+    setShowClearLogsModal(true);
+    setClearLogsConfirmText('');
+  };
+
+  const confirmClearOldLogs = async () => {
+    if (clearLogsConfirmText !== 'Confirm to delete Audit Log') {
+      return; // Don't proceed if confirmation text doesn't match
+    }
+
+    setIsClearingLogs(true);
+    try {
+      const deletedCount = await clearOldAuditLogs(); // No parameter = 6 months (180 days)
+      alert(`Successfully cleared ${deletedCount} old audit log entries (older than 6 months).`);
+      await loadAuditLogs();
+      setShowClearLogsModal(false);
+      setClearLogsConfirmText('');
+    } catch (error) {
+      console.error('Failed to clear old logs:', error);
+      alert('Failed to clear old logs. Please try again.');
+    } finally {
+      setIsClearingLogs(false);
+    }
+  };
+
+  const cancelClearOldLogs = () => {
+    setShowClearLogsModal(false);
+    setClearLogsConfirmText('');
   };
 
   const handleFilterChange = (key: string, value: string) => {
@@ -225,6 +235,110 @@ const AuditLogs: React.FC = () => {
     return `${dayName}, ${day}/${month}/${year} ${hours}:${minutes}`;
   };
 
+  // Modal functions
+  const openDetailsModal = (details: string) => {
+    setSelectedLogDetails(details);
+    setShowDetailsModal(true);
+  };
+
+  const closeDetailsModal = () => {
+    setShowDetailsModal(false);
+    setSelectedLogDetails('');
+  };
+
+  // Helper function to get actual active users count (excluding inactive users)
+  const getActiveUsersCount = (): number => {
+    const userIds = Array.from(new Set(filteredLogs.map(log => log.userId)));
+    let activeCount = 0;
+    
+    userIds.forEach(userId => {
+      // Find the most recent login and logout for this user
+      const userAuthLogs = auditLogs.filter(log => 
+        log.userId === userId && 
+        log.category === 'Authentication' && 
+        (log.action === 'User Login' || log.action === 'User Logout')
+      ).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      // Check if user is currently active (last action was login, not logout)
+      const isActive = userAuthLogs.length > 0 && userAuthLogs[0].action === 'User Login';
+      if (isActive) {
+        activeCount++;
+      }
+    });
+    
+    return activeCount;
+  };
+
+  const openActiveUsersModal = () => {
+    const userIds = Array.from(new Set(filteredLogs.map(log => log.userId)));
+    const usersWithStatus = userIds.map(userId => {
+      const user = userMap.get(userId);
+      
+      // Find the most recent login and logout for this user
+      const userAuthLogs = auditLogs.filter(log => 
+        log.userId === userId && 
+        log.category === 'Authentication' && 
+        (log.action === 'User Login' || log.action === 'User Logout')
+      ).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      // Check if user is currently active (last action was login, not logout)
+      const isActive = userAuthLogs.length > 0 && userAuthLogs[0].action === 'User Login';
+      const lastActivity = userAuthLogs.length > 0 ? userAuthLogs[0].timestamp : undefined;
+      
+      return {
+        username: user ? user.name : (filteredLogs.find(log => log.userId === userId)?.user || 'Unknown User'),
+        userId,
+        lastActivity,
+        isActive,
+        status: isActive ? 'Active' : 'Inactive'
+      };
+    });
+    
+    // Sort by active status first, then by last activity
+    const sortedUsers = usersWithStatus.sort((a, b) => {
+      if (a.isActive && !b.isActive) return -1;
+      if (!a.isActive && b.isActive) return 1;
+      if (a.lastActivity && b.lastActivity) {
+        return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
+      }
+      return 0;
+    });
+    
+    setActiveUsers(sortedUsers);
+    setShowActiveUsersModal(true);
+  };
+
+  const closeActiveUsersModal = () => {
+    setShowActiveUsersModal(false);
+    setActiveUsers([]);
+  };
+
+  // Close modal when clicking outside or pressing ESC
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeDetailsModal();
+        closeActiveUsersModal();
+      }
+    };
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (target.classList.contains('modal-overlay')) {
+        closeDetailsModal();
+        closeActiveUsersModal();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('click', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
   if (!canViewAuditLogs) {
     return (
       <div className="permission-denied">
@@ -249,8 +363,8 @@ const AuditLogs: React.FC = () => {
             <span className="stat-value">{filteredLogs.length}</span>
             <span className="stat-label">Total Entries</span>
           </div>
-          <div className="stat-item">
-            <span className="stat-value">{new Set(filteredLogs.map(log => log.user)).size}</span>
+          <div className="stat-item clickable-stat" onClick={openActiveUsersModal}>
+            <span className="stat-value">{getActiveUsersCount()}</span>
             <span className="stat-label">Active Users</span>
           </div>
         </div>
@@ -283,7 +397,7 @@ const AuditLogs: React.FC = () => {
                       <SearchableDropdown
                         options={[
                           { value: '', label: 'All Users' },
-                          ...Array.from(new Set(auditLogs.map(log => log.user))).map(user => ({
+                          ...Array.from(new Set(auditLogs.map(log => getUserDisplayName(log)))).map(user => ({
                             value: user,
                             label: user
                           }))
@@ -418,6 +532,22 @@ const AuditLogs: React.FC = () => {
                 >
                   🔄 Refresh
                 </button>
+                {hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.EXPORT_DATA) && (
+                  <button 
+                    onClick={handleExportLogs} 
+                    className="btn btn-success btn-md"
+                  >
+                    📥 Export
+                  </button>
+                )}
+                {currentUser?.role === 'admin' && (
+                  <button 
+                    onClick={handleClearOldLogs} 
+                    className="btn btn-warning btn-md"
+                  >
+                    🗑️ Clear Old
+                  </button>
+                )}
               </div>
             </div>
 
@@ -463,11 +593,13 @@ const AuditLogs: React.FC = () => {
             <tr>
               <th>Timestamp</th>
               <th>User</th>
+              <th>Role</th>
               <th>Action</th>
               <th>Category</th>
               <th>Target</th>
               <th>Status</th>
-              <th>IP Address</th>
+              <th>Country</th>
+              <th>Department</th>
               <th>Details</th>
             </tr>
           </thead>
@@ -478,7 +610,10 @@ const AuditLogs: React.FC = () => {
                   {formatTimestamp(log.timestamp)}
                 </td>
                 <td className="user-cell">
-                  <strong>{log.user}</strong>
+                  <strong>{getUserDisplayName(log)}</strong>
+                </td>
+                <td className="role-cell">
+                  <span className="role-badge">{log.userRole || 'N/A'}</span>
                 </td>
                 <td className="action-cell">
                   {log.action}
@@ -494,12 +629,24 @@ const AuditLogs: React.FC = () => {
                     {log.status.toUpperCase()}
                   </span>
                 </td>
-                <td className="ip-cell">
-                  {log.ipAddress}
+                <td className="country-cell">
+                  {log.country || 'N/A'}
+                </td>
+                <td className="department-cell">
+                  {log.department || 'N/A'}
                 </td>
                 <td className="details-cell">
                   <div className="details-preview" title={log.details}>
-                    {log.details.length > 50 ? `${log.details.substring(0, 50)}...` : log.details}
+                    {log.details.length > 40 ? `${log.details.substring(0, 40)}...` : log.details}
+                    {log.details.length > 40 && (
+                      <button 
+                        className="btn btn-link btn-sm more-details-btn"
+                        onClick={() => openDetailsModal(log.details)}
+                        title="Click to view full details"
+                      >
+                        More details
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -572,6 +719,127 @@ const AuditLogs: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Details Modal */}
+      {showDetailsModal && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && closeDetailsModal()}>
+          <div className="modal-content details-modal">
+            <div className="modal-header">
+              <h3>📋 Audit Log Details</h3>
+              <button className="modal-close-btn" onClick={closeDetailsModal}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="details-content">
+                <p>{selectedLogDetails}</p>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={closeDetailsModal}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Active Users Modal */}
+      {showActiveUsersModal && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && closeActiveUsersModal()}>
+          <div className="modal-content active-users-modal">
+            <div className="modal-header">
+              <h3>👥 Active Users ({activeUsers.length})</h3>
+              <button className="modal-close-btn" onClick={closeActiveUsersModal}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="users-table-container">
+                {activeUsers.length > 0 ? (
+                  <div className="users-table">
+                    <div className="table-header">
+                      <div className="table-column-header">User Name</div>
+                      <div className="table-column-header">Last Activity</div>
+                    </div>
+                    <div className="table-body">
+                      {activeUsers.map((user, index) => (
+                        <div key={index} className={`table-row ${user.isActive ? 'active-user' : 'inactive-user'}`}>
+                          <div className="table-cell user-name-cell">
+                            <span className={`status-indicator ${user.isActive ? 'online' : 'offline'}`}></span>
+                            <span className="user-name">{user.username}</span>
+                            <span className={`status-badge ${user.isActive ? 'active' : 'inactive'}`}>
+                              {user.status}
+                            </span>
+                          </div>
+                          <div className="table-cell last-activity-cell">
+                            {user.lastActivity ? (
+                              <span className="last-activity-time">
+                                {new Date(user.lastActivity).toLocaleString()}
+                              </span>
+                            ) : (
+                              <span className="no-activity">No recent activity</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="no-users-message">No users found in current log entries.</p>
+                )}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={closeActiveUsersModal}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear Old Logs Confirmation Modal */}
+      {showClearLogsModal && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && cancelClearOldLogs()}>
+          <div className="modal-content clear-logs-modal">
+            <div className="modal-header">
+              <h3>⚠️ Clear Old Audit Logs</h3>
+              <button className="modal-close-btn" onClick={cancelClearOldLogs}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="warning-message">
+                <p><strong>⚠️ WARNING:</strong> This action will permanently delete all audit logs older than 6 months (180 days).</p>
+                <p>This action cannot be undone!</p>
+              </div>
+              <div className="confirmation-section">
+                <label htmlFor="confirm-text">Type <strong>"Confirm to delete Audit Log"</strong> to confirm:</label>
+                <input
+                  id="confirm-text"
+                  type="text"
+                  value={clearLogsConfirmText}
+                  onChange={(e) => setClearLogsConfirmText(e.target.value)}
+                  placeholder="Confirm to delete Audit Log"
+                  className="confirmation-input"
+                  disabled={isClearingLogs}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn btn-secondary" 
+                onClick={cancelClearOldLogs}
+                disabled={isClearingLogs}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-danger" 
+                onClick={confirmClearOldLogs}
+                disabled={clearLogsConfirmText !== 'Confirm to delete Audit Log' || isClearingLogs}
+              >
+                {isClearingLogs ? '🔄 Clearing...' : '🗑️ Clear Old Logs'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

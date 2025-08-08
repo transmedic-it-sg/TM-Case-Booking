@@ -15,7 +15,7 @@ import { useModal } from '../hooks/useModal';
 import { useToast } from './ToastContainer';
 import { useSound } from '../contexts/SoundContext';
 import PermissionMatrix from './PermissionMatrix';
-import './RoleManagement.css';
+import '../assets/components/RoleManagement.css';
 
 interface RoleManagementProps {
   onRoleUpdate?: (updatedRoles: Role[]) => void;
@@ -67,6 +67,9 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
       const updatedAllRoles = [...defaultRoles, ...roles];
       setAllRoles(updatedAllRoles);
       onRoleUpdate?.(updatedAllRoles);
+      
+      // Trigger a custom event to notify other components about role updates
+      window.dispatchEvent(new CustomEvent('rolesUpdated', { detail: updatedAllRoles }));
     } catch (error) {
       console.error('Error saving custom roles:', error);
       showError('Failed to save custom roles', 'Error');
@@ -137,8 +140,12 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
         deleteCustomRole(roleId);
         const updatedCustomRoles = customRoles.filter(r => r.id !== roleId);
         setCustomRoles(updatedCustomRoles);
-        setAllRoles([...defaultRoles, ...updatedCustomRoles]);
-        onRoleUpdate?.([...defaultRoles, ...updatedCustomRoles]);
+        const updatedAllRoles = [...defaultRoles, ...updatedCustomRoles];
+        setAllRoles(updatedAllRoles);
+        onRoleUpdate?.(updatedAllRoles);
+        
+        // Trigger a custom event to notify other components about role updates
+        window.dispatchEvent(new CustomEvent('rolesUpdated', { detail: updatedAllRoles }));
         
         playSound.delete();
         showSuccess('Role Deleted', `Role "${role.displayName}" has been removed successfully.`);

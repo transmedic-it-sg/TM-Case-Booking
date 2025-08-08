@@ -165,11 +165,11 @@ export const applyTemplateVariables = (template: string, caseData: CaseBooking, 
 };
 
 // Get recipient email addresses based on notification rule
-export const getRecipientEmails = (
+export const getRecipientEmails = async (
   recipients: EmailNotificationRule['recipients'], 
   caseData: CaseBooking
-): string[] => {
-  const users = getUsers();
+): Promise<string[]> => {
+  const users = await getUsers();
   const recipientEmails: string[] = [];
   
   console.log('🔍 Filtering recipients based on rules:');
@@ -447,6 +447,13 @@ export const validateNotificationRule = (rule: EmailNotificationRule): {
 // Check if email notifications are globally enabled for the application
 export const areEmailNotificationsEnabled = (): boolean => {
   try {
+    // Check from system settings first
+    const systemConfig = localStorage.getItem('emailNotificationsEnabled');
+    if (systemConfig !== null) {
+      return systemConfig === 'true';
+    }
+
+    // Fallback to old app-settings format
     const globalSettings = localStorage.getItem('app-settings');
     if (globalSettings) {
       const settings = JSON.parse(globalSettings);
@@ -497,8 +504,24 @@ export const sendCaseStatusNotification = async (
       }
     }
 
+    // Convert country code to full country name for email configuration lookup
+    const getFullCountryName = (countryCode: string): string => {
+      const countryMap: { [key: string]: string } = {
+        'SG': 'Singapore',
+        'MY': 'Malaysia', 
+        'PH': 'Philippines',
+        'ID': 'Indonesia',
+        'VN': 'Vietnam',
+        'HK': 'Hong Kong',
+        'TH': 'Thailand'
+      };
+      return countryMap[countryCode] || countryCode;
+    };
+
+    const fullCountryName = getFullCountryName(caseData.country);
+    
     // Get notification matrix for the case's country
-    const notificationMatrix = getNotificationMatrix(caseData.country);
+    const notificationMatrix = getNotificationMatrix(fullCountryName);
     if (!notificationMatrix) {
       console.warn('⚠️ No email notification matrix found for country:', caseData.country);
       console.warn('💡 Solution: Visit Email Configuration page to initialize notification rules');
@@ -548,7 +571,7 @@ export const sendCaseStatusNotification = async (
     // Get recipient email addresses
     console.log('🚨 CRITICAL DEBUG: About to call getRecipientEmails');
     console.log('📋 Status rule recipients config:', statusRule.recipients);
-    const recipientEmails = getRecipientEmails(statusRule.recipients, caseData);
+    const recipientEmails = await getRecipientEmails(statusRule.recipients, caseData);
     console.log('🚨 CRITICAL DEBUG: getRecipientEmails returned:', recipientEmails);
     
     if (recipientEmails.length === 0) {

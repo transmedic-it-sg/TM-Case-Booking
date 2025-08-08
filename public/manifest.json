@@ -1,0 +1,42 @@
+{
+  "name": "Transmedic Case Booking",
+  "short_name": "TM Cases",
+  "description": "Professional medical case management system for healthcare providers",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#20b2aa",
+  "background_color": "#ffffff",
+  "scope": "/",
+  "categories": ["medical", "healthcare", "productivity"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo512.png", 
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/logo512.png",
+      "type": "image/png", 
+      "sizes": "512x512",
+      "form_factor": "wide"
+    }
+  ]
+}

@@ -18,6 +18,7 @@ import {
 import SetsList from './SetsList';
 import CustomModal from '../CustomModal';
 import { useModal } from '../../hooks/useModal';
+import '../../assets/components/EditSetsMobile.css';
 
 const EditSets: React.FC<EditSetsProps> = () => {
   const { modal, closeModal, showConfirm } = useModal();
@@ -50,7 +51,23 @@ const EditSets: React.FC<EditSetsProps> = () => {
   const isAdmin = currentUser?.role === 'admin';
   
   // Use selected country for Admin, otherwise use user's country
-  const activeCountry = isAdmin && selectedCountry ? selectedCountry : userCountry;
+  const activeCountryName = isAdmin && selectedCountry ? selectedCountry : userCountry;
+  
+  // Convert country name to country code for database operations
+  const getCountryCode = (country: string) => {
+    const countryMap: { [key: string]: string } = {
+      'Singapore': 'SG',
+      'Malaysia': 'MY',
+      'Philippines': 'PH',
+      'Indonesia': 'ID',
+      'Vietnam': 'VN',
+      'Hong Kong': 'HK',
+      'Thailand': 'TH'
+    };
+    return countryMap[country] || 'SG';
+  };
+  
+  const activeCountry = getCountryCode(activeCountryName || 'Singapore');
 
   // Load countries from Global-Table and initialize selected country for Admin users
   useEffect(() => {
@@ -76,21 +93,55 @@ const EditSets: React.FC<EditSetsProps> = () => {
 
   // Initialize categorized sets on component mount
   useEffect(() => {
-    const storedSets = getCategorizedSets(activeCountry);
-    if (Object.keys(storedSets).length > 0) {
-      setCategorizedSets(storedSets);
-    } else {
-      const initialSets = initializeCategorizedSets();
-      setCategorizedSets(initialSets);
-      saveCategorizedSets(initialSets, activeCountry);
-    }
+    const loadSets = async () => {
+      const storedSets = await getCategorizedSets(activeCountry);
+      if (Object.keys(storedSets).length > 0) {
+        setCategorizedSets(storedSets);
+      } else {
+        const initialSets = initializeCategorizedSets();
+        setCategorizedSets(initialSets);
+        await saveCategorizedSets(initialSets, activeCountry);
+      }
+    };
+    loadSets();
   }, [activeCountry]);
 
-  // Save categorized sets to localStorage whenever they change
+  // Ensure selectedProcedureType exists in categorizedSets
   useEffect(() => {
-    if (Object.keys(categorizedSets).length > 0) {
-      saveCategorizedSets(categorizedSets, activeCountry);
+    if (selectedProcedureType && !categorizedSets[selectedProcedureType]) {
+      setCategorizedSets(prev => ({
+        ...prev,
+        [selectedProcedureType]: {
+          surgerySets: [],
+          implantBoxes: []
+        }
+      }));
     }
+  }, [selectedProcedureType, categorizedSets]);
+
+  // Save categorized sets to Supabase whenever they change (debounced)
+  useEffect(() => {
+    const saveChanges = async () => {
+      if (Object.keys(categorizedSets).length > 0) {
+        try {
+          await saveCategorizedSets(categorizedSets, activeCountry);
+          console.log('Categorized sets saved successfully to Supabase');
+        } catch (error) {
+          console.error('Error saving categorized sets:', error);
+        }
+      }
+    };
+    
+    // Debounce the save operation to prevent race conditions
+    const timeoutId = setTimeout(async () => {
+      try {
+        await saveChanges();
+      } finally {
+        // Save operation completed
+      }
+    }, 500); // Wait 500ms before saving
+    
+    return () => clearTimeout(timeoutId);
   }, [categorizedSets, activeCountry]);
 
   // Procedure Type Management Functions
@@ -200,8 +251,8 @@ const EditSets: React.FC<EditSetsProps> = () => {
     setCategorizedSets(prev => ({
       ...prev,
       [selectedProcedureType]: {
-        ...prev[selectedProcedureType],
-        surgerySets: [...prev[selectedProcedureType].surgerySets, trimmedName]
+        surgerySets: [...(prev[selectedProcedureType]?.surgerySets || []), trimmedName],
+        implantBoxes: prev[selectedProcedureType]?.implantBoxes || []
       }
     }));
     
@@ -231,8 +282,8 @@ const EditSets: React.FC<EditSetsProps> = () => {
     setCategorizedSets(prev => ({
       ...prev,
       [selectedProcedureType]: {
-        ...prev[selectedProcedureType],
-        implantBoxes: [...prev[selectedProcedureType].implantBoxes, trimmedName]
+        surgerySets: prev[selectedProcedureType]?.surgerySets || [],
+        implantBoxes: [...(prev[selectedProcedureType]?.implantBoxes || []), trimmedName]
       }
     }));
     
@@ -261,10 +312,10 @@ const EditSets: React.FC<EditSetsProps> = () => {
     setCategorizedSets(prev => ({
       ...prev,
       [selectedProcedureType]: {
-        ...prev[selectedProcedureType],
-        surgerySets: prev[selectedProcedureType].surgerySets.map(set => 
+        surgerySets: (prev[selectedProcedureType]?.surgerySets || []).map(set => 
           set === oldName ? trimmedName : set
-        )
+        ),
+        implantBoxes: prev[selectedProcedureType]?.implantBoxes || []
       }
     }));
     
@@ -293,8 +344,8 @@ const EditSets: React.FC<EditSetsProps> = () => {
     setCategorizedSets(prev => ({
       ...prev,
       [selectedProcedureType]: {
-        ...prev[selectedProcedureType],
-        implantBoxes: prev[selectedProcedureType].implantBoxes.map(box => 
+        surgerySets: prev[selectedProcedureType]?.surgerySets || [],
+        implantBoxes: (prev[selectedProcedureType]?.implantBoxes || []).map(box => 
           box === oldName ? trimmedName : box
         )
       }
@@ -313,8 +364,8 @@ const EditSets: React.FC<EditSetsProps> = () => {
       setCategorizedSets(prev => ({
         ...prev,
         [selectedProcedureType]: {
-          ...prev[selectedProcedureType],
-          surgerySets: prev[selectedProcedureType].surgerySets.filter(set => set !== name)
+          surgerySets: (prev[selectedProcedureType]?.surgerySets || []).filter(set => set !== name),
+          implantBoxes: prev[selectedProcedureType]?.implantBoxes || []
         }
       }));
       
@@ -330,8 +381,8 @@ const EditSets: React.FC<EditSetsProps> = () => {
       setCategorizedSets(prev => ({
         ...prev,
         [selectedProcedureType]: {
-          ...prev[selectedProcedureType],
-          implantBoxes: prev[selectedProcedureType].implantBoxes.filter(box => box !== name)
+          surgerySets: prev[selectedProcedureType]?.surgerySets || [],
+          implantBoxes: (prev[selectedProcedureType]?.implantBoxes || []).filter(box => box !== name)
         }
       }));
       
@@ -371,9 +422,18 @@ const EditSets: React.FC<EditSetsProps> = () => {
 
     setCategorizedSets(prev => {
       const newSets = { ...prev };
+      
+      // Ensure the procedure type exists
+      if (!newSets[selectedProcedureType]) {
+        newSets[selectedProcedureType] = {
+          surgerySets: [],
+          implantBoxes: []
+        };
+      }
+      
       const currentItems = type === 'surgery' 
-        ? [...newSets[selectedProcedureType].surgerySets]
-        : [...newSets[selectedProcedureType].implantBoxes];
+        ? [...(newSets[selectedProcedureType].surgerySets || [])]
+        : [...(newSets[selectedProcedureType].implantBoxes || [])];
 
       const reorderedItems = reorderItems(currentItems, dragIndex, dropIndex);
 
@@ -413,6 +473,15 @@ const EditSets: React.FC<EditSetsProps> = () => {
 
     setCategorizedSets(prev => {
       const newSets = { ...prev };
+      
+      // Ensure the procedure type exists
+      if (!newSets[selectedProcedureType]) {
+        newSets[selectedProcedureType] = {
+          surgerySets: [],
+          implantBoxes: []
+        };
+      }
+      
       // Use simple swap for up/down moves
       const reorderedItems = swapItems(currentArray, index, newIndex);
 
@@ -447,7 +516,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
             </div>
           )}
         </div>
-        <p>Manage available surgery sets and implant boxes for case bookings, organized by procedure type
+        <p>Manage available surgery sets and implant boxes for case bookings, organised by procedure type
           <span> • <strong>Country: {activeCountry}</strong></span>
         </p>
       </div>

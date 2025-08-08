@@ -1,66 +1,54 @@
-# Medical Case Booking System
+# Transmedic Case Booking System
 
-A comprehensive web application for managing medical case bookings with hospital/medical background themes and user access control.
+## Version 1.2.4
 
-## Features
+A comprehensive React-based case booking application for medical procedures with advanced role-based access control, workflow management, and Supabase integration.
 
-### 🔐 Authentication System
-- Secure login system with user access matrix
-- Default admin account (Username: `Admin`, Password: `Admin`)
-- Role-based access control (Admin and User roles)
+## 🚀 Features
 
-### 📋 Case Management
-- **Case Booking Form** with required and optional fields:
-  - Hospital (Required)
-  - Department (Required)
-  - Date of Surgery (Required)
-  - Procedure Type/Name (Required)
-  - Time of Procedure (Optional)
-  - Surgery Set Selection - Multi-select dropdown (Required)
-  - Implant Box - Multi-select dropdown (Required)
-  - Special Instructions (Optional)
+### Core Functionality
+- **Case Management**: Create, view, and manage medical case bookings
+- **Amendment System**: Configurable amendment policies with detailed history tracking
+- **Status Workflow**: Complete medical procedure workflow from booking to billing
+- **Role-Based Access**: Granular permissions for different user roles
+- **Multi-Country Support**: Singapore, Malaysia, Philippines, Indonesia, Vietnam, Hong Kong, Thailand
 
-### 📊 Status Workflow
-- **Booking of case** - Initial status upon creation
-- **Pending Preparation** - After case submission
-- **Order Prepared** - After processing
-- **Order delivered (Hospital)** - Delivered to hospital
-- **Case Completed** - Case finished
-- **Order delivered (Return)** - Equipment returned
-- **Case Cancelled** - Optional cancellation status
+### Latest Features (v1.2.4)
+- **🗄️ Complete Database Schema Rebuild**: Brand new table structures with proper relationships
+- **🔧 Enhanced User Management**: Enlarged edit modals, standardized confirmation popups
+- **🎨 Advanced Filters Redesign**: Grid layout, fixed emoji overlapping issues
+- **🔐 Improved Authentication**: New profiles table with proper permission matrix
+- **⚡ Resolved Database Connectivity**: Fixed all 400 errors and infinite loops
+- **📱 Better User Experience**: ESC key support, click-outside-to-close modals
 
-### 🎯 Core Functionality
-- **Case Submission**: Automatically changes status to "Pending Preparation" with submitter name
-- **Process Order**: Dedicated page for detailed order processing
-- **Cases List**: View all cases with advanced filtering options
-- **User Management**: Admin can create and manage user accounts
+## 🏗️ Architecture
 
-### 🔍 Advanced Filtering
-- Filter by submitter name
-- Filter by hospital
-- Filter by status
-- Date range filtering
-- Real-time filter application
-
-## Technology Stack
-
+### Technology Stack
 - **Frontend**: React 18 with TypeScript
-- **Styling**: Custom CSS with medical/hospital theme
-- **State Management**: React hooks and local storage
-- **Data Persistence**: Browser localStorage
-- **Icons**: Lucide React icons
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Deployment**: Vercel
+- **Styling**: CSS3 with responsive design
 
-## Installation & Setup
+### Key Components
+- **Amendment System**: Configurable time limits and maximum amendments per case
+- **Status Transitions**: Complete workflow from case booking to billing
+- **User Management**: Role-based access with department and country assignments
+- **Audit System**: Comprehensive logging of all user actions
+- **Notification System**: Real-time notifications for workflow changes
+
+## 🛠️ Installation
 
 ### Prerequisites
-- Node.js (version 16 or higher)
-- npm or yarn package manager
+- Node.js 16+ 
+- npm or yarn
+- Supabase account
 
-### Installation Steps
-
-1. **Clone or download the project**
+### Setup
+1. **Clone the repository**
    ```bash
-   cd case-booking-app
+   git clone https://github.com/Mika-Nim/TM-Case-Booking.git
+   cd TM-Case-Booking
    ```
 
 2. **Install dependencies**
@@ -68,116 +56,194 @@ A comprehensive web application for managing medical case bookings with hospital
    npm install
    ```
 
-3. **Start the development server**
+3. **Environment Configuration**
+   ```bash
+   cp .env.example .env
+   # Configure your Supabase credentials
+   ```
+
+4. **Database Setup**
+   - Execute SQL migrations in your Supabase dashboard
+   - See `PRODUCTION_MIGRATION_v1.2.3.sql` for latest schema
+
+5. **Start Development Server**
    ```bash
    npm start
    ```
 
-4. **Access the application**
-   - Open your browser and go to `http://localhost:3000`
-   - Use default admin credentials:
-     - Username: `Admin`
-     - Password: `Admin`
+## 🎯 User Roles & Permissions
 
-## Usage Guide
+### Role Hierarchy
+- **Admin**: Full system access, user management
+- **IT**: System management, all status transitions, user administration
+- **Operations/Operations Manager**: Order processing, hospital delivery management
+- **Sales/Sales Manager**: Case completion, office delivery, billing
+- **Driver**: Hospital delivery confirmation with image uploads
 
-### Getting Started
-1. **Login**: Use the default admin credentials or create additional users
-2. **Create Case**: Fill out the case booking form with all required information
-3. **Submit**: Click "Submit Case Booking" to create the case
-4. **View Cases**: Navigate to "View All Cases" to see all submitted cases
-5. **Process Orders**: Click "Process Order" on any case to add processing details
+### Status Workflow
+```
+Case Booked → Order Preparation → Order Prepared → 
+Pending Delivery (Hospital) → Delivered (Hospital) → 
+Case Completed → Pending Delivery (Office) → 
+Delivered (Office) → To be Billed → Case Closed
+```
 
-### User Roles
+## 📋 System Configuration
 
-#### Admin Users Can:
-- Create and manage user accounts
-- View all cases from all users
-- Process any case
-- Change case statuses
-- Access user management features
+### Amendment Settings (v1.2.3)
+- **Amendment Time Limit**: Configurable hours (1-168) after case creation
+- **Maximum Amendments**: Configurable limit (1-20) per case
+- **Change Tracking**: Detailed before/after value recording
+- **History Display**: Professional interface with color-coded changes
 
-#### Regular Users Can:
-- Create new case bookings
-- View cases they submitted
-- Process orders assigned to them
-- Limited status change permissions
+### Global Tables Management
+- **Countries**: Global country list management
+- **Departments**: Medical departments by country
+- **Procedure Types**: Customizable procedure classifications
+- **Code Tables**: System reference data management
 
-### Case Status Flow
-1. **Booking of case** → Case is initially created
-2. **Pending Preparation** → Case is submitted and awaiting preparation
-3. **Order Prepared** → Case has been processed and is ready
-4. **Order delivered (Hospital)** → Equipment delivered to hospital
-5. **Case Completed** → Surgery completed successfully
-6. **Order delivered (Return)** → Equipment returned from hospital
-7. **Case Cancelled** → Case cancelled (optional status)
+## 🔧 Development
 
-## Available Scripts
+### Build Commands
+```bash
+npm start          # Development server
+npm run build      # Production build
+npm run typecheck  # TypeScript validation
+npm test          # Run tests
+```
 
-- `npm start` - Runs the app in development mode
-- `npm build` - Builds the app for production
-- `npm test` - Launches the test runner
-- `npm eject` - Ejects from Create React App (irreversible)
+### Code Quality
+- TypeScript strict mode enabled
+- ESLint configuration
+- Component documentation
+- Comprehensive error handling
 
-## Data Storage
+## 📊 Database Schema
 
-The application uses browser localStorage for data persistence:
-- User accounts and credentials
-- Case booking data
+### Core Tables
+- `case_bookings`: Medical case information and workflow status
+- `amendment_history`: Detailed change tracking with timestamps
+- `status_history`: Complete status transition audit trail
+- `system_settings`: Configurable application settings
+- `audit_logs`: Comprehensive user action logging
+
+### Key Features
+- Row Level Security (RLS) policies
+- Real-time subscriptions
+- Automatic timestamp tracking
+- Foreign key relationships
+- Data validation constraints
+
+## 🚀 Deployment
+
+### Production Deployment
+The application is deployed on Vercel:
+- **Production URL**: [https://tm-case-booking-e7fne164f-an-rong-lows-projects.vercel.app](https://tm-case-booking-e7fne164f-an-rong-lows-projects.vercel.app)
+- **Automatic deployments** from Production branch
+- **Environment variables** configured in Vercel dashboard
+
+### Branch Structure
+- `main`: Stable release branch
+- `Production`: Production deployment branch  
+- `Version-1.2.4`: Current version branch
+- `UAT`: User acceptance testing branch
+
+## 📝 Changelog
+
+### Version 1.2.4 (Latest)
+#### 🗄️ Database Improvements
+- **Complete Database Schema Rebuild**: New tables with proper structure (profiles, permissions, code_tables, case_bookings, status_history, amendment_history, notifications)
+- **Fixed Supabase Connectivity**: Resolved all 400 errors and infinite loops
+- **Enhanced Authentication**: New profiles table with role-based permissions
+- **Improved RLS Policies**: Proper row-level security implementation
+- **Schema Standardization**: Consistent data types and relationships
+
+#### 🎨 User Interface Enhancements
+- **Enlarged Edit User Modal**: Increased from 900px to 1200px width, 95vh height
+- **Standardized Confirmation Popups**: Professional modals for Delete/Disable/Enable user actions
+- **Fixed Advanced Filters**: Resolved emoji overlapping with placeholder text
+- **Grid Layout Filters**: Changed from column to responsive grid layout
+- **Enhanced Modal Interactions**: ESC key and click-outside-to-close functionality
+
+#### 🐛 Bug Fixes
+- **Department Display Issue**: Fixed inconsistency between user display and edit forms
+- **TypeScript Compilation**: Resolved all compilation warnings and errors
+- **React Hook Dependencies**: Fixed useEffect dependency issues
+- **Permission Service**: Updated for new database schema
+- **Case Service**: Fixed schema mismatches and data transformation
+
+#### 🧹 Code Quality Improvements
+- **File Cleanup**: Removed unnecessary SQL files and documentation
+- **Import Optimization**: Cleaned up unused imports and variables
+- **Error Handling**: Improved fallback mechanisms and error reporting
+- **Code Organization**: Better structure and component separation
+
+### Version 1.2.3
+- **Enhancement**: Amendment time configuration in System Settings
+- **Enhancement**: Professional amendment history display with change tracking
+- **Fix**: IT role permissions for all status transitions
+- **Fix**: Toggle switch styling issues
+- **Enhancement**: Simplified Global Tables interface
+- **Database**: Added amendment configuration fields
+- **Security**: Fixed audit logs RLS policies
+
+### Previous Versions
+See version control history for complete changelog.
+
+## 🛡️ Security
+
+### Authentication
+- Supabase Auth integration
+- Role-based access control
 - Session management
-- Application state
+- Password complexity requirements
 
-**Note**: Data is stored locally in the browser and will persist between sessions but won't be shared across different browsers or devices.
+### Data Protection
+- Row Level Security policies
+- Audit trail for all changes
+- Secure API endpoints
+- Environment variable protection
 
-## Customization
+## 📞 Support
 
-### Adding New Surgery Sets or Implant Options
-Edit the arrays in `src/components/CaseBookingForm.tsx`:
-```typescript
-const surgerySetOptions = [
-  'Basic Surgery Set',
-  'Orthopedic Set',
-  // Add new options here
-];
+### Development Team
+- **Repository**: [https://github.com/Mika-Nim/TM-Case-Booking](https://github.com/Mika-Nim/TM-Case-Booking)
+- **Issues**: GitHub Issues for bug reports
+- **Documentation**: Comprehensive inline documentation
 
-const implantBoxOptions = [
-  'Hip Implants',
-  'Knee Implants',
-  // Add new options here
-];
-```
+### System Requirements
+- **Browser**: Modern browsers (Chrome 90+, Firefox 88+, Safari 14+)
+- **Database**: Supabase PostgreSQL
+- **Authentication**: Supabase Auth
+- **File Storage**: Supabase Storage for attachments
 
-### Modifying Case Statuses
-Update the `CaseStatus` type in `src/types/index.ts`:
-```typescript
-export type CaseStatus = 
-  | 'Booking of case'
-  | 'Pending Preparation'
-  // Add new statuses here
-```
+## 📈 Performance
 
-### Styling Customization
-The medical/hospital theme can be customized in `src/App.css`. The design features:
-- Medical gradient backgrounds
-- Professional color scheme
-- Hospital-inspired icons and layouts
-- Responsive design for all devices
+### Optimization Features
+- React.memo for component optimization
+- useMemo for expensive calculations
+- Lazy loading for large datasets
+- Optimized bundle size (~214KB gzipped)
+- CDN deployment via Vercel
 
-## Browser Compatibility
+### Monitoring
+- Real-time error tracking
+- Performance metrics
+- User action analytics
+- Database query optimization
 
-- Chrome (recommended)
-- Firefox
-- Safari
-- Edge
+## 🎯 Future Roadmap
 
-## Support
+### Planned Features
+- Mobile application support
+- Advanced reporting dashboard
+- Integration with hospital systems
+- Automated workflow notifications
+- Multi-language support
 
-For issues or questions:
-1. Check the browser console for error messages
-2. Ensure all required fields are filled when submitting forms
-3. Verify login credentials are correct
-4. Clear browser cache if experiencing data issues
+---
 
-## License
-
-This project is for educational and demonstration purposes.
+**Version**: 1.2.4  
+**Last Updated**: 2025-01-30  
+**Deployment**: Production Ready  
+**License**: Proprietary

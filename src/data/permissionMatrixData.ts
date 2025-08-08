@@ -6,7 +6,7 @@ export const roles: Role[] = [
     id: 'admin',
     name: 'admin',
     displayName: 'Admin',
-    description: 'Full system access',
+    description: 'Full system access - has all permissions by default',
     color: '#e74c3c'
   },
   {
@@ -53,6 +53,9 @@ export const roles: Role[] = [
   }
 ];
 
+// Roles for matrix display (excluding Admin since Admin has all permissions)
+export const matrixRoles: Role[] = roles.filter(role => role.id !== 'admin');
+
 // Define all permission actions
 export const permissionActions: PermissionAction[] = [
   // Case Management
@@ -72,6 +75,12 @@ export const permissionActions: PermissionAction[] = [
     id: 'amend-case',
     name: 'Amend Case',
     description: 'Modify existing case booking details including procedures, dates, special instructions, and requirements. Changes are tracked with user attribution and audit trail.',
+    category: 'Case Management'
+  },
+  {
+    id: 'update-case-status',
+    name: 'Update Case Status',
+    description: 'Change case status through workflow transitions. Track status history and maintain audit trails for all status changes.',
     category: 'Case Management'
   },
   {
@@ -189,6 +198,12 @@ export const permissionActions: PermissionAction[] = [
     category: 'User Management'
   },
   {
+    id: 'reset-password',
+    name: 'Reset Password',
+    description: 'Reset user passwords with temporary passwords. Users will be required to change temporary passwords on next login.',
+    category: 'User Management'
+  },
+  {
     id: 'delete-user',
     name: 'Delete User',
     description: 'Remove users from the system',
@@ -250,6 +265,12 @@ export const permissionActions: PermissionAction[] = [
     description: 'View system audit trail and logs',
     category: 'System Settings'
   },
+  {
+    id: 'permission-matrix',
+    name: 'Permission Matrix',
+    description: 'Manage user permissions and role assignments',
+    category: 'System Settings'
+  },
   
   // File Operations
   {
@@ -280,6 +301,7 @@ export const permissions: Permission[] = [
   { actionId: 'create-case', roleId: 'admin', allowed: true },
   { actionId: 'view-cases', roleId: 'admin', allowed: true },
   { actionId: 'amend-case', roleId: 'admin', allowed: true },
+  { actionId: 'update-case-status', roleId: 'admin', allowed: true },
   { actionId: 'delete-case', roleId: 'admin', allowed: true },
   { actionId: 'edit-sets', roleId: 'admin', allowed: true },
   { actionId: 'booking-calendar', roleId: 'admin', allowed: true },
@@ -298,6 +320,7 @@ export const permissions: Permission[] = [
   { actionId: 'create-user', roleId: 'admin', allowed: true },
   { actionId: 'edit-user', roleId: 'admin', allowed: true },
   { actionId: 'edit-countries', roleId: 'admin', allowed: true },
+  { actionId: 'reset-password', roleId: 'admin', allowed: true },
   { actionId: 'delete-user', roleId: 'admin', allowed: true },
   { actionId: 'view-users', roleId: 'admin', allowed: true },
   { actionId: 'enable-disable-user', roleId: 'admin', allowed: true },
@@ -311,11 +334,14 @@ export const permissions: Permission[] = [
   { actionId: 'download-files', roleId: 'admin', allowed: true },
   { actionId: 'delete-files', roleId: 'admin', allowed: true },
   { actionId: 'cancel-case', roleId: 'admin', allowed: true },
+  { actionId: 'permission-matrix', roleId: 'admin', allowed: true },
   
   // Operations - Order processing and case management
   { actionId: 'create-case', roleId: 'operations', allowed: true },
   { actionId: 'view-cases', roleId: 'operations', allowed: true },
   { actionId: 'amend-case', roleId: 'operations', allowed: true },
+  { actionId: 'update-case-status', roleId: 'operations', allowed: true },
+  { actionId: 'booking-calendar', roleId: 'operations', allowed: true },
   { actionId: 'process-order', roleId: 'operations', allowed: true },
   { actionId: 'order-processed', roleId: 'operations', allowed: true },
   { actionId: 'pending-delivery-hospital', roleId: 'operations', allowed: true },
@@ -327,6 +353,7 @@ export const permissions: Permission[] = [
   { actionId: 'create-case', roleId: 'operations-manager', allowed: true },
   { actionId: 'view-cases', roleId: 'operations-manager', allowed: true },
   { actionId: 'amend-case', roleId: 'operations-manager', allowed: true },
+  { actionId: 'update-case-status', roleId: 'operations-manager', allowed: true },
   { actionId: 'delete-case', roleId: 'operations-manager', allowed: true },
   { actionId: 'edit-sets', roleId: 'operations-manager', allowed: true },
   { actionId: 'booking-calendar', roleId: 'operations-manager', allowed: true },
@@ -343,6 +370,7 @@ export const permissions: Permission[] = [
   { actionId: 'create-case', roleId: 'sales', allowed: true },
   { actionId: 'view-cases', roleId: 'sales', allowed: true },
   { actionId: 'amend-case', roleId: 'sales', allowed: true },
+  { actionId: 'update-case-status', roleId: 'sales', allowed: true },
   { actionId: 'booking-calendar', roleId: 'sales', allowed: true },
   { actionId: 'case-completed', roleId: 'sales', allowed: true },
   { actionId: 'pending-delivery-office', roleId: 'sales', allowed: true },
@@ -357,6 +385,7 @@ export const permissions: Permission[] = [
   { actionId: 'create-case', roleId: 'sales-manager', allowed: true },
   { actionId: 'view-cases', roleId: 'sales-manager', allowed: true },
   { actionId: 'amend-case', roleId: 'sales-manager', allowed: true },
+  { actionId: 'update-case-status', roleId: 'sales-manager', allowed: true },
   { actionId: 'booking-calendar', roleId: 'sales-manager', allowed: true },
   { actionId: 'case-completed', roleId: 'sales-manager', allowed: true },
   { actionId: 'pending-delivery-office', roleId: 'sales-manager', allowed: true },
@@ -370,6 +399,8 @@ export const permissions: Permission[] = [
   
   // Driver - Delivery operations only
   { actionId: 'view-cases', roleId: 'driver', allowed: true },
+  { actionId: 'update-case-status', roleId: 'driver', allowed: true },
+  { actionId: 'booking-calendar', roleId: 'driver', allowed: true },
   { actionId: 'pending-delivery-hospital', roleId: 'driver', allowed: true },
   { actionId: 'delivered-hospital', roleId: 'driver', allowed: true },
   { actionId: 'pending-delivery-office', roleId: 'driver', allowed: true },
@@ -379,13 +410,26 @@ export const permissions: Permission[] = [
   { actionId: 'upload-files', roleId: 'driver', allowed: true },
   { actionId: 'download-files', roleId: 'driver', allowed: true },
   
-  // IT - System management and technical support + user management
+  // IT - System management and technical support + user management + status transitions
   { actionId: 'view-cases', roleId: 'it', allowed: true },
+  { actionId: 'create-case', roleId: 'it', allowed: true },
+  { actionId: 'amend-case', roleId: 'it', allowed: true },
+  { actionId: 'update-case-status', roleId: 'it', allowed: true },
   { actionId: 'edit-sets', roleId: 'it', allowed: true },
+  { actionId: 'process-order', roleId: 'it', allowed: true },
+  { actionId: 'order-processed', roleId: 'it', allowed: true },
+  { actionId: 'pending-delivery-hospital', roleId: 'it', allowed: true },
+  { actionId: 'delivered-hospital', roleId: 'it', allowed: true },
+  { actionId: 'case-completed', roleId: 'it', allowed: true },
+  { actionId: 'pending-delivery-office', roleId: 'it', allowed: true },
+  { actionId: 'delivered-office', roleId: 'it', allowed: true },
+  { actionId: 'to-be-billed', roleId: 'it', allowed: true },
+  { actionId: 'case-closed', roleId: 'it', allowed: true },
   { actionId: 'view-users', roleId: 'it', allowed: true },
   { actionId: 'create-user', roleId: 'it', allowed: true },
   { actionId: 'edit-user', roleId: 'it', allowed: true },
-  { actionId: 'edit-countries', roleId: 'it', allowed: true },
+  { actionId: 'edit-countries', roleId: 'it', allowed: false },
+  { actionId: 'reset-password', roleId: 'it', allowed: true },
   { actionId: 'delete-user', roleId: 'it', allowed: true },
   { actionId: 'enable-disable-user', roleId: 'it', allowed: true },
   { actionId: 'system-settings', roleId: 'it', allowed: true },
@@ -414,6 +458,12 @@ export const getAllRoles = (): Role[] => {
     console.error('Error loading custom roles:', error);
   }
   return roles;
+};
+
+// Get all roles for matrix display (excluding admin, including custom)
+export const getAllMatrixRoles = (): Role[] => {
+  const allRoles = getAllRoles();
+  return allRoles.filter(role => role.id !== 'admin');
 };
 
 // Get all permissions including custom role permissions

@@ -82,16 +82,8 @@ export const useCaseActions = (caseItem: CaseBooking) => {
 
   const amendCase = useCallback(async (amendmentData: any) => {
     try {
-      const updatedCase = {
-        ...caseItem,
-        ...amendmentData,
-        isAmended: true,
-        amendedBy: user?.name || 'Unknown',
-        amendedAt: new Date().toISOString()
-      };
-
-      const saveResult = caseService.saveCase(updatedCase);
-      if (saveResult) {
+      const amendResult = await caseService.amendCase(caseItem.id, amendmentData);
+      if (amendResult) {
         success('Case Amended', `Case ${caseItem.caseReferenceNumber} has been amended`);
         return true;
       } else {
@@ -102,7 +94,7 @@ export const useCaseActions = (caseItem: CaseBooking) => {
       error('Amendment Error', 'An error occurred while amending the case');
       return false;
     }
-  }, [caseItem, user, success, error]);
+  }, [caseItem.id, caseItem.caseReferenceNumber, success, error]);
 
   return {
     processOrder,
