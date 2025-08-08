@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "name": "prod-case-booking",
-  "alias": ["prod-case-booking.vercel.app"],
+  "name": "tm-case-booking",
+  "alias": ["tm-case-booking.vercel.app"],
   "build": {
     "env": {
       "CI": "",
