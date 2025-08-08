@@ -26,6 +26,20 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   onNavigate,
   onLogout
 }) => {
+  const closeMenu = () => {
+    const checkbox = document.getElementById('mobile-menu-toggle') as HTMLInputElement;
+    if (checkbox) checkbox.checked = false;
+  };
+
+  const handleMenuNavigate = (page: ActivePage) => {
+    onNavigate(page);
+    closeMenu();
+  };
+
+  const handleLogout = () => {
+    onLogout();
+    closeMenu();
+  };
   // Primary navigation items (bottom bar)
   const primaryNavItems: NavItem[] = [
     {
@@ -85,9 +99,16 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           {/* More/Menu button for additional features */}
           <div className="mobile-nav-more">
             <input type="checkbox" id="mobile-menu-toggle" className="mobile-menu-toggle" />
-            <label htmlFor="mobile-menu-toggle" className="mobile-nav-item">
+            <label htmlFor="mobile-menu-toggle" className="mobile-nav-item mobile-more-btn">
               <span className="mobile-nav-icon">⋯</span>
               <span className="mobile-nav-label">More</span>
+              <div className="mobile-user-preview">
+                <span className="mobile-user-preview-name">{user.name}</span>
+                <span className="mobile-user-preview-role">{user.role.toUpperCase()}</span>
+                {user.selectedCountry && (
+                  <span className="mobile-user-preview-country">📍 {user.selectedCountry}</span>
+                )}
+              </div>
             </label>
             
             {/* Expandable menu */}
@@ -112,7 +133,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   <h3>Tools</h3>
                   {hasPermission(user.role, PERMISSION_ACTIONS.EDIT_SETS) && (
                     <button
-                      onClick={() => onNavigate('sets')}
+                      onClick={() => handleMenuNavigate('sets')}
                       className={`mobile-menu-item ${activePage === 'sets' ? 'active' : ''}`}
                     >
                       <span className="mobile-menu-icon">⚙️</span>
@@ -128,7 +149,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                     <h3>Administration</h3>
                     {hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) && (
                       <button
-                        onClick={() => onNavigate('system-settings')}
+                        onClick={() => handleMenuNavigate('system-settings')}
                         className={`mobile-menu-item ${activePage === 'system-settings' ? 'active' : ''}`}
                       >
                         <span className="mobile-menu-icon">⚙️</span>
@@ -137,7 +158,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                     )}
                     {hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) && (
                       <button
-                        onClick={() => onNavigate('users')}
+                        onClick={() => handleMenuNavigate('users')}
                         className={`mobile-menu-item ${activePage === 'users' ? 'active' : ''}`}
                       >
                         <span className="mobile-menu-icon">👥</span>
@@ -146,7 +167,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                     )}
                     {hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) && (
                       <button
-                        onClick={() => onNavigate('codetables')}
+                        onClick={() => handleMenuNavigate('codetables')}
                         className={`mobile-menu-item ${activePage === 'codetables' ? 'active' : ''}`}
                       >
                         <span className="mobile-menu-icon">📊</span>
@@ -155,7 +176,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                     )}
                     {hasPermission(user.role, PERMISSION_ACTIONS.PERMISSION_MATRIX) && (
                       <button
-                        onClick={() => onNavigate('permissions')}
+                        onClick={() => handleMenuNavigate('permissions')}
                         className={`mobile-menu-item ${activePage === 'permissions' ? 'active' : ''}`}
                       >
                         <span className="mobile-menu-icon">🔐</span>
@@ -164,7 +185,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                     )}
                     {hasPermission(user.role, PERMISSION_ACTIONS.EMAIL_CONFIG) && (
                       <button
-                        onClick={() => onNavigate('email-config')}
+                        onClick={() => handleMenuNavigate('email-config')}
                         className={`mobile-menu-item ${activePage === 'email-config' ? 'active' : ''}`}
                       >
                         <span className="mobile-menu-icon">📧</span>
@@ -173,7 +194,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                     )}
                     {hasPermission(user.role, PERMISSION_ACTIONS.AUDIT_LOGS) && (
                       <button
-                        onClick={() => onNavigate('audit-logs')}
+                        onClick={() => handleMenuNavigate('audit-logs')}
                         className={`mobile-menu-item ${activePage === 'audit-logs' ? 'active' : ''}`}
                       >
                         <span className="mobile-menu-icon">📊</span>
@@ -182,7 +203,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                     )}
                     {hasPermission(user.role, PERMISSION_ACTIONS.BACKUP_RESTORE) && (
                       <button
-                        onClick={() => onNavigate('backup-restore')}
+                        onClick={() => handleMenuNavigate('backup-restore')}
                         className={`mobile-menu-item ${activePage === 'backup-restore' ? 'active' : ''}`}
                       >
                         <span className="mobile-menu-icon">💾</span>
@@ -191,7 +212,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                     )}
                     {hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) && (
                       <button
-                        onClick={() => onNavigate('data-import')}
+                        onClick={() => handleMenuNavigate('data-import')}
                         className={`mobile-menu-item ${activePage === 'data-import' ? 'active' : ''}`}
                       >
                         <span className="mobile-menu-icon">📥</span>
@@ -202,7 +223,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 )}
 
                 <div className="mobile-menu-section">
-                  <button onClick={onLogout} className="mobile-logout-btn">
+                  <button onClick={handleLogout} className="mobile-logout-btn">
                     <span className="mobile-menu-icon">🚪</span>
                     Logout
                   </button>
