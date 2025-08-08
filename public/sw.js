@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tm-case-booking-v1.2.5';
+const CACHE_NAME = 'tm-case-booking-v1.2.5-mobile';
 const urlsToCache = [
   '/',
   '/manifest.json',
