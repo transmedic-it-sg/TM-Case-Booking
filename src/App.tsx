@@ -30,11 +30,15 @@ import { ToastProvider, useToast } from './components/ToastContainer';
 import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
 import StatusLegend from './components/StatusLegend';
+import MobileNavigation from './components/MobileNavigation';
+import MobileHeader from './components/MobileHeader';
 // import { SystemHealthMonitor } from './utils/systemHealthMonitor'; // Temporarily disabled
 // import { DataValidationService } from './utils/dataValidationService'; // Unused
 import './assets/components/App.css';
 import './assets/components/CodeTableSetup.css';
 import './assets/components/AuditLogs.css';
+import './assets/components/MobileNavigation.css';
+import './assets/components/MobileHeader.css';
 
 type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config' | 'backup-restore' | 'data-import' | 'system-settings';
 
@@ -208,7 +212,8 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="app">
-      <header className="app-header">
+      {/* Desktop Header */}
+      <header className="app-header desktop-header">
         <div className="header-content">
           <div className="header-left">
             <h1>
@@ -362,6 +367,9 @@ const AppContent: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* Mobile Header */}
+      <MobileHeader user={user} onLogout={handleLogout} />
 
       <nav className="app-nav">
         <div className="nav-buttons">
@@ -533,6 +541,17 @@ const AppContent: React.FC = () => {
         onConfirm={confirmLogout}
         onCancel={cancelLogout}
         userName={user?.name}
+      />
+
+      {/* Mobile Navigation */}
+      <MobileNavigation
+        user={user}
+        activePage={activePage}
+        onNavigate={(page) => {
+          setActivePage(page);
+          playSound.click();
+        }}
+        onLogout={handleLogout}
       />
     </div>
   );

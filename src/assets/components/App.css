@@ -278,6 +278,13 @@ body {
   flex-direction: column;
 }
 
+/* Desktop/Mobile Header Toggle */
+@media screen and (max-width: 768px) {
+  .desktop-header {
+    display: none !important;
+  }
+}
+
 /* Header Styles - Airbnb-inspired */
 .app-header {
   background: var(--white);

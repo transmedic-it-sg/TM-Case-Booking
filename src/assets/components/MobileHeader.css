@@ -1,0 +1,164 @@
+/* Mobile Header Styles */
+.mobile-header {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background: var(--white);
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: var(--shadow-light);
+  display: none;
+}
+
+.mobile-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  max-width: 100%;
+  margin: 0 auto;
+  min-height: 60px;
+}
+
+.mobile-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-db-indicator {
+  flex-shrink: 0;
+}
+
+.mobile-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mobile-header-title h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-country-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--background-light);
+  padding: 2px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+
+.mobile-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mobile-logout-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--danger-color);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-logout-btn:hover,
+.mobile-logout-btn:focus {
+  background: #ffeaea;
+  outline: none;
+}
+
+.mobile-logout-btn:active {
+  transform: scale(0.95);
+}
+
+/* Show mobile header on small screens */
+@media screen and (max-width: 768px) {
+  .mobile-header {
+    display: block;
+  }
+  
+  /* Hide the regular desktop header elements */
+  .app-header .header-info,
+  .app-header .logged-in-info {
+    display: none;
+  }
+  
+  .app-header .header-left h1 {
+    font-size: 16px;
+  }
+  
+  .app-header .header-actions {
+    gap: 4px;
+  }
+  
+  .app-header .logout-button {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+/* Compact mobile header for very small screens */
+@media screen and (max-width: 480px) {
+  .mobile-header-content {
+    padding: 10px 12px;
+    min-height: 56px;
+  }
+  
+  .mobile-header-title h1 {
+    font-size: 16px;
+  }
+  
+  .mobile-country-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+  
+  .mobile-header-right {
+    gap: 6px;
+  }
+  
+  .mobile-logout-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+}
+
+/* Safe area handling */
+@supports (padding: max(0px)) {
+  .mobile-header-content {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+}
+
+/* Focus styles for accessibility */
+.mobile-logout-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
