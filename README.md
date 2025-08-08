@@ -1,8 +1,8 @@
 # Transmedic Case Booking System
 
-## Version 1.2.4
+## Version 1.2.5
 
-A comprehensive React-based case booking application for medical procedures with advanced role-based access control, workflow management, and Supabase integration.
+A comprehensive React-based case booking application for medical procedures with advanced role-based access control, workflow management, and professional mobile experience.
 
 ## 🚀 Features
 
@@ -13,22 +13,25 @@ A comprehensive React-based case booking application for medical procedures with
 - **Role-Based Access**: Granular permissions for different user roles
 - **Multi-Country Support**: Singapore, Malaysia, Philippines, Indonesia, Vietnam, Hong Kong, Thailand
 
-### Latest Features (v1.2.4)
-- **🗄️ Complete Database Schema Rebuild**: Brand new table structures with proper relationships
-- **🔧 Enhanced User Management**: Enlarged edit modals, standardized confirmation popups
-- **🎨 Advanced Filters Redesign**: Grid layout, fixed emoji overlapping issues
-- **🔐 Improved Authentication**: New profiles table with proper permission matrix
-- **⚡ Resolved Database Connectivity**: Fixed all 400 errors and infinite loops
-- **📱 Better User Experience**: ESC key support, click-outside-to-close modals
+### Latest Features (v1.2.5)
+- **📱 Complete Mobile UI Overhaul**: Professional native app experience with mobile-first design
+- **🚀 Mobile Entry Page**: Smooth transition welcome screen for mobile users
+- **🧭 Mobile Navigation**: Bottom tab bar with native app-like UX
+- **🔧 Horizontal Pagination**: Mobile-optimized pagination controls that don't wrap
+- **📝 Modern Checkbox Design**: Replaced dropdown-style with reference design checkboxes
+- **🎯 Mobile Text Standardization**: Consistent sizing with status positioned top-right
+- **🗂️ Amendment History Fix**: Resolved data population issues from Supabase
+- **⚡ Mobile Performance**: Optimized CSS and component architecture for mobile devices
 
 ## 🏗️ Architecture
 
 ### Technology Stack
 - **Frontend**: React 18 with TypeScript
-- **Database**: Supabase (PostgreSQL)
+- **Mobile**: Progressive Web App (PWA) with native app features
+- **Database**: Supabase (PostgreSQL) with RLS policies
 - **Authentication**: Supabase Auth
-- **Deployment**: Vercel
-- **Styling**: CSS3 with responsive design
+- **Deployment**: Vercel with production optimization
+- **Styling**: Mobile-first CSS3 with responsive breakpoints
 
 ### Key Components
 - **Amendment System**: Configurable time limits and maximum amendments per case
@@ -145,12 +148,40 @@ The application is deployed on Vercel:
 ### Branch Structure
 - `main`: Stable release branch
 - `Production`: Production deployment branch  
-- `Version-1.2.4`: Current version branch
+- `Version-1.2.5`: Current version branch
 - `UAT`: User acceptance testing branch
 
 ## 📝 Changelog
 
-### Version 1.2.4 (Latest)
+### Version 1.2.5 (Latest)
+#### 📱 Complete Mobile UI Transformation
+- **Professional Mobile Experience**: Complete redesign with native app-like interface
+- **Mobile Entry Page**: Welcome screen with smooth "Proceed to Login" transition (mobile only)
+- **Bottom Navigation Bar**: Native mobile app navigation with tab icons
+- **Horizontal Pagination Controls**: Fixed wrapping issues, now scrollable horizontally
+- **Mobile-First CSS Architecture**: Comprehensive mobile component optimization
+
+#### 🎨 Mobile UX Enhancements  
+- **Standardized Text Sizing**: Consistent 10px font sizing across all mobile case elements
+- **Status Positioning**: Moved status badges to top-right corner for better mobile layout
+- **Modern Checkbox Design**: Replaced MultiSelectDropdown with CheckboxList component matching reference design
+- **Mobile Popup Management**: Fixed z-index layering issues for notifications and database connectivity
+
+#### 🔧 Technical Improvements
+- **Amendment History Data Fix**: Resolved Supabase data mapping issues preventing amendment history display
+- **Mobile Component Architecture**: Organized mobile-specific CSS in `/src/assets/components/`
+- **Device Detection**: Smart mobile device detection for conditional mobile entry page
+- **PWA Features**: Enhanced Progressive Web App capabilities with mobile manifest
+- **Build Optimization**: Improved Vercel deployment with CI warning handling
+
+#### 🐛 Bug Fixes & Performance
+- **Amendment History Population**: Fixed interface mismatch between expected nested format and actual row-per-change data structure
+- **Mobile Pagination**: Resolved horizontal overflow and wrapping issues on small screens  
+- **CSS Import Organization**: Consolidated and reorganized stylesheet imports
+- **TypeScript Compilation**: Fixed unused import warnings and compilation issues
+- **Mobile Memory Optimization**: Improved performance for mobile devices
+
+### Version 1.2.4
 #### 🗄️ Database Improvements
 - **Complete Database Schema Rebuild**: New tables with proper structure (profiles, permissions, code_tables, case_bookings, status_history, amendment_history, notifications)
 - **Fixed Supabase Connectivity**: Resolved all 400 errors and infinite loops
@@ -243,7 +274,7 @@ See version control history for complete changelog.
 
 ---
 
-**Version**: 1.2.4  
-**Last Updated**: 2025-01-30  
-**Deployment**: Production Ready  
+**Version**: 1.2.5  
+**Last Updated**: 2025-08-08  
+**Deployment**: Production Ready with Mobile PWA  
 **License**: Proprietary
