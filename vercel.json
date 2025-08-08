@@ -8,6 +8,10 @@
       "use": "@vercel/static-build",
       "config": {
         "distDir": "build"
+      },
+      "env": {
+        "CI": "",
+        "SKIP_PREFLIGHT_CHECK": "true"
       }
     }
   ],
