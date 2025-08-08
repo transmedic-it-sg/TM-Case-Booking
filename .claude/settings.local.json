@@ -172,7 +172,9 @@
       "Bash(npx vercel:*)",
       "WebFetch(domain:tm-case-booking-bvgnpomml-an-rong-lows-projects.vercel.app)",
       "WebFetch(domain:tm-case-booking-mccyvs57r-an-rong-lows-projects.vercel.app)",
-      "WebFetch(domain:tm-case-booking-2jqmpq4e6-an-rong-lows-projects.vercel.app)"
+      "WebFetch(domain:tm-case-booking-2jqmpq4e6-an-rong-lows-projects.vercel.app)",
+      "WebFetch(domain:tm-case-booking-5l3pdj7s2-an-rong-lows-projects.vercel.app)",
+      "Bash(git fetch:*)"
     ],
     "deny": []
   }
