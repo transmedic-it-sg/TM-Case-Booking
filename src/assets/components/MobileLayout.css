@@ -298,6 +298,13 @@
     left: auto !important;
     min-width: 250px !important;
     max-width: calc(100vw - 20px) !important;
+    z-index: 1030 !important;
+    position: fixed !important;
+    top: 60px !important;
+  }
+  
+  .notification-bell-container {
+    z-index: 1020 !important;
   }
   
   /* Search and filter mobile */

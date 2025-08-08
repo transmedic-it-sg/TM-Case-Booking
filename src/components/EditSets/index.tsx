@@ -18,6 +18,7 @@ import {
 import SetsList from './SetsList';
 import CustomModal from '../CustomModal';
 import { useModal } from '../../hooks/useModal';
+import '../../assets/components/EditSetsMobile.css';
 
 const EditSets: React.FC<EditSetsProps> = () => {
   const { modal, closeModal, showConfirm } = useModal();

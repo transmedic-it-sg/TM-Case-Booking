@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import SupabaseLogin from './components/SupabaseLogin';
+import MobileEntryPage from './components/MobileEntryPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import CaseBookingForm from './components/CaseBookingForm';
 import CasesList from './components/CasesList';
@@ -41,6 +42,7 @@ import './assets/components/MobileNavigation.css';
 import './assets/components/MobileHeader.css';
 import './assets/components/MobileLayout.css';
 import './assets/components/MobileComponents.css';
+import './assets/components/MobileEntryPage.css';
 
 type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config' | 'backup-restore' | 'data-import' | 'system-settings';
 
@@ -49,6 +51,7 @@ type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports'
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [showMobileEntry, setShowMobileEntry] = useState(true);
   const [activePage, setActivePage] = useState<ActivePage>('booking');
   const [processingCase, setProcessingCase] = useState<CaseBooking | null>(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
@@ -62,6 +65,11 @@ const AppContent: React.FC = () => {
 
   // Check if this is an SSO callback route after all hooks
   const isCallbackRoute = window.location.pathname === '/auth/callback' || window.location.search.includes('code=');
+  
+  // Check if this is a mobile device
+  const isMobileDevice = () => {
+    return window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  };
 
   useEffect(() => {
     // Initialize code tables and permissions
@@ -73,6 +81,7 @@ const AppContent: React.FC = () => {
         const currentUser = getCurrentUser();
         if (currentUser) {
           setUser(currentUser);
+          setShowMobileEntry(false); // Skip mobile entry if user is already logged in
 
           // DISABLED: Health monitoring causing infinite loops
           // TODO: Fix database schema issues before re-enabling
@@ -84,11 +93,19 @@ const AppContent: React.FC = () => {
         const currentUser = getCurrentUser();
         if (currentUser) {
           setUser(currentUser);
+          setShowMobileEntry(false);
         }
       }
     };
     
     initialize();
+  }, []);
+
+  // Handle mobile entry visibility based on device type
+  useEffect(() => {
+    if (!isMobileDevice()) {
+      setShowMobileEntry(false);
+    }
   }, []);
 
   // Close admin panel when clicking outside
@@ -116,6 +133,7 @@ const AppContent: React.FC = () => {
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
     setShowWelcomePopup(true);
+    setShowMobileEntry(false);
     playSound.success();
     showSuccess('Welcome back!', `You're now logged in as ${loggedInUser.name}`);
     addNotification({
@@ -123,6 +141,11 @@ const AppContent: React.FC = () => {
       message: `Welcome back, ${loggedInUser.name}! You're logged in as ${loggedInUser.role}.`,
       type: 'success'
     });
+  };
+
+  const handleProceedToLogin = () => {
+    setShowMobileEntry(false);
+    playSound.click();
   };
 
   const handleLogout = () => {
@@ -140,6 +163,10 @@ const AppContent: React.FC = () => {
     setActivePage('booking');
     setProcessingCase(null);
     setShowLogoutConfirmation(false);
+    // Reset mobile entry page for next login if on mobile
+    if (isMobileDevice()) {
+      setShowMobileEntry(true);
+    }
     playSound.click();
     showSuccess('Logged Out', 'You have been successfully logged out of the system');
   };
@@ -209,6 +236,20 @@ const AppContent: React.FC = () => {
   };
 
   if (!user) {
+    // Show mobile entry page first on mobile devices
+    if (isMobileDevice() && showMobileEntry) {
+      return (
+        <>
+          <MobileEntryPage onProceedToLogin={handleProceedToLogin} />
+          {/* Also render login in background for desktop fallback */}
+          <div style={{ display: 'none' }}>
+            <SupabaseLogin onLogin={handleLogin} />
+          </div>
+        </>
+      );
+    }
+    
+    // Show login directly on desktop or after mobile entry
     return <SupabaseLogin onLogin={handleLogin} />;
   }
 

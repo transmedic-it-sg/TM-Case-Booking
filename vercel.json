@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "name": "prod-case-booking",
+  "alias": ["prod-case-booking.vercel.app"],
   "builds": [
     {
       "src": "package.json",
@@ -35,7 +37,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!static|api|manifest\\.json|sw\\.js|logo.*\\.png|favicon\\.ico|.*\\.css|.*\\.js).*)",
+      "source": "/((?!static|api|manifest\\.json|sw\\.js|logo.*\\.png|favicon\\.ico|.*\\.css|.*\\.js|.*\\.html).*)",
       "destination": "/index.html"
     }
   ]

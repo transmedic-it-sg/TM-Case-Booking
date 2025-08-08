@@ -264,10 +264,18 @@
     width: 280px;
     right: 0;
     left: auto;
+    z-index: 1050 !important;
+    position: fixed !important;
+    top: 60px !important;
+    margin-top: 0 !important;
   }
   
   .status-text {
     display: none;
+  }
+  
+  .database-connectivity-indicator {
+    z-index: 1040 !important;
   }
 }
 

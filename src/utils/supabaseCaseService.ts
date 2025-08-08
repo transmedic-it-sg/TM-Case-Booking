@@ -45,17 +45,16 @@ interface SupabaseCase {
 // }
 
 // Interface for amendment history (for future nested queries)
-// interface SupabaseCaseAmendmentHistory {
-//   id: string;
-//   amended_by: string;
-//   timestamp: string;
-//   reason: string | null;
-//   changes: Array<{
-//     field: string;
-//     oldValue: string;
-//     newValue: string;
-//   }>;
-// }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface SupabaseCaseAmendmentHistory {
+  id: string;
+  amended_by: string;
+  timestamp: string;
+  amendment_reason: string | null;
+  field_name: string;
+  old_value: string;
+  new_value: string;
+}
 
 // ================================================
 // CASE REFERENCE NUMBER MANAGEMENT
@@ -374,8 +373,10 @@ export const getSupabaseCasesOriginal = async (country?: string): Promise<CaseBo
           id,
           amended_by,
           timestamp,
-          reason,
-          changes
+          amendment_reason,
+          field_name,
+          old_value,
+          new_value
         )
       `)
       .order('created_at', { ascending: false });
@@ -431,13 +432,36 @@ export const getSupabaseCasesOriginal = async (country?: string): Promise<CaseBo
         details: history.details,
         attachments: history.attachments
       })) || [],
-      amendmentHistory: caseData.amendment_history?.map((history: SupabaseCaseAmendmentHistory) => ({
-        amendmentId: history.id,
-        timestamp: history.timestamp,
-        amendedBy: history.amended_by,
-        reason: history.reason || 'No reason provided',
-        changes: history.changes || []
-      })) || []
+      amendmentHistory: (() => {
+        if (!caseData.amendment_history || caseData.amendment_history.length === 0) {
+          return [];
+        }
+        
+        // Group amendment records by timestamp and amended_by
+        const groupedAmendments = new Map<string, AmendmentHistory>();
+        
+        caseData.amendment_history.forEach((history: SupabaseCaseAmendmentHistory) => {
+          const key = `${history.timestamp}_${history.amended_by}`;
+          
+          if (!groupedAmendments.has(key)) {
+            groupedAmendments.set(key, {
+              amendmentId: history.id,
+              timestamp: history.timestamp,
+              amendedBy: history.amended_by,
+              changes: [],
+              reason: history.amendment_reason || 'No reason provided'
+            });
+          }
+          
+          groupedAmendments.get(key)!.changes.push({
+            field: history.field_name,
+            oldValue: history.old_value,
+            newValue: history.new_value
+          });
+        });
+        
+        return Array.from(groupedAmendments.values());
+      })()
     }));
   } catch (error) {
     console.error('Error in getSupabaseCases:', error);

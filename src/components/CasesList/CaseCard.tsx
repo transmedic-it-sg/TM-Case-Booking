@@ -380,7 +380,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 </div>
                 {expandedAmendmentHistory.has(caseItem.id) && (
                   <div className="amendment-content">
-                    {caseItem.amendmentHistory.map((amendment, index) => (
+                    {caseItem.amendmentHistory && caseItem.amendmentHistory.length > 0 ? (
+                      caseItem.amendmentHistory.map((amendment, index) => (
                       <div key={amendment.amendmentId} className="amendment-entry">
                         <div className="amendment-header">
                           <strong>Amendment #{index + 1}</strong>
@@ -410,7 +411,12 @@ const CaseCard: React.FC<CaseCardProps> = ({
                           </div>
                         </div>
                       </div>
-                    ))}
+                      ))
+                    ) : (
+                      <div className="no-amendments">
+                        <p>No amendment history available for this case.</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

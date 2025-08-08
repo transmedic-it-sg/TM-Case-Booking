@@ -11,7 +11,7 @@ import {
   initializeCodeTables,
   getDepartmentNamesForUser
 } from '../utils/codeTable';
-import MultiSelectDropdown from './MultiSelectDropdown';
+import CheckboxList from './CheckboxList';
 import TimePicker from './common/TimePicker';
 import SearchableDropdown from './SearchableDropdown';
 import CustomModal from './CustomModal';
@@ -482,52 +482,26 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         </div>
 
         <div className="form-section-surgery-sets">
-          <MultiSelectDropdown
+          <CheckboxList
             id="surgerySetSelection"
             label="Surgery Set"
             options={surgerySetOptions}
             value={formData.surgerySetSelection}
             onChange={(values) => setFormData(prev => ({ ...prev, surgerySetSelection: values }))}
-            placeholder="Select surgery sets..."
             required={true}
           />
-          {formData.surgerySetSelection.length > 0 && (
-            <div className="selection-indicator">
-              <span className="indicator-label">Selected ({formData.surgerySetSelection.length}): </span>
-              <div className="selected-items-container">
-                {formData.surgerySetSelection.map((item, index) => (
-                  <span key={item} className="selected-item-badge">
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
           {errors.surgerySetSelection && <span className="error-text">{errors.surgerySetSelection}</span>}
         </div>
 
         <div className="form-section-implant-boxes">
-          <MultiSelectDropdown
+          <CheckboxList
             id="implantBox"
             label="Implant Box"
             options={implantBoxOptions}
             value={formData.implantBox}
             onChange={(values) => setFormData(prev => ({ ...prev, implantBox: values }))}
-            placeholder="Select implant boxes..."
             required={true}
           />
-          {formData.implantBox.length > 0 && (
-            <div className="selection-indicator">
-              <span className="indicator-label">Selected ({formData.implantBox.length}): </span>
-              <div className="selected-items-container">
-                {formData.implantBox.map((item, index) => (
-                  <span key={item} className="selected-item-badge">
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
           {errors.implantBox && <span className="error-text">{errors.implantBox}</span>}
         </div>
 

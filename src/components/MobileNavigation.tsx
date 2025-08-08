@@ -116,14 +116,23 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               <div className="mobile-menu-content">
                 <div className="mobile-menu-header">
                   <div className="mobile-user-info">
-                    <span className="mobile-user-name">{user.name}</span>
-                    <span className={`mobile-user-role ${user.role}`}>
-                      {user.role.replace('-', ' ').toUpperCase()}
-                    </span>
-                    {user.selectedCountry && (
-                      <span className="mobile-country-badge">
-                        📍 {user.selectedCountry}
+                    <div className="mobile-user-detail">
+                      <span className="mobile-detail-label">Name:</span>
+                      <span className="mobile-user-name">{user.name}</span>
+                    </div>
+                    <div className="mobile-user-detail">
+                      <span className="mobile-detail-label">Role:</span>
+                      <span className={`mobile-user-role ${user.role}`}>
+                        {user.role.replace('-', ' ').toUpperCase()}
                       </span>
+                    </div>
+                    {user.selectedCountry && (
+                      <div className="mobile-user-detail">
+                        <span className="mobile-detail-label">Country:</span>
+                        <span className="mobile-country-badge">
+                          📍 {user.selectedCountry}
+                        </span>
+                      </div>
                     )}
                   </div>
                   <label htmlFor="mobile-menu-toggle" className="mobile-menu-close">×</label>
