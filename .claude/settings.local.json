@@ -161,7 +161,8 @@
       "Bash(sudo apt install:*)",
       "Bash(\"/mnt/c/Users/anrong.low/AppData/Local/Android/Sdk/cmdline-tools/latest/bin/sdkmanager.bat\" --licenses)",
       "Bash(adb:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "WebFetch(domain:tm-case-booking-cbisfvw8a-an-rong-lows-projects.vercel.app)"
     ],
     "deny": []
   }

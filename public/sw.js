@@ -1,12 +1,9 @@
 const CACHE_NAME = 'tm-case-booking-v1.2.5';
 const urlsToCache = [
   '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
   '/manifest.json',
   '/logo192.png',
-  '/logo512.png',
-  // Add other static assets as needed
+  '/logo512.png'
 ];
 
 // Install event - cache resources
@@ -16,14 +13,24 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('Opened cache');
-        return cache.addAll(urlsToCache.map(url => {
-          return new Request(url, {
-            cache: 'reload'
-          });
-        }));
+        // Cache files individually to avoid failure of entire batch
+        return Promise.all(
+          urlsToCache.map(url => {
+            return cache.add(new Request(url, {
+              cache: 'reload'
+            })).catch(error => {
+              console.warn('Failed to cache:', url, error);
+              // Don't fail the entire installation if one file fails
+              return Promise.resolve();
+            });
+          })
+        );
+      })
+      .then(() => {
+        console.log('Service Worker cache completed');
       })
       .catch((error) => {
-        console.log('Cache addAll failed:', error);
+        console.error('Service Worker installation failed:', error);
       })
   );
   // Force the waiting service worker to become the active service worker
