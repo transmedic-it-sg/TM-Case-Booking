@@ -183,6 +183,17 @@
   color: #00b894;
 }
 
+.mobile-country-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--background-light);
+  padding: 3px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+  margin-top: 4px;
+}
+
 .mobile-menu-close {
   font-size: 24px;
   font-weight: 300;
@@ -291,7 +302,7 @@
   
   /* Hide desktop navigation */
   .app-nav {
-    display: none;
+    display: none !important;
   }
   
   /* Add bottom padding to main content to avoid overlap */

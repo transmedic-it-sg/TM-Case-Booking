@@ -99,6 +99,11 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                     <span className={`mobile-user-role ${user.role}`}>
                       {user.role.replace('-', ' ').toUpperCase()}
                     </span>
+                    {user.selectedCountry && (
+                      <span className="mobile-country-badge">
+                        📍 {user.selectedCountry}
+                      </span>
+                    )}
                   </div>
                   <label htmlFor="mobile-menu-toggle" className="mobile-menu-close">×</label>
                 </div>

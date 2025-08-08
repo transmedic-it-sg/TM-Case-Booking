@@ -39,6 +39,8 @@ import './assets/components/CodeTableSetup.css';
 import './assets/components/AuditLogs.css';
 import './assets/components/MobileNavigation.css';
 import './assets/components/MobileHeader.css';
+import './assets/components/MobileLayout.css';
+import './assets/components/MobileComponents.css';
 
 type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config' | 'backup-restore' | 'data-import' | 'system-settings';
 

@@ -1,0 +1,401 @@
+/* Mobile Layout Optimizations */
+
+@media screen and (max-width: 768px) {
+  /* General mobile layout improvements */
+  .app-main {
+    padding: 8px 12px calc(80px + env(safe-area-inset-bottom)) 12px;
+  }
+  
+  /* Mobile typography scaling */
+  h1, .h1 { font-size: 20px !important; line-height: 1.3; margin-bottom: 12px; }
+  h2, .h2 { font-size: 18px !important; line-height: 1.3; margin-bottom: 10px; }
+  h3, .h3 { font-size: 16px !important; line-height: 1.3; margin-bottom: 8px; }
+  h4, .h4 { font-size: 15px !important; line-height: 1.3; margin-bottom: 6px; }
+  h5, .h5 { font-size: 14px !important; line-height: 1.3; margin-bottom: 6px; }
+  
+  /* Mobile button scaling */
+  .btn, button {
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+    min-height: 44px;
+    border-radius: 6px !important;
+  }
+  
+  .btn-lg {
+    padding: 10px 16px !important;
+    font-size: 15px !important;
+    min-height: 48px;
+  }
+  
+  .btn-sm {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    min-height: 36px;
+  }
+  
+  /* Mobile input scaling */
+  input, select, textarea {
+    padding: 8px 10px !important;
+    font-size: 16px !important; /* Prevents zoom on focus */
+    border-radius: 6px !important;
+  }
+  
+  /* Mobile form groups */
+  .form-group {
+    margin-bottom: 12px !important;
+  }
+  
+  .form-group label {
+    font-size: 13px !important;
+    font-weight: 600;
+    margin-bottom: 4px !important;
+    display: block;
+  }
+  
+  /* Mobile cards and containers */
+  .card, .container, .content-container {
+    margin-bottom: 12px !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+  }
+  
+  /* Mobile tables */
+  table {
+    font-size: 13px !important;
+  }
+  
+  table th {
+    padding: 8px 6px !important;
+    font-size: 12px !important;
+    font-weight: 600;
+  }
+  
+  table td {
+    padding: 8px 6px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Mobile spacing utilities */
+  .mobile-compact {
+    padding: 8px !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .mobile-spacing {
+    margin-bottom: 12px !important;
+  }
+  
+  /* Mobile text alignment */
+  .mobile-text-left { text-align: left !important; }
+  .mobile-text-center { text-align: center !important; }
+  .mobile-text-right { text-align: right !important; }
+  
+  /* Mobile flex utilities */
+  .mobile-flex-column {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  
+  .mobile-flex-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    align-items: center !important;
+  }
+  
+  /* Hide elements on mobile */
+  .desktop-only {
+    display: none !important;
+  }
+  
+  /* Mobile-specific overrides for existing components */
+  
+  /* Cases list mobile optimization */
+  .cases-list-container {
+    padding: 8px !important;
+  }
+  
+  .case-card {
+    margin-bottom: 10px !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+  }
+  
+  .case-card h3 {
+    font-size: 16px !important;
+    margin-bottom: 6px !important;
+  }
+  
+  .case-card .case-info {
+    font-size: 13px !important;
+    line-height: 1.4;
+  }
+  
+  .case-actions {
+    margin-top: 8px !important;
+    display: flex !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+  }
+  
+  .case-actions .btn {
+    flex: 1 !important;
+    min-width: 0 !important;
+    font-size: 12px !important;
+    padding: 6px 8px !important;
+  }
+  
+  /* User management mobile optimization */
+  .user-management {
+    padding: 8px !important;
+  }
+  
+  .user-management table {
+    display: block !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+  }
+  
+  .user-management .btn-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+  
+  .user-management .btn-group .btn {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+    min-height: 32px !important;
+  }
+  
+  /* Form mobile optimization */
+  .form-container {
+    padding: 8px !important;
+  }
+  
+  .form-row {
+    display: block !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .form-row .form-group {
+    width: 100% !important;
+    margin-bottom: 10px !important;
+  }
+  
+  /* Modal mobile optimization */
+  .modal-dialog {
+    margin: 10px !important;
+    max-width: calc(100vw - 20px) !important;
+  }
+  
+  .modal-content {
+    border-radius: 12px !important;
+  }
+  
+  .modal-header {
+    padding: 12px 16px !important;
+  }
+  
+  .modal-body {
+    padding: 16px !important;
+  }
+  
+  .modal-footer {
+    padding: 12px 16px !important;
+    gap: 8px !important;
+  }
+  
+  .modal-footer .btn {
+    flex: 1 !important;
+    font-size: 14px !important;
+  }
+  
+  /* Alert mobile optimization */
+  .alert {
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+    border-radius: 6px !important;
+    margin-bottom: 10px !important;
+  }
+  
+  /* Badge mobile optimization */
+  .badge {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+    border-radius: 10px !important;
+  }
+  
+  /* Progress bar mobile optimization */
+  .progress {
+    height: 6px !important;
+    border-radius: 3px !important;
+  }
+  
+  /* Breadcrumb mobile optimization */
+  .breadcrumb {
+    font-size: 12px !important;
+    padding: 6px 0 !important;
+    margin-bottom: 8px !important;
+  }
+  
+  /* Pagination mobile optimization */
+  .pagination {
+    font-size: 12px !important;
+  }
+  
+  .pagination .page-link {
+    padding: 6px 8px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+  
+  /* Dropdown mobile optimization */
+  .dropdown-menu {
+    font-size: 13px !important;
+    border-radius: 8px !important;
+  }
+  
+  .dropdown-item {
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Tab mobile optimization */
+  .nav-tabs {
+    border-bottom: 1px solid var(--border-light);
+  }
+  
+  .nav-tabs .nav-link {
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+    border-radius: 6px 6px 0 0 !important;
+  }
+  
+  .tab-content {
+    padding: 12px 8px !important;
+  }
+  
+  /* List group mobile optimization */
+  .list-group-item {
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Specific component overrides */
+  
+  /* Database connectivity indicator mobile */
+  .mobile-db-indicator {
+    transform: scale(0.8);
+  }
+  
+  /* Settings and notification bell mobile */
+  .settings-dropdown,
+  .notification-dropdown {
+    right: 0 !important;
+    left: auto !important;
+    min-width: 250px !important;
+    max-width: calc(100vw - 20px) !important;
+  }
+  
+  /* Search and filter mobile */
+  .search-container,
+  .filter-container {
+    margin-bottom: 10px !important;
+  }
+  
+  .search-input,
+  .filter-select {
+    width: 100% !important;
+    margin-bottom: 8px !important;
+  }
+  
+  /* Status indicators mobile */
+  .status-badge {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+    border-radius: 8px !important;
+  }
+  
+  /* Action buttons mobile */
+  .action-buttons {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    margin-top: 8px !important;
+  }
+  
+  .action-buttons .btn {
+    flex: 1 !important;
+    min-width: 0 !important;
+    font-size: 12px !important;
+  }
+  
+  /* Error and success messages mobile */
+  .error-message,
+  .success-message {
+    font-size: 13px !important;
+    padding: 8px 10px !important;
+    border-radius: 6px !important;
+    margin-bottom: 10px !important;
+  }
+  
+  /* Loading states mobile */
+  .loading-spinner {
+    transform: scale(0.8);
+  }
+  
+  .loading-text {
+    font-size: 13px !important;
+  }
+}
+
+/* Extra small mobile devices */
+@media screen and (max-width: 480px) {
+  .app-main {
+    padding: 6px 8px calc(80px + env(safe-area-inset-bottom)) 8px;
+  }
+  
+  h1, .h1 { font-size: 18px !important; }
+  h2, .h2 { font-size: 16px !important; }
+  h3, .h3 { font-size: 15px !important; }
+  
+  .btn, button {
+    padding: 6px 10px !important;
+    font-size: 13px !important;
+  }
+  
+  .card, .container, .content-container {
+    padding: 8px !important;
+  }
+  
+  table th, table td {
+    padding: 6px 4px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* Landscape mobile optimization */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+  .app-main {
+    padding: 6px 12px calc(70px + env(safe-area-inset-bottom)) 12px;
+  }
+  
+  .mobile-nav-container {
+    height: 56px !important;
+  }
+  
+  .mobile-nav-item {
+    min-height: 40px !important;
+  }
+  
+  .mobile-nav-icon {
+    font-size: 18px !important;
+  }
+  
+  .mobile-nav-label {
+    font-size: 9px !important;
+  }
+}
