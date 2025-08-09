@@ -44,16 +44,18 @@ interface SupabaseCase {
 //   attachments?: string[];
 // }
 
-// Interface for amendment history (for future nested queries)
+// Interface for amendment history (matching current database schema)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface SupabaseCaseAmendmentHistory {
   id: string;
   amended_by: string;
   timestamp: string;
-  amendment_reason: string | null;
-  field_name: string;
-  old_value: string;
-  new_value: string;
+  reason: string | null;
+  changes: Array<{
+    field: string;
+    oldValue: string;
+    newValue: string;
+  }>;
 }
 
 // ================================================
@@ -301,17 +303,16 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
           amendmentId: history.id,
           timestamp: history.timestamp,
           amendedBy: history.amended_by,
-          changes: [],
-          reason: history.amendment_reason
+          changes: history.changes || [],
+          reason: history.reason
         };
         caseAmendments.push(existingAmendment);
       }
       
-      existingAmendment.changes.push({
-        field: history.field_name,
-        oldValue: history.old_value,
-        newValue: history.new_value
-      });
+      // Merge changes arrays if needed
+      if (history.changes && Array.isArray(history.changes)) {
+        existingAmendment.changes = [...existingAmendment.changes, ...history.changes];
+      }
     });
 
     // Transform Supabase data to CaseBooking interface
@@ -373,10 +374,8 @@ export const getSupabaseCasesOriginal = async (country?: string): Promise<CaseBo
           id,
           amended_by,
           timestamp,
-          amendment_reason,
-          field_name,
-          old_value,
-          new_value
+          reason,
+          changes
         )
       `)
       .order('created_at', { ascending: false });
@@ -448,16 +447,10 @@ export const getSupabaseCasesOriginal = async (country?: string): Promise<CaseBo
               amendmentId: history.id,
               timestamp: history.timestamp,
               amendedBy: history.amended_by,
-              changes: [],
-              reason: history.amendment_reason || 'No reason provided'
+              changes: history.changes || [],
+              reason: history.reason || 'No reason provided'
             });
           }
-          
-          groupedAmendments.get(key)!.changes.push({
-            field: history.field_name,
-            oldValue: history.old_value,
-            newValue: history.new_value
-          });
         });
         
         return Array.from(groupedAmendments.values());
