@@ -32,9 +32,9 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
 
   
 
-  // Handle click outside to close panel
+  // Handle click outside to close panel (with touch support for mobile)
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (isVisible && containerRef.current && !containerRef.current.contains(event.target as Node)) {
         toggleVisibility();
       }
@@ -42,10 +42,12 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
 
     if (isVisible) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [isVisible, toggleVisibility]);
 
