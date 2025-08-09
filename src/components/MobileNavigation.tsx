@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../types';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import '../assets/components/MobileNavigation.css';
@@ -26,10 +26,67 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   onNavigate,
   onLogout
 }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu function
   const closeMenu = () => {
-    const checkbox = document.getElementById('mobile-menu-toggle') as HTMLInputElement;
-    if (checkbox) checkbox.checked = false;
+    setIsMenuOpen(false);
   };
+
+  // Toggle menu function
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  // Click outside to close menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (isMenuOpen && menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        closeMenu();
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isMenuOpen]);
+
+  // Escape key to close menu
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isMenuOpen) {
+        closeMenu();
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [isMenuOpen]);
+
+  // Prevent body scroll when menu is open
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMenuOpen]);
 
   const handleMenuNavigate = (page: ActivePage) => {
     onNavigate(page);
@@ -97,9 +154,13 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           ))}
           
           {/* More/Menu button for additional features */}
-          <div className="mobile-nav-more">
-            <input type="checkbox" id="mobile-menu-toggle" className="mobile-menu-toggle" />
-            <label htmlFor="mobile-menu-toggle" className="mobile-nav-item mobile-more-btn">
+          <div className="mobile-nav-more" ref={menuRef}>
+            <button 
+              onClick={toggleMenu}
+              className={`mobile-nav-item mobile-more-btn ${isMenuOpen ? 'active' : ''}`}
+              aria-label="Open menu"
+              aria-expanded={isMenuOpen}
+            >
               <span className="mobile-nav-icon">⋯</span>
               <span className="mobile-nav-label">More</span>
               <div className="mobile-user-preview">
@@ -109,11 +170,12 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   <span className="mobile-user-preview-country">📍 {user.selectedCountry}</span>
                 )}
               </div>
-            </label>
+            </button>
             
             {/* Expandable menu */}
-            <div className="mobile-menu-overlay">
-              <div className="mobile-menu-content">
+            {isMenuOpen && (
+              <div className="mobile-menu-overlay active">
+                <div className="mobile-menu-content active">
                 <div className="mobile-menu-header">
                   <div className="mobile-user-info">
                     <div className="mobile-user-detail">
@@ -135,7 +197,9 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                       </div>
                     )}
                   </div>
-                  <label htmlFor="mobile-menu-toggle" className="mobile-menu-close">×</label>
+                  <button onClick={closeMenu} className="mobile-menu-close" aria-label="Close menu">
+                    ×
+                  </button>
                 </div>
                 
                 <div className="mobile-menu-section">
@@ -239,6 +303,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
       </div>

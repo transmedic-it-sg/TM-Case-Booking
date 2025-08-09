@@ -13,10 +13,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
+  padding: 12px 16px;
   max-width: 100%;
   margin: 0 auto;
-  min-height: 48px;
+  min-height: 60px;
 }
 
 .mobile-header-left {
@@ -34,18 +34,19 @@
 .mobile-header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .mobile-logout-btn {
   background: var(--danger-color);
   border: none;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--white);
   cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 16px;
+  padding: 8px 14px;
+  border-radius: 20px;
   line-height: 1;
   display: flex;
   align-items: center;
@@ -54,7 +55,9 @@
   transition: all 0.2s ease;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  min-height: 32px;
+  min-height: 36px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .mobile-logout-btn:hover,
@@ -98,7 +101,7 @@
 @media screen and (max-width: 480px) {
   .mobile-header-content {
     padding: 10px 12px;
-    min-height: 56px;
+    min-height: 64px;
   }
   
   .mobile-header-title h1 {
@@ -111,13 +114,18 @@
   }
   
   .mobile-header-right {
-    gap: 6px;
+    gap: 8px;
   }
   
   .mobile-logout-btn {
-    width: 32px;
-    height: 32px;
-    font-size: 16px;
+    padding: 6px 12px;
+    font-size: 10px;
+    min-height: 32px;
+    white-space: nowrap;
+  }
+  
+  .mobile-db-indicator {
+    transform: scale(0.7);
   }
 }
 

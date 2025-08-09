@@ -48,8 +48,10 @@ export const getUsers = async (): Promise<User[]> => {
     }
   } catch (error) {
     console.error('Error getting users, falling back to localStorage:', error);
-    // Fallback to localStorage
-    return getUsersFromLocalStorage();
+    // Ensure localStorage has default users
+    const localUsers = getUsersFromLocalStorage();
+    console.log('Fallback: created/loaded localStorage users:', localUsers.length);
+    return localUsers;
   }
 };
 
@@ -61,7 +63,8 @@ const getUsersFromLocalStorage = (): User[] => {
     return users.map((user: any) => ({
       ...user,
       countries: user.countries || [],
-      departments: user.departments || (user.department ? [user.department] : [])
+      departments: user.departments || (user.department ? [user.department] : []),
+      enabled: user.enabled !== undefined ? user.enabled : true // Default to enabled for backwards compatibility
     }));
   }
   
@@ -73,7 +76,8 @@ const getUsersFromLocalStorage = (): User[] => {
       role: 'admin',
       name: 'Administrator',
       departments: [],
-      countries: getCountries().length > 0 ? getCountries() : [...COUNTRIES]
+      countries: getCountries().length > 0 ? getCountries() : [...COUNTRIES],
+      enabled: true
     }
   ];
   
@@ -101,14 +105,39 @@ export const addUser = async (user: Omit<User, 'id'>): Promise<User> => {
 
 export const authenticate = async (username: string, password: string, country: string): Promise<{ user: User | null; error?: string }> => {
   try {
-    const user = await authenticateUser(username, password);
+    let user = await authenticateUser(username, password);
+    
+    // If Supabase authentication fails, try localStorage fallback
+    if (!user) {
+      console.log('Supabase authentication failed, trying localStorage fallback...');
+      
+      // Ensure localStorage has users by calling getUsers (which creates defaults if needed)
+      await getUsers();
+      
+      const localUsers = getUsersFromLocalStorage();
+      console.log('Available local users:', localUsers.map(u => ({ username: u.username, enabled: u.enabled })));
+      console.log('Looking for username:', username, 'password:', password);
+      
+      const matchedUser = localUsers.find(u => 
+        u.username.toLowerCase() === username.toLowerCase() && 
+        u.password === password &&
+        u.enabled !== false
+      );
+      
+      if (matchedUser) {
+        user = matchedUser;
+        console.log('LocalStorage authentication successful for:', username);
+      } else {
+        console.log('LocalStorage authentication failed - no matching user found');
+      }
+    }
     
     if (!user) {
       return { user: null, error: "Invalid username or password" };
     }
     
-    // Check if user account is enabled
-    if (!user.enabled) {
+    // Check if user account is enabled (default to true for backwards compatibility)
+    if (user.enabled === false) {
       return { user: null, error: "Your account has been disabled. Please contact your administrator." };
     }
     
@@ -116,8 +145,12 @@ export const authenticate = async (username: string, password: string, country: 
     if (user.role === 'admin' || (user.countries && user.countries.includes(country))) {
       const userWithCountry = { ...user, selectedCountry: country };
       
-      // Create session in Supabase
-      await createSession(user.id);
+      // Try to create session in Supabase (optional, fallback to localStorage if fails)
+      try {
+        await createSession(user.id);
+      } catch (sessionError) {
+        console.warn('Failed to create Supabase session, continuing with localStorage:', sessionError);
+      }
       
       // Save to localStorage for backward compatibility
       saveCurrentUserToStorage(userWithCountry);

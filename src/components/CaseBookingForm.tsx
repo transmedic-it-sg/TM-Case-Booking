@@ -11,7 +11,7 @@ import {
   initializeCodeTables,
   getDepartmentNamesForUser
 } from '../utils/codeTable';
-import CheckboxList from './CheckboxList';
+import MultiSelectDropdown from './MultiSelectDropdown';
 import TimePicker from './common/TimePicker';
 import SearchableDropdown from './SearchableDropdown';
 import CustomModal from './CustomModal';
@@ -482,24 +482,26 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         </div>
 
         <div className="form-section-surgery-sets">
-          <CheckboxList
+          <MultiSelectDropdown
             id="surgerySetSelection"
             label="Surgery Set"
             options={surgerySetOptions}
             value={formData.surgerySetSelection}
             onChange={(values) => setFormData(prev => ({ ...prev, surgerySetSelection: values }))}
+            placeholder="Select Surgery Sets..."
             required={true}
           />
           {errors.surgerySetSelection && <span className="error-text">{errors.surgerySetSelection}</span>}
         </div>
 
         <div className="form-section-implant-boxes">
-          <CheckboxList
+          <MultiSelectDropdown
             id="implantBox"
             label="Implant Box"
             options={implantBoxOptions}
             value={formData.implantBox}
             onChange={(values) => setFormData(prev => ({ ...prev, implantBox: values }))}
+            placeholder="Select Implant Boxes..."
             required={true}
           />
           {errors.implantBox && <span className="error-text">{errors.implantBox}</span>}
