@@ -407,7 +407,6 @@
     padding: 12px !important;
     margin-bottom: 12px !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
-    border-left: 4px solid #ff9800 !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
@@ -1184,10 +1183,114 @@
   .case-details .status-info {
     font-size: 11px !important;
     line-height: 1.3 !important;
-    word-wrap: break-word !important;
-    overflow-wrap: break-word !important;
-    white-space: normal !important;
+  }
+
+  /* Status History Section Mobile Fixes */
+  .status-history-section {
+    width: 100% !important;
     max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+    margin: 12px 0 !important;
+  }
+
+  .status-history-list {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+    margin: 8px 0 !important;
+    border: 1px solid var(--border-light) !important;
+    border-radius: 8px !important;
+  }
+
+  .status-history-item {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 12px !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .status-history-item:last-child {
+    border-bottom: none !important;
+  }
+
+  .history-status,
+  .history-user,
+  .history-time,
+  .history-details {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+    margin-bottom: 4px !important;
+  }
+
+  /* Amendment History Section Mobile Fixes */
+  .amendment-history-section {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+    margin: 12px 0 !important;
+  }
+
+  .amendment-history-details {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+    margin: 8px 0 !important;
+    padding: 12px !important;
+    background: rgba(139, 69, 19, 0.05) !important;
+    border: 1px solid rgba(139, 69, 19, 0.2) !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+  }
+
+  .amendment-history-details div {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+    margin-bottom: 6px !important;
+  }
+
+  .amendment-history-details div:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  /* Section Toggle Buttons */
+  .section-toggle {
+    width: 100% !important;
+    padding: 12px !important;
+    background: rgba(32, 178, 170, 0.1) !important;
+    border: 1px solid rgba(32, 178, 170, 0.3) !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: background-color 0.2s ease !important;
+  }
+
+  .section-toggle:hover {
+    background: rgba(32, 178, 170, 0.15) !important;
+  }
+
+  .toggle-arrow {
+    transition: transform 0.2s ease !important;
+  }
+
+  .toggle-arrow.open {
+    transform: rotate(180deg) !important;
   }
   
   .status-update-item {

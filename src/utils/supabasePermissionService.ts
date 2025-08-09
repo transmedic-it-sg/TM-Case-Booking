@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Permission } from '../components/PermissionMatrix';
 import { getAllPermissions } from '../data/permissionMatrixData';
 
@@ -24,6 +24,12 @@ export const initializePermissionsTable = async (): Promise<void> => {
 // Get permissions from Supabase
 export const getSupabasePermissions = async (): Promise<Permission[]> => {
   try {
+    // If Supabase is not configured, return default permissions
+    if (!isSupabaseConfigured) {
+      console.log('Supabase not configured, using default permissions');
+      return getAllPermissions();
+    }
+
     // Check if permissions table exists
     const { data, error } = await supabase
       .from('permissions')

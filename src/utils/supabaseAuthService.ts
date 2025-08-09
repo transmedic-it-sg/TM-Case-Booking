@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { User } from '../types';
 
 // User interface for Supabase
@@ -247,6 +247,12 @@ export const checkUsernameAvailable = async (username: string, excludeUserId?: s
  */
 export const authenticateUser = async (username: string, password: string): Promise<User | null> => {
   try {
+    // If Supabase is not configured, return null to trigger localStorage fallback
+    if (!isSupabaseConfigured) {
+      console.log('Supabase not configured, skipping database authentication');
+      return null;
+    }
+
     // First, find user by case-insensitive username
     const { data: users, error: searchError } = await supabase
       .from('users')
@@ -300,6 +306,14 @@ export const authenticateUser = async (username: string, password: string): Prom
  */
 export const createSession = async (userId: string): Promise<string> => {
   try {
+    // If Supabase is not configured, return a fake session token
+    if (!isSupabaseConfigured) {
+      console.log('Supabase not configured, creating local session token');
+      const fakeToken = `local_session_${Date.now()}`;
+      localStorage.setItem('session-token', fakeToken);
+      return fakeToken;
+    }
+
     const sessionToken = generateSessionToken();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     
@@ -489,6 +503,12 @@ export const migrateUsersFromLocalStorage = async (): Promise<void> => {
  */
 export const checkUsersExist = async (): Promise<boolean> => {
   try {
+    // If Supabase is not configured, return false to trigger localStorage fallback
+    if (!isSupabaseConfigured) {
+      console.log('Supabase not configured, assuming no users exist in database');
+      return false;
+    }
+
     const { data, error } = await supabase
       .from('users')
       .select('id')

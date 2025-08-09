@@ -51,7 +51,7 @@ type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports'
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [showMobileEntry, setShowMobileEntry] = useState(true);
+  const [showMobileEntry, setShowMobileEntry] = useState(false);
   const [activePage, setActivePage] = useState<ActivePage>('booking');
   const [processingCase, setProcessingCase] = useState<CaseBooking | null>(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
@@ -81,7 +81,9 @@ const AppContent: React.FC = () => {
         const currentUser = getCurrentUser();
         if (currentUser) {
           setUser(currentUser);
-          setShowMobileEntry(false); // Skip mobile entry if user is already logged in
+          // User is already logged in, no need to show mobile entry
+        } else if (isMobileDevice()) {
+          setShowMobileEntry(true); // Only show mobile entry if no user and on mobile
 
           // DISABLED: Health monitoring causing infinite loops
           // TODO: Fix database schema issues before re-enabling
@@ -93,7 +95,9 @@ const AppContent: React.FC = () => {
         const currentUser = getCurrentUser();
         if (currentUser) {
           setUser(currentUser);
-          setShowMobileEntry(false);
+          // User is already logged in, no need to show mobile entry
+        } else if (isMobileDevice()) {
+          setShowMobileEntry(true); // Only show mobile entry if no user and on mobile
         }
       }
     };
@@ -101,12 +105,7 @@ const AppContent: React.FC = () => {
     initialize();
   }, []);
 
-  // Handle mobile entry visibility based on device type
-  useEffect(() => {
-    if (!isMobileDevice()) {
-      setShowMobileEntry(false);
-    }
-  }, []);
+  // Mobile entry is handled in the initialization useEffect above
 
   // Close admin panel when clicking outside
   useEffect(() => {
@@ -163,9 +162,9 @@ const AppContent: React.FC = () => {
     setActivePage('booking');
     setProcessingCase(null);
     setShowLogoutConfirmation(false);
-    // Reset mobile entry page for next login if on mobile
+    // On mobile, go directly to login instead of introduction page
     if (isMobileDevice()) {
-      setShowMobileEntry(true);
+      setShowMobileEntry(false);
     }
     playSound.click();
     showSuccess('Logged Out', 'You have been successfully logged out of the system');
@@ -412,7 +411,7 @@ const AppContent: React.FC = () => {
       </header>
 
       {/* Mobile Header */}
-      <MobileHeader user={user} onLogout={handleLogout} />
+      <MobileHeader user={user} />
 
       <nav className="app-nav">
         <div className="nav-buttons">

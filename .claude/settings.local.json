@@ -56,12 +56,7 @@
       "Bash(code --version)",
       "Bash(/dev/null)",
       "Bash(git tag:*)",
-      "Bash(rg:*)",
-      "Bash(npm install:*)",
-      "Bash(node:*)",
       "Bash(npm run typecheck:*)",
-      "Bash(npm run build:*)",
-      "Bash(git add:*)",
       "Bash(vercel:*)",
       "WebFetch(domain:tm-case-booking.vercel.app)",
       "Bash(npx supabase:*)",
@@ -174,7 +169,10 @@
       "WebFetch(domain:tm-case-booking-mccyvs57r-an-rong-lows-projects.vercel.app)",
       "WebFetch(domain:tm-case-booking-2jqmpq4e6-an-rong-lows-projects.vercel.app)",
       "WebFetch(domain:tm-case-booking-5l3pdj7s2-an-rong-lows-projects.vercel.app)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "WebFetch(domain:imgur.com)",
+      "WebFetch(domain:postimg.cc)",
+      "WebFetch(domain:i.postimg.cc)"
     ],
     "deny": []
   }

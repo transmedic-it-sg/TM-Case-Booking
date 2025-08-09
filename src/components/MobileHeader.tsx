@@ -7,10 +7,9 @@ import '../assets/components/MobileHeader.css';
 
 interface MobileHeaderProps {
   user: User;
-  onLogout: () => void;
 }
 
-const MobileHeader: React.FC<MobileHeaderProps> = ({ user, onLogout }) => {
+const MobileHeader: React.FC<MobileHeaderProps> = ({ user }) => {
   return (
     <header className="mobile-header">
       <div className="mobile-header-content">
@@ -20,9 +19,6 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ user, onLogout }) => {
         <div className="mobile-header-right">
           <NotificationBell />
           <Settings />
-          <button onClick={onLogout} className="mobile-logout-btn" title="Logout">
-            Logout
-          </button>
         </div>
       </div>
     </header>
