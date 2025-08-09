@@ -1,8 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase configuration
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL!
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY!
+// Supabase configuration with fallback for localhost
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'http://localhost:54321' // Fallback URL
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'fake-key-for-localhost' // Fallback key
+
+// Check if Supabase is properly configured
+const isSupabaseConfigured = 
+  process.env.REACT_APP_SUPABASE_URL && 
+  process.env.REACT_APP_SUPABASE_ANON_KEY &&
+  !process.env.REACT_APP_SUPABASE_URL.includes('your-project-id')
 
 // Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -12,6 +18,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true
   }
 })
+
+// Export configuration status
+export { isSupabaseConfigured }
 
 // Database types
 export interface Database {

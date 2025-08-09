@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../lib/supabase';
 import { User } from '../types';
 import { getCountries, initializeCodeTables } from '../utils/codeTable';
 import { auditLogin } from '../utils/auditService';
+import { authenticate } from '../utils/auth';
 import SearchableDropdown from './SearchableDropdown';
 
 interface SupabaseLoginProps {
@@ -79,66 +79,33 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
     }
 
     try {
-      // Query Supabase profiles table for username authentication
-      // Note: In the seed data, passwords are hashed placeholders - for demo, we'll use simple comparison
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('username', username)
-        .single();
+      // Use the authentication service which handles Supabase and localStorage fallbacks
+      const result = await authenticate(username, password, country);
+      
+      if (result.user) {
+        // Save credentials if remember me is checked
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', JSON.stringify({
+            username,
+            password,
+            country
+          }));
+        } else {
+          localStorage.removeItem('rememberMe');
+        }
 
-      if (profileError || !profile) {
-        throw new Error('Invalid username or password');
-      }
+        // Audit the login
+        try {
+          await auditLogin(result.user.name, result.user.id, result.user.role, result.user.selectedCountry);
+        } catch (auditError) {
+          console.warn('Failed to audit login:', auditError);
+          // Continue with login even if audit fails
+        }
 
-      // For demo purposes, accept simple passwords (Admin, ops_manager, sales_user)
-      // In production, you would verify against password_hash
-      const validPasswords = ['Admin', 'ops_manager', 'sales_user'];
-      if (!validPasswords.includes(password)) {
-        throw new Error('Invalid username or password');
-      }
-
-      // Check if user is enabled
-      if (!profile.enabled) {
-        throw new Error('Account is disabled. Please contact administrator.');
-      }
-
-      // Check if user has access to selected country
-      if (!profile.countries.includes(country)) {
-        throw new Error(`You don't have access to ${country}. Available countries: ${profile.countries.join(', ')}`);
-      }
-
-      // Create user object
-      const user: User = {
-        id: profile.id,
-        username: profile.username,
-        password: '', // Don't store password in memory
-        role: profile.role,
-        name: profile.name,
-        departments: profile.departments || [],
-        countries: profile.countries || [],
-        selectedCountry: country,
-        enabled: profile.enabled
-      };
-
-      // Save credentials if remember me is checked
-      if (rememberMe) {
-        localStorage.setItem('rememberMe', JSON.stringify({
-          username,
-          password,
-          country
-        }));
+        onLogin(result.user);
       } else {
-        localStorage.removeItem('rememberMe');
+        throw new Error(result.error || 'Login failed');
       }
-
-      // Store user session
-      localStorage.setItem('case-booking-session', JSON.stringify(user));
-
-      // Add audit log for successful login
-      await auditLogin(user.name, user.id, user.role, user.selectedCountry);
-
-      onLogin(user);
     } catch (error: any) {
       console.error('Login error:', error);
       setError(error.message || 'Login failed');
