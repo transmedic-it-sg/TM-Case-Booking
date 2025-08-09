@@ -261,13 +261,17 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .connection-details-panel {
-    width: 280px;
-    right: 0;
-    left: auto;
-    z-index: 1050 !important;
+    width: calc(100vw - 24px);
+    max-width: 320px;
+    right: 12px;
+    left: 12px;
+    z-index: 1100 !important;
     position: fixed !important;
-    top: 60px !important;
+    top: 52px !important;
     margin-top: 0 !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 12px !important;
+    overflow: hidden;
   }
   
   .status-text {
@@ -275,7 +279,19 @@
   }
   
   .database-connectivity-indicator {
-    z-index: 1040 !important;
+    z-index: 1050 !important;
+    position: relative;
+  }
+  
+  .connection-status-light {
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .connection-details-close {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
