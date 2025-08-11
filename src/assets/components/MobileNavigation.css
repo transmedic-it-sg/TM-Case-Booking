@@ -157,18 +157,22 @@
   left: 0;
   right: 0;
   bottom: 0;
+  width: 100vw;
+  height: 100vh;
   background: rgba(0, 0, 0, 0.5);
   z-index: 2000;
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s ease;
   backdrop-filter: blur(4px);
+  pointer-events: none;
 }
 
 .mobile-menu-toggle:checked + .mobile-nav-item + .mobile-menu-overlay,
 .mobile-menu-overlay.active {
   opacity: 1;
   visibility: visible;
+  pointer-events: all;
 }
 
 .mobile-menu-toggle:checked + .mobile-nav-item,

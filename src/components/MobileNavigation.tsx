@@ -174,8 +174,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
             
             {/* Expandable menu */}
             {isMenuOpen && (
-              <div className="mobile-menu-overlay active">
-                <div className="mobile-menu-content active">
+              <div className="mobile-menu-overlay active" onClick={closeMenu}>
+                <div className="mobile-menu-content active" onClick={(e) => e.stopPropagation()}>
                 <div className="mobile-menu-header">
                   <div className="mobile-user-info">
                     <div className="mobile-user-detail">
