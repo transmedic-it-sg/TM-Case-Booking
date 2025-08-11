@@ -172,7 +172,11 @@
       "Bash(git fetch:*)",
       "WebFetch(domain:imgur.com)",
       "WebFetch(domain:postimg.cc)",
-      "WebFetch(domain:i.postimg.cc)"
+      "WebFetch(domain:i.postimg.cc)",
+      "Bash(NODE_OPTIONS='--max-old-space-size=8192' npm run build)",
+      "Bash(git remote get-url:*)",
+      "Bash(gh auth:*)",
+      "Bash(git restore:*)"
     ],
     "deny": []
   }

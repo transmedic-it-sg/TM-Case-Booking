@@ -1,5 +1,91 @@
 /* Mobile Component Optimizations */
 
+/* Mobile Animations and Transitions */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideOutToBottom {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
 @media screen and (max-width: 768px) {
   /* Global mobile viewport constraints */
   * {
@@ -76,13 +162,14 @@
     overflow-y: auto !important;
   }
 
-  /* Mobile Status Button Fixes */
+  /* Mobile Status Button Fixes with Animations */
   .case-actions {
     display: flex !important;
     flex-direction: column !important;
     gap: 8px !important;
     padding: 12px 0 !important;
     margin: 0 !important;
+    animation: fadeInUp 0.3s ease-out 0.1s both !important;
   }
   
   .case-buttons {
@@ -109,7 +196,28 @@
     touch-action: manipulation !important;
     -webkit-tap-highlight-color: transparent !important;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-    transition: all 0.2s ease !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transform: translateZ(0) !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  .case-action-button::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.3) !important;
+    transform: translate(-50%, -50%) !important;
+    transition: width 0.3s, height 0.3s !important;
+  }
+
+  .case-action-button:active::before {
+    width: 300px !important;
+    height: 300px !important;
   }
   
   .case-action-button:hover:not(.disabled) {
@@ -186,7 +294,7 @@
 
   /* Mobile Case Summary Design Options */
   
-  /* Mobile Case Card Redesign - Using Actual CSS Classes */
+  /* Mobile Case Card Redesign with Animations */
   .cases-container {
     width: 100% !important;
     max-width: 100% !important;
@@ -205,6 +313,19 @@
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
+    animation: fadeInUp 0.3s ease-out !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transform: translateZ(0) !important;
+  }
+
+  .case-card:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12) !important;
+  }
+
+  .case-card:active {
+    transform: translateY(0) scale(0.99) !important;
+    transition: transform 0.1s ease !important;
   }
   
   /* Case Header with Status - Centered */
@@ -230,29 +351,34 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
   }
   
-  /* Mobile Case Card Structure - Status on top, then two-column content */
+  /* Mobile Case Card Structure - Reorder layout using CSS Grid */
   .case-summary {
-    display: flex !important;
-    flex-direction: column !important;
+    display: grid !important;
+    grid-template-rows: auto 1fr auto !important;
+    grid-template-areas: 
+      "status"
+      "main-info"
+      "expand" !important;
+    gap: 8px !important;
     width: 100% !important;
+    padding: 12px !important;
     position: relative !important;
   }
 
-  /* Case Status positioned at top center, outside of main info */
+  /* Case Status positioned at top center using grid area */
   .case-status {
+    grid-area: status !important;
     display: flex !important;
+    flex-direction: column !important;
     justify-content: center !important;
     align-items: center !important;
     width: 100% !important;
-    padding: 8px 0 !important;
-    margin-bottom: 8px !important;
+    padding: 10px 0 !important;
     background: rgba(32, 178, 170, 0.05) !important;
-    border-bottom: 1px solid rgba(32, 178, 170, 0.1) !important;
-    position: static !important;
-    top: auto !important;
-    right: auto !important;
-    max-width: none !important;
-    z-index: auto !important;
+    border: 1px solid rgba(32, 178, 170, 0.1) !important;
+    border-radius: 8px !important;
+    margin: 0 !important;
+    order: -1 !important;
   }
 
   .case-status .status-text {
@@ -269,18 +395,37 @@
   }
 
   .case-status .pending-indicator {
-    margin-top: 4px !important;
+    margin-top: 6px !important;
     font-size: 10px !important;
     text-align: center !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    padding: 4px 8px !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
   }
 
   /* Case Main Info Grid - Two Columns with Spacing */
   .case-main-info {
+    grid-area: main-info !important;
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 16px !important;
-    padding: 12px !important;
+    padding: 0 !important;
     width: 100% !important;
+  }
+
+  /* Expand icon positioning */
+  .expand-icon {
+    grid-area: expand !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    font-size: 16px !important;
+    color: var(--primary-color) !important;
+    margin-top: 4px !important;
   }
   
   /* Left column - Case Title section */
@@ -440,7 +585,9 @@
   /* Mobile Amendment History Fixes - Enhanced containment */
   .detail-item.amendment-history,
   .amendment-history,
-  .amendment-history-section {
+  .amendment-history-section,
+  .amendment-history-details,
+  .amendment-details {
     width: 100% !important;
     max-width: calc(100vw - 32px) !important;
     overflow-x: hidden !important;
@@ -450,6 +597,23 @@
     margin: 8px 0 !important;
     padding: 8px !important;
     contain: layout style !important;
+  }
+
+  /* Force all amendment text content to wrap */
+  .amendment-history *,
+  .amendment-history-section *,
+  .amendment-details *,
+  .changes-grid *,
+  .change-item *,
+  .change-field,
+  .change-from,
+  .change-to {
+    max-width: 100% !important;
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    hyphens: auto !important;
+    white-space: normal !important;
   }
   
   .amendment-content {
@@ -622,6 +786,36 @@
     margin: 0 !important;
   }
   
+  /* Mobile Database Connection Details Panel Fix with Animation */
+  .connection-details-panel {
+    position: fixed !important;
+    top: 60px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: calc(100vw - 24px) !important;
+    max-width: none !important;
+    z-index: 1100 !important;
+    background: var(--white) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid var(--border-light) !important;
+    margin-top: 0 !important;
+    animation: fadeInDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transform: translateZ(0) !important;
+  }
+
+  .connection-details-panel::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -8px !important;
+    left: 20px !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-left: 8px solid transparent !important;
+    border-right: 8px solid transparent !important;
+    border-bottom: 8px solid var(--white) !important;
+  }
+
   /* Mobile User Management Header Stats Fix */
   .user-management-header {
     padding: 12px !important;
@@ -1994,7 +2188,7 @@
     line-height: 1.1;
   }
 
-  /* Login page mobile fix - Prevent overlap */
+  /* Login page mobile fix with animations */
   .login-container,
   .auth-container,
   .login-page {
@@ -2007,6 +2201,7 @@
     justify-content: center !important;
     overflow-y: auto !important;
     box-sizing: border-box !important;
+    animation: fadeIn 0.5s ease-out !important;
   }
 
   .login-form,
@@ -2021,6 +2216,8 @@
     box-sizing: border-box !important;
     position: relative;
     z-index: 1;
+    animation: bounceIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transform: translateZ(0) !important;
   }
 
   .login-form h1,
