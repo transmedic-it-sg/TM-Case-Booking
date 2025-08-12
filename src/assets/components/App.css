@@ -837,7 +837,6 @@ body {
 }
 
 .status-history {
-  padding-left: 16px;
   margin-top: 8px;
 }
 
@@ -2717,6 +2716,7 @@ body {
 .expand-icon {
   font-size: 14px;
   color: var(--text-secondary);
+  margin-top: 10px;
 }
 
 /* Filters */
@@ -2789,7 +2789,7 @@ body {
 
 /* Case Cards */
 .cases-container {
-  padding: 0 24px 24px;
+  padding: 0 10px 10px;
 }
 
 .case-card {
@@ -2823,7 +2823,7 @@ body {
 }
 
 .case-summary {
-  display: flex;
+  display: grid;
   align-items: center;
   padding: 20px 24px;
   cursor: pointer;
@@ -2882,7 +2882,8 @@ body {
   font-size: 14px;
   text-align: center;
   min-width: 140px;
-  margin-left: 16px;
+  justify-self: end;
+  margin-left: auto;
 }
 
 .case-details {
@@ -3457,7 +3458,6 @@ body {
 
   .case-summary {
     flex-direction: column;
-    gap: 16px;
     text-align: center;
   }
 
@@ -7745,7 +7745,7 @@ textarea:focus {
 }
 
 .change-item {
-  display: grid;
+  display: flow;
   grid-template-columns: 120px 1fr 20px 1fr;
   gap: 8px;
   align-items: center;

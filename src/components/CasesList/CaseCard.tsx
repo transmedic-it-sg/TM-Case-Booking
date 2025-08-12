@@ -291,8 +291,22 @@ const CaseCard: React.FC<CaseCardProps> = ({
             <span className="case-title-label">Submitted by:</span>
             <strong>{getUserName(caseItem.submittedBy)}</strong>
             <span className="case-reference">#{caseItem.caseReferenceNumber}</span>
-          </div>
-          <div className="case-meta">
+            <div className="case-status">
+              <div className="status-text">{caseItem.status}</div>
+              {getNextResponsibleRole(caseItem.status) && (
+                <div className="pending-indicator">
+                  <span className="pending-icon">⏳</span>
+                  <span 
+                  className="pending-text"
+                  title="Click to view Role-Based Permission Matrix">
+                    Awaiting: {getNextResponsibleRole(caseItem.status)}
+                    </span>
+                    </div>
+                  )}
+                  </div>
+                  </div>
+                  </div>
+                  <div className="case-meta">
             <span>Case Title: {caseItem.procedureType}</span>
             <span>Surgery Date: {formatDate(caseItem.dateOfSurgery)}</span>
             <span>Hospital: {caseItem.hospital}</span>
@@ -301,21 +315,6 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <span>Country: {caseItem.country}</span>
             )}
           </div>
-        </div>
-        <div className="case-status">
-          <div className="status-text">{caseItem.status}</div>
-          {getNextResponsibleRole(caseItem.status) && (
-            <div className="pending-indicator">
-              <span className="pending-icon">⏳</span>
-              <span 
-                className="pending-text"
-                title="Click to view Role-Based Permission Matrix"
-              >
-                Awaiting: {getNextResponsibleRole(caseItem.status)}
-              </span>
-            </div>
-          )}
-        </div>
         <div className="expand-icon">
           {expandedCases.has(caseItem.id) ? '▼' : '▶'}
         </div>
