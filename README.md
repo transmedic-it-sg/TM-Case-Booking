@@ -1,6 +1,6 @@
 # Transmedic Case Booking System
 
-## Version 1.2.5
+## Version 1.2.6
 
 A comprehensive React-based case booking application for medical procedures with advanced role-based access control, workflow management, and professional mobile experience.
 
@@ -13,15 +13,15 @@ A comprehensive React-based case booking application for medical procedures with
 - **Role-Based Access**: Granular permissions for different user roles
 - **Multi-Country Support**: Singapore, Malaysia, Philippines, Indonesia, Vietnam, Hong Kong, Thailand
 
-### Latest Features (v1.2.5)
-- **📱 Complete Mobile UI Overhaul**: Professional native app experience with mobile-first design
-- **🚀 Mobile Entry Page**: Smooth transition welcome screen for mobile users
-- **🧭 Mobile Navigation**: Bottom tab bar with native app-like UX
-- **🔧 Horizontal Pagination**: Mobile-optimized pagination controls that don't wrap
-- **📝 Modern Checkbox Design**: Replaced dropdown-style with reference design checkboxes
-- **🎯 Mobile Text Standardization**: Consistent sizing with status positioned top-right
-- **🗂️ Amendment History Fix**: Resolved data population issues from Supabase
-- **⚡ Mobile Performance**: Optimized CSS and component architecture for mobile devices
+### Latest Features (v1.2.6)
+- **📱 Enhanced Mobile Layout**: Refined 2-row mobile case card structure with proper column sizing
+- **🎬 Smooth Animations**: Added expand/collapse animations with modern cubic-bezier transitions
+- **🎯 Context-Specific Icons**: Separated expand-icon styling for section-header vs case-summary
+- **✨ Interactive Effects**: Hover animations, rotation effects, and smooth content transitions
+- **📐 Layout Optimization**: Fixed mobile case-title and case-meta equal sizing issues
+- **🖱️ Better UX**: Enhanced touch interactions with visual feedback and smooth transitions
+- **🔧 CSS Architecture**: Improved mobile-first approach with better component isolation
+- **⚡ Performance**: Hardware-accelerated animations for smooth 60fps mobile experience
 
 ## 🏗️ Architecture
 
@@ -148,12 +148,32 @@ The application is deployed on Vercel:
 ### Branch Structure
 - `main`: Stable release branch
 - `Production`: Production deployment branch  
-- `Version-1.2.5`: Current version branch
+- `Version-1.2.6`: Current version branch
+- `Version-1.2.5`: Previous version branch
 - `UAT`: User acceptance testing branch
 
 ## 📝 Changelog
 
-### Version 1.2.5 (Latest)
+### Version 1.2.6 (Latest)
+#### 🎬 Enhanced Mobile Animations & Layout
+- **Mobile Layout Refinement**: Perfected 2-row mobile case card structure with case-title and case-meta in equal columns, expand-icon spanning full width below
+- **Context-Specific Styling**: Separated expand-icon styling between section-header (small inline indicators) and case-summary (prominent interactive buttons)
+- **Smooth Animation System**: Added comprehensive expand/collapse animations with modern cubic-bezier timing functions for professional feel
+- **Interactive Feedback**: Implemented hover effects, rotation animations, and smooth content transitions for better user engagement
+
+#### ✨ Mobile UX Improvements
+- **Hardware-Accelerated Animations**: Used `translateZ(0)` and GPU acceleration for smooth 60fps performance on mobile devices
+- **Touch-Friendly Interactions**: Enhanced expand-icon with larger touch targets, visual feedback, and responsive press animations
+- **Content Reveal Animations**: Smooth slide-in effects for expanded case details with opacity transitions and height animations
+- **Mobile-First Architecture**: Improved CSS organization with better component isolation and mobile-specific styling
+
+#### 🔧 Technical Enhancements
+- **Animation Performance**: Optimized animations using cubic-bezier timing and hardware acceleration
+- **CSS Specificity**: Better selector targeting to prevent styling conflicts between different UI contexts  
+- **Layout Stability**: Fixed mobile column sizing issues ensuring consistent visual balance
+- **Web View Compatibility**: Maintained desktop experience while enhancing mobile interface
+
+### Version 1.2.5
 #### 📱 Complete Mobile UI Transformation
 - **Professional Mobile Experience**: Complete redesign with native app-like interface
 - **Mobile Entry Page**: Welcome screen with smooth "Proceed to Login" transition (mobile only)
@@ -274,7 +294,7 @@ See version control history for complete changelog.
 
 ---
 
-**Version**: 1.2.5  
-**Last Updated**: 2025-08-08  
-**Deployment**: Production Ready with Mobile PWA  
+**Version**: 1.2.6  
+**Last Updated**: 2025-08-12  
+**Deployment**: Production Ready with Enhanced Mobile Animations  
 **License**: Proprietary
