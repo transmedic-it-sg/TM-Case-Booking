@@ -135,14 +135,6 @@
   }
 }
 
-/* Safe area handling */
-@supports (padding: max(0px)) {
-  .mobile-header-content {
-    padding-left: max(16px, env(safe-area-inset-left));
-    padding-right: max(16px, env(safe-area-inset-right));
-  }
-}
-
 /* Focus styles for accessibility */
 .mobile-logout-btn:focus-visible {
   outline: 2px solid var(--primary-color);

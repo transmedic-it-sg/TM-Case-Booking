@@ -330,7 +330,7 @@
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .booking-calendar {
     padding: 16px;
   }
@@ -414,6 +414,83 @@
   .booking-time,
   .booking-title {
     font-size: 8px;
+  }
+}
+
+/* Touch-friendly mobile enhancements */
+@media (max-width: 1024px) and (hover: none) {
+  .calendar-day:active {
+    transform: scale(0.98);
+    background: var(--primary-light);
+  }
+  
+  .booking-item:active {
+    transform: scale(0.95);
+  }
+  
+  .nav-button:active {
+    transform: scale(0.95);
+  }
+  
+  .current-month:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Enhanced calendar grid for mobile */
+@media (max-width: 1024px) {
+  .calendar-grid {
+    gap: 0px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .calendar-day-header {
+    padding: 8px 4px;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--primary-color);
+    color: white;
+    text-align: center;
+  }
+  
+  .calendar-day {
+    min-height: 80px;
+    padding: 6px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .calendar-day:hover {
+    cursor: pointer;
+    background: var(--background-light);
+  }
+  
+  .booking-item {
+    margin-bottom: 2px;
+    border-radius: 4px;
+    font-weight: 500;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Tablet specific optimizations */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .calendar-day {
+    min-height: 100px;
+    padding: 8px;
+  }
+  
+  .booking-item {
+    font-size: 11px;
+    padding: 3px 5px;
+  }
+  
+  .calendar-day-number {
+    font-size: 13px;
   }
 }
 /* More Cases Button */
@@ -648,7 +725,7 @@
 }
 
 /* Responsive Grid */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .more-cases-grid {
     grid-template-columns: 1fr;
   }

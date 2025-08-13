@@ -401,10 +401,10 @@ const CaseCard: React.FC<CaseCardProps> = ({
                           <div className="changes-grid">
                             {amendment.changes.map((change, changeIndex) => (
                               <div key={changeIndex} className="change-item">
-                                <span className="change-field">{change.field}:</span>
-                                <span className="change-from">{change.oldValue}</span>
-                                <span className="change-arrow">→</span>
-                                <span className="change-to">{change.newValue}</span>
+                                <span className="change-field">{change.field}: </span>
+                                <span className="change-from">{change.oldValue} </span>
+                                <span className="change-arrow"> → </span>
+                                <span className="change-to">{change.newValue} </span>
                               </div>
                             ))}
                           </div>

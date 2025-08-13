@@ -290,6 +290,85 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
     });
   };
 
+  // Mobile list view for better mobile experience
+  const renderMobileListView = () => {
+    const daysInMonth = getDaysInMonth(currentDate);
+    const days = [];
+    const today = new Date();
+    const isCurrentMonth = today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear();
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayCases = getCasesForDay(day);
+      const isToday = isCurrentMonth && day === today.getDate();
+      const dayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+      const dateString = dayDate.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        month: 'long', 
+        day: 'numeric',
+        year: 'numeric'
+      });
+      
+      if (dayCases.length > 0) {
+        days.push(
+          <div key={day} className={`mobile-calendar-day ${isToday ? 'mobile-calendar-day-today' : ''}`}>
+            <div className="mobile-calendar-day-header">
+              <h3 className="mobile-calendar-date">
+                {isToday && <span className="today-badge">Today</span>}
+                {dateString}
+              </h3>
+              <div className="mobile-calendar-day-count">
+                {dayCases.length} case{dayCases.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+            <div className="mobile-calendar-cases">
+              {dayCases.map((caseItem, index) => (
+                <div 
+                  key={`${caseItem.id}-${index}`} 
+                  className="mobile-calendar-case"
+                  onClick={() => onCaseClick?.(caseItem.id)}
+                >
+                  <div className="mobile-case-header">
+                    <div className="mobile-case-time">
+                      {caseItem.timeOfProcedure || 'TBD'}
+                    </div>
+                    <div 
+                      className="mobile-case-status"
+                      style={{
+                        backgroundColor: getStatusColor(caseItem.status),
+                        color: 'white'
+                      }}
+                    >
+                      {caseItem.status}
+                    </div>
+                  </div>
+                  <div className="mobile-case-details">
+                    <div className="mobile-case-ref">{caseItem.caseReferenceNumber}</div>
+                    <div className="mobile-case-procedure">{caseItem.procedureType}</div>
+                    <div className="mobile-case-hospital">{caseItem.hospital}</div>
+                    <div className="mobile-case-doctor">Dr. {caseItem.doctorName}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+    }
+    
+    if (days.length === 0) {
+      return (
+        <div className="mobile-calendar-empty">
+          <div className="empty-state">
+            <h3>No cases scheduled</h3>
+            <p>No cases found for {getMonthYearDisplay(currentDate)} in {selectedDepartment}</p>
+          </div>
+        </div>
+      );
+    }
+    
+    return <div className="mobile-calendar-list">{days}</div>;
+  };
+
   const renderCalendarGrid = () => {
     const daysInMonth = getDaysInMonth(currentDate);
     const firstDay = getFirstDayOfMonth(currentDate);
@@ -413,16 +492,14 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
           {isAdmin && (
             <div className="admin-country-selector">
               <label htmlFor="calendar-country-select">Country:</label>
-              <select
+              <SearchableDropdown
                 id="calendar-country-select"
                 value={selectedCountry || ''}
-                onChange={(e) => setSelectedCountry(e.target.value)}
+                onChange={setSelectedCountry}
+                options={availableCountries}
+                placeholder="Search and select country"
                 className="country-select"
-              >
-                {availableCountries.map(country => (
-                  <option key={country} value={country}>{country}</option>
-                ))}
-              </select>
+              />
             </div>
           )}
         </div>
@@ -523,7 +600,12 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
             <div className="calendar-department-info">
               <strong>Department: {selectedDepartment}</strong>
             </div>
-            {renderCalendarGrid()}
+            <div className="desktop-calendar-view">
+              {renderCalendarGrid()}
+            </div>
+            <div className="mobile-calendar-view">
+              {renderMobileListView()}
+            </div>
           </div>
         ) : (
           <div className="no-department-selected">

@@ -176,7 +176,12 @@
       "Bash(NODE_OPTIONS='--max-old-space-size=8192' npm run build)",
       "Bash(git remote get-url:*)",
       "Bash(gh auth:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(NODE_OPTIONS='--max-old-space-size=8192' timeout 45s npm run build)",
+      "Bash(NODE_OPTIONS='--max-old-space-size=8192' timeout 60s npm run build)",
+      "Bash(true)",
+      "Bash(NODE_OPTIONS='--max-old-space-size=8192' timeout 30s npm run build)",
+      "Bash(NODE_OPTIONS='--max-old-space-size=8192' timeout 90s npm run build)"
     ],
     "deny": []
   }

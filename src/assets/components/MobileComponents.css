@@ -736,50 +736,57 @@
     margin: 0 !important;
   }
   
-  /* Mobile Database Connection Details Panel - Dedicated Mobile Implementation */
+  /* Mobile Database Connection Details Panel - DEFINITIVE Implementation */
   .connection-details-panel {
     position: fixed !important;
     top: 70px !important; /* Below mobile header */
     left: 12px !important;
     right: 12px !important;
+    bottom: 20px !important; /* Add bottom constraint */
     width: calc(100vw - 24px) !important;
     max-width: none !important;
-    z-index: 100000 !important; /* Highest z-index for mobile - increased */
+    z-index: 999999 !important; /* Ultra high z-index */
     background: var(--white) !important;
     border-radius: 12px !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
-    border: 2px solid var(--primary-color) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+    border: 3px solid var(--primary-color) !important;
     margin: 0 !important;
     padding: 0 !important;
-    max-height: 85vh !important;
+    max-height: calc(100vh - 90px) !important;
     overflow-y: auto !important;
     opacity: 1 !important;
     visibility: visible !important;
     display: block !important;
     pointer-events: all !important;
-    transform: translateZ(0) !important;
-    animation: mobileSlideIn 0.3s ease-out !important;
-    touch-action: manipulation !important;
+    transform: translateZ(0) translateY(0) !important;
+    animation: mobileConnectionSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    touch-action: pan-y !important;
     -webkit-overflow-scrolling: touch !important;
-    /* Force layer creation for better performance and visibility */
+    /* Force maximum layer promotion */
     will-change: transform, opacity !important;
     backface-visibility: hidden !important;
     perspective: 1000px !important;
+    contain: layout style paint !important;
+    isolation: isolate !important;
   }
   
-  /* Mobile slide-in animation */
-  @keyframes mobileSlideIn {
-    from {
+  /* Enhanced mobile slide-in animation */
+  @keyframes mobileConnectionSlideIn {
+    0% {
       opacity: 0;
-      transform: translateY(-20px) scale(0.95);
+      transform: translateZ(0) translateY(-30px) scale(0.9);
     }
-    to {
+    50% {
+      opacity: 0.8;
+      transform: translateZ(0) translateY(-5px) scale(0.98);
+    }
+    100% {
       opacity: 1;
-      transform: translateY(0) scale(1);
+      transform: translateZ(0) translateY(0) scale(1);
     }
   }
   
-  /* Mobile connection panel backdrop */
+  /* Mobile connection panel backdrop - Enhanced */
   .connection-details-panel::before {
     content: '' !important;
     position: fixed !important;
@@ -787,19 +794,22 @@
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
-    background: rgba(0, 0, 0, 0.3) !important;
+    background: rgba(0, 0, 0, 0.5) !important;
     z-index: -1 !important;
     pointer-events: none !important;
     transform: translateZ(0) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
   }
   
   /* Ensure database indicator is clickable on mobile */
   .database-connectivity-indicator {
-    z-index: 10001 !important;
+    z-index: 100000 !important;
     position: relative !important;
     touch-action: manipulation !important;
     /* Ensure it's above other mobile elements */
     isolation: isolate !important;
+    contain: layout style !important;
   }
   
   .connection-status-light {
@@ -807,11 +817,16 @@
     touch-action: manipulation !important;
     -webkit-tap-highlight-color: transparent !important;
     pointer-events: all !important;
-    z-index: 10002 !important;
-    padding: 8px !important;
+    z-index: 100001 !important;
+    padding: 12px !important;
     border-radius: 8px !important;
     transition: all 0.2s ease !important;
     position: relative !important;
+    min-height: 44px !important;
+    min-width: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
   
   .connection-status-light:active {
@@ -846,19 +861,39 @@
     background: rgba(239, 68, 68, 0.1) !important;
   }
   
-  /* Mobile Settings Toggle Switch Fix */
+  /* Mobile Settings Toggle Switch Fix - Complete Rewrite */
+  .settings-item {
+    padding: 16px 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    min-height: 60px !important;
+    touch-action: manipulation !important;
+    gap: 16px !important;
+    margin-bottom: 0 !important;
+    border-bottom: 1px solid var(--border-light) !important;
+  }
+  
+  .settings-item:last-child {
+    border-bottom: none !important;
+  }
+  
   .toggle-switch {
-    width: 50px !important;
-    height: 26px !important;
-    border-radius: 13px !important;
+    flex-shrink: 0 !important;
+    width: 56px !important;
+    height: 32px !important;
+    border-radius: 16px !important;
     position: relative !important;
     display: inline-block !important;
     background: #ccc !important;
     border: none !important;
     cursor: pointer !important;
-    transition: background 0.2s ease !important;
+    transition: background 0.3s ease !important;
     touch-action: manipulation !important;
     -webkit-tap-highlight-color: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
   }
   
   .toggle-switch.enabled {
@@ -873,13 +908,14 @@
     position: absolute !important;
     top: 2px !important;
     left: 2px !important;
-    width: 22px !important;
-    height: 22px !important;
+    width: 28px !important;
+    height: 28px !important;
     background: white !important;
     border-radius: 50% !important;
-    transition: transform 0.2s ease !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+    transition: transform 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
     pointer-events: none !important;
+    z-index: 1 !important;
   }
   
   .toggle-switch.enabled .toggle-slider {
@@ -907,18 +943,30 @@
     border: 1px solid var(--border-light) !important;
   }
   
-  .settings-item {
-    padding: 12px 16px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    min-height: 44px !important;
-    touch-action: manipulation !important;
+  .settings-content {
+    padding: 0 !important;
+  }
+  
+  .settings-section {
+    margin-bottom: 0 !important;
+  }
+  
+  .settings-section h4 {
+    padding: 16px 20px 8px !important;
+    margin: 0 !important;
+    background: var(--background-light) !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: var(--text-secondary) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    border-bottom: 1px solid var(--border-light) !important;
   }
   
   .settings-item-info {
     flex: 1 !important;
-    margin-right: 12px !important;
+    margin-right: 16px !important;
+    min-width: 0 !important;
   }
   
   .settings-item-info label {
@@ -927,12 +975,14 @@
     color: var(--text-primary) !important;
     display: block !important;
     margin-bottom: 4px !important;
+    line-height: 1.3 !important;
   }
   
   .settings-item-info small {
-    font-size: 14px !important;
+    font-size: 13px !important;
     color: var(--text-secondary) !important;
     display: block !important;
+    line-height: 1.4 !important;
   }
 
   /* Mobile User Management Header Stats Fix */
@@ -2408,6 +2458,173 @@
     border: 2px solid var(--border-light) !important;
     text-align: center !important;
   }
+  
+  /* Mobile Calendar View - List Layout for Better Mobile Experience */
+  .desktop-calendar-view {
+    display: none !important;
+  }
+  
+  .mobile-calendar-view {
+    display: block !important;
+  }
+  
+  .mobile-calendar-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    padding: 16px !important;
+  }
+  
+  .mobile-calendar-day {
+    background: var(--white) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid var(--border-light) !important;
+    overflow: hidden !important;
+  }
+  
+  .mobile-calendar-day-today {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 4px 12px rgba(32, 178, 170, 0.2) !important;
+  }
+  
+  .mobile-calendar-day-header {
+    background: var(--background-light) !important;
+    padding: 12px 16px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-bottom: 1px solid var(--border-light) !important;
+  }
+  
+  .mobile-calendar-date {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+  
+  .today-badge {
+    background: var(--primary-color) !important;
+    color: white !important;
+    padding: 2px 8px !important;
+    border-radius: 12px !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+  }
+  
+  .mobile-calendar-day-count {
+    background: var(--primary-light) !important;
+    color: var(--primary-color) !important;
+    padding: 4px 8px !important;
+    border-radius: 8px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+  }
+  
+  .mobile-calendar-cases {
+    padding: 0 !important;
+  }
+  
+  .mobile-calendar-case {
+    padding: 12px 16px !important;
+    border-bottom: 1px solid var(--border-light) !important;
+    cursor: pointer !important;
+    transition: background-color 0.2s ease !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  
+  .mobile-calendar-case:last-child {
+    border-bottom: none !important;
+  }
+  
+  .mobile-calendar-case:active {
+    background: var(--background-light) !important;
+  }
+  
+  .mobile-case-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .mobile-case-time {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    color: var(--primary-color) !important;
+    background: var(--primary-light) !important;
+    padding: 4px 8px !important;
+    border-radius: 6px !important;
+  }
+  
+  .mobile-case-status {
+    padding: 4px 8px !important;
+    border-radius: 6px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+  }
+  
+  .mobile-case-details {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+  
+  .mobile-case-ref {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+  }
+  
+  .mobile-case-procedure {
+    font-size: 13px !important;
+    color: var(--text-secondary) !important;
+    font-weight: 500 !important;
+  }
+  
+  .mobile-case-hospital {
+    font-size: 12px !important;
+    color: var(--text-secondary) !important;
+  }
+  
+  .mobile-case-doctor {
+    font-size: 12px !important;
+    color: var(--text-secondary) !important;
+    font-style: italic !important;
+  }
+  
+  .mobile-calendar-empty {
+    padding: 40px 16px !important;
+    text-align: center !important;
+  }
+  
+  .mobile-calendar-empty .empty-state {
+    background: var(--background-light) !important;
+    padding: 32px 24px !important;
+    border-radius: 12px !important;
+    border: 2px dashed var(--border-light) !important;
+  }
+  
+  .mobile-calendar-empty h3 {
+    color: var(--text-secondary) !important;
+    margin: 0 0 8px 0 !important;
+    font-size: 18px !important;
+  }
+  
+  .mobile-calendar-empty p {
+    color: var(--text-secondary) !important;
+    margin: 0 !important;
+    font-size: 14px !important;
+  }
 }
 
 /* Extra small mobile devices */
@@ -2676,6 +2893,41 @@
     cursor: pointer !important;
     user-select: none !important;
   }
+
+/* Desktop Calendar View - Show desktop calendar on larger screens */
+@media screen and (min-width: 1025px) {
+  .desktop-calendar-view {
+    display: block !important;
+  }
+  
+  .mobile-calendar-view {
+    display: none !important;
+  }
+}
+
+/* Small Mobile Calendar - Extra compact for phones */
+@media screen and (max-width: 768px) {
+  .mobile-calendar-day-header {
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: flex-start !important;
+  }
+  
+  .mobile-calendar-date {
+    font-size: 14px !important;
+  }
+  
+  .mobile-case-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  
+  .mobile-case-time,
+  .mobile-case-status {
+    font-size: 12px !important;
+  }
+}
 
 /* Tablet two-column layout (768px-1024px) */
 @media screen and (min-width: 768px) and (max-width: 1366px) {

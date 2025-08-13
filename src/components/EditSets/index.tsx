@@ -17,6 +17,7 @@ import {
 } from '../../utils/storage';
 import SetsList from './SetsList';
 import CustomModal from '../CustomModal';
+import SearchableDropdown from '../SearchableDropdown';
 import { useModal } from '../../hooks/useModal';
 import '../../assets/components/EditSetsMobile.css';
 
@@ -503,16 +504,14 @@ const EditSets: React.FC<EditSetsProps> = () => {
           {isAdmin && (
             <div className="admin-country-selector">
               <label htmlFor="admin-country-select">Country:</label>
-              <select
+              <SearchableDropdown
                 id="admin-country-select"
                 value={selectedCountry || ''}
-                onChange={(e) => setSelectedCountry(e.target.value)}
+                onChange={setSelectedCountry}
+                options={availableCountries}
+                placeholder="Search and select country"
                 className="country-select"
-              >
-                {availableCountries.map(country => (
-                  <option key={country} value={country}>{country}</option>
-                ))}
-              </select>
+              />
             </div>
           )}
         </div>
