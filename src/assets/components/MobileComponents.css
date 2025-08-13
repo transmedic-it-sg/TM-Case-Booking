@@ -736,40 +736,48 @@
     margin: 0 !important;
   }
   
-  /* Mobile Database Connection Details Panel - NUCLEAR OPTION */
-  .connection-details-panel {
+  /* ULTIMATE DATABASE PANEL OVERRIDE - FORCE VISIBILITY */
+  .database-connectivity-indicator .connection-details-panel,
+  .header-db-indicator .connection-details-panel,
+  div.connection-details-panel {
     position: fixed !important;
-    top: 60px !important; /* Closer to header */
-    left: 8px !important;
-    right: 8px !important;
-    width: calc(100vw - 16px) !important;
+    top: 50px !important;
+    left: 4px !important;
+    right: 4px !important;
+    width: calc(100vw - 8px) !important;
     max-width: none !important;
     z-index: 2147483647 !important; /* Maximum possible z-index */
     background: white !important;
     border-radius: 8px !important;
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8) !important;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.9), 0 0 0 4px #20b2aa !important;
     border: 4px solid #20b2aa !important;
     margin: 0 !important;
     padding: 0 !important;
-    max-height: calc(100vh - 80px) !important;
+    max-height: calc(100vh - 60px) !important;
     overflow-y: auto !important;
     opacity: 1 !important;
     visibility: visible !important;
     display: block !important;
     pointer-events: all !important;
-    transform: translate3d(0, 0, 0) !important;
-    /* Force absolute layer creation */
+    transform: translate3d(0, 0, 999px) !important;
+    /* Force maximum layer creation */
     will-change: transform, opacity, visibility !important;
     contain: layout style paint size !important;
     isolation: isolate !important;
-    /* Ensure above all other elements */
-    position: fixed !important;
+    -webkit-transform: translate3d(0, 0, 999px) !important;
+    /* Webkit specific transform */
+    -webkit-perspective: 1000px !important;
+    perspective: 1000px !important;
   }
   
-  /* Force panel to be above everything */
-  .connection-details-panel * {
+  /* Force panel content to be visible */
+  .database-connectivity-indicator .connection-details-panel *,
+  .header-db-indicator .connection-details-panel *,
+  div.connection-details-panel * {
     position: relative !important;
-    z-index: 1 !important;
+    z-index: 2147483646 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
   }
   
   /* Enhanced mobile slide-in animation */
@@ -890,15 +898,19 @@
     border-bottom: none !important;
   }
   
-  .toggle-switch {
+  /* DEFINITIVE TOGGLE SWITCH OVERRIDE - Maximum Specificity */
+  .settings-item button.toggle-switch,
+  .settings-dropdown .toggle-switch,
+  button.toggle-switch.enabled,
+  button.toggle-switch.disabled {
     flex-shrink: 0 !important;
-    width: 60px !important;
-    height: 34px !important;
-    border-radius: 17px !important;
+    width: 62px !important;
+    height: 36px !important;
+    border-radius: 18px !important;
     position: relative !important;
     display: inline-block !important;
-    background: #ddd !important;
-    border: 2px solid #ddd !important;
+    background: #ccc !important;
+    border: none !important;
     cursor: pointer !important;
     transition: all 0.3s ease !important;
     touch-action: manipulation !important;
@@ -907,49 +919,62 @@
     margin: 0 !important;
     overflow: visible !important;
     box-sizing: border-box !important;
+    outline: none !important;
   }
   
-  .toggle-switch.enabled {
+  .settings-item button.toggle-switch.enabled,
+  .settings-dropdown .toggle-switch.enabled,
+  button.toggle-switch.enabled {
     background: #28a745 !important;
-    border-color: #28a745 !important;
   }
   
-  .toggle-switch.disabled {
-    background: #ddd !important;
-    border-color: #ddd !important;
+  .settings-item button.toggle-switch.disabled,
+  .settings-dropdown .toggle-switch.disabled,
+  button.toggle-switch.disabled {
+    background: #ccc !important;
   }
   
-  .toggle-slider {
+  .settings-item button.toggle-switch .toggle-slider,
+  .settings-dropdown .toggle-switch .toggle-slider,
+  button.toggle-switch .toggle-slider {
     position: absolute !important;
-    top: 2px !important;
-    left: 2px !important;
-    width: 26px !important;
-    height: 26px !important;
+    top: 3px !important;
+    left: 3px !important;
+    width: 30px !important;
+    height: 30px !important;
     background: white !important;
     border-radius: 50% !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3) !important;
     pointer-events: none !important;
-    z-index: 2 !important;
+    z-index: 3 !important;
     border: 1px solid rgba(0, 0, 0, 0.1) !important;
   }
   
-  .toggle-switch.enabled .toggle-slider {
+  .settings-item button.toggle-switch.enabled .toggle-slider,
+  .settings-dropdown .toggle-switch.enabled .toggle-slider,
+  button.toggle-switch.enabled .toggle-slider {
     transform: translateX(26px) !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2) !important;
   }
   
-  .toggle-switch.disabled .toggle-slider {
+  .settings-item button.toggle-switch.disabled .toggle-slider,
+  .settings-dropdown .toggle-switch.disabled .toggle-slider,
+  button.toggle-switch.disabled .toggle-slider {
     transform: translateX(0) !important;
   }
   
   /* Active state for touch feedback */
-  .toggle-switch:active .toggle-slider {
-    transform: scale(1.1) translateX(0) !important;
+  .settings-item button.toggle-switch:active .toggle-slider,
+  .settings-dropdown .toggle-switch:active .toggle-slider,
+  button.toggle-switch:active .toggle-slider {
+    transform: scale(1.05) translateX(0) !important;
   }
   
-  .toggle-switch.enabled:active .toggle-slider {
-    transform: scale(1.1) translateX(26px) !important;
+  .settings-item button.toggle-switch.enabled:active .toggle-slider,
+  .settings-dropdown .toggle-switch.enabled:active .toggle-slider,
+  button.toggle-switch.enabled:active .toggle-slider {
+    transform: scale(1.05) translateX(26px) !important;
   }
   
   /* Ensure Settings Panel Displays Properly on Mobile */
@@ -979,7 +1004,7 @@
   
   .settings-section h4 {
     padding: 16px 20px 8px !important;
-    margin: 0 !important;
+    margin: 10px !important;
     background: var(--background-light) !important;
     font-size: 14px !important;
     font-weight: 600 !important;
@@ -2788,23 +2813,33 @@
     transform: scale(0.95) !important;
   }
   
-  .delete-procedure-type-button {
+  .procedure-tab-container .delete-procedure-type-button {
     position: absolute !important;
-    top: -4px !important;
-    right: -4px !important;
-    width: 20px !important;
-    height: 20px !important;
+    top: -6px !important;
+    right: -6px !important;
+    width: 24px !important;
+    height: 24px !important;
     border-radius: 50% !important;
     background: var(--danger-color) !important;
     color: white !important;
-    border: none !important;
-    font-size: 10px !important;
+    border: 2px solid white !important;
+    font-size: 12px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
     touch-action: manipulation !important;
     -webkit-tap-highlight-color: transparent !important;
+    z-index: 10 !important;
+    font-weight: bold !important;
+    line-height: 1 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    transition: all 0.2s ease !important;
+  }
+  
+  .procedure-tab-container .delete-procedure-type-button:active {
+    transform: scale(0.9) !important;
+    background: #c0392b !important;
   }
   
   /* Sets Grid Mobile */
@@ -2967,6 +3002,71 @@
     background: rgba(239, 68, 68, 0.1) !important;
     border-radius: 6px !important;
     border: 1px solid rgba(239, 68, 68, 0.2) !important;
+  }
+  
+  /* Edit Set Item Mobile - Fix Edit Form Bug */
+  .set-item.editing {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 16px !important;
+    background: var(--background-light) !important;
+  }
+  
+  .set-item-edit-form {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+  
+  .set-item-edit-input {
+    width: 100% !important;
+    padding: 12px 16px !important;
+    font-size: 16px !important;
+    border-radius: 8px !important;
+    border: 2px solid var(--border-light) !important;
+    background: var(--white) !important;
+    box-sizing: border-box !important;
+    min-height: 44px !important;
+  }
+  
+  .set-item-edit-input:focus {
+    outline: none !important;
+    border-color: var(--primary-color) !important;
+  }
+  
+  .set-item-edit-actions {
+    display: flex !important;
+    gap: 8px !important;
+    justify-content: flex-end !important;
+  }
+  
+  .set-item-edit-actions .btn {
+    flex: 1 !important;
+    max-width: 80px !important;
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+    border-radius: 6px !important;
+    min-height: 40px !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+    font-weight: 600 !important;
+    border: none !important;
+  }
+  
+  .set-item-edit-actions .btn-primary {
+    background: var(--primary-color) !important;
+    color: white !important;
+  }
+  
+  .set-item-edit-actions .btn-secondary {
+    background: var(--text-secondary) !important;
+    color: white !important;
+  }
+  
+  .set-item-edit-actions .btn:active {
+    transform: scale(0.95) !important;
   }
   
   /* User Management Mobile */
