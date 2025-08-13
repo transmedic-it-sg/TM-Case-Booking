@@ -251,13 +251,29 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   const toggleCaseExpansion = (caseId: string) => {
+    const isMobile = window.innerWidth <= 1366;
+    
     setExpandedCases(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(caseId)) {
-        newSet.delete(caseId);
+      const isCurrentlyExpanded = newSet.has(caseId);
+      
+      if (isMobile) {
+        // Mobile: Only allow one case to be expanded at a time (accordion behavior)
+        if (isCurrentlyExpanded) {
+          newSet.delete(caseId);
+        } else {
+          newSet.clear(); // Close all other expanded cases
+          newSet.add(caseId);
+        }
       } else {
-        newSet.add(caseId);
+        // Desktop: Allow multiple cases to be expanded
+        if (isCurrentlyExpanded) {
+          newSet.delete(caseId);
+        } else {
+          newSet.add(caseId);
+        }
       }
+      
       return newSet;
     });
   };

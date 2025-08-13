@@ -411,7 +411,7 @@
 }
 
 /* Show mobile navigation on small screens */
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 1366px) {
   .mobile-bottom-nav {
     display: block;
   }
@@ -473,9 +473,9 @@
 }
 
 /* Larger mobile devices */
-@media screen and (max-width: 768px) and (min-width: 480px) {
+@media screen and (max-width: 1366px) and (min-width: 480px) {
   .mobile-nav-container {
-    height: 70px;
+    height: 60px;
   }
   
   .mobile-nav-item {
@@ -490,17 +490,6 @@
   
   .mobile-nav-label {
     font-size: 11px;
-  }
-}
-
-/* Extra safe area handling for devices with home indicators */
-@supports (padding: max(0px)) {
-  .mobile-bottom-nav {
-    padding-bottom: max(8px, env(safe-area-inset-bottom));
-  }
-  
-  .mobile-menu-content {
-    padding-bottom: max(20px, env(safe-area-inset-bottom));
   }
 }
 

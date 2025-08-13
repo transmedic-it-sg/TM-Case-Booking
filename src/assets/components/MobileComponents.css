@@ -86,7 +86,7 @@
   }
 }
 
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 1366px) {
   /* Global mobile viewport constraints */
   * {
     max-width: 100% !important;
@@ -180,7 +180,17 @@
     align-items: stretch !important;
   }
   
-  .case-action-button {
+  .case-action-button,
+  .case-action-button.process-order-button,
+  .case-action-button.process-button,
+  .case-action-button.deliver-button,
+  .case-action-button.received-button,
+  .case-action-button.complete-button,
+  .case-action-button.office-deliver-button,
+  .case-action-button.billing-button,
+  .case-action-button.amend-button,
+  .case-action-button.delete-button,
+  .case-action-button.cancel-button {
     width: 100% !important;
     min-height: 44px !important;
     padding: 12px 16px !important;
@@ -200,6 +210,8 @@
     transform: translateZ(0) !important;
     position: relative !important;
     overflow: hidden !important;
+    border: none !important;
+    cursor: pointer !important;
   }
 
   .case-action-button::before {
@@ -494,7 +506,34 @@
     align-self: flex-start !important;
   }
   
-  /* Mobile Amendment History Fixes - Enhanced containment */
+  /* Mobile Detail Item Full-Width Styling */
+  .detail-item.full-width {
+    width: 100% !important;
+    grid-column: 1 / -1 !important;
+    margin: 8px 0 !important;
+    padding: 12px !important;
+    background: var(--background-light) !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--border-light) !important;
+    box-sizing: border-box !important;
+  }
+  
+  .detail-item.full-width .detail-label {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: var(--text-secondary) !important;
+    display: block !important;
+    margin-bottom: 4px !important;
+  }
+  
+  .detail-item.full-width .detail-value {
+    font-size: 13px !important;
+    color: var(--text-primary) !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+  }
+
+/* Mobile Amendment History Fixes - Enhanced containment */
   .detail-item.amendment-history,
   .amendment-history,
   .amendment-history-section,
@@ -570,7 +609,6 @@
     width: 100% !important;
     box-sizing: border-box !important;
     flex-wrap: wrap !important;
-    gap: 8px !important;
   }
   
   .amendment-id {
@@ -698,51 +736,203 @@
     margin: 0 !important;
   }
   
-  /* Mobile Database Connection Details Panel Fix with Animation - Enhanced Visibility */
+  /* Mobile Database Connection Details Panel - Dedicated Mobile Implementation */
   .connection-details-panel {
     position: fixed !important;
-    top: 60px !important;
-    left: 8px !important;
-    right: 8px !important;
-    width: calc(100vw - 16px) !important;
+    top: 70px !important; /* Below mobile header */
+    left: 12px !important;
+    right: 12px !important;
+    width: calc(100vw - 24px) !important;
     max-width: none !important;
-    z-index: 2000 !important;
+    z-index: 100000 !important; /* Highest z-index for mobile - increased */
     background: var(--white) !important;
     border-radius: 12px !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
     border: 2px solid var(--primary-color) !important;
-    margin-top: 0 !important;
-    animation: fadeInDown 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    transform: translateZ(0) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-height: 85vh !important;
+    overflow-y: auto !important;
     opacity: 1 !important;
     visibility: visible !important;
     display: block !important;
-    max-height: 80vh !important;
-    overflow-y: auto !important;
+    pointer-events: all !important;
+    transform: translateZ(0) !important;
+    animation: mobileSlideIn 0.3s ease-out !important;
+    touch-action: manipulation !important;
+    -webkit-overflow-scrolling: touch !important;
+    /* Force layer creation for better performance and visibility */
+    will-change: transform, opacity !important;
+    backface-visibility: hidden !important;
+    perspective: 1000px !important;
   }
-
+  
+  /* Mobile slide-in animation */
+  @keyframes mobileSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  /* Mobile connection panel backdrop */
   .connection-details-panel::before {
     content: '' !important;
-    position: absolute !important;
-    top: -10px !important;
-    left: 24px !important;
-    width: 0 !important;
-    height: 0 !important;
-    border-left: 10px solid transparent !important;
-    border-right: 10px solid transparent !important;
-    border-bottom: 10px solid var(--primary-color) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(0, 0, 0, 0.3) !important;
+    z-index: -1 !important;
+    pointer-events: none !important;
+    transform: translateZ(0) !important;
   }
-
-  .connection-details-panel::after {
-    content: '' !important;
+  
+  /* Ensure database indicator is clickable on mobile */
+  .database-connectivity-indicator {
+    z-index: 10001 !important;
+    position: relative !important;
+    touch-action: manipulation !important;
+    /* Ensure it's above other mobile elements */
+    isolation: isolate !important;
+  }
+  
+  .connection-status-light {
+    cursor: pointer !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+    pointer-events: all !important;
+    z-index: 10002 !important;
+    padding: 8px !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+    position: relative !important;
+  }
+  
+  .connection-status-light:active {
+    transform: scale(0.95) !important;
+    background: rgba(32, 178, 170, 0.1) !important;
+  }
+  
+  /* Mobile panel content adjustments */
+  .connection-details-panel .panel-header {
+    padding: 16px 20px !important;
+    background: var(--primary-light) !important;
+    color: var(--primary-color) !important;
+    font-weight: 600 !important;
+    border-bottom: 2px solid var(--primary-color) !important;
+  }
+  
+  .connection-details-panel .panel-content {
+    padding: 20px !important;
+  }
+  
+  .connection-details-panel .close-button {
+    font-size: 20px !important;
+    padding: 8px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  
+  .connection-details-panel .close-button:active {
+    transform: scale(0.9) !important;
+    background: rgba(239, 68, 68, 0.1) !important;
+  }
+  
+  /* Mobile Settings Toggle Switch Fix */
+  .toggle-switch {
+    width: 50px !important;
+    height: 26px !important;
+    border-radius: 13px !important;
+    position: relative !important;
+    display: inline-block !important;
+    background: #ccc !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: background 0.2s ease !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  
+  .toggle-switch.enabled {
+    background: #28a745 !important;
+  }
+  
+  .toggle-switch.disabled {
+    background: #ccc !important;
+  }
+  
+  .toggle-slider {
     position: absolute !important;
-    top: -8px !important;
-    left: 26px !important;
-    width: 0 !important;
-    height: 0 !important;
-    border-left: 8px solid transparent !important;
-    border-right: 8px solid transparent !important;
-    border-bottom: 8px solid var(--white) !important;
+    top: 2px !important;
+    left: 2px !important;
+    width: 22px !important;
+    height: 22px !important;
+    background: white !important;
+    border-radius: 50% !important;
+    transition: transform 0.2s ease !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+    pointer-events: none !important;
+  }
+  
+  .toggle-switch.enabled .toggle-slider {
+    transform: translateX(24px) !important;
+  }
+  
+  .toggle-switch.disabled .toggle-slider {
+    transform: translateX(0) !important;
+  }
+  
+  /* Ensure Settings Panel Displays Properly on Mobile */
+  .settings-dropdown {
+    position: fixed !important;
+    top: 70px !important;
+    left: 12px !important;
+    right: 12px !important;
+    max-width: none !important;
+    width: calc(100vw - 24px) !important;
+    z-index: 99998 !important;
+    max-height: 85vh !important;
+    overflow-y: auto !important;
+    background: var(--white) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid var(--border-light) !important;
+  }
+  
+  .settings-item {
+    padding: 12px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    min-height: 44px !important;
+    touch-action: manipulation !important;
+  }
+  
+  .settings-item-info {
+    flex: 1 !important;
+    margin-right: 12px !important;
+  }
+  
+  .settings-item-info label {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    display: block !important;
+    margin-bottom: 4px !important;
+  }
+  
+  .settings-item-info small {
+    font-size: 14px !important;
+    color: var(--text-secondary) !important;
+    display: block !important;
   }
 
   /* Mobile User Management Header Stats Fix */
@@ -2180,6 +2370,44 @@
     color: #059669;
     line-height: 1.4;
   }
+
+  /* Calendar Title Row Mobile - Stack vertically */
+  .calendar-title-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
+
+  .calendar-title-row h2 {
+    font-size: 20px !important;
+    margin: 0 !important;
+    text-align: center !important;
+  }
+
+  .admin-country-selector {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .admin-country-selector label {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    text-align: center !important;
+    margin-bottom: 8px !important;
+  }
+
+  .admin-country-selector select {
+    width: 100% !important;
+    padding: 12px !important;
+    font-size: 16px !important;
+    border-radius: 8px !important;
+    border: 2px solid var(--border-light) !important;
+    text-align: center !important;
+  }
 }
 
 /* Extra small mobile devices */
@@ -2252,11 +2480,11 @@
   .user-buttons .btn,
   .admin-buttons .btn {
     flex: 1 !important;
-    min-width: 0 !important;
-    font-size: 8px !important;
-    padding: 3px 4px !important;
-    min-height: 28px !important;
-    border-radius: 3px !important;
+    min-width: 60px !important;
+    font-size: 11px !important;
+    padding: 8px 12px !important;
+    min-height: 32px !important;
+    border-radius: 6px !important;
     text-align: center !important;
     white-space: nowrap;
     overflow: hidden;
@@ -2449,9 +2677,63 @@
     user-select: none !important;
   }
 
+/* Tablet two-column layout (768px-1024px) */
+@media screen and (min-width: 768px) and (max-width: 1366px) {
+  .cases-container {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px !important;
+    padding: 16px !important;
+    grid-auto-rows: max-content !important;
+  }
+  
+  .case-card {
+    margin-bottom: 0 !important;
+    align-self: start !important; /* Prevent grid items from stretching */
+    contain: layout style !important; /* Contain layout changes within each card */
+  }
+  
+  /* Ensure expanded cases don't break grid layout */
+  .case-card .case-details {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  
+  /* Ensure status buttons stretch properly on tablets */
+  .case-action-button,
+  .case-action-button.process-order-button,
+  .case-action-button.process-button,
+  .case-action-button.deliver-button,
+  .case-action-button.received-button,
+  .case-action-button.complete-button,
+  .case-action-button.office-deliver-button,
+  .case-action-button.billing-button,
+  .case-action-button.amend-button,
+  .case-action-button.delete-button,
+  .case-action-button.cancel-button {
+    width: 100% !important;
+    min-height: 44px !important;
+    padding: 12px 16px !important;
+    font-size: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+  
+  .case-actions,
+  .case-buttons {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+}
+
 /* Landscape mobile optimization */
-@media screen and (max-width: 768px) and (orientation: landscape) {
-  .cases-container,
+@media screen and (max-width: 1366px) and (orientation: landscape) {
+  .cases-container:not([style*="grid"]),
   .user-management-table {
     max-height: 300px !important;
     overflow-y: auto !important;

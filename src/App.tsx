@@ -63,12 +63,53 @@ const AppContent: React.FC = () => {
   const { addNotification } = useNotifications();
   const { showSuccess } = useToast();
 
+  // Version checking and cache management
+  useEffect(() => {
+    const checkVersion = () => {
+      const currentVersion = '1.2.6';
+      // Force localStorage to always have the current version for Settings display
+      localStorage.setItem('app-version', currentVersion);
+      const storedVersion = localStorage.getItem('app-version');
+      
+      if (storedVersion && storedVersion !== currentVersion) {
+        // Version has changed, clear cache and reload
+        console.log('🔄 Version mismatch detected. Clearing cache and reloading...');
+        localStorage.setItem('app-version', currentVersion);
+        
+        // Clear various cache items
+        ['supabase.auth.token', 'case-filters', 'case-pagination'].forEach(key => {
+          localStorage.removeItem(key);
+        });
+        
+        // Show notification before reload
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+        
+        return;
+      }
+      
+      if (!storedVersion) {
+        localStorage.setItem('app-version', currentVersion);
+      }
+    };
+
+    checkVersion();
+
+    // Check version every 30 minutes
+    const versionCheckInterval = setInterval(checkVersion, 30 * 60 * 1000);
+
+    return () => {
+      clearInterval(versionCheckInterval);
+    };
+  }, []);
+
   // Check if this is an SSO callback route after all hooks
   const isCallbackRoute = window.location.pathname === '/auth/callback' || window.location.search.includes('code=');
   
   // Check if this is a mobile device
   const isMobileDevice = () => {
-    return window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    return window.innerWidth <= 1366 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   };
 
   useEffect(() => {

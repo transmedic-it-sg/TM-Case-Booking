@@ -2306,7 +2306,7 @@ body {
 }
 
 /* Responsive Design for Login */
-@media (max-width: 1024px) {
+@media (max-width: 1366px) {
   .login-split-screen {
     flex-direction: column;
   }
@@ -3146,7 +3146,7 @@ body {
 
 
 /* Responsive User Management Table */
-@media (max-width: 1024px) {
+@media (max-width: 1366px) {
   .users-table {
     padding: 16px;
     overflow-x: auto;
