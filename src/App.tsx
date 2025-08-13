@@ -64,68 +64,14 @@ const AppContent: React.FC = () => {
   const { addNotification } = useNotifications();
   const { showSuccess } = useToast();
 
-  // Enhanced cache busting and version management
+  // Simple version management without auto-refresh
   useEffect(() => {
-    const clearAllCaches = async () => {
-      // Clear browser caches
-      if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(
-          cacheNames.map(cacheName => caches.delete(cacheName))
-        );
-      }
-      
-      // Clear localStorage cache items
-      ['supabase.auth.token', 'case-filters', 'case-pagination'].forEach(key => {
-        localStorage.removeItem(key);
-      });
-      
-      // Clear sessionStorage
-      sessionStorage.clear();
-    };
-
-    const checkVersion = async () => {
-      const currentVersion = '1.2.7'; // Increment version to force cache clear
-      const buildTimestamp = Date.now(); // Add timestamp for uniqueness
-      const versionKey = `${currentVersion}-${buildTimestamp}`;
-      
-      // Force localStorage to always have the current version for Settings display
-      localStorage.setItem('app-version', currentVersion);
-      const storedVersionKey = localStorage.getItem('app-version-key');
-      
-      if (!storedVersionKey || storedVersionKey !== versionKey) {
-        console.log('🔄 Clearing all caches for fresh start...');
-        
-        // Clear all caches
-        await clearAllCaches();
-        
-        // Set new version key
-        localStorage.setItem('app-version-key', versionKey);
-        localStorage.setItem('app-version', currentVersion);
-        
-        // Add meta tag to prevent caching
-        const metaTag = document.createElement('meta');
-        metaTag.httpEquiv = 'cache-control';
-        metaTag.content = 'no-cache, no-store, must-revalidate';
-        document.head.appendChild(metaTag);
-        
-        // Force reload with cache bypass
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-        
-        return;
-      }
-    };
-
-    checkVersion();
-
-    // Check version more frequently during development
-    const versionCheckInterval = setInterval(checkVersion, 5 * 60 * 1000); // Every 5 minutes
-
-    return () => {
-      clearInterval(versionCheckInterval);
-    };
+    const currentVersion = '1.2.7';
+    // Just set the version for Settings display, no automatic refresh
+    localStorage.setItem('app-version', currentVersion);
+    
+    // Only log version info, don't auto-reload
+    console.log(`📱 TM Case Booking v${currentVersion} loaded`);
   }, []);
 
   // Check if this is an SSO callback route after all hooks
