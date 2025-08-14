@@ -736,38 +736,16 @@
     margin: 0 !important;
   }
   
-  /* ULTIMATE DATABASE PANEL OVERRIDE - FORCE VISIBILITY */
+  /* MOBILE DATABASE PANEL - MINIMAL STYLING ONLY */
   .database-connectivity-indicator .connection-details-panel,
   .header-db-indicator .connection-details-panel,
   div.connection-details-panel {
-    position: fixed !important;
-    top: 50px !important;
-    left: 4px !important;
-    right: 4px !important;
-    width: calc(100vw - 8px) !important;
-    max-width: none !important;
-    z-index: 2147483647 !important; /* Maximum possible z-index */
-    background: white !important;
-    border-radius: 8px !important;
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.9), 0 0 0 4px #20b2aa !important;
-    border: 4px solid #20b2aa !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    max-height: calc(100vh - 60px) !important;
-    overflow-y: auto !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    display: block !important;
-    pointer-events: all !important;
-    transform: translate3d(0, 0, 999px) !important;
-    /* Force maximum layer creation */
-    will-change: transform, opacity, visibility !important;
-    contain: layout style paint size !important;
-    isolation: isolate !important;
-    -webkit-transform: translate3d(0, 0, 999px) !important;
-    /* Webkit specific transform */
-    -webkit-perspective: 1000px !important;
-    perspective: 1000px !important;
+    /* Only essential styling - let React inline styles handle position/size/visibility */
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    max-height: 80vh;
+    overflow: hidden;
+    /* DO NOT override position, display, visibility, or background with !important */
   }
   
   /* Force panel content to be visible */
@@ -775,7 +753,7 @@
   .header-db-indicator .connection-details-panel *,
   div.connection-details-panel * {
     position: relative !important;
-    z-index: 2147483646 !important;
+    z-index: 49999 !important;
     opacity: 1 !important;
     visibility: visible !important;
   }
@@ -814,44 +792,28 @@
   
   /* Ensure database indicator is clickable on mobile */
   .database-connectivity-indicator {
-    z-index: 2147483646 !important;
+    z-index: 49999 !important;
     position: relative !important;
     touch-action: manipulation !important;
-    isolation: isolate !important;
-    contain: layout style !important;
+    /* REMOVED: contain: layout style - this was clipping the fixed panel! */
+    /* REMOVED: isolation: isolate - this was creating stacking context issues! */
   }
   
-  /* Override any conflicting styles */
-  .header-db-indicator .connection-details-panel {
-    position: fixed !important;
-    top: 60px !important;
-    left: 8px !important;
-    right: 8px !important;
-    transform: none !important;
-  }
+  /* Let React component handle header database panel positioning too */
   
   .connection-status-light {
     cursor: pointer !important;
     touch-action: manipulation !important;
     -webkit-tap-highlight-color: transparent !important;
     pointer-events: all !important;
-    z-index: 2147483645 !important;
-    padding: 12px !important;
-    border-radius: 8px !important;
-    transition: all 0.2s ease !important;
-    position: relative !important;
     min-height: 44px !important;
     min-width: 44px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    background: rgba(32, 178, 170, 0.1) !important;
-    border: 1px solid rgba(32, 178, 170, 0.3) !important;
+    /* Let desktop CSS handle styling - don't override background */
   }
   
   .connection-status-light:active {
     transform: scale(0.95) !important;
-    background: rgba(32, 178, 170, 0.1) !important;
+    /* Let desktop CSS handle background colors */
   }
   
   /* Mobile panel content adjustments */
@@ -985,7 +947,7 @@
     right: 12px !important;
     max-width: none !important;
     width: calc(100vw - 24px) !important;
-    z-index: 99998 !important;
+    z-index: 100000 !important; /* Settings dropdown - Level 5 */
     max-height: 85vh !important;
     overflow-y: auto !important;
     background: var(--white) !important;
@@ -999,7 +961,7 @@
   }
   
   .settings-section {
-    margin-bottom: 0 !important;
+    margin-bottom: 10 !important;
   }
   
   .settings-section h4 {
@@ -1054,12 +1016,27 @@
     text-align: center !important;
   }
   
-  /* Header Stats Mobile Optimization - All stat containers */
-  .header-stats,
+  /* Header Stats Mobile Optimization - SEPARATED FOR AUDIT LOG VS USER MANAGEMENT */
+  
+  /* User Management header-stats - 3 columns */
+  .user-management .header-stats,
+  .user-management-container .header-stats,
   .user-stats-container {
     display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important;
     gap: 8px !important;
+    margin-top: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Audit Log header-stats - 2 columns */
+  .audit-logs .header-stats,
+  .audit-logs-container .header-stats,
+  body[class*="audit"] .header-stats {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
     margin-top: 12px !important;
     width: 100% !important;
     max-width: 100% !important;
@@ -2192,6 +2169,50 @@
     text-align: center;
     line-height: 1.1;
   }
+
+  /* Fix squeezed active button in user management mobile */
+  .user-management .btn.active,
+  .user-management .btn-group .btn.active,
+  .user-management .action-buttons .btn.active,
+  .user-management .button-group .btn.active,
+  .user-actions .btn.active,
+  .user-management .status-indicator.active,
+  .user-management .status-badge.active {
+    background: var(--success) !important;
+    color: white !important;
+    border: 1px solid var(--success) !important;
+    font-weight: 600 !important;
+    min-width: 40px !important;
+    padding: 3px 6px !important;
+    border-radius: 6px !important;
+    font-size: 8px !important;
+    min-height: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    width: auto !important;
+    max-width: 80px !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    white-space: nowrap !important;
+  }
+
+  /* Green active status indicator specifically */
+  .user-management .status-indicator,
+  .user-management .status-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 35px !important;
+    height: 20px !important;
+    border-radius: 10px !important;
+    font-size: 8px !important;
+    font-weight: 600 !important;
+    padding: 0 6px !important;
+    text-align: center !important;
+    line-height: 1 !important;
+  }
   
   /* Form Mobile Optimization */
   .form-container {
@@ -2348,6 +2369,128 @@
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
   }
+
+  /* Enhanced Modal Overlay Mobile Optimization - SPECIFIC TARGETING ONLY */
+  .modal-overlay:not(.login-popup):not(.success-popup),
+  .custom-modal-overlay {
+    background: rgba(0, 0, 0, 0.6) !important;
+  }
+
+  .modal-dialog:not(.login-modal):not(.success-modal),
+  .custom-modal-content:not(.login-content):not(.success-content) {
+    margin: 4px !important;
+    max-width: calc(100vw - 8px) !important;
+    width: calc(100vw - 8px) !important;
+    max-height: calc(100vh - 16px) !important;
+    min-height: auto !important;
+  }
+
+  .modal-content:not(.login-modal-content):not(.success-modal-content),
+  .custom-modal-content:not(.login-content):not(.success-content) {
+    max-height: calc(100vh - 20px) !important;
+    border-radius: 6px !important;
+    overflow: hidden !important;
+  }
+
+  /* Compact modal headers - EXCLUDE LOGIN/SUCCESS POPUPS */
+  .modal-header:not(.login-header):not(.success-header):not(.popup-header) {
+    padding: 8px 10px !important;
+    min-height: auto !important;
+    border-bottom: 1px solid #eee !important;
+  }
+
+  .modal-header:not(.login-header):not(.success-header) h1,
+  .modal-header:not(.login-header):not(.success-header) h2,
+  .modal-header:not(.login-header):not(.success-header) h3,
+  .modal-header:not(.login-header):not(.success-header) h4,
+  .modal-header:not(.login-header):not(.success-header) h5 {
+    font-size: 14px !important;
+    margin: 0 !important;
+    line-height: 1.2 !important;
+    font-weight: 600 !important;
+  }
+
+  /* Compact modal body - EXCLUDE LOGIN/SUCCESS POPUPS */
+  .modal-body:not(.login-body):not(.success-body):not(.popup-body) {
+    padding: 0px 0px !important;
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+    max-height: calc(70vh) !important;
+    overflow-y: auto !important;
+  }
+
+  /* Compact modal footer - EXCLUDE LOGIN/SUCCESS POPUPS */
+  .modal-footer:not(.login-footer):not(.success-footer):not(.popup-footer) {
+    padding: 6px 10px !important;
+    gap: 4px !important;
+    border-top: 1px solid #eee !important;
+  }
+
+  .modal-footer .btn,
+  .popup-footer .btn {
+    font-size: 11px !important;
+    padding: 6px 8px !important;
+    min-height: 32px !important;
+    border-radius: 4px !important;
+  }
+
+  /* Form elements in modals */
+  .modal-body .form-group,
+  .popup-body .form-group {
+    margin-bottom: 8px !important;
+  }
+
+  .modal-body .form-group label,
+  .popup-body .form-group label {
+    font-size: 11px !important;
+    margin-bottom: 2px !important;
+    font-weight: 600 !important;
+  }
+
+  .modal-body .form-group input,
+  .modal-body .form-group select,
+  .modal-body .form-group textarea,
+  .popup-body .form-group input,
+  .popup-body .form-group select,
+  .popup-body .form-group textarea {
+    font-size: 14px !important;
+    padding: 6px 8px !important;
+    border-radius: 4px !important;
+    border: 1px solid #ccc !important;
+  }
+
+  /* Close button optimization */
+  .modal-close-btn,
+  .popup-close,
+  .close {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 16px !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Edit user modal specific optimizations */
+  .modal-body .user-status,
+  .modal-body .departments,
+  .modal-body .countries {
+    margin-bottom: 8px !important;
+  }
+
+  .modal-body .user-status-section,
+  .modal-body .departments-section,
+  .modal-body .countries-section {
+    padding: 6px 0 !important;
+  }
+
+  .modal-body .status-toggle,
+  .modal-body .department-list,
+  .modal-body .country-list {
+    font-size: 11px !important;
+  }
   
   /* Alert Mobile Optimization */
   .alert {
@@ -2382,17 +2525,49 @@
     width: 100% !important;
   }
   
+  /* Modern Filter Actions Mobile Fix */
+  .modern-filter-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+    padding: 12px !important;
+    background: #f8f9fa !important;
+    border-radius: 8px !important;
+    border: 1px dashed #dee2e6 !important;
+    overflow: visible !important;
+  }
+
+  .filter-stats {
+    text-align: center !important;
+    margin: 0 !important;
+    order: 1 !important;
+  }
+
   .filter-buttons {
     display: flex !important;
-    gap: 6px !important;
-    margin-top: 12px !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+    order: 2 !important;
+    margin-top: 0 !important;
   }
   
-  .filter-buttons .btn {
-    flex: 1 !important;
-    font-size: 12px !important;
-    padding: 6px 10px !important;
-    min-height: 40px !important;
+  .filter-buttons .btn,
+  .modern-clear-button,
+  .modern-apply-button {
+    width: 100% !important;
+    flex: none !important;
+    font-size: 14px !important;
+    padding: 12px 16px !important;
+    min-height: 44px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
   }
   
   /* Search Mobile Optimization */
@@ -2774,8 +2949,8 @@
   .procedure-tabs {
     display: flex !important;
     flex-wrap: wrap !important;
-    gap: 8px !important;
-    justify-content: center !important;
+    gap: 10px !important;
+    padding: 6px !important;
   }
   
   .procedure-tab-container {
@@ -3225,7 +3400,6 @@
     padding: 12px 16px !important;
     font-size: 16px !important;
     border-radius: 8px !important;
-    border: 2px solid var(--border-light) !important;
     background: var(--white) !important;
     box-sizing: border-box !important;
     min-height: 44px !important;
@@ -3293,11 +3467,9 @@
     display: flex !important;
     align-items: center !important;
     gap: 8px !important;
-    padding: 12px 16px !important;
     border-radius: 8px !important;
     font-size: 14px !important;
     font-weight: 500 !important;
-    margin: 12px 0 !important;
   }
   
   .status-indicator.success {
@@ -3316,6 +3488,103 @@
     background: rgba(245, 158, 11, 0.1) !important;
     color: #d97706 !important;
     border: 1px solid rgba(245, 158, 11, 0.2) !important;
+  }
+
+  /* COMPLETELY REWRITE Email Configuration Mobile - SIMPLE APPROACH */
+  .email-configuration-container {
+    padding: 12px !important;
+    background: var(--background-light) !important;
+  }
+
+  .email-config-header {
+    background: white !important;
+    padding: 16px !important;
+    margin-bottom: 16px !important;
+    border-radius: 12px !important;
+    text-align: center !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .email-config-header h2 {
+    font-size: 18px !important;
+    margin: 0 0 8px 0 !important;
+    color: var(--primary-color) !important;
+  }
+
+  .email-config-header p {
+    font-size: 13px !important;
+    margin: 0 !important;
+    color: var(--text-secondary) !important;
+  }
+
+  /* Country selector at top */
+  .email-config-header .country-selector-group,
+  .email-config-header .country-selector-wrapper {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-top: 12px !important;
+  }
+
+  .email-config-header .country-selector-group label {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+  }
+
+  .email-config-header select {
+    padding: 8px 12px !important;
+    font-size: 16px !important;
+    border-radius: 8px !important;
+    border: 2px solid var(--border-light) !important;
+    background: white !important;
+    min-width: 200px !important;
+  }
+
+  /* Email configuration sections */
+  .email-config-content {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  .config-section {
+    background: white !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--border-light) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    overflow: hidden !important;
+  }
+
+  .section-header {
+    background: var(--background-light) !important;
+    padding: 5px 10px !important;
+    border-bottom: 1px solid var(--border-light) !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+
+  .section-header h3 {
+    font-size: 16px !important;
+    margin: 0 !important;
+    color: var(--text-primary) !important;
+  }
+
+  .section-header .expand-icon {
+    font-size: 14px !important;
+    color: var(--text-secondary) !important;
+  }
+
+  .section-content {
+    padding: 20px !important;
+    background: white !important;
+  }
+
+  /* Hide drag handles on mobile */
+  .drag-handle {
+    display: none !important;
   }
 }
 

@@ -106,7 +106,7 @@
 /* Compact mobile header for very small screens */
 @media screen and (max-width: 480px) {
   .mobile-header-content {
-    padding: 10px 12px;
+    padding: 10px 0px;
     min-height: 64px;
   }
   

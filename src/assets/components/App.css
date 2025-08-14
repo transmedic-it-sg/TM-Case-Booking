@@ -964,7 +964,7 @@ body {
 .sets-section {
   background: var(--white);
   border-radius: var(--border-radius-large);
-  padding: 24px;
+  padding: 12px;
   box-shadow: var(--shadow-medium);
   border: 1px solid var(--border-light);
 }
@@ -2306,7 +2306,7 @@ body {
 }
 
 /* Responsive Design for Login */
-@media (max-width: 1366px) {
+@media (max-width: 1024px) {
   .login-split-screen {
     flex-direction: column;
   }
@@ -3146,7 +3146,7 @@ body {
 
 
 /* Responsive User Management Table */
-@media (max-width: 1366px) {
+@media (max-width: 1024px) {
   .users-table {
     padding: 16px;
     overflow-x: auto;
@@ -7600,7 +7600,7 @@ textarea:focus {
 /* Amendment History Header */
 .amendment-header-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   margin-bottom: 10px;
 }

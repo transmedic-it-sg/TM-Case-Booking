@@ -322,8 +322,10 @@
   
   .arrow-controls {
     display: flex !important;
-    flex-direction: column !important;
-    gap: 1px !important;
+    flex-direction: row !important;
+    gap: 4px !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
   
   .arrow-button {
