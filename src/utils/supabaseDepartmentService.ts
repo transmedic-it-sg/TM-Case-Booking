@@ -4,7 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
-
+import { getCountryForDatabase, getCountryVariations } from './countryDatabaseCompatibility';
 
 // Types
 export interface Department {
@@ -83,9 +83,10 @@ export const getDepartments = async (country?: string): Promise<Department[]> =>
       .eq('is_active', true)
       .order('name');
     
-    // Filter by country if specified
+    // Filter by country if specified - use flexible matching for compatibility
     if (country) {
-      query = query.eq('country', country);
+      const countryVariations = getCountryVariations(country);
+      query = query.in('country', countryVariations);
     }
 
     const { data, error } = await query;
@@ -108,11 +109,12 @@ export const getDepartments = async (country?: string): Promise<Department[]> =>
  */
 export const addDepartment = async (name: string, country: string, description?: string): Promise<Department> => {
   try {
+    const dbCountry = getCountryForDatabase(country);
     const { data, error } = await supabase
       .from('departments')
       .insert({
         name,
-        country,
+        country: dbCountry,
         description,
         is_active: true
       })
@@ -140,14 +142,15 @@ export const addDepartment = async (name: string, country: string, description?:
  */
 export const getProcedureTypesForDepartment = async (departmentName: string, country: string): Promise<string[]> => {
   try {
-    console.log('🔍 Getting procedure types for:', { departmentName, country });
+    const countryVariations = getCountryVariations(country);
+    console.log('🔍 Getting procedure types for:', { departmentName, country, countryVariations });
     
-    // First, get the department ID
+    // First, get the department ID - use flexible country matching
     const { data: departments } = await supabase
       .from('departments')
       .select('id')
       .eq('name', departmentName)
-      .eq('country', country)
+      .in('country', countryVariations)
       .eq('is_active', true);
     
     if (!departments || departments.length === 0) {
@@ -157,12 +160,12 @@ export const getProcedureTypesForDepartment = async (departmentName: string, cou
     
     const departmentId = departments[0].id;
     
-    // Get procedure types from database
+    // Get procedure types from database - use flexible country matching
     const { data, error } = await supabase
       .from('department_procedure_types')
       .select('procedure_type')
       .eq('department_id', departmentId)
-      .eq('country', country)
+      .in('country', countryVariations)
       .eq('is_active', true)
       .eq('is_hidden', false)
       .order('procedure_type');
@@ -380,14 +383,15 @@ export const getCategorizedSetsForDepartment = async (
   country: string
 ): Promise<CategorizedSetsResult> => {
   try {
-    console.log('🔍 Getting categorized sets from Supabase:', { departmentName, country });
+    const countryVariations = getCountryVariations(country);
+    console.log('🔍 Getting categorized sets from Supabase:', { departmentName, country, countryVariations });
     
-    // First, get the department ID
+    // First, get the department ID - use flexible country matching
     const { data: departments } = await supabase
       .from('departments')
       .select('id')
       .eq('name', departmentName)
-      .eq('country', country)
+      .in('country', countryVariations)
       .eq('is_active', true);
     
     if (!departments || departments.length === 0) {
@@ -397,7 +401,7 @@ export const getCategorizedSetsForDepartment = async (
     
     const departmentId = departments[0].id;
     
-    // Get categorized sets from database
+    // Get categorized sets from database - use flexible country matching
     const { data, error } = await supabase
       .from('department_categorized_sets')
       .select(`
@@ -406,7 +410,7 @@ export const getCategorizedSetsForDepartment = async (
         implant_box:implant_boxes(name)
       `)
       .eq('department_id', departmentId)
-      .eq('country', country);
+      .in('country', countryVariations);
     
     if (error) {
       console.error('Error fetching categorized sets:', error);
@@ -669,12 +673,13 @@ export const saveCategorizedSetsForDepartment = async (
  */
 export const getSurgerySets = async (country: string): Promise<string[]> => {
   try {
-    console.log('🔍 Getting surgery sets from Supabase for:', country);
+    const countryVariations = getCountryVariations(country);
+    console.log('🔍 Getting surgery sets from Supabase for:', country, countryVariations);
     
     const { data, error } = await supabase
       .from('surgery_sets')
       .select('name')
-      .eq('country', country)
+      .in('country', countryVariations)
       .eq('is_active', true)
       .order('name');
 
@@ -697,12 +702,13 @@ export const getSurgerySets = async (country: string): Promise<string[]> => {
  */
 export const getImplantBoxes = async (country: string): Promise<string[]> => {
   try {
-    console.log('🔍 Getting implant boxes from Supabase for:', country);
+    const countryVariations = getCountryVariations(country);
+    console.log('🔍 Getting implant boxes from Supabase for:', country, countryVariations);
     
     const { data, error } = await supabase
       .from('implant_boxes')
       .select('name')
-      .eq('country', country)
+      .in('country', countryVariations)
       .eq('is_active', true)
       .order('name');
 

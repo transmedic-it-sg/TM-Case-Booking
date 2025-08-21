@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../types';
-import { getCountries, initializeCodeTables } from '../utils/codeTable';
+import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
 import { auditLogin } from '../utils/auditService';
 import { authenticate } from '../utils/auth';
 import SearchableDropdown from './SearchableDropdown';
@@ -20,11 +20,9 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const countrySelectRef = useRef<HTMLSelectElement>(null);
 
-  // Initialize code tables and load countries
+  // Load countries on component mount
   useEffect(() => {
-    initializeCodeTables();
-    const countries = getCountries();
-    setAvailableCountries(countries);
+    setAvailableCountries([...SUPPORTED_COUNTRIES]);
 
     
     // Load remembered credentials

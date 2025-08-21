@@ -272,6 +272,30 @@
   cursor: pointer;
 }
 
+/* Clickable calendar day styles */
+.calendar-day-clickable:hover {
+  background: rgba(32, 178, 170, 0.05);
+  border: 2px dashed rgba(32, 178, 170, 0.3);
+  cursor: pointer;
+}
+
+.calendar-day-clickable:hover::after {
+  content: '+ Click to book';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(32, 178, 170, 0.9);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 10;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .calendar-day-empty {
   background: #f8f9fa;
 }
@@ -417,6 +441,50 @@
   }
 }
 
+/* Mobile click-to-book button */
+.mobile-calendar-book-new {
+  background: linear-gradient(135deg, rgba(32, 178, 170, 0.1), rgba(32, 178, 170, 0.05));
+  border: 2px dashed rgba(32, 178, 170, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mobile-calendar-book-new:hover {
+  background: linear-gradient(135deg, rgba(32, 178, 170, 0.15), rgba(32, 178, 170, 0.1));
+  border-color: rgba(32, 178, 170, 0.5);
+  transform: translateY(-1px);
+}
+
+.mobile-book-new-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mobile-book-new-icon {
+  font-size: 24px;
+  opacity: 0.8;
+}
+
+.mobile-book-new-text {
+  flex: 1;
+}
+
+.mobile-book-new-title {
+  font-weight: 600;
+  color: var(--primary-color);
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.mobile-book-new-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 /* Touch-friendly mobile enhancements */
 @media (max-width: 1024px) and (hover: none) {
   .calendar-day:active {
@@ -426,6 +494,11 @@
   
   .booking-item:active {
     transform: scale(0.95);
+  }
+  
+  .mobile-calendar-book-new:active {
+    transform: scale(0.98);
+    background: linear-gradient(135deg, rgba(32, 178, 170, 0.2), rgba(32, 178, 170, 0.15));
   }
   
   .nav-button:active {

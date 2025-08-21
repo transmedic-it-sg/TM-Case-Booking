@@ -69,21 +69,15 @@ const SystemSettings: React.FC = () => {
       }
       // Fall back to default config so the UI still works
       const defaultConfig = await import('../utils/systemSettingsService').then(m => m.getSystemConfig().catch(() => ({
-        appName: 'Transmedic Case Booking',
         appVersion: getAppVersion(),
         maintenanceMode: false,
         cacheTimeout: 300,
         maxFileSize: 10,
         sessionTimeout: 3600,
         passwordComplexity: true,
-        twoFactorAuth: false,
         auditLogRetention: 90,
         amendmentTimeLimit: 1440,
         maxAmendmentsPerCase: 5,
-        emailNotifications: true,
-        systemAlerts: true,
-        backupFrequency: 'daily' as const,
-        autoCleanup: true,
         defaultTheme: 'light' as const,
         defaultLanguage: 'en'
       })));
@@ -170,20 +164,14 @@ const SystemSettings: React.FC = () => {
     
     // Check localStorage settings
     const checks: Array<{ name: string; expected: string | null; actual: string | null }> = [
-      { name: 'App Name', expected: savedConfig.appName, actual: localStorage.getItem('appName') },
       { name: 'Session Timeout', expected: (savedConfig.sessionTimeout * 1000).toString(), actual: localStorage.getItem('sessionTimeout') },
-      { name: 'Email Notifications', expected: savedConfig.emailNotifications.toString(), actual: localStorage.getItem('emailNotificationsEnabled') },
-      { name: 'System Alerts', expected: savedConfig.systemAlerts.toString(), actual: localStorage.getItem('systemAlertsEnabled') },
       { name: 'Default Theme', expected: savedConfig.defaultTheme, actual: localStorage.getItem('defaultTheme') },
       { name: 'Cache Timeout', expected: savedConfig.cacheTimeout.toString(), actual: localStorage.getItem('cacheTimeout') },
       { name: 'Max File Size', expected: savedConfig.maxFileSize.toString(), actual: localStorage.getItem('maxFileSize') },
       { name: 'Audit Log Retention', expected: savedConfig.auditLogRetention.toString(), actual: localStorage.getItem('auditLogRetention') },
       { name: 'Amendment Time Limit', expected: savedConfig.amendmentTimeLimit.toString(), actual: localStorage.getItem('amendmentTimeLimit') },
       { name: 'Max Amendments Per Case', expected: savedConfig.maxAmendmentsPerCase.toString(), actual: localStorage.getItem('maxAmendmentsPerCase') },
-      { name: 'Backup Frequency', expected: savedConfig.backupFrequency, actual: localStorage.getItem('backupFrequency') },
-      { name: 'Auto Cleanup', expected: savedConfig.autoCleanup.toString(), actual: localStorage.getItem('autoCleanup') },
       { name: 'Password Complexity', expected: savedConfig.passwordComplexity.toString(), actual: localStorage.getItem('passwordComplexity') },
-      { name: 'Two Factor Auth', expected: savedConfig.twoFactorAuth.toString(), actual: localStorage.getItem('twoFactorAuth') }
     ];
 
     // Special checks for maintenance mode (removed when false)
@@ -383,17 +371,6 @@ const SystemSettings: React.FC = () => {
           icon="🏢"
         >
           <div className="modern-setting-item">
-            <label className="modern-setting-label">Application Name</label>
-            <input
-              type="text"
-              className="modern-setting-input"
-              value={config.appName}
-              onChange={(e) => handleConfigChange('appName', e.target.value)}
-              placeholder="Enter application name"
-            />
-            <small className="modern-setting-description">Name displayed in the application header</small>
-          </div>
-          <div className="modern-setting-item">
             <label className="modern-setting-label">Version</label>
             <input
               type="text"
@@ -485,17 +462,6 @@ const SystemSettings: React.FC = () => {
           <small>Enforce strong password requirements</small>
         </div>
         <div className="setting-item">
-          <label>
-            <input
-              type="checkbox"
-              checked={config.twoFactorAuth}
-              onChange={(e) => handleConfigChange('twoFactorAuth', e.target.checked)}
-            />
-            Two-Factor Authentication
-          </label>
-          <small>Require 2FA for user accounts</small>
-        </div>
-        <div className="setting-item">
           <label>Audit Log Retention (days)</label>
           <input
             type="number"
@@ -539,68 +505,7 @@ const SystemSettings: React.FC = () => {
         </div>
       </CollapsibleSection>
 
-        {/* Notification Settings */}
-        <CollapsibleSection 
-          title="Notification Settings" 
-          description="Configure system notifications and alerts"
-          sectionKey="notification"
-          icon="🔔"
-        >
-        <div className="setting-item">
-          <label>
-            <input
-              type="checkbox"
-              checked={config.emailNotifications}
-              onChange={(e) => handleConfigChange('emailNotifications', e.target.checked)}
-            />
-            Email Notifications
-          </label>
-          <small>Send notifications via email</small>
-        </div>
-        <div className="setting-item">
-          <label>
-            <input
-              type="checkbox"
-              checked={config.systemAlerts}
-              onChange={(e) => handleConfigChange('systemAlerts', e.target.checked)}
-            />
-            System Alerts
-          </label>
-          <small>Show system-wide alert messages</small>
-        </div>
-      </CollapsibleSection>
 
-        {/* Database Settings */}
-        <CollapsibleSection 
-          title="Database Settings" 
-          description="Database maintenance and backup configuration"
-          sectionKey="database"
-          icon="🗄️"
-        >
-        <div className="setting-item">
-          <label>Backup Frequency</label>
-          <select
-            value={config.backupFrequency}
-            onChange={(e) => handleConfigChange('backupFrequency', e.target.value)}
-          >
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
-          <small>How often to create database backups</small>
-        </div>
-        <div className="setting-item">
-          <label>
-            <input
-              type="checkbox"
-              checked={config.autoCleanup}
-              onChange={(e) => handleConfigChange('autoCleanup', e.target.checked)}
-            />
-            Automatic Cleanup
-          </label>
-          <small>Automatically clean old data and logs</small>
-        </div>
-      </CollapsibleSection>
 
 
       </div>

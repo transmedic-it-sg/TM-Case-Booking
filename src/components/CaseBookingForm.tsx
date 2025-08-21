@@ -1,16 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { CaseBooking, SURGERY_SETS, IMPLANT_BOXES, PROCEDURE_TYPE_MAPPINGS } from '../types';
+import { CaseBooking } from '../types';
 import { CategorizedSets } from '../utils/storage';
 import { saveCase, generateCaseReferenceNumber, getProcedureTypesForDepartment, getCategorizedSetsForDepartment } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
-import { 
-  getHospitals, 
-  getHospitalsForCountry,
-  getDepartments, 
-  initializeCodeTables,
-  getDepartmentNamesForUser
-} from '../utils/codeTable';
+import { getDepartments } from '../utils/supabaseDepartmentService';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import TimePicker from './common/TimePicker';
 import SearchableDropdown from './SearchableDropdown';
@@ -51,10 +45,43 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
   const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);
   const [categorizedSets, setCategorizedSets] = useState<CategorizedSets>({});
 
-  // Load dynamic procedure types and initialize code tables on component mount
+  // Check for calendar pre-fill data on component mount
+  useEffect(() => {
+    const prefillDate = localStorage.getItem('calendar_prefill_date');
+    const prefillDepartment = localStorage.getItem('calendar_prefill_department');
+
+    if (prefillDate && prefillDepartment) {
+      console.log('[CaseBookingForm] Found calendar pre-fill data:', {
+        date: prefillDate,
+        department: prefillDepartment
+      });
+
+      const parsedDate = new Date(prefillDate);
+      // Format date using local timezone to avoid timezone conversion issues
+      const formattedDate = parsedDate.getFullYear() + '-' + 
+        String(parsedDate.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(parsedDate.getDate()).padStart(2, '0');
+      
+      setFormData(prev => ({
+        ...prev,
+        dateOfSurgery: formattedDate,
+        department: prefillDepartment
+      }));
+
+      // Clear the pre-fill data from localStorage
+      localStorage.removeItem('calendar_prefill_date');
+      localStorage.removeItem('calendar_prefill_department');
+
+      console.log('[CaseBookingForm] Applied calendar pre-fill data:', {
+        dateOfSurgery: formattedDate,
+        department: prefillDepartment
+      });
+    }
+  }, []);
+
+  // Load dynamic procedure types on component mount
   useEffect(() => {
     const loadData = async () => {
-      initializeCodeTables();
       // Using currentUser from component scope
       const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
       // Procedure types will be loaded when department is selected
@@ -99,14 +126,9 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         }
       } catch (error) {
         console.error('Error loading hospitals from Supabase, using fallback:', error);
-        // Fallback to localStorage-based functions
-        if (userCountry) {
-          const hospitals = getHospitalsForCountry(userCountry);
-          setAvailableHospitals(hospitals.sort());
-        } else {
-          const hospitals = getHospitals();
-          setAvailableHospitals(hospitals.sort());
-        }
+        // TODO: Replace with Supabase hospital service
+        console.warn('Hospital loading fallback - implement Supabase hospital service');
+        setAvailableHospitals([]);
       }
       
       // Initialize with empty categorized sets - will be loaded when department is selected
@@ -134,15 +156,17 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           
           if (userCountry) {
             try {
+              const normalizedCountry = normalizeCountry(userCountry);
+              
               // Load procedure types for this department
-              const departmentProcedureTypes = await getProcedureTypesForDepartment(formData.department, userCountry);
+              const departmentProcedureTypes = await getProcedureTypesForDepartment(formData.department, normalizedCountry);
               
               if (isActive) {
                 setAvailableProcedureTypes(departmentProcedureTypes.sort());
               }
               
               // Load categorized sets for this department
-              const departmentSets = await getCategorizedSetsForDepartment(formData.department, userCountry);
+              const departmentSets = await getCategorizedSetsForDepartment(formData.department, normalizedCountry);
               
               if (isActive) {
                 setCategorizedSets(departmentSets);
@@ -256,7 +280,8 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           } else {
             // Other users are restricted to their assigned departments
             const userDepartments = currentUser.departments || [];
-            const userDepartmentNames = getDepartmentNamesForUser(userDepartments, [userCountry]);
+            // Filter departments by user's assigned departments
+            const userDepartmentNames = userDepartments;
             const filteredDepts = countrySpecificDepts.filter(dept => userDepartmentNames.includes(dept));
             
             // If no filtered departments, fall back to all available departments
@@ -268,12 +293,12 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           }
         } catch (error) {
           console.error('Error loading departments from Supabase:', error);
-          // Fallback to global departments only if service fails
-          setAvailableDepartments(getDepartments().sort());
+          // Use default departments as fallback
+          setAvailableDepartments(['Cardiology', 'Orthopedics', 'Neurosurgery', 'Oncology', 'Emergency', 'Radiology', 'Anesthesiology', 'Gastroenterology'].sort());
         }
       } else {
-        // Fallback to global departments
-        setAvailableDepartments(getDepartments().sort());
+        // Use default departments as fallback
+        setAvailableDepartments(['Cardiology', 'Orthopedics', 'Neurosurgery', 'Oncology', 'Emergency', 'Radiology', 'Anesthesiology', 'Gastroenterology'].sort());
       }
     };
 

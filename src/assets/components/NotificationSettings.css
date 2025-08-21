@@ -114,10 +114,6 @@
   margin-bottom: 32px;
 }
 
-.settings-section:last-child {
-  margin-bottom: 0;
-}
-
 .settings-section h3 {
   font-size: 1.1rem;
   font-weight: 600;

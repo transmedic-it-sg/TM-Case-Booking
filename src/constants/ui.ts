@@ -128,16 +128,21 @@ export const SEARCH = {
   HIGHLIGHT_CLASS: 'search-highlight'
 } as const;
 
-// Country and region data
+// Country and region data - now using centralized country utilities
+import { SUPPORTED_COUNTRIES, getLegacyCountryCode } from '../utils/countryUtils';
+
 export const COUNTRIES = {
-  SINGAPORE: { code: 'SG', name: 'Singapore', emoji: '🇸🇬', timezone: 'Asia/Singapore' },
-  MALAYSIA: { code: 'MY', name: 'Malaysia', emoji: '🇲🇾', timezone: 'Asia/Kuala_Lumpur' },
-  PHILIPPINES: { code: 'PH', name: 'Philippines', emoji: '🇵🇭', timezone: 'Asia/Manila' },
-  INDONESIA: { code: 'ID', name: 'Indonesia', emoji: '🇮🇩', timezone: 'Asia/Jakarta' },
-  VIETNAM: { code: 'VN', name: 'Vietnam', emoji: '🇻🇳', timezone: 'Asia/Ho_Chi_Minh' },
-  HONG_KONG: { code: 'HK', name: 'Hong Kong', emoji: '🇭🇰', timezone: 'Asia/Hong_Kong' },
-  THAILAND: { code: 'TH', name: 'Thailand', emoji: '🇹🇭', timezone: 'Asia/Bangkok' }
+  SINGAPORE: { code: getLegacyCountryCode('Singapore') || 'SG', name: 'Singapore', emoji: '🇸🇬', timezone: 'Asia/Singapore' },
+  MALAYSIA: { code: getLegacyCountryCode('Malaysia') || 'MY', name: 'Malaysia', emoji: '🇲🇾', timezone: 'Asia/Kuala_Lumpur' },
+  PHILIPPINES: { code: getLegacyCountryCode('Philippines') || 'PH', name: 'Philippines', emoji: '🇵🇭', timezone: 'Asia/Manila' },
+  INDONESIA: { code: getLegacyCountryCode('Indonesia') || 'ID', name: 'Indonesia', emoji: '🇮🇩', timezone: 'Asia/Jakarta' },
+  VIETNAM: { code: getLegacyCountryCode('Vietnam') || 'VN', name: 'Vietnam', emoji: '🇻🇳', timezone: 'Asia/Ho_Chi_Minh' },
+  HONG_KONG: { code: getLegacyCountryCode('Hong Kong') || 'HK', name: 'Hong Kong', emoji: '🇭🇰', timezone: 'Asia/Hong_Kong' },
+  THAILAND: { code: getLegacyCountryCode('Thailand') || 'TH', name: 'Thailand', emoji: '🇹🇭', timezone: 'Asia/Bangkok' }
 } as const;
+
+// List of supported countries for easier access
+export const COUNTRY_LIST = SUPPORTED_COUNTRIES;
 
 // Theme colors
 export const THEME_COLORS = {

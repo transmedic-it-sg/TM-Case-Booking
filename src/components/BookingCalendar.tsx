@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  getDepartments, 
-  getCodeTables,
-  getDepartmentNamesForUser,
-  getCountries
-} from '../utils/codeTable';
+import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
+import { getDepartments } from '../utils/supabaseDepartmentService';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getCases } from '../utils/storage';
@@ -16,9 +12,10 @@ import '../assets/components/BookingCalendar.css';
 
 interface BookingCalendarProps {
   onCaseClick?: (caseId: string) => void;
+  onDateClick?: (date: Date, department: string) => void;
 }
 
-const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
+const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateClick }) => {
   const initialCurrentUser = getCurrentUser();
   
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
@@ -47,45 +44,44 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
     const user = getCurrentUser();
     setCurrentUser(user);
     
-    // Load countries from Global-Table instead of hardcoded COUNTRIES
-    const globalCountries = getCountries();
-    const countries = globalCountries.length > 0 ? globalCountries : [...COUNTRIES];
-    setAvailableCountries(countries);
+    // Load countries from centralized country utils
+    setAvailableCountries([...SUPPORTED_COUNTRIES]);
     
     // Initialize selected country for Admin users
     if (user?.role === 'admin' && !selectedCountry) {
-      const defaultCountry = user?.selectedCountry || user?.countries?.[0] || countries[0];
+      const defaultCountry = user?.selectedCountry || user?.countries?.[0] || SUPPORTED_COUNTRIES[0];
       setSelectedCountry(defaultCountry);
     }
     
     // Get departments for the active country from Code Table Setup
     const country = isAdmin && selectedCountry ? selectedCountry : (user?.selectedCountry || user?.countries?.[0]);
     if (country) {
-      // Load country-specific departments from Code Table Setup
-      const countryDepartments = getCodeTables(country);
-      const departmentsTable = countryDepartments.find(table => table.id === 'departments');
-      const countrySpecificDepts = departmentsTable?.items || [];
-      
-      // Filter by user's assigned departments if not admin
-      let availableDepartments = countrySpecificDepts;
-      if (user?.role !== 'admin' && user?.role !== 'it') {
-        const userDepartments = user?.departments || [];
+      // Load country-specific departments from Supabase
+      getDepartments(country).then(depts => {
+        // Convert Department objects to strings
+        const countrySpecificDepts = depts.map(dept => typeof dept === 'string' ? dept : dept.name || String(dept));
         
-        // Handle both legacy and new country-specific department formats
-        const userDepartmentNames = getDepartmentNamesForUser(userDepartments, [country]);
-        availableDepartments = countrySpecificDepts.filter(dept => userDepartmentNames.includes(dept));
-      }
-      
-      setDepartments(availableDepartments.sort());
-      if (availableDepartments.length > 0) {
-        setSelectedDepartment(availableDepartments[0]);
-      }
+        // Filter by user's assigned departments if not admin
+        let availableDepartments = countrySpecificDepts;
+        if (user?.role !== 'admin' && user?.role !== 'it') {
+          const userDepartments = user?.departments || [];
+          availableDepartments = countrySpecificDepts.filter(dept => userDepartments.includes(dept));
+        }
+        
+        setDepartments(availableDepartments.sort());
+        if (availableDepartments.length > 0) {
+          setSelectedDepartment(availableDepartments[0]);
+        }
+      }).catch(error => {
+        console.error('Error loading departments:', error);
+        setDepartments([]);
+      });
     } else {
-      // Fallback to global departments
-      const userDepartments = getDepartments(user?.departments);
-      setDepartments(userDepartments.sort());
-      if (userDepartments.length > 0) {
-        setSelectedDepartment(userDepartments[0]);
+      // Use default departments as fallback
+      const defaultDepartments = ['Cardiology', 'Orthopedics', 'Neurosurgery', 'Oncology', 'Emergency', 'Radiology', 'Anesthesiology', 'Gastroenterology'];
+      setDepartments(defaultDepartments.sort());
+      if (defaultDepartments.length > 0) {
+        setSelectedDepartment(defaultDepartments[0]);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -308,7 +304,8 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
         year: 'numeric'
       });
       
-      if (dayCases.length > 0) {
+      // Show days with cases OR allow click-to-book on empty days
+      if (dayCases.length > 0 || onDateClick) {
         days.push(
           <div key={day} className={`mobile-calendar-day ${isToday ? 'mobile-calendar-day-today' : ''}`}>
             <div className="mobile-calendar-day-header">
@@ -349,6 +346,26 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
                   </div>
                 </div>
               ))}
+              
+              {/* Add click-to-book button for empty days */}
+              {dayCases.length === 0 && onDateClick && (
+                <div 
+                  className="mobile-calendar-book-new"
+                  onClick={() => {
+                    // Create date at noon to avoid timezone issues when converting to/from ISO string
+                    const clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day, 12, 0, 0, 0);
+                    onDateClick(clickedDate, selectedDepartment);
+                  }}
+                >
+                  <div className="mobile-book-new-content">
+                    <div className="mobile-book-new-icon">📅</div>
+                    <div className="mobile-book-new-text">
+                      <div className="mobile-book-new-title">Book New Case</div>
+                      <div className="mobile-book-new-subtitle">Tap to create a booking</div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -396,8 +413,26 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick }) => {
       const dayClass = `calendar-day ${isToday ? 'calendar-day-today' : ''}`;
       const dayCases = getCasesForDay(day);
       
+      const handleDayClick = (event: React.MouseEvent, clickedDay: number) => {
+        // Only trigger date click if clicking on empty space (not on existing cases)
+        if ((event.target as HTMLElement).closest('.booking-item, .more-cases-button')) {
+          return; // Click was on a case or more cases button, don't trigger date click
+        }
+        
+        if (onDateClick && selectedDepartment) {
+          // Create date at noon to avoid timezone issues when converting to/from ISO string
+          const clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), clickedDay, 12, 0, 0, 0);
+          onDateClick(clickedDate, selectedDepartment);
+        }
+      };
+
       days.push(
-        <div key={day} className={dayClass}>
+        <div 
+          key={day} 
+          className={`${dayClass} ${dayCases.length === 0 ? 'calendar-day-clickable' : ''}`}
+          onClick={(e) => handleDayClick(e, day)}
+          title={dayCases.length === 0 ? `Click to book a new case for ${day}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}` : ''}
+        >
           <div className="calendar-day-number">{day}</div>
           <div className="calendar-day-content">
             {(() => {

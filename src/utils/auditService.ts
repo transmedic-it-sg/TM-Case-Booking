@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { getSystemConfig } from './systemSettingsService';
 
 export interface AuditLogEntry {
   id: string;
@@ -217,16 +218,20 @@ export const getFilteredAuditLogs = async (filters: {
 };
 
 /**
- * Clear old audit logs (admin only) - clears logs older than 6 months
+ * Clear old audit logs (admin only) - clears logs older than configured retention period
  */
 export const clearOldAuditLogs = async (): Promise<number> => {
   try {
-    // Calculate cutoff date - 6 months ago (180 days)
+    // Get system configuration for audit log retention
+    const config = await getSystemConfig();
+    const retentionDays = config.auditLogRetention || 90; // Default to 90 days if not configured
+    
+    // Calculate cutoff date based on configured retention period
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 180);
+    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
     const cutoffDateString = cutoffDate.toISOString();
     
-    console.log('Clearing audit logs older than:', cutoffDateString);
+    console.log(`Clearing audit logs older than ${retentionDays} days (${cutoffDateString})`);
     
     // Delete from Supabase
     const { data: logsToDelete, error: selectError } = await supabase

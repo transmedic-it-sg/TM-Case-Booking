@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { CaseBooking, CaseStatus, COUNTRIES, DEPARTMENTS } from '../types';
-import { getCountries } from '../utils/codeTable';
+import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
 import { getCases } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
@@ -72,10 +72,9 @@ const Reports: React.FC = () => {
   // Hook to resolve user IDs to names
   const { getUserName } = useUserNames(userIds);
 
-  // Load countries from Global-Table
+  // Load countries from centralized country utils
   useEffect(() => {
-    const countries = getCountries();
-    setGlobalCountries(countries.length > 0 ? countries : [...COUNTRIES]);
+    setGlobalCountries([...SUPPORTED_COUNTRIES]);
   }, []);
 
   // Load cases on component mount

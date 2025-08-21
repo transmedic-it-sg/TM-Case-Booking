@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { authenticate } from '../utils/auth';
 import { User } from '../types';
-import { getCountries, initializeCodeTables } from '../utils/codeTable';
+import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
 import SearchableDropdown from './SearchableDropdown';
 
 interface LoginProps {
@@ -19,11 +19,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const countrySelectRef = useRef<HTMLSelectElement>(null);
 
-  // Initialize code tables and load countries
+  // Load countries on component mount
   useEffect(() => {
-    initializeCodeTables();
-    const countries = getCountries();
-    setAvailableCountries(countries);
+    setAvailableCountries([...SUPPORTED_COUNTRIES]);
     
     // Load remembered credentials
     const savedCredentials = localStorage.getItem('rememberMe');

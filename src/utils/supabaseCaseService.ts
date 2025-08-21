@@ -1,8 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { CaseBooking, CaseStatus, StatusHistory, AmendmentHistory } from '../types';
 import { normalizeCountry, getLegacyCountryCode } from './countryUtils';
-// import { secureQuery, validatePermission } from './supabaseSecurityService';
-// import { PERMISSION_ACTIONS } from './permissions';
 
 // Interface for Supabase case data
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

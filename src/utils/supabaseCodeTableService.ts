@@ -11,6 +11,9 @@ interface CacheEntry {
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const codeTableCache = new Map<string, CacheEntry>();
 
+// Track pending requests to avoid duplicate fetches
+const pendingRequests = new Map<string, Promise<CodeTable[]>>();
+
 // Interface matching the database structure
 export interface SupabaseCodeTableItem {
   id: string;
@@ -57,10 +60,20 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
       return cached.data;
     }
     
+    // Check if there's already a pending request for this country
+    const pendingRequest = pendingRequests.get(cacheKey);
+    if (pendingRequest) {
+      console.log(`⏳ Waiting for existing request for ${cacheKey}`);
+      return await pendingRequest;
+    }
+    
     console.log(`🔄 Fetching code tables for ${cacheKey}`);
     
-    // Query the actual code_tables table
-    let query = supabase
+    // Create a promise for the fetch operation and store it
+    const fetchPromise = (async (): Promise<CodeTable[]> => {
+      try {
+        // Query the actual code_tables table
+        let query = supabase
       .from('code_tables')
       .select('*')
       .eq('is_active', true)
@@ -109,8 +122,25 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
       country: normalizedCountry
     });
     
-    console.log(`✅ Successfully loaded and cached ${tables.length} code tables for ${cacheKey}`);
-    return tables;
+        console.log(`✅ Successfully loaded and cached ${tables.length} code tables for ${cacheKey}`);
+        return tables;
+        
+      } catch (error) {
+        console.error('❌ Error fetching code tables:', error);
+        throw error;
+      }
+    })();
+    
+    // Store the promise in pendingRequests
+    pendingRequests.set(cacheKey, fetchPromise);
+    
+    try {
+      const result = await fetchPromise;
+      return result;
+    } finally {
+      // Clean up the pending request
+      pendingRequests.delete(cacheKey);
+    }
     
   } catch (error) {
     console.error('❌ Error in getSupabaseCodeTables:', error);

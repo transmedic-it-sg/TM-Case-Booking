@@ -19,7 +19,6 @@ import DataImport from './components/DataImport';
 import SystemSettings from './components/SystemSettings';
 import LogoutConfirmation from './components/LogoutConfirmation';
 import SSOCallback from './components/SSOCallback';
-import DatabaseConnectivityIndicator from './components/DatabaseConnectivityIndicator';
 import { User, CaseBooking } from './types';
 import { getCurrentUser, logout } from './utils/auth';
 import { hasPermission, PERMISSION_ACTIONS, initializePermissions } from './utils/permissions';
@@ -28,13 +27,14 @@ import { auditLogout } from './utils/auditService';
 import { SoundProvider, useSound } from './contexts/SoundContext';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { ToastProvider, useToast } from './components/ToastContainer';
+import { getSystemConfig } from './utils/systemSettingsService';
 import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
 import StatusLegend from './components/StatusLegend';
 import MobileNavigation from './components/MobileNavigation';
 import MobileHeader from './components/MobileHeader';
 import CacheVersionMismatchPopup from './components/CacheVersionMismatchPopup';
-import { useCacheVersionManager } from './hooks/useCacheVersionManager';
+import MaintenanceMode from './components/MaintenanceMode';
 // import { SystemHealthMonitor } from './utils/systemHealthMonitor'; // Temporarily disabled
 // import { DataValidationService } from './utils/dataValidationService'; // Unused
 import './assets/components/App.css';
@@ -61,6 +61,7 @@ const AppContent: React.FC = () => {
   const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
   const [adminPanelExpanded, setAdminPanelExpanded] = useState(false);
   const [highlightedCaseId, setHighlightedCaseId] = useState<string | null>(null);
+  const [maintenanceModeActive, setMaintenanceModeActive] = useState(false);
   const adminPanelRef = useRef<HTMLDivElement>(null);
   const { playSound } = useSound();
   const { addNotification } = useNotifications();
@@ -81,7 +82,6 @@ const AppContent: React.FC = () => {
   const outdatedTypes: string[] = [];
   const changedVersions: any[] = [];
   const forceLogout = () => {};
-  const manualVersionCheck = async () => false;
 
   // Simple version management without auto-refresh
   useEffect(() => {
@@ -91,6 +91,25 @@ const AppContent: React.FC = () => {
     
     // Only log version info, don't auto-reload
     console.log(`📱 TM Case Booking v${currentVersion} loaded`);
+  }, []);
+
+  // Check maintenance mode status
+  useEffect(() => {
+    const checkMaintenanceMode = async () => {
+      try {
+        const config = await getSystemConfig();
+        setMaintenanceModeActive(config.maintenanceMode);
+      } catch (error) {
+        console.log('Could not check maintenance mode status:', error);
+      }
+    };
+
+    checkMaintenanceMode();
+
+    // Set up periodic check for maintenance mode changes
+    const maintenanceCheckInterval = setInterval(checkMaintenanceMode, 30000); // Check every 30 seconds
+
+    return () => clearInterval(maintenanceCheckInterval);
   }, []);
 
   // Check if this is an SSO callback route after all hooks
@@ -245,6 +264,16 @@ const AppContent: React.FC = () => {
     playSound.click();
   };
 
+  const handleCalendarDateClick = (date: Date, department: string) => {
+    // Store the selected date and department for pre-filling the booking form
+    localStorage.setItem('calendar_prefill_date', date.toISOString());
+    localStorage.setItem('calendar_prefill_department', department);
+    
+    // Switch to booking page
+    setActivePage('booking');
+    playSound.click();
+  };
+
   // Helper function to check if user has admin access
   const hasAdminAccess = (user: User | null): boolean => {
     if (!user) return false;
@@ -262,6 +291,26 @@ const AppContent: React.FC = () => {
   const toggleAdminPanel = () => {
     setAdminPanelExpanded(!adminPanelExpanded);
     playSound.click();
+  };
+
+  // Handle maintenance mode forced logout
+  const handleMaintenanceModeLogout = async () => {
+    if (user) {
+      await auditLogout(user.name, user.id, user.role, user.selectedCountry);
+    }
+    
+    await logout();
+    setUser(null);
+    setActivePage('booking');
+    setProcessingCase(null);
+    setMaintenanceModeActive(false);
+    
+    // On mobile, go directly to login instead of introduction page
+    if (isMobileDevice()) {
+      setShowMobileEntry(false);
+    }
+    
+    showSuccess('Maintenance Mode', 'You have been logged out due to system maintenance');
   };
 
   if (!user) {
@@ -289,7 +338,6 @@ const AppContent: React.FC = () => {
         <div className="header-content">
           <div className="header-left">
             <h1>
-              <DatabaseConnectivityIndicator className="header-db-indicator" />
               Transmedic Case Booking
             </h1>
             <div className="header-info">
@@ -566,7 +614,10 @@ const AppContent: React.FC = () => {
         )}
         
         {activePage === 'calendar' && hasPermission(user.role, PERMISSION_ACTIONS.BOOKING_CALENDAR) && (
-          <BookingCalendar onCaseClick={handleCalendarCaseClick} />
+          <BookingCalendar 
+            onCaseClick={handleCalendarCaseClick} 
+            onDateClick={hasPermission(user.role, PERMISSION_ACTIONS.CREATE_CASE) ? handleCalendarDateClick : undefined}
+          />
         )}
         
         {activePage === 'sets' && hasPermission(user.role, PERMISSION_ACTIONS.EDIT_SETS) && (
@@ -632,6 +683,12 @@ const AppContent: React.FC = () => {
           playSound.click();
         }}
         onLogout={handleLogout}
+      />
+
+      {/* Maintenance Mode Modal */}
+      <MaintenanceMode
+        isActive={maintenanceModeActive}
+        onForceLogout={handleMaintenanceModeLogout}
       />
     </div>
   );

@@ -15,8 +15,37 @@ interface OAuthProvider {
   config: OAuthConfig;
 }
 
-// Pre-configured OAuth applications
-// Note: In production, these should be environment variables or secure configuration
+// Global flag to prevent duplicate environment logging
+let environmentLogged = false;
+
+/**
+ * Get the appropriate redirect URI for the current environment
+ */
+const getRedirectUri = (): string => {
+  const origin = window.location.origin;
+  
+  // Log the current environment for debugging (only once)
+  if (!environmentLogged) {
+    console.log(`[OAuth] Environment detection:`, {
+      origin,
+      hostname: window.location.hostname,
+      port: window.location.port,
+      protocol: window.location.protocol,
+      isLocalhost: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
+      isVercel: window.location.hostname.includes('vercel.app') || window.location.hostname.includes('vercel.com'),
+      isProd: process.env.NODE_ENV === 'production'
+    });
+    
+    environmentLogged = true;
+  }
+  
+  // Construct redirect URI
+  const redirectUri = `${origin}/auth/callback`;
+  
+  return redirectUri;
+};
+
+// Pre-configured OAuth applications with environment-aware redirect URIs
 const OAUTH_PROVIDERS: Record<'google' | 'microsoft', OAuthProvider> = {
   google: {
     name: 'Google',
@@ -30,7 +59,7 @@ const OAUTH_PROVIDERS: Record<'google' | 'microsoft', OAuthProvider> = {
         'https://www.googleapis.com/auth/userinfo.email',
         'https://www.googleapis.com/auth/userinfo.profile'
       ],
-      redirectUri: `${window.location.origin}/auth/callback`
+      redirectUri: getRedirectUri()
     }
   },
   microsoft: {
@@ -45,7 +74,7 @@ const OAUTH_PROVIDERS: Record<'google' | 'microsoft', OAuthProvider> = {
         'https://graph.microsoft.com/User.Read',
         'offline_access'
       ],
-      redirectUri: `${window.location.origin}/auth/callback`
+      redirectUri: getRedirectUri()
     }
   }
 };
@@ -175,41 +204,78 @@ class SimplifiedOAuthManager {
       code_verifier: this.pkceChallenge.codeVerifier // PKCE code verifier
     });
 
-    // Note: In production, token exchange should happen on backend for security
-    // This is a simplified frontend-only implementation
-    const response = await fetch(this.config.tokenUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: body.toString()
+    console.log(`[OAuth] Token exchange for ${this.provider}:`, {
+      tokenUrl: this.config.tokenUrl,
+      redirectUri: this.config.config.redirectUri,
+      clientId: this.config.config.clientId.substring(0, 8) + '...',
+      hasCode: !!code,
+      codeLength: code.length
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Token exchange failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText,
+    try {
+      // Note: In production, token exchange should happen on backend for security
+      // This is a simplified frontend-only implementation with enhanced error handling
+      const response = await fetch(this.config.tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json'
+        },
+        body: body.toString()
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Token exchange failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+          provider: this.provider,
+          url: this.config.tokenUrl,
+          environment: process.env.NODE_ENV
+        });
+        
+        // Enhanced error messages for common issues
+        if (response.status === 400) {
+          if (errorText.includes('invalid_grant')) {
+            throw new Error('Invalid authorization code or code expired. Please try authenticating again.');
+          } else if (errorText.includes('redirect_uri_mismatch')) {
+            throw new Error('Redirect URI mismatch. Please check your OAuth application configuration.');
+          }
+        } else if (response.status === 401) {
+          throw new Error('Authentication failed. Please check your OAuth client configuration.');
+        }
+        
+        throw new Error(`Token exchange failed: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Token exchange response:', { 
+        hasAccessToken: !!data.access_token,
+        hasRefreshToken: !!data.refresh_token,
+        expiresIn: data.expires_in,
         provider: this.provider
       });
-      throw new Error(`Token exchange failed: ${response.status} ${response.statusText} - ${errorText}`);
+      
+      const expiresAt = Date.now() + (data.expires_in * 1000);
+
+      return {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresIn: data.expires_in,
+        expiresAt
+      };
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.error(`[OAuth] Network error during token exchange for ${this.provider}:`, {
+          error: error.message,
+          environment: process.env.NODE_ENV,
+          origin: window.location.origin
+        });
+        throw new Error('Network error during authentication. Please check your internet connection and try again.');
+      }
+      throw error;
     }
-
-    const data = await response.json();
-    console.log('Token exchange response:', { 
-      hasAccessToken: !!data.access_token,
-      hasRefreshToken: !!data.refresh_token,
-      expiresIn: data.expires_in
-    });
-    const expiresAt = Date.now() + (data.expires_in * 1000);
-
-    return {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresIn: data.expires_in,
-      expiresAt
-    };
   }
 
   /**
@@ -455,6 +521,110 @@ export const clearAuthTokens = (country: string, provider: string): void => {
 
 export const isTokenExpired = (tokens: AuthTokens): boolean => {
   return Date.now() >= tokens.expiresAt;
+};
+
+/**
+ * Check if token is about to expire within the next 5 minutes
+ */
+export const isTokenExpiringSoon = (tokens: AuthTokens): boolean => {
+  const fiveMinutesFromNow = Date.now() + (5 * 60 * 1000);
+  return fiveMinutesFromNow >= tokens.expiresAt;
+};
+
+/**
+ * Refresh Microsoft access token using refresh token
+ */
+export const refreshMicrosoftToken = async (country: string, refreshToken: string): Promise<AuthTokens | null> => {
+  try {
+    console.log('[OAuth] Refreshing Microsoft access token...');
+    
+    const clientId = process.env.REACT_APP_MICROSOFT_CLIENT_ID;
+    if (!clientId) {
+      throw new Error('Microsoft client ID not configured');
+    }
+
+    const body = new URLSearchParams({
+      client_id: clientId,
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      scope: OAUTH_PROVIDERS.microsoft.config.scopes.join(' ')
+    });
+
+    const response = await fetch(OAUTH_PROVIDERS.microsoft.tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: body.toString()
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Token refresh failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      return null;
+    }
+
+    const data = await response.json();
+    const expiresAt = Date.now() + (data.expires_in * 1000);
+
+    const newTokens: AuthTokens = {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token || refreshToken, // Keep old refresh token if new one not provided
+      expiresIn: data.expires_in,
+      expiresAt
+    };
+
+    // Store the new tokens
+    storeAuthTokens(country, 'microsoft', newTokens);
+    console.log('[OAuth] Microsoft token refreshed successfully');
+    
+    return newTokens;
+  } catch (error) {
+    console.error('[OAuth] Failed to refresh Microsoft token:', error);
+    return null;
+  }
+};
+
+/**
+ * Get valid access token, refreshing if necessary (Microsoft only)
+ */
+export const getValidAccessToken = async (country: string, provider: 'google' | 'microsoft'): Promise<string | null> => {
+  const tokens = getStoredAuthTokens(country, provider);
+  
+  if (!tokens) {
+    console.log(`[OAuth] No stored tokens found for ${provider} in ${country}`);
+    return null;
+  }
+
+  // If token is not expired, return it
+  if (!isTokenExpired(tokens)) {
+    console.log(`[OAuth] Using existing valid token for ${provider}`);
+    return tokens.accessToken;
+  }
+
+  // Token is expired - try to refresh if it's Microsoft and has refresh token
+  if (provider === 'microsoft' && tokens.refreshToken) {
+    console.log('[OAuth] Access token expired, attempting refresh...');
+    const newTokens = await refreshMicrosoftToken(country, tokens.refreshToken);
+    
+    if (newTokens) {
+      console.log('[OAuth] Token refresh successful');
+      return newTokens.accessToken;
+    } else {
+      console.log('[OAuth] Token refresh failed - clearing stored tokens');
+      clearAuthTokens(country, provider);
+      return null;
+    }
+  }
+
+  // For Google or when Microsoft refresh fails, token is expired and unusable
+  console.log(`[OAuth] Token expired and cannot be refreshed for ${provider}`);
+  clearAuthTokens(country, provider);
+  return null;
 };
 
 // Factory function

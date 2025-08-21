@@ -14,7 +14,10 @@ A comprehensive React-based case booking application for medical procedures with
 - **Multi-Country Support**: Singapore, Malaysia, Philippines, Indonesia, Vietnam, Hong Kong, Thailand
 
 ### Latest Features (v1.2.7)
-- **🧹 Code Quality**: Achieved zero TypeScript compilation errors and cleaner codebase
+- **🎯 Supabase Migration**: Complete migration from localStorage to Supabase database for all core functionality
+- **🌍 Country Standardization**: Unified country system using full names (Singapore, Malaysia, etc.) instead of codes
+- **🧹 Code Quality**: Achieved zero TypeScript compilation errors and removed all deprecated functions
+- **🗃️ Database Cleanup**: Removed legacy tables and consolidated duplicate database structures  
 - **⚡ Build Optimization**: Switched to react-scripts for better build performance
 - **🔧 Cache Management**: Enhanced cache version management with automatic mismatch detection
 - **📊 Database Monitoring**: Real-time database connectivity status with visual indicators

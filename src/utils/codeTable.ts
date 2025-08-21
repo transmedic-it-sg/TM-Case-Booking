@@ -1,4 +1,8 @@
+// DEPRECATED: This file is being replaced by Supabase-based services
+// All functions now delegate to the proper Supabase services
+
 import { COUNTRIES, DEPARTMENTS } from '../types';
+import { SUPPORTED_COUNTRIES } from './countryUtils';
 
 export interface CodeTable {
   id: string;
@@ -7,27 +11,11 @@ export interface CodeTable {
   items: string[];
 }
 
-// Get code tables from localStorage with fallback to defaults
+// DEPRECATED: Use Supabase services instead
 export const getCodeTables = (country?: string): CodeTable[] => {
-  const storageKey = country ? `codeTables-${country}` : 'codeTables';
-  const storedTables = localStorage.getItem(storageKey);
-  if (storedTables) {
-    try {
-      return JSON.parse(storedTables);
-    } catch (error) {
-      console.error('Error parsing code tables from localStorage:', error);
-    }
-  }
-  
-  // Return default code tables if none exist
-  if (country) {
-    // For country-specific requests, return only country-based tables
-    const defaultTables = getDefaultCodeTables(country);
-    return defaultTables.filter(table => table.id !== 'countries');
-  } else {
-    // For global requests, return all default tables so they can be categorized
-    return getDefaultCodeTables();
-  }
+  console.warn('getCodeTables is deprecated. Use Supabase services instead.');
+  // Return basic fallback data for legacy compatibility
+  return getDefaultCodeTables(country);
 };
 
 // Get default code tables based on types constants
@@ -92,9 +80,10 @@ export const getDepartments = (userDepartments?: string[]): string[] => {
   return allDepartments;
 };
 
-// Get countries list
+// DEPRECATED: Use SUPPORTED_COUNTRIES from countryUtils instead
 export const getCountries = (): string[] => {
-  return getCodeTableItems('countries');
+  console.warn('getCountries from codeTable is deprecated. Use SUPPORTED_COUNTRIES from countryUtils instead.');
+  return [...SUPPORTED_COUNTRIES];
 };
 
 // Get departments by country for User Access Matrix

@@ -190,7 +190,13 @@
       "Bash(exit)",
       "mcp__supabase__list_tables",
       "mcp__supabase__execute_sql",
-      "Bash(NODE_OPTIONS='--max-old-space-size=8192' timeout 120s npm run build)"
+      "Bash(NODE_OPTIONS='--max-old-space-size=8192' timeout 120s npm run build)",
+      "Bash(env)",
+      "Bash(./node_modules/.bin/supabase sql:*)",
+      "Bash(./node_modules/.bin/supabase db push:*)",
+      "Bash(claude mcp:*)",
+      "Bash(env SUPABASE_URL=\"https://aqzjzjygflmxkcbfnjbe.supabase.co\" SUPABASE_SERVICE_ROLE_KEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxemp6anlnZmxteGtjYmZuamJlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTk2MTMyOCwiZXhwIjoyMDY3NTM3MzI4fQ.cUNZC4bvC1Doi4DGhrPpBxoSebz1ad54tLMeYVKq7I4\" timeout 10s supabase-mcp)",
+      "Bash(env SUPABASE_ACCESS_TOKEN=\"sbp_5ccd2b2a4710ef9c0d1d5cb5262be9bf06380f26\" timeout 10s npx -y @supabase/mcp-server-supabase@latest --project-ref=aqzjzjygflmxkcbfnjbe)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
@@ -198,5 +204,18 @@
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "supabase"
-  ]
+  ],
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref=aqzjzjygflmxkcbfnjbe"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_5ccd2b2a4710ef9c0d1d5cb5262be9bf06380f26"
+      }
+    }
+  }
 }

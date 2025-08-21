@@ -2,6 +2,7 @@
 import { CaseBooking } from '../types';
 import { getUsers } from './auth';
 import { userHasDepartmentAccess, userHasAnyDepartmentAccess } from './departmentUtils';
+import { normalizeCountry } from './countryUtils';
 
 export interface EmailNotificationRule {
   status: string;
@@ -505,20 +506,7 @@ export const sendCaseStatusNotification = async (
     }
 
     // Convert country code to full country name for email configuration lookup
-    const getFullCountryName = (countryCode: string): string => {
-      const countryMap: { [key: string]: string } = {
-        'SG': 'Singapore',
-        'MY': 'Malaysia', 
-        'PH': 'Philippines',
-        'ID': 'Indonesia',
-        'VN': 'Vietnam',
-        'HK': 'Hong Kong',
-        'TH': 'Thailand'
-      };
-      return countryMap[countryCode] || countryCode;
-    };
-
-    const fullCountryName = getFullCountryName(caseData.country);
+    const fullCountryName = normalizeCountry(caseData.country);
     
     // Get notification matrix for the case's country
     const notificationMatrix = getNotificationMatrix(fullCountryName);

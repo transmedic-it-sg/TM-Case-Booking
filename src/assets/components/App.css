@@ -6478,7 +6478,7 @@ textarea:focus {
 }
 
 .form-row {
-  display: flex;
+  display: grid;
   gap: 16px;
   align-items: end;
 }

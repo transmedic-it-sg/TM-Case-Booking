@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { COUNTRIES, DEPARTMENTS } from '../types';
-import { getCountries } from '../utils/codeTable';
+import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getAllRoles } from '../data/permissionMatrixData';
@@ -14,8 +14,10 @@ import {
   getStoredAuthTokens,
   clearAuthTokens,
   isTokenExpired,
+  isTokenExpiringSoon,
   getStoredUserInfo,
   createOAuthManager,
+  getValidAccessToken,
   UserInfo,
   AuthTokens
 } from '../utils/simplifiedOAuth';
@@ -79,8 +81,7 @@ const SimplifiedEmailConfig: React.FC = () => {
 
   // Get available countries for admin users
   const availableCountries = React.useMemo(() => {
-    const globalCountries = getCountries();
-    return globalCountries.length > 0 ? globalCountries : [...COUNTRIES];
+    return [...SUPPORTED_COUNTRIES];
   }, []);
 
   // Check if user can switch countries (admin only)
@@ -468,6 +469,27 @@ Best regards,
     const googleUserInfo = getStoredUserInfo(selectedCountry, 'google');
     const microsoftUserInfo = getStoredUserInfo(selectedCountry, 'microsoft');
 
+    // Enhanced token validation - check if tokens are valid or can be refreshed
+    const validateTokens = async (tokens: AuthTokens | null, provider: 'google' | 'microsoft') => {
+      if (!tokens) return false;
+      
+      // If token is still valid, return true
+      if (!isTokenExpired(tokens)) {
+        return true;
+      }
+      
+      // If token is expired but we have a refresh token (Microsoft), try to refresh
+      if (provider === 'microsoft' && tokens.refreshToken) {
+        console.log(`[EmailConfig] Attempting to refresh expired ${provider} token...`);
+        const validToken = await getValidAccessToken(selectedCountry, provider);
+        return !!validToken;
+      }
+      
+      // Token is expired and can't be refreshed
+      console.log(`[EmailConfig] ${provider} token is expired and cannot be refreshed`);
+      return false;
+    };
+
     // Load saved email configurations from localStorage
     const savedConfigs = localStorage.getItem('simplified_email_configs');
     let savedEmailConfigs: Record<string, CountryEmailConfig> = {};
@@ -482,37 +504,49 @@ Best regards,
     // Get existing saved config for this country or use defaults
     const existingConfig = savedEmailConfigs[selectedCountry];
     
-    const config: CountryEmailConfig = {
-      country: selectedCountry,
-      providers: {
-        google: {
-          provider: 'google',
-          isAuthenticated: googleTokens ? !isTokenExpired(googleTokens) : false,
-          tokens: googleTokens || undefined,
-          userInfo: googleUserInfo || undefined,
-          fromName: existingConfig?.providers?.google?.fromName || 'Case Booking System'
-        },
-        microsoft: {
-          provider: 'microsoft',
-          isAuthenticated: microsoftTokens ? !isTokenExpired(microsoftTokens) : false,
-          tokens: microsoftTokens || undefined,
-          userInfo: microsoftUserInfo || undefined,
-          fromName: existingConfig?.providers?.microsoft?.fromName || 'Case Booking System'
+    // Validate tokens asynchronously
+    const validateAndSetConfig = async () => {
+      const googleValid = await validateTokens(googleTokens, 'google');
+      const microsoftValid = await validateTokens(microsoftTokens, 'microsoft');
+      
+      // Get potentially refreshed tokens after validation
+      const updatedGoogleTokens = getStoredAuthTokens(selectedCountry, 'google');
+      const updatedMicrosoftTokens = getStoredAuthTokens(selectedCountry, 'microsoft');
+      
+      const config: CountryEmailConfig = {
+        country: selectedCountry,
+        providers: {
+          google: {
+            provider: 'google',
+            isAuthenticated: googleValid,
+            tokens: updatedGoogleTokens || undefined,
+            userInfo: googleUserInfo || undefined,
+            fromName: existingConfig?.providers?.google?.fromName || 'Case Booking System'
+          },
+          microsoft: {
+            provider: 'microsoft',
+            isAuthenticated: microsoftValid,
+            tokens: updatedMicrosoftTokens || undefined,
+            userInfo: microsoftUserInfo || undefined,
+            fromName: existingConfig?.providers?.microsoft?.fromName || 'Case Booking System'
+          }
         }
+      };
+
+      // Determine active provider (prefer the one that's authenticated)
+      if (config.providers.google.isAuthenticated) {
+        config.activeProvider = 'google';
+      } else if (config.providers.microsoft.isAuthenticated) {
+        config.activeProvider = 'microsoft';
       }
+
+      setEmailConfigs(prev => ({
+        ...prev,
+        [selectedCountry]: config
+      }));
     };
-
-    // Determine active provider (prefer the one that's authenticated)
-    if (config.providers.google.isAuthenticated) {
-      config.activeProvider = 'google';
-    } else if (config.providers.microsoft.isAuthenticated) {
-      config.activeProvider = 'microsoft';
-    }
-
-    setEmailConfigs(prev => ({
-      ...prev,
-      [selectedCountry]: config
-    }));
+    
+    validateAndSetConfig();
 
     // Load email notification matrix configs
     const savedMatrixConfigs = localStorage.getItem('email-matrix-configs-by-country');
@@ -722,7 +756,7 @@ Best regards,
     const activeProvider = currentConfig.activeProvider;
     const providerConfig = currentConfig.providers[activeProvider];
 
-    if (!providerConfig.isAuthenticated || !providerConfig.tokens) {
+    if (!providerConfig.isAuthenticated) {
       showError('Not Authenticated', `Please authenticate with ${activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)} first`);
       return;
     }
@@ -745,13 +779,17 @@ Best regards,
         testEmailBody: 'This is a test email to verify your email configuration is working correctly.'
       });
 
+      // Get valid access token (handles refresh if necessary)
+      const validAccessToken = await getValidAccessToken(selectedCountry, activeProvider);
+      
+      if (!validAccessToken) {
+        throw new Error('Unable to get valid access token. Please re-authenticate.');
+      }
+
+      console.log(`[TestEmail] Got valid access token for ${activeProvider}`);
+
       // Create OAuth manager for sending email
       const oauth = createOAuthManager(activeProvider);
-      
-      // Check if token is expired and warn user
-      if (!providerConfig.tokens || isTokenExpired(providerConfig.tokens)) {
-        throw new Error('Access token has expired. Please re-authenticate.');
-      }
 
       // Prepare test email data
       const emailData = {
@@ -778,8 +816,8 @@ Best regards,
         `
       };
 
-      // Send the test email
-      const success = await oauth.sendEmail(providerConfig.tokens.accessToken, emailData);
+      // Send the test email using the valid access token
+      const success = await oauth.sendEmail(validAccessToken, emailData);
 
       if (success) {
         playSound.success();
@@ -922,9 +960,36 @@ Best regards,
             
             {!isProviderSectionCollapsed && (
               <div className="section-content">
-                <p style={{ marginBottom: '2rem', color: '#6c757d' }}>
+                <p style={{ marginBottom: '1rem', color: '#6c757d' }}>
                   Authenticate with your email provider to enable automated notifications
                 </p>
+
+                {/* Environment-specific setup information */}
+                <div style={{ 
+                  marginBottom: '2rem', 
+                  padding: '1rem', 
+                  background: '#f8f9fa', 
+                  borderRadius: '8px',
+                  border: '1px solid #dee2e6'
+                }}>
+                  <h5 style={{ color: '#495057', margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: '600' }}>
+                    🌐 Current Environment: {process.env.NODE_ENV === 'production' ? 'Production' : 'Development'}
+                  </h5>
+                  <div style={{ fontSize: '0.8rem', color: '#6c757d' }}>
+                    <div><strong>Origin:</strong> {window.location.origin}</div>
+                    <div><strong>Redirect URI:</strong> {window.location.origin}/auth/callback</div>
+                    {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+                      <div style={{ color: '#28a745', marginTop: '0.5rem' }}>
+                        ✅ <strong>Localhost detected</strong> - Make sure your OAuth apps include this redirect URI
+                      </div>
+                    )}
+                    {(window.location.hostname.includes('vercel.app') || window.location.hostname.includes('vercel.com')) && (
+                      <div style={{ color: '#17a2b8', marginTop: '0.5rem' }}>
+                        ☁️ <strong>Vercel detected</strong> - Production OAuth configuration active
+                      </div>
+                    )}
+                  </div>
+                </div>
 
             {authError && (
               <div className="alert alert-danger">
@@ -935,6 +1000,14 @@ Best regards,
                     <div><strong>Country:</strong> {selectedCountry}</div>
                     <div><strong>Google Configured:</strong> {isGoogleConfigured ? 'Yes' : 'No'}</div>
                     <div><strong>Microsoft Configured:</strong> {isMicrosoftConfigured ? 'Yes' : 'No'}</div>
+                    <div><strong>Environment:</strong> {process.env.NODE_ENV}</div>
+                    <div><strong>Origin:</strong> {window.location.origin}</div>
+                    <div><strong>Hostname:</strong> {window.location.hostname}</div>
+                    <div><strong>Protocol:</strong> {window.location.protocol}</div>
+                    <div><strong>Port:</strong> {window.location.port || 'default'}</div>
+                    <div><strong>Redirect URI:</strong> {window.location.origin}/auth/callback</div>
+                    <div><strong>Is Localhost:</strong> {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'Yes' : 'No'}</div>
+                    <div><strong>Is Vercel:</strong> {(window.location.hostname.includes('vercel.app') || window.location.hostname.includes('vercel.com')) ? 'Yes' : 'No'}</div>
                     <div><strong>User Agent:</strong> {navigator.userAgent.substring(0, 100)}...</div>
                     <div><strong>Popup Support:</strong> {typeof window.open === 'function' ? 'Yes' : 'No'}</div>
                   </div>
@@ -1040,6 +1113,15 @@ Best regards,
                     <div className="auth-info">
                       <div>Authenticated as:</div>
                       <strong>{currentConfig.providers.microsoft.userInfo?.email}</strong>
+                      {currentConfig.providers.microsoft.tokens && (
+                        <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '4px' }}>
+                          {isTokenExpiringSoon(currentConfig.providers.microsoft.tokens) ? (
+                            <span style={{ color: '#ffc107' }}>⚠️ Token expires soon</span>
+                          ) : (
+                            <span style={{ color: '#28a745' }}>🔄 Auto-refresh enabled</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (

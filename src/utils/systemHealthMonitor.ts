@@ -6,6 +6,8 @@
 
 import { supabase } from '../lib/supabase';
 import { DataValidationService } from './dataValidationService';
+import { clearOldAuditLogs } from './auditService';
+import { getSystemConfig } from './systemSettingsService';
 
 interface HealthCheckResult {
   status: 'healthy' | 'warning' | 'critical';
@@ -136,6 +138,29 @@ export class SystemHealthMonitor {
         }
       } catch (error) {
         issues.push('Data integrity check error');
+        status = status === 'healthy' ? 'warning' : status;
+      }
+
+      // 5. Audit log cleanup (if auto-cleanup is enabled)
+      console.log('🧹 Checking audit log cleanup...');
+      try {
+        const config = await getSystemConfig();
+        
+        // Only perform cleanup during periodic health checks (not on demand)
+        // Add a random delay to spread cleanup across different times
+        const shouldCleanup = Math.random() < 0.1; // 10% chance during each health check
+        
+        if (shouldCleanup) {
+          console.log('🗑️ Performing periodic audit log cleanup...');
+          const deletedCount = await clearOldAuditLogs();
+          if (deletedCount > 0) {
+            recommendations.push(`Cleaned up ${deletedCount} old audit log entries (retention: ${config.auditLogRetention} days)`);
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Audit log cleanup failed:', error);
+        issues.push('Audit log cleanup error');
+        recommendations.push('Manual audit log cleanup may be needed');
         status = status === 'healthy' ? 'warning' : status;
       }
 

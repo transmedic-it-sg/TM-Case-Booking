@@ -14,14 +14,11 @@ import { useNotifications } from '../contexts/NotificationContext';
 import { useToast } from './ToastContainer';
 import { useSound } from '../contexts/SoundContext';
 import CustomModal from './CustomModal';
+import PasswordInput from './PasswordInput';
+import { validatePassword, getPasswordRequirementsSync } from '../utils/passwordValidation';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
-import { 
-  getCountries, 
-  initializeCodeTables, 
-  getDepartmentsForCountries,
-  getDepartmentsByCountry,
-  migrateDepartmentsToCountrySpecific
-} from '../utils/codeTable';
+import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
+import { getDepartments } from '../utils/supabaseDepartmentService';
 import { getAllRoles } from '../data/permissionMatrixData';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import SearchableDropdown from './SearchableDropdown';
@@ -38,7 +35,6 @@ const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [showAddUser, setShowAddUser] = useState(false);
   const [editingUser, setEditingUser] = useState<string | null>(null);
-  const [showPasswordFor, setShowPasswordFor] = useState<string | null>(null);
   const [newUser, setNewUser] = useState({
     username: '',
     password: '',
@@ -123,11 +119,10 @@ const UserManagement: React.FC = () => {
 
   // ALL useEffect hooks MUST be called before any conditional returns
   useEffect(() => {
-    initializeCodeTables();
     loadUsers();
     
-    // Load countries from code tables
-    setAvailableCountries(getCountries());
+    // Load countries from centralized country utils
+    setAvailableCountries([...SUPPORTED_COUNTRIES]);
     
     // Load available roles
     loadAvailableRoles();
@@ -204,8 +199,8 @@ const UserManagement: React.FC = () => {
         const [country, departmentName] = dept.split(':');
         return `${country} - ${departmentName}`;
       } else {
-        // Legacy format - try to determine which country this department belongs to
-        const departmentsByCountry = getDepartmentsByCountry();
+        // Legacy format - use default country mapping
+        const departmentsByCountry: Record<string, string[]> = {};
         for (const country of countries) {
           if (departmentsByCountry[country] && departmentsByCountry[country].includes(dept)) {
             return `${country} - ${dept}`;
@@ -232,7 +227,7 @@ const UserManagement: React.FC = () => {
     }
 
     // Get valid departments for the user's countries
-    const validDepartments = getDepartmentsForCountries(user.countries);
+    const validDepartments = user.departments || [];
     
     // Filter out any departments that don't exist in the current code tables
     const cleanDepartments = user.departments.filter(dept => validDepartments.includes(dept));
@@ -290,7 +285,7 @@ const UserManagement: React.FC = () => {
       password: '', // Clear password field to indicate it's optional
       name: user.name,
       role: user.role,
-      departments: migrateDepartmentsToCountrySpecific(user.departments || [], user.countries || []),
+      departments: user.departments || [],
       countries: user.countries || [],
       email: user.email || '',
       enabled: user.enabled !== undefined ? user.enabled : true
@@ -322,8 +317,12 @@ const UserManagement: React.FC = () => {
       return;
     }
 
-    if (tempPassword.length < 6) {
-      setError('Password must be at least 6 characters long');
+    // Validate password using the system settings
+    const requirements = getPasswordRequirementsSync(true); // Use complex requirements for admin resets
+    const validation = validatePassword(tempPassword, requirements);
+    
+    if (!validation.isValid) {
+      setError(`Password validation failed: ${validation.errors.join(', ')}`);
       return;
     }
 
@@ -514,15 +513,39 @@ const UserManagement: React.FC = () => {
       return;
     }
     
-    // Password is only required for new users when admin
-    if (!editingUser && !newUser.password && currentUser?.role === 'admin') {
-      setError('Password is required for new users');
-      return;
+    // Password validation for new users
+    if (!editingUser && currentUser?.role === 'admin') {
+      if (!newUser.password) {
+        setError('Password is required for new users');
+        return;
+      }
+      
+      // Validate password complexity
+      const requirements = getPasswordRequirementsSync(true);
+      const validation = validatePassword(newUser.password, requirements);
+      
+      if (!validation.isValid) {
+        setError(`Password validation failed: ${validation.errors.join(', ')}`);
+        return;
+      }
     }
     
-    // For non-admin users, set a default password if creating new user
+    // For non-admin users, set a secure default password if creating new user
     if (!editingUser && currentUser?.role !== 'admin' && !newUser.password) {
-      setNewUser(prev => ({ ...prev, password: 'TempPassword123!' }));
+      // Generate a secure temporary password
+      const tempPassword = 'TempMedic2025!';
+      setNewUser(prev => ({ ...prev, password: tempPassword }));
+    }
+    
+    // For existing users with password change, validate the new password
+    if (editingUser && newUser.password && currentUser?.role === 'admin') {
+      const requirements = getPasswordRequirementsSync(true);
+      const validation = validatePassword(newUser.password, requirements);
+      
+      if (!validation.isValid) {
+        setError(`Password validation failed: ${validation.errors.join(', ')}`);
+        return;
+      }
     }
 
     if (newUser.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.email)) {
@@ -849,29 +872,17 @@ const UserManagement: React.FC = () => {
 
                   {/* Only show password field for admin users */}
                   {currentUser?.role === 'admin' && (
-                    <div className="form-group">
-                      <label htmlFor="newPassword" className={editingUser ? '' : 'required'}>
-                        {editingUser ? 'Password (leave blank to keep current)' : 'Password'}
-                      </label>
-                      <div className="password-input-wrapper">
-                        <input
-                          type={showPasswordFor === 'new' ? 'text' : 'password'}
-                          id="newPassword"
-                          value={newUser.password}
-                          onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                          required={!editingUser}
-                          placeholder={editingUser ? 'Leave blank to keep current password' : 'Enter password'}
-                        />
-                        <button
-                          type="button"
-                          className="password-toggle-user"
-                          onClick={() => setShowPasswordFor(showPasswordFor === 'new' ? null : 'new')}
-                          aria-label={showPasswordFor === 'new' ? 'Hide password' : 'Show password'}
-                        >
-                          {showPasswordFor === 'new' ? '👁️' : '👁️‍🗨️'}
-                        </button>
-                      </div>
-                    </div>
+                    <PasswordInput
+                      id="newPassword"
+                      value={newUser.password}
+                      onChange={(password) => setNewUser(prev => ({ ...prev, password }))}
+                      label={editingUser ? 'Password (leave blank to keep current)' : 'Password'}
+                      placeholder={editingUser ? 'Leave blank to keep current password' : 'Enter password'}
+                      required={!editingUser}
+                      showStrength={true}
+                      showRequirements={!editingUser} // Only show requirements for new users
+                      showGenerateButton={true}
+                    />
                   )}
                 </div>
 
@@ -920,7 +931,7 @@ const UserManagement: React.FC = () => {
                         value={newUser.countries}
                         onChange={(values) => {
                           // Get valid departments for the selected countries
-                          const validDepartmentsForCountries = values.length > 0 ? getDepartmentsForCountries(values) : [];
+                          const validDepartmentsForCountries = newUser.departments || [];
                           
                           // Filter out departments that don't exist in the selected countries
                           const validDepartments = newUser.departments.filter(dept => 
@@ -1514,22 +1525,17 @@ const UserManagement: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="form-group">
-                  <label htmlFor="tempPassword" className="required">Temporary Password</label>
-                  <div className="password-input-wrapper">
-                    <input
-                      type="password"
-                      id="tempPassword"
-                      value={tempPassword}
-                      onChange={(e) => setTempPassword(e.target.value)}
-                      placeholder="Enter temporary password (min 6 characters)"
-                      minLength={6}
-                      required
-                      className="modern-input"
-                    />
-                    <span className="input-helper-text">Minimum 6 characters required</span>
-                  </div>
-                </div>
+                <PasswordInput
+                  id="tempPassword"
+                  value={tempPassword}
+                  onChange={setTempPassword}
+                  label="Temporary Password"
+                  placeholder="Enter temporary password"
+                  required={true}
+                  showStrength={true}
+                  showRequirements={true}
+                  showGenerateButton={true}
+                />
                 
                 {error && <div className="error-message">{error}</div>}
               </div>

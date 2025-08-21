@@ -11,15 +11,10 @@ export type CaseStatus =
   | 'Case Closed'
   | 'Case Cancelled';
 
-export const COUNTRIES = [
-  'Singapore',
-  'Malaysia', 
-  'Philippines',
-  'Indonesia',
-  'Vietnam',
-  'Hongkong',
-  'Thailand'
-] as const;
+// Import countries from centralized utility
+import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
+
+export const COUNTRIES = SUPPORTED_COUNTRIES;
 
 export const DEPARTMENTS = [
   'Cardiology',

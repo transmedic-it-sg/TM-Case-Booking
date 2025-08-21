@@ -1,19 +1,75 @@
 import { User, COUNTRIES } from '../types';
-import { getCountries } from './codeTable';
+import { SUPPORTED_COUNTRIES } from './countryUtils';
 import { 
   getSupabaseUsers, 
-  addSupabaseUser, 
-  authenticateUser, 
-  createSession, 
-  deleteSession,
-  getCurrentUserFromStorage,
-  saveCurrentUserToStorage,
-  clearCurrentUserFromStorage,
-  checkUsersExist,
-  migrateUsersFromLocalStorage
-} from './supabaseAuthService';
+  addSupabaseUser
+} from './supabaseUserService';
 
 const STORAGE_KEY = 'case-booking-users';
+const CURRENT_USER_KEY = 'current-user';
+
+// Simple auth functions - replace deleted supabaseAuthService functions
+export const checkUsersExist = async (): Promise<boolean> => {
+  try {
+    const users = await getSupabaseUsers();
+    return users.length > 0;
+  } catch (error) {
+    return false;
+  }
+};
+
+export const migrateUsersFromLocalStorage = async (): Promise<void> => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    try {
+      const users: User[] = JSON.parse(stored);
+      for (const user of users) {
+        await addSupabaseUser(user);
+      }
+      console.log('Successfully migrated users to Supabase');
+    } catch (error) {
+      console.error('Failed to migrate users:', error);
+    }
+  }
+};
+
+export const authenticateUser = async (username: string, password: string): Promise<User | null> => {
+  try {
+    const users = await getSupabaseUsers();
+    const user = users.find(u => u.name === username && u.password === password);
+    return user || null;
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return null;
+  }
+};
+
+export const createSession = async (userId: string): Promise<void> => {
+  // Simple session management - you might want to enhance this
+  sessionStorage.setItem('session-token', `session-${userId}-${Date.now()}`);
+};
+
+export const deleteSession = async (sessionToken?: string): Promise<void> => {
+  sessionStorage.removeItem('session-token');
+};
+
+export const getCurrentUserFromStorage = (): User | null => {
+  try {
+    const stored = localStorage.getItem(CURRENT_USER_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch (error) {
+    return null;
+  }
+};
+
+export const saveCurrentUserToStorage = (user: User): void => {
+  localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+};
+
+export const clearCurrentUserFromStorage = (): void => {
+  localStorage.removeItem(CURRENT_USER_KEY);
+  sessionStorage.removeItem('session-token');
+};
 
 export const getUsers = async (): Promise<User[]> => {
   try {
@@ -39,12 +95,12 @@ export const getUsers = async (): Promise<User[]> => {
         role: 'admin',
         name: 'Administrator',
         departments: [],
-        countries: getCountries().length > 0 ? getCountries() : [...COUNTRIES],
+        countries: [...SUPPORTED_COUNTRIES],
         enabled: true
       };
       
       const createdUser = await addSupabaseUser(defaultUser);
-      return [createdUser];
+      return createdUser ? [createdUser] : [];
     }
   } catch (error) {
     console.error('Error getting users, falling back to localStorage:', error);
@@ -76,7 +132,7 @@ const getUsersFromLocalStorage = (): User[] => {
       role: 'admin',
       name: 'Administrator',
       departments: [],
-      countries: getCountries().length > 0 ? getCountries() : [...COUNTRIES],
+      countries: [...SUPPORTED_COUNTRIES],
       enabled: true
     }
   ];
@@ -87,7 +143,11 @@ const getUsersFromLocalStorage = (): User[] => {
 
 export const addUser = async (user: Omit<User, 'id'>): Promise<User> => {
   try {
-    return await addSupabaseUser(user);
+    const result = await addSupabaseUser(user);
+    if (result) {
+      return result;
+    }
+    throw new Error('Failed to create user in Supabase');
   } catch (error) {
     console.error('Error adding user to Supabase, falling back to localStorage:', error);
     // Fallback to localStorage

@@ -8,7 +8,6 @@ import { getAppVersion } from './version';
 
 export interface SystemConfig {
   // Application Settings
-  appName: string;
   appVersion: string;
   maintenanceMode: boolean;
   
@@ -19,20 +18,13 @@ export interface SystemConfig {
   
   // Security Settings
   passwordComplexity: boolean;
-  twoFactorAuth: boolean;
   auditLogRetention: number;
   
   // Amendment Settings
   amendmentTimeLimit: number; // Time limit in minutes for amendments
   maxAmendmentsPerCase: number; // Maximum number of amendments allowed per case
   
-  // Notification Settings
-  emailNotifications: boolean;
-  systemAlerts: boolean;
   
-  // Database Settings
-  backupFrequency: 'daily' | 'weekly' | 'monthly';
-  autoCleanup: boolean;
   
   // UI Settings
   defaultTheme: 'light' | 'dark' | 'auto';
@@ -40,21 +32,15 @@ export interface SystemConfig {
 }
 
 const DEFAULT_CONFIG: SystemConfig = {
-  appName: 'Transmedic Case Booking',
   appVersion: getAppVersion(),
   maintenanceMode: false,
   cacheTimeout: 300,
   maxFileSize: 10,
   sessionTimeout: 3600,
   passwordComplexity: true,
-  twoFactorAuth: false,
   auditLogRetention: 90,
   amendmentTimeLimit: 1440, // 1440 minutes (24 hours) default
   maxAmendmentsPerCase: 5, // 5 amendments max per case
-  emailNotifications: true,
-  systemAlerts: true,
-  backupFrequency: 'daily',
-  autoCleanup: true,
   defaultTheme: 'light',
   defaultLanguage: 'en'
 };
@@ -76,20 +62,20 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
     if (error) {
       if (error.code === 'PGRST116') {
         // No settings found, use localStorage or defaults
-        console.log('No system settings found in Supabase, using localStorage');
+        console.log('📋 No system settings found in Supabase, using localStorage');
         return localConfig;
       }
       if (error.code === '42P01') {
         // Table doesn't exist
-        console.log('System settings table does not exist, using localStorage');
+        console.log('📋 System settings table does not exist, using localStorage');
         return localConfig;
       }
       if (error.code === '401' || error.message.includes('permission denied')) {
-        console.log('Permission denied for system settings, using localStorage');
+        console.log('📋 Permission denied for system settings, using localStorage');
         return localConfig;
       }
       if (error.code === '406' || error.message.includes('Not Acceptable')) {
-        console.log('406 Not Acceptable for system settings, using localStorage');
+        console.log('📋 System settings table not configured, using localStorage (expected in development)');
         return localConfig;
       }
       console.log('Supabase error, falling back to localStorage:', error);
@@ -98,21 +84,15 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
 
     // Transform database format to SystemConfig and merge with defaults  
     const supabaseConfig = {
-      appName: data.app_name || DEFAULT_CONFIG.appName,
       appVersion: data.app_version || DEFAULT_CONFIG.appVersion,
       maintenanceMode: data.maintenance_mode !== null ? data.maintenance_mode : DEFAULT_CONFIG.maintenanceMode,
       cacheTimeout: data.cache_timeout || DEFAULT_CONFIG.cacheTimeout,
       maxFileSize: data.max_file_size || DEFAULT_CONFIG.maxFileSize,
       sessionTimeout: data.session_timeout || DEFAULT_CONFIG.sessionTimeout,
       passwordComplexity: data.password_complexity !== null ? data.password_complexity : DEFAULT_CONFIG.passwordComplexity,
-      twoFactorAuth: data.two_factor_auth !== null ? data.two_factor_auth : DEFAULT_CONFIG.twoFactorAuth,
       auditLogRetention: data.audit_log_retention || DEFAULT_CONFIG.auditLogRetention,
       amendmentTimeLimit: data.amendment_time_limit || DEFAULT_CONFIG.amendmentTimeLimit,
       maxAmendmentsPerCase: data.max_amendments_per_case || DEFAULT_CONFIG.maxAmendmentsPerCase,
-      emailNotifications: data.email_notifications !== null ? data.email_notifications : DEFAULT_CONFIG.emailNotifications,
-      systemAlerts: data.system_alerts !== null ? data.system_alerts : DEFAULT_CONFIG.systemAlerts,
-      backupFrequency: data.backup_frequency || DEFAULT_CONFIG.backupFrequency,
-      autoCleanup: data.auto_cleanup !== null ? data.auto_cleanup : DEFAULT_CONFIG.autoCleanup,
       defaultTheme: data.default_theme || DEFAULT_CONFIG.defaultTheme,
       defaultLanguage: data.default_language || DEFAULT_CONFIG.defaultLanguage
     };
@@ -141,21 +121,15 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
       .from('system_settings')
       .upsert({
         id: 1, // Single row for system settings
-        app_name: config.appName,
         app_version: config.appVersion,
         maintenance_mode: config.maintenanceMode,
         cache_timeout: config.cacheTimeout,
         max_file_size: config.maxFileSize,
         session_timeout: config.sessionTimeout,
         password_complexity: config.passwordComplexity,
-        two_factor_auth: config.twoFactorAuth,
         audit_log_retention: config.auditLogRetention,
         amendment_time_limit: config.amendmentTimeLimit,
         max_amendments_per_case: config.maxAmendmentsPerCase,
-        email_notifications: config.emailNotifications,
-        system_alerts: config.systemAlerts,
-        backup_frequency: config.backupFrequency,
-        auto_cleanup: config.autoCleanup,
         default_theme: config.defaultTheme,
         default_language: config.defaultLanguage,
         updated_at: new Date().toISOString()
@@ -207,21 +181,15 @@ const getSystemConfigFromLocalStorage = (): SystemConfig => {
       const parsed = JSON.parse(stored);
       // Ensure all required fields are present with proper defaults
       const config = {
-        appName: parsed.appName || DEFAULT_CONFIG.appName,
         appVersion: parsed.appVersion || DEFAULT_CONFIG.appVersion,
         maintenanceMode: parsed.maintenanceMode !== undefined ? parsed.maintenanceMode : DEFAULT_CONFIG.maintenanceMode,
         cacheTimeout: parsed.cacheTimeout || DEFAULT_CONFIG.cacheTimeout,
         maxFileSize: parsed.maxFileSize || DEFAULT_CONFIG.maxFileSize,
         sessionTimeout: parsed.sessionTimeout || DEFAULT_CONFIG.sessionTimeout,
         passwordComplexity: parsed.passwordComplexity !== undefined ? parsed.passwordComplexity : DEFAULT_CONFIG.passwordComplexity,
-        twoFactorAuth: parsed.twoFactorAuth !== undefined ? parsed.twoFactorAuth : DEFAULT_CONFIG.twoFactorAuth,
         auditLogRetention: parsed.auditLogRetention || DEFAULT_CONFIG.auditLogRetention,
         amendmentTimeLimit: parsed.amendmentTimeLimit || DEFAULT_CONFIG.amendmentTimeLimit,
         maxAmendmentsPerCase: parsed.maxAmendmentsPerCase || DEFAULT_CONFIG.maxAmendmentsPerCase,
-        emailNotifications: parsed.emailNotifications !== undefined ? parsed.emailNotifications : DEFAULT_CONFIG.emailNotifications,
-        systemAlerts: parsed.systemAlerts !== undefined ? parsed.systemAlerts : DEFAULT_CONFIG.systemAlerts,
-        backupFrequency: parsed.backupFrequency || DEFAULT_CONFIG.backupFrequency,
-        autoCleanup: parsed.autoCleanup !== undefined ? parsed.autoCleanup : DEFAULT_CONFIG.autoCleanup,
         defaultTheme: parsed.defaultTheme || DEFAULT_CONFIG.defaultTheme,
         defaultLanguage: parsed.defaultLanguage || DEFAULT_CONFIG.defaultLanguage
       };
@@ -358,13 +326,6 @@ export const applySystemConfig = async (config: SystemConfig): Promise<void> => 
       console.log('✅ Maintenance mode disabled');
     }
     
-    // Apply email notifications setting
-    localStorage.setItem('emailNotificationsEnabled', config.emailNotifications.toString());
-    console.log(`✅ Email notifications ${config.emailNotifications ? 'enabled' : 'disabled'}`);
-    
-    // Apply system alerts setting
-    localStorage.setItem('systemAlertsEnabled', config.systemAlerts.toString());
-    console.log(`✅ System alerts ${config.systemAlerts ? 'enabled' : 'disabled'}`);
     
     // Apply theme changes
     if (config.defaultTheme) {
@@ -392,15 +353,6 @@ export const applySystemConfig = async (config: SystemConfig): Promise<void> => 
       console.log(`✅ Theme set to ${config.defaultTheme}`);
     }
     
-    // Apply app name changes
-    if (config.appName) {
-      // Update document title
-      document.title = config.appName;
-      
-      // Store in localStorage for other components to use
-      localStorage.setItem('appName', config.appName);
-      console.log(`✅ App name set to "${config.appName}"`);
-    }
     
     // Apply cache timeout
     localStorage.setItem('cacheTimeout', config.cacheTimeout.toString());
@@ -419,18 +371,9 @@ export const applySystemConfig = async (config: SystemConfig): Promise<void> => 
     localStorage.setItem('maxAmendmentsPerCase', config.maxAmendmentsPerCase.toString());
     console.log(`✅ Amendment time limit: ${config.amendmentTimeLimit} minutes, max per case: ${config.maxAmendmentsPerCase}`);
     
-    // Apply backup frequency
-    localStorage.setItem('backupFrequency', config.backupFrequency);
-    console.log(`✅ Backup frequency set to ${config.backupFrequency}`);
-    
-    // Apply auto cleanup setting
-    localStorage.setItem('autoCleanup', config.autoCleanup.toString());
-    console.log(`✅ Auto cleanup ${config.autoCleanup ? 'enabled' : 'disabled'}`);
-    
     // Apply security settings
     localStorage.setItem('passwordComplexity', config.passwordComplexity.toString());
-    localStorage.setItem('twoFactorAuth', config.twoFactorAuth.toString());
-    console.log(`✅ Security settings applied - Password complexity: ${config.passwordComplexity}, 2FA: ${config.twoFactorAuth}`);
+    console.log(`✅ Security settings applied - Password complexity: ${config.passwordComplexity}`);
     
     console.log('✅ All system configuration changes applied successfully');
   } catch (error) {

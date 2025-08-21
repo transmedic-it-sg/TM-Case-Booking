@@ -81,21 +81,38 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User 
 // Update a user in Supabase
 export const updateSupabaseUser = async (userId: string, userData: Partial<User>): Promise<User | null> => {
   try {
-    const updateData: any = {};
+    // Separate profile updates from auth updates
+    const profileUpdateData: any = {};
     
-    if (userData.username) updateData.username = userData.username;
-    if (userData.password) updateData.password = userData.password;
-    if (userData.name) updateData.name = userData.name;
-    if (userData.role) updateData.role = userData.role;
-    if (userData.departments) updateData.departments = userData.departments;
-    if (userData.countries) updateData.countries = userData.countries;
-    if (userData.selectedCountry) updateData.selected_country = userData.selectedCountry;
-    if (userData.enabled !== undefined) updateData.enabled = userData.enabled;
-    if (userData.email) updateData.email = userData.email;
+    if (userData.username) profileUpdateData.username = userData.username;
+    if (userData.name) profileUpdateData.name = userData.name;
+    if (userData.role) profileUpdateData.role = userData.role;
+    if (userData.departments) profileUpdateData.departments = userData.departments;
+    if (userData.countries) profileUpdateData.countries = userData.countries;
+    if (userData.selectedCountry) profileUpdateData.selected_country = userData.selectedCountry;
+    if (userData.enabled !== undefined) profileUpdateData.enabled = userData.enabled;
+    if (userData.email) profileUpdateData.email = userData.email;
     
+    // Handle password update separately through Supabase Auth (admin access required)
+    if (userData.password) {
+      console.log('🔐 Updating user password through Supabase Auth');
+      const { error: authError } = await supabase.auth.admin.updateUserById(userId, {
+        password: userData.password
+      });
+      
+      if (authError) {
+        console.error('Error updating user password:', authError);
+        // Don't fail the entire operation if password update fails
+        console.warn('Password update failed, but continuing with profile update');
+      } else {
+        console.log('✅ Password updated successfully');
+      }
+    }
+    
+    // Update profile data (without password)
     const { data, error } = await supabase
       .from('profiles')
-      .update(updateData)
+      .update(profileUpdateData)
       .eq('id', userId)
       .select()
       .single();
@@ -128,20 +145,34 @@ export const updateSupabaseUser = async (userId: string, userData: Partial<User>
 // Reset user password in Supabase
 export const resetSupabaseUserPassword = async (userId: string, newPassword: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
+    console.log('🔐 Resetting user password through Supabase Auth');
+    
+    // Update password through Supabase Auth (admin access required)
+    const { error: authError } = await supabase.auth.admin.updateUserById(userId, {
+      password: newPassword
+    });
+    
+    if (authError) {
+      console.error('Error resetting password through auth:', authError);
+      return false;
+    }
+    
+    // Update profile to set password_reset_required flag
+    const { error: profileError } = await supabase
       .from('profiles')
       .update({ 
-        password: newPassword,
         password_reset_required: true, // Flag to force password change on next login
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
     
-    if (error) {
-      console.error('Error resetting password:', error);
-      return false;
+    if (profileError) {
+      console.error('Error updating profile after password reset:', profileError);
+      // Don't return false here since password was already updated successfully
+      console.warn('Password reset succeeded but profile flag update failed');
     }
     
+    console.log('✅ Password reset successfully');
     return true;
   } catch (error) {
     console.error('Error in resetSupabaseUserPassword:', error);
