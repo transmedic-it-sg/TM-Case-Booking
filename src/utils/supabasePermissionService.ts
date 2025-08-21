@@ -59,7 +59,7 @@ export const getSupabasePermissions = async (): Promise<Permission[]> => {
     // New schema uses: role, resource, action, allowed
     return data.map(perm => ({
       roleId: perm.role,
-      actionId: `${perm.resource}-${perm.action}`, // Combine resource and action
+      actionId: `${perm.resource}-${perm.action}`, // Combine resource and action to match app format
       allowed: perm.allowed
     }));
   } catch (error) {
@@ -226,7 +226,7 @@ export const getSupabaseRolePermissions = async (roleId: string): Promise<Permis
     
     return data?.map(perm => ({
       roleId: perm.role,
-      actionId: `${perm.resource}-${perm.action}`,
+      actionId: `${perm.resource}-${perm.action}`, // Combine resource and action consistently
       allowed: perm.allowed
     })) || [];
   } catch (error) {

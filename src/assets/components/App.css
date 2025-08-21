@@ -4418,6 +4418,45 @@ textarea:focus {
 
 
 
+/* Department Filter Section Styles */
+.department-filter-section {
+  margin: 20px 0;
+  padding: 20px;
+  background-color: #f0f8ff;
+  border-radius: 8px;
+  border: 1px solid #b3d9ff;
+}
+
+.department-filter-header h3 {
+  margin: 0 0 8px 0;
+  color: #2c5aa0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.filter-description {
+  margin: 0 0 15px 0;
+  color: #5a6c7d;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.department-filter-dropdown {
+  max-width: 300px;
+}
+
+.department-filter-select {
+  width: 100%;
+  background-color: white;
+  border: 2px solid #b3d9ff;
+  border-radius: 6px;
+}
+
+.department-filter-select:focus {
+  border-color: #2c5aa0;
+  box-shadow: 0 0 0 3px rgba(44, 90, 160, 0.1);
+}
+
 /* Procedure Type Selector Styles */
 .procedure-type-selector {
   margin: 20px 0;
@@ -7600,7 +7639,7 @@ textarea:focus {
 /* Amendment History Header */
 .amendment-header-container {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
 }

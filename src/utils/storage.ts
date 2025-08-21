@@ -10,6 +10,7 @@ import {
   migrateCasesFromLocalStorage 
 } from './supabaseCaseService';
 import { normalizeCountry } from './countryUtils';
+import { withConnectionRetry } from './databaseConnectionMonitor';
 
 const CASES_KEY = 'case-booking-cases';
 const CASE_COUNTER_KEY = 'case-booking-counter';
@@ -301,6 +302,16 @@ export interface CategorizedSets {
   };
 }
 
+// Department-specific categorized sets storage
+export interface DepartmentCategorizedSets {
+  [department: string]: {
+    [procedureType: string]: {
+      surgerySets: string[];
+      implantBoxes: string[];
+    };
+  };
+}
+
 // Country-specific categorized sets storage
 export const saveCategorizedSets = async (categorizedSets: CategorizedSets, country?: string): Promise<void> => {
   if (country) {
@@ -413,6 +424,7 @@ export const getCategorizedSets = async (country?: string): Promise<CategorizedS
 // Dynamic Procedure Types Management - Country-specific
 const CUSTOM_PROCEDURE_TYPES_KEY = 'custom_procedure_types';
 const HIDDEN_PROCEDURE_TYPES_KEY = 'hidden_procedure_types';
+const DEPARTMENT_PROCEDURE_TYPES_KEY = 'department_procedure_types';
 
 export const getCustomProcedureTypes = (country?: string): string[] => {
   try {
@@ -550,4 +562,277 @@ export const getHiddenProcedureTypesList = (country?: string): string[] => {
   
   // Only return hidden types that are actually base types
   return hiddenTypes.filter(type => baseProcedureTypes.includes(type));
+};
+
+// Department-specific procedure types management
+export interface DepartmentProcedureTypes {
+  [department: string]: string[];
+}
+
+export const getDepartmentProcedureTypes = async (country?: string): Promise<DepartmentProcedureTypes> => {
+  try {
+    // Try Supabase first
+    if (country) {
+      const { getDepartments } = await import('./supabaseDepartmentService');
+      // Note: departments fetched but not used as procedure types are handled elsewhere
+      await getDepartments(country);
+      const result: DepartmentProcedureTypes = {};
+      
+      // For each department, we would need to get its procedure types
+      // This will be handled by the specific function getProcedureTypesForDepartment
+      return result;
+    }
+    
+    // Fallback to localStorage
+    const key = country ? `${DEPARTMENT_PROCEDURE_TYPES_KEY}_${country}` : DEPARTMENT_PROCEDURE_TYPES_KEY;
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+    return {};
+  } catch (error) {
+    console.error('Error loading department procedure types:', error);
+    return {};
+  }
+};
+
+export const saveDepartmentProcedureTypes = (departmentTypes: DepartmentProcedureTypes, country?: string): void => {
+  try {
+    const key = country ? `${DEPARTMENT_PROCEDURE_TYPES_KEY}_${country}` : DEPARTMENT_PROCEDURE_TYPES_KEY;
+    localStorage.setItem(key, JSON.stringify(departmentTypes));
+  } catch (error) {
+    console.error('Error saving department procedure types:', error);
+  }
+};
+
+export const addProcedureTypeToDepartment = async (department: string, procedureType: string, country?: string): Promise<boolean> => {
+  const operation = async (): Promise<boolean> => {
+    if (country) {
+      const { addProcedureTypeToDepartment: addSupabaseProcedureType } = await import('./supabaseDepartmentService');
+      return await addSupabaseProcedureType(department, procedureType, country);
+    }
+    return false;
+  };
+
+  const fallback = async (): Promise<boolean> => {
+    console.log('Using localStorage fallback for adding procedure type');
+    const departmentTypes = await getDepartmentProcedureTypes(country);
+    
+    if (!departmentTypes[department]) {
+      departmentTypes[department] = [];
+    }
+    
+    const trimmedType = procedureType.trim();
+    if (!trimmedType || departmentTypes[department].includes(trimmedType)) {
+      return false; // Invalid or duplicate
+    }
+    
+    departmentTypes[department].push(trimmedType);
+    saveDepartmentProcedureTypes(departmentTypes, country);
+    return true;
+  };
+
+  try {
+    return await withConnectionRetry(operation, fallback);
+  } catch (error) {
+    console.error('Error adding procedure type to department:', error);
+    return await fallback();
+  }
+};
+
+export const removeProcedureTypeFromDepartment = async (department: string, procedureType: string, country?: string): Promise<boolean> => {
+  const operation = async (): Promise<boolean> => {
+    if (country) {
+      const { removeProcedureTypeFromDepartment: removeSupabaseProcedureType } = await import('./supabaseDepartmentService');
+      return await removeSupabaseProcedureType(department, procedureType, country);
+    }
+    return false;
+  };
+
+  const fallback = async (): Promise<boolean> => {
+    console.log('Using localStorage fallback for removing procedure type');
+    const departmentTypes = await getDepartmentProcedureTypes(country);
+    
+    if (!departmentTypes[department]) {
+      return false;
+    }
+    
+    const originalLength = departmentTypes[department].length;
+    departmentTypes[department] = departmentTypes[department].filter(type => type !== procedureType);
+    
+    if (departmentTypes[department].length === originalLength) {
+      return false; // Type not found
+    }
+    
+    saveDepartmentProcedureTypes(departmentTypes, country);
+    return true;
+  };
+
+  try {
+    return await withConnectionRetry(operation, fallback);
+  } catch (error) {
+    console.error('Error removing procedure type from department:', error);
+    return await fallback();
+  }
+};
+
+export const getProcedureTypesForDepartment = async (department: string, country?: string): Promise<string[]> => {
+  const operation = async (): Promise<string[]> => {
+    if (country) {
+      const { getProcedureTypesForDepartment: getSupabaseProcedureTypes } = await import('./supabaseDepartmentService');
+      return await getSupabaseProcedureTypes(department, country);
+    }
+    return [];
+  };
+
+  const fallback = async (): Promise<string[]> => {
+    console.log('Using localStorage fallback for procedure types');
+    const departmentTypes = await getDepartmentProcedureTypes(country);
+    return departmentTypes[department] || [];
+  };
+
+  try {
+    return await withConnectionRetry(operation, fallback);
+  } catch (error) {
+    console.error('Error getting procedure types for department:', error);
+    return await fallback();
+  }
+};
+
+export const getAllDepartmentProcedureTypes = async (country?: string): Promise<string[]> => {
+  try {
+    const departmentTypes = await getDepartmentProcedureTypes(country);
+    const allTypes = new Set<string>();
+    
+    Object.values(departmentTypes).forEach(types => {
+      types.forEach(type => allTypes.add(type));
+    });
+    
+    return Array.from(allTypes);
+  } catch (error) {
+    console.error('Error getting all department procedure types:', error);
+    return [];
+  }
+};
+
+// Department-specific categorized sets management
+const DEPARTMENT_CATEGORIZED_SETS_KEY = 'department_categorized_sets';
+
+export const getDepartmentCategorizedSets = async (country?: string): Promise<DepartmentCategorizedSets> => {
+  try {
+    // Try Supabase first if country is provided
+    if (country) {
+      const { getDepartments } = await import('./supabaseDepartmentService');
+      const departments = await getDepartments(country);
+      const result: DepartmentCategorizedSets = {};
+      
+      // Get categorized sets for each department
+      for (const department of departments) {
+        const { getCategorizedSetsForDepartment } = await import('./supabaseDepartmentService');
+        const sets = await getCategorizedSetsForDepartment(department.name, country);
+        if (Object.keys(sets).length > 0) {
+          result[department.name] = sets;
+        }
+      }
+      
+      return result;
+    }
+    
+    // Fallback to localStorage
+    const key = country ? `${DEPARTMENT_CATEGORIZED_SETS_KEY}_${country}` : DEPARTMENT_CATEGORIZED_SETS_KEY;
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+    return {};
+  } catch (error) {
+    console.error('Error loading department categorized sets:', error);
+    return {};
+  }
+};
+
+export const saveDepartmentCategorizedSets = async (departmentSets: DepartmentCategorizedSets, country?: string): Promise<void> => {
+  try {
+    // Try Supabase first if country is provided
+    if (country) {
+      // Save each department's categorized sets to Supabase
+      for (const [departmentName, categorizedSets] of Object.entries(departmentSets)) {
+        const { saveCategorizedSetsForDepartment } = await import('./supabaseDepartmentService');
+        await saveCategorizedSetsForDepartment(departmentName, categorizedSets, country);
+      }
+      return;
+    }
+    
+    // Fallback to localStorage
+    const key = country ? `${DEPARTMENT_CATEGORIZED_SETS_KEY}_${country}` : DEPARTMENT_CATEGORIZED_SETS_KEY;
+    localStorage.setItem(key, JSON.stringify(departmentSets));
+  } catch (error) {
+    console.error('Error saving department categorized sets:', error);
+    throw error;
+  }
+};
+
+export const getCategorizedSetsForDepartment = async (department: string, country?: string): Promise<CategorizedSets> => {
+  const operation = async (): Promise<CategorizedSets> => {
+    if (country) {
+      const { getCategorizedSetsForDepartment: getSupabaseCategorizedSets } = await import('./supabaseDepartmentService');
+      return await getSupabaseCategorizedSets(department, country);
+    }
+    return {};
+  };
+
+  const fallback = async (): Promise<CategorizedSets> => {
+    console.log('Using localStorage fallback for categorized sets');
+    const departmentSets = await getDepartmentCategorizedSets(country);
+    return departmentSets[department] || {};
+  };
+
+  try {
+    return await withConnectionRetry(operation, fallback);
+  } catch (error) {
+    console.error('Error getting categorized sets for department:', error);
+    return await fallback();
+  }
+};
+
+export const saveCategorizedSetsForDepartment = async (
+  department: string, 
+  categorizedSets: CategorizedSets, 
+  country?: string
+): Promise<void> => {
+  const operation = async (): Promise<void> => {
+    if (country) {
+      const { saveCategorizedSetsForDepartment: saveSupabaseCategorizedSets } = await import('./supabaseDepartmentService');
+      await saveSupabaseCategorizedSets(department, categorizedSets, country);
+    }
+  };
+
+  const fallback = async (): Promise<void> => {
+    console.log('Using localStorage fallback for saving categorized sets');
+    const departmentSets = await getDepartmentCategorizedSets(country);
+    departmentSets[department] = categorizedSets;
+    await saveDepartmentCategorizedSets(departmentSets, country);
+  };
+
+  try {
+    // Check if this is a data error that should not trigger connection retry
+    await operation();
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // If it's a department not found error, just use fallback without triggering connection monitoring
+    if (errorMessage.includes('Department') && errorMessage.includes('not found')) {
+      console.warn('Department not found, using localStorage fallback:', errorMessage);
+      await fallback();
+      return;
+    }
+    
+    // For other errors, use the connection retry system
+    try {
+      await withConnectionRetry(operation, fallback);
+    } catch (retryError) {
+      console.error('Error saving categorized sets for department:', retryError);
+      await fallback();
+    }
+  }
 };

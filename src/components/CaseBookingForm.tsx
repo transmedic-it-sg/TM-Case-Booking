@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { CaseBooking, SURGERY_SETS, IMPLANT_BOXES, PROCEDURE_TYPE_MAPPINGS } from '../types';
 import { CategorizedSets } from '../utils/storage';
-import { saveCase, generateCaseReferenceNumber, getAllProcedureTypes, getCategorizedSets } from '../utils/storage';
+import { saveCase, generateCaseReferenceNumber, getProcedureTypesForDepartment, getCategorizedSetsForDepartment } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { 
@@ -57,8 +57,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       initializeCodeTables();
       // Using currentUser from component scope
       const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
-      const allTypes = getAllProcedureTypes(userCountry);
-      setAvailableProcedureTypes(allTypes.sort());
+      // Procedure types will be loaded when department is selected
       
       // Load hospitals from Supabase code tables
       try {
@@ -110,37 +109,103 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         }
       }
       
-      // Load categorized sets from Supabase
-      try {
-        const normalizedCountry = normalizeCountry(userCountry || 'Singapore');
-        const sets = await getCategorizedSets(normalizedCountry);
-        setCategorizedSets(sets);
-        // Loaded categorized sets successfully
-      } catch (error) {
-        console.error('Error loading categorized sets:', error);
-      }
+      // Initialize with empty categorized sets - will be loaded when department is selected
+      setCategorizedSets({});
     };
     
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Separate effect to handle currentUser changes - run only once to avoid infinite loops
+  // Procedure types are now loaded when department is selected
+
+  // Use department-specific procedure types directly (no additional filtering needed)
+  const filteredProcedureTypes = availableProcedureTypes;
+
+  // Load department-specific procedure types and categorized sets when department changes
   useEffect(() => {
-    if (currentUser) {
-      const userCountry = currentUser.selectedCountry || currentUser.countries?.[0];
-      if (userCountry) {
-        const allTypes = getAllProcedureTypes(userCountry);
-        setAvailableProcedureTypes(allTypes.sort());
+    let isActive = true; // Cleanup flag to prevent state updates if component unmounts
+    
+    const loadDepartmentData = async () => {
+      if (formData.department && formData.department.trim()) {
+        const user = getCurrentUser(); // Get current user inside the effect to avoid dependency issues
+        if (user && isActive) {
+          const userCountry = user.selectedCountry || user.countries?.[0];
+          
+          if (userCountry) {
+            try {
+              // Load procedure types for this department
+              const departmentProcedureTypes = await getProcedureTypesForDepartment(formData.department, userCountry);
+              
+              if (isActive) {
+                setAvailableProcedureTypes(departmentProcedureTypes.sort());
+              }
+              
+              // Load categorized sets for this department
+              const departmentSets = await getCategorizedSetsForDepartment(formData.department, userCountry);
+              
+              if (isActive) {
+                setCategorizedSets(departmentSets);
+              }
+              
+            } catch (error) {
+              console.error('Error loading department data:', error);
+              // Fallback to empty data
+              if (isActive) {
+                setAvailableProcedureTypes([]);
+                setCategorizedSets({});
+              }
+            }
+          } else {
+            if (isActive) {
+              setAvailableProcedureTypes([]);
+              setCategorizedSets({});
+            }
+          }
+        } else {
+          if (isActive) {
+            setAvailableProcedureTypes([]);
+            setCategorizedSets({});
+          }
+        }
+      } else {
+        // Clear data when no department selected
+        if (isActive) {
+          setAvailableProcedureTypes([]);
+          setCategorizedSets({});
+        }
+      }
+    };
+    
+    // Add a small delay to debounce rapid changes
+    const timeoutId = setTimeout(() => {
+      loadDepartmentData();
+    }, 100);
+    
+    return () => {
+      isActive = false; // Prevent state updates if component unmounts
+      clearTimeout(timeoutId);
+    };
+  }, [formData.department]); // Remove currentUser dependency to prevent infinite loops
+
+  // Clear procedure type when department changes to ensure compatibility
+  useEffect(() => {
+    if (formData.department && formData.procedureType) {
+      const isCurrentProcedureTypeValid = filteredProcedureTypes.includes(formData.procedureType);
+      if (!isCurrentProcedureTypeValid) {
+        setFormData(prev => ({
+          ...prev,
+          procedureType: '',
+          surgerySetSelection: [],
+          implantBox: []
+        }));
       }
     }
-    // Remove dependencies to prevent infinite loops since currentUser can change on every render
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [formData.department, formData.procedureType, filteredProcedureTypes]);
 
   const surgerySetOptions = useMemo(() => {
     if (!formData.procedureType) {
-      return [...SURGERY_SETS].sort();
+      return [];
     }
     
     // Try to get from categorized sets first (loaded from Supabase)
@@ -148,14 +213,13 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       return categorizedSets[formData.procedureType].surgerySets.sort();
     }
     
-    // Fallback to static mapping
-    const mapping = PROCEDURE_TYPE_MAPPINGS[formData.procedureType as keyof typeof PROCEDURE_TYPE_MAPPINGS];
-    return mapping ? [...mapping.surgerySets].sort() : [...SURGERY_SETS].sort();
+    // Return empty array if no categorized sets found - indicates no sets configured for this procedure type
+    return [];
   }, [formData.procedureType, categorizedSets]);
 
   const implantBoxOptions = useMemo(() => {
     if (!formData.procedureType) {
-      return [...IMPLANT_BOXES].sort();
+      return [];
     }
     
     // Try to get from categorized sets first (loaded from Supabase)
@@ -163,9 +227,8 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       return categorizedSets[formData.procedureType].implantBoxes.sort();
     }
     
-    // Fallback to static mapping
-    const mapping = PROCEDURE_TYPE_MAPPINGS[formData.procedureType as keyof typeof PROCEDURE_TYPE_MAPPINGS];
-    return mapping ? [...mapping.implantBoxes].sort() : [...IMPLANT_BOXES].sort();
+    // Return empty array if no categorized sets found - indicates no sets configured for this procedure type
+    return [];
   }, [formData.procedureType, categorizedSets]);
 
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
@@ -256,11 +319,13 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       newErrors.procedureName = 'Procedure Name is required';
     }
 
-    if (formData.surgerySetSelection.length === 0) {
+    // Only require surgery sets if options are available
+    if (surgerySetOptions.length > 0 && formData.surgerySetSelection.length === 0) {
       newErrors.surgerySetSelection = 'Surgery Set Selection is required';
     }
 
-    if (formData.implantBox.length === 0) {
+    // Only require implant boxes if options are available
+    if (implantBoxOptions.length > 0 && formData.implantBox.length === 0) {
       newErrors.implantBox = 'Implant Box selection is required';
     }
 
@@ -448,9 +513,10 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
                 surgerySetSelection: [],
                 implantBox: []
               }))}
-              options={availableProcedureTypes}
-              placeholder="Search and select procedure type"
+              options={filteredProcedureTypes}
+              placeholder={formData.department ? "Search and select procedure type" : "Please select a department first"}
               className={errors.procedureType ? 'error' : ''}
+              disabled={!formData.department || filteredProcedureTypes.length === 0}
               required
             />
             {errors.procedureType && <span className="error-text">{errors.procedureType}</span>}
@@ -488,8 +554,14 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             options={surgerySetOptions}
             value={formData.surgerySetSelection}
             onChange={(values) => setFormData(prev => ({ ...prev, surgerySetSelection: values }))}
-            placeholder="Select Surgery Sets..."
-            required={true}
+            placeholder={
+              !formData.procedureType 
+                ? "Please select a procedure type first" 
+                : surgerySetOptions.length === 0 
+                  ? "No surgery sets configured for this procedure type" 
+                  : "Select Surgery Sets..."
+            }
+            required={surgerySetOptions.length > 0}
           />
           {errors.surgerySetSelection && <span className="error-text">{errors.surgerySetSelection}</span>}
         </div>
@@ -501,8 +573,14 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             options={implantBoxOptions}
             value={formData.implantBox}
             onChange={(values) => setFormData(prev => ({ ...prev, implantBox: values }))}
-            placeholder="Select Implant Boxes..."
-            required={true}
+            placeholder={
+              !formData.procedureType 
+                ? "Please select a procedure type first" 
+                : implantBoxOptions.length === 0 
+                  ? "No implant boxes configured for this procedure type" 
+                  : "Select Implant Boxes..."
+            }
+            required={implantBoxOptions.length > 0}
           />
           {errors.implantBox && <span className="error-text">{errors.implantBox}</span>}
         </div>

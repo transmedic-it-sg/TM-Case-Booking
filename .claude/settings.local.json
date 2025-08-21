@@ -181,8 +181,22 @@
       "Bash(NODE_OPTIONS='--max-old-space-size=8192' timeout 60s npm run build)",
       "Bash(true)",
       "Bash(NODE_OPTIONS='--max-old-space-size=8192' timeout 30s npm run build)",
-      "Bash(NODE_OPTIONS='--max-old-space-size=8192' timeout 90s npm run build)"
+      "Bash(NODE_OPTIONS='--max-old-space-size=8192' timeout 90s npm run build)",
+      "Bash(psql:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebSearch",
+      "Bash(npx:*)",
+      "mcp__supabase__apply_migration",
+      "Bash(exit)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__execute_sql",
+      "Bash(NODE_OPTIONS='--max-old-space-size=8192' timeout 120s npm run build)"
     ],
-    "deny": []
-  }
+    "deny": [],
+    "defaultMode": "acceptEdits"
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
 }

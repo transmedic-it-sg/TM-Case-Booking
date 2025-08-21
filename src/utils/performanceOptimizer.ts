@@ -3,6 +3,8 @@
  * Reduces memory usage, improves performance, and optimizes resource loading
  */
 
+import React from 'react';
+
 // Debounce utility to reduce excessive function calls
 export const debounce = <T extends (...args: any[]) => any>(
   func: T,
@@ -198,5 +200,3 @@ export const memoryOptimizer = {
   }
 };
 
-// Import React at the end to avoid issues
-import React from 'react';

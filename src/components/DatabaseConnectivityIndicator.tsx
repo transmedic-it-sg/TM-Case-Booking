@@ -42,11 +42,6 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
 
   // getDatabaseName is now imported from utils
   
-  // Check if mobile device
-  const isMobile = () => {
-    return window.innerWidth <= 1366;
-  };
-  
   // Get position of database indicator for mobile positioning
   const getIndicatorPosition = () => {
     if (containerRef.current) {

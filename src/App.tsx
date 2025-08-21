@@ -33,6 +33,8 @@ import Settings from './components/Settings';
 import StatusLegend from './components/StatusLegend';
 import MobileNavigation from './components/MobileNavigation';
 import MobileHeader from './components/MobileHeader';
+import CacheVersionMismatchPopup from './components/CacheVersionMismatchPopup';
+import { useCacheVersionManager } from './hooks/useCacheVersionManager';
 // import { SystemHealthMonitor } from './utils/systemHealthMonitor'; // Temporarily disabled
 // import { DataValidationService } from './utils/dataValidationService'; // Unused
 import './assets/components/App.css';
@@ -63,6 +65,23 @@ const AppContent: React.FC = () => {
   const { playSound } = useSound();
   const { addNotification } = useNotifications();
   const { showSuccess } = useToast();
+  
+  // Cache version management
+  // DISABLED: Aggressive cache versioning causing UX issues with too many popups
+  // const {
+  //   showMismatchPopup,
+  //   outdatedTypes,
+  //   changedVersions,
+  //   forceLogout,
+  //   manualVersionCheck
+  // } = useCacheVersionManager();
+  
+  // Temporary disable cache version popups - they're too disruptive
+  const showMismatchPopup = false;
+  const outdatedTypes: string[] = [];
+  const changedVersions: any[] = [];
+  const forceLogout = () => {};
+  const manualVersionCheck = async () => false;
 
   // Simple version management without auto-refresh
   useEffect(() => {
@@ -594,6 +613,14 @@ const AppContent: React.FC = () => {
         onConfirm={confirmLogout}
         onCancel={cancelLogout}
         userName={user?.name}
+      />
+
+      {/* Cache Version Mismatch Popup */}
+      <CacheVersionMismatchPopup
+        isOpen={showMismatchPopup}
+        outdatedTypes={outdatedTypes}
+        changedVersions={changedVersions}
+        onForceLogout={forceLogout}
       />
 
       {/* Mobile Navigation */}

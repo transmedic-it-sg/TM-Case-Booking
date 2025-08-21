@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PROCEDURE_TYPES, COUNTRIES } from '../../types';
-import { getCountries } from '../../utils/codeTable';
+import { getCountries, getDepartments } from '../../utils/codeTable';
 import { useToast } from '../ToastContainer';
 import { useSound } from '../../contexts/SoundContext';
 import { getCurrentUser } from '../../utils/auth';
@@ -12,9 +12,14 @@ import {
   saveCategorizedSets, 
   getCategorizedSets, 
   getAllProcedureTypes, 
-  addCustomProcedureType, 
-  removeCustomProcedureType
+  getProcedureTypesForDepartment,
+  addProcedureTypeToDepartment,
+  removeProcedureTypeFromDepartment,
+  getCategorizedSetsForDepartment,
+  saveCategorizedSetsForDepartment
 } from '../../utils/storage';
+// Removed cache versioning - was causing UX disruptions
+// import { forceCacheVersionUpdate } from '../../utils/cacheVersionService';
 import SetsList from './SetsList';
 import CustomModal from '../CustomModal';
 import SearchableDropdown from '../SearchableDropdown';
@@ -42,6 +47,8 @@ const EditSets: React.FC<EditSetsProps> = () => {
   const [procedureTypeError, setProcedureTypeError] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('');
+  const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
 
   const { showError, showSuccess } = useToast();
   const { playSound } = useSound();
@@ -81,31 +88,77 @@ const EditSets: React.FC<EditSetsProps> = () => {
     }
   }, [isAdmin, selectedCountry, userCountry]);
 
-  // Load all procedure types on component mount
+  // Load departments when country changes
   useEffect(() => {
-    const allTypes = getAllProcedureTypes(activeCountry);
-    setAllProcedureTypes(allTypes);
+    const departments = getDepartments();
+    setAvailableDepartments(departments);
     
-    // Update selected procedure type if it doesn't exist in the loaded types
-    if (!allTypes.includes(selectedProcedureType)) {
-      setSelectedProcedureType(allTypes[0] || PROCEDURE_TYPES[0]);
+    // Set default department if none selected
+    if (!selectedDepartment && departments.length > 0) {
+      setSelectedDepartment(departments[0]);
     }
-  }, [selectedProcedureType, activeCountry]);
+  }, [selectedCountry, selectedDepartment]);
 
-  // Initialize categorized sets on component mount
+  // Load procedure types for the selected department
+  useEffect(() => {
+    const loadProcedureTypes = async () => {
+      try {
+        let departmentTypes: string[] = [];
+        
+        if (selectedDepartment) {
+          departmentTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountry);
+        } else {
+          // Fallback to all procedure types if no department selected
+          departmentTypes = getAllProcedureTypes(activeCountry);
+        }
+        
+        setAllProcedureTypes(departmentTypes);
+        
+        // Update selected procedure type if it doesn't exist in the loaded types
+        if (!departmentTypes.includes(selectedProcedureType)) {
+          setSelectedProcedureType(departmentTypes[0] || PROCEDURE_TYPES[0]);
+        }
+      } catch (error) {
+        console.error('Error loading procedure types:', error);
+        // Fallback to default procedure types
+        setAllProcedureTypes([...PROCEDURE_TYPES]);
+        if (!PROCEDURE_TYPES.includes(selectedProcedureType as any)) {
+          setSelectedProcedureType(PROCEDURE_TYPES[0]);
+        }
+      }
+    };
+    
+    loadProcedureTypes();
+  }, [selectedDepartment, selectedProcedureType, activeCountry]);
+
+  // Initialize categorized sets for the selected department
   useEffect(() => {
     const loadSets = async () => {
-      const storedSets = await getCategorizedSets(activeCountry);
-      if (Object.keys(storedSets).length > 0) {
-        setCategorizedSets(storedSets);
+      if (selectedDepartment) {
+        const storedSets = await getCategorizedSetsForDepartment(selectedDepartment, activeCountry);
+        if (Object.keys(storedSets).length > 0) {
+          setCategorizedSets(storedSets);
+        } else {
+          // Initialize with empty sets - do not auto-save empty data
+          const initialSets = initializeCategorizedSets();
+          setCategorizedSets(initialSets);
+          console.log('No existing categorized sets found, starting with empty sets');
+        }
       } else {
-        const initialSets = initializeCategorizedSets();
-        setCategorizedSets(initialSets);
-        await saveCategorizedSets(initialSets, activeCountry);
+        // Fallback to global sets if no department selected
+        const storedSets = await getCategorizedSets(activeCountry);
+        if (Object.keys(storedSets).length > 0) {
+          setCategorizedSets(storedSets);
+        } else {
+          // Initialize with empty sets - do not auto-save empty data
+          const initialSets = initializeCategorizedSets();
+          setCategorizedSets(initialSets);
+          console.log('No existing global categorized sets found, starting with empty sets');
+        }
       }
     };
     loadSets();
-  }, [activeCountry]);
+  }, [selectedDepartment, activeCountry]);
 
   // Ensure selectedProcedureType exists in categorizedSets
   useEffect(() => {
@@ -120,15 +173,26 @@ const EditSets: React.FC<EditSetsProps> = () => {
     }
   }, [selectedProcedureType, categorizedSets]);
 
-  // Save categorized sets to Supabase whenever they change (debounced)
+  // Save categorized sets whenever they change (debounced)
   useEffect(() => {
     const saveChanges = async () => {
       if (Object.keys(categorizedSets).length > 0) {
         try {
-          await saveCategorizedSets(categorizedSets, activeCountry);
-          console.log('Categorized sets saved successfully to Supabase');
+          if (selectedDepartment) {
+            // Check if department has procedure types before trying to save
+            const procedureTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountry);
+            if (procedureTypes.length > 0) {
+              await saveCategorizedSetsForDepartment(selectedDepartment, categorizedSets, activeCountry);
+              console.log(`Categorized sets saved successfully for department: ${selectedDepartment}`);
+            } else {
+              console.log(`Skipping save for department ${selectedDepartment} - no procedure types found`);
+            }
+          } else {
+            await saveCategorizedSets(categorizedSets, activeCountry);
+            console.log('Categorized sets saved successfully to global storage');
+          }
         } catch (error) {
-          console.error('Error saving categorized sets:', error);
+          console.warn('Error saving categorized sets (will retry later):', error);
         }
       }
     };
@@ -140,10 +204,10 @@ const EditSets: React.FC<EditSetsProps> = () => {
       } finally {
         // Save operation completed
       }
-    }, 500); // Wait 500ms before saving
+    }, 1000); // Wait 1 second before saving to reduce frequency
     
     return () => clearTimeout(timeoutId);
-  }, [categorizedSets, activeCountry]);
+  }, [categorizedSets, selectedDepartment, activeCountry]);
 
   // Procedure Type Management Functions
   const handleAddProcedureType = () => {
@@ -169,65 +233,99 @@ const EditSets: React.FC<EditSetsProps> = () => {
       return;
     }
     
-    // Add to localStorage
-    if (addCustomProcedureType(trimmedName, activeCountry)) {
-      // Update local state
-      const updatedTypes = getAllProcedureTypes(activeCountry);
-      setAllProcedureTypes(updatedTypes);
-      
-      // Initialize empty sets for the new procedure type
-      setCategorizedSets(prev => ({
-        ...prev,
-        [trimmedName]: {
-          surgerySets: [],
-          implantBoxes: []
+    // Add to department-specific storage
+    const addProcedureTypeAsync = async () => {
+      try {
+        if (!selectedDepartment) {
+          setProcedureTypeError('Please select a department first');
+          return;
         }
-      }));
-      
-      // Reset form
-      setNewProcedureTypeName('');
-      setShowAddProcedureType(false);
-      setProcedureTypeError('');
-      
-      // Switch to the new procedure type
-      setSelectedProcedureType(trimmedName);
-      
-      playSound.success();
-      showSuccess('Procedure Type Added', `"${trimmedName}" has been added successfully`);
-    } else {
-      setProcedureTypeError('Failed to add procedure type');
-    }
+        
+        const success = await addProcedureTypeToDepartment(selectedDepartment, trimmedName, activeCountry);
+        
+        if (success) {
+          // Update local state
+          const updatedTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountry);
+          setAllProcedureTypes(updatedTypes);
+          
+          // Initialize empty sets for the new procedure type
+          setCategorizedSets(prev => ({
+            ...prev,
+            [trimmedName]: {
+              surgerySets: [],
+              implantBoxes: []
+            }
+          }));
+          
+          // Reset form
+          setNewProcedureTypeName('');
+          setShowAddProcedureType(false);
+          setProcedureTypeError('');
+          
+          // Switch to the new procedure type
+          setSelectedProcedureType(trimmedName);
+          
+          
+          playSound.success();
+          showSuccess('Procedure Type Added', `"${trimmedName}" has been added successfully`);
+        } else {
+          setProcedureTypeError('Failed to add procedure type');
+        }
+      } catch (error) {
+        console.error('Error adding procedure type:', error);
+        setProcedureTypeError('Failed to add procedure type');
+      }
+    };
+    
+    addProcedureTypeAsync();
   };
 
   const handleDeleteProcedureType = (typeName: string) => {
-    const confirmMessage = `Are you sure you want to delete "${typeName}"?\n\nThis will remove all associated surgery sets and implant boxes. This action cannot be undone.`;
+    const confirmMessage = `Are you sure you want to delete "${typeName}" from ${selectedDepartment}?\n\nThis will remove all associated surgery sets and implant boxes for this department only. This action cannot be undone.`;
     
     showConfirm('Delete Procedure Type', confirmMessage, () => {
-      if (removeCustomProcedureType(typeName, activeCountry)) {
-        // Update local state
-        const updatedTypes = getAllProcedureTypes(activeCountry);
-        setAllProcedureTypes(updatedTypes);
-        
-        // Remove from categorized sets for all types (base and custom)
-        setCategorizedSets(prev => {
-          const newSets = { ...prev };
-          delete newSets[typeName];
-          return newSets;
-        });
-        
-        // Switch to first available procedure type if current one was deleted
-        if (selectedProcedureType === typeName) {
-          setSelectedProcedureType(updatedTypes[0] || PROCEDURE_TYPES[0]);
+      const deleteProcedureTypeAsync = async () => {
+        try {
+          if (!selectedDepartment) {
+            showError('Delete Failed', 'No department selected');
+            return;
+          }
+          
+          const success = await removeProcedureTypeFromDepartment(selectedDepartment, typeName, activeCountry);
+          
+          if (success) {
+            // Update local state for this department
+            const updatedTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountry);
+            setAllProcedureTypes(updatedTypes);
+            
+            // Remove from categorized sets for this department
+            setCategorizedSets(prev => {
+              const newSets = { ...prev };
+              delete newSets[typeName];
+              return newSets;
+            });
+            
+            // Switch to first available procedure type if current one was deleted
+            if (selectedProcedureType === typeName) {
+              setSelectedProcedureType(updatedTypes[0] || '');
+            }
+            
+            
+            playSound.delete();
+            showSuccess(
+              'Procedure Type Deleted', 
+              `"${typeName}" has been removed from ${selectedDepartment}`
+            );
+          } else {
+            showError('Delete Failed', 'Failed to delete procedure type from department');
+          }
+        } catch (error) {
+          console.error('Error deleting procedure type:', error);
+          showError('Delete Failed', 'Failed to delete procedure type from department');
         }
-        
-        playSound.delete();
-        showSuccess(
-          'Procedure Type Deleted', 
-          `"${typeName}" has been removed`
-        );
-      } else {
-        showError('Delete Failed', `Failed to delete procedure type`);
-      }
+      };
+      
+      deleteProcedureTypeAsync();
     });
   };
 
@@ -518,6 +616,24 @@ const EditSets: React.FC<EditSetsProps> = () => {
         <p>Manage available surgery sets and implant boxes for case bookings, organised by procedure type
           <span> • <strong>Country: {activeCountry}</strong></span>
         </p>
+      </div>
+
+      {/* Department Filter */}
+      <div className="department-filter-section">
+        <div className="department-filter-header">
+          <h3>Filter by Department:</h3>
+          <p className="filter-description">Select a department to see related procedure types</p>
+        </div>
+        <div className="department-filter-dropdown">
+          <SearchableDropdown
+            id="department-filter-select"
+            value={selectedDepartment || ''}
+            onChange={setSelectedDepartment}
+            options={availableDepartments}
+            placeholder="Select department"
+            className="department-filter-select"
+          />
+        </div>
       </div>
 
       {/* Procedure Type Selector */}

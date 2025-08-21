@@ -961,7 +961,8 @@
   }
   
   .settings-section {
-    margin-bottom: 10 !important;
+    margin-bottom: 10px !important;
+    padding: 12px !important;
   }
   
   .settings-section h4 {
@@ -2236,7 +2237,7 @@
   
   .form-row {
     display: block !important;
-    margin-bottom: 0 !important;
+    margin-bottom: 10px !important;
   }
   
   .form-group {
@@ -2946,6 +2947,38 @@
   }
   
   /* Procedure Tabs Mobile */
+  /* Department Filter Mobile */
+  .department-filter-section {
+    margin: 12px 0 !important;
+    padding: 16px !important;
+    background-color: #f0f8ff !important;
+    border-radius: 8px !important;
+    border: 1px solid #b3d9ff !important;
+  }
+  
+  .department-filter-header h3 {
+    font-size: 14px !important;
+    margin-bottom: 6px !important;
+    color: #2c5aa0 !important;
+  }
+  
+  .filter-description {
+    font-size: 12px !important;
+    margin-bottom: 12px !important;
+    color: #5a6c7d !important;
+  }
+  
+  .department-filter-dropdown {
+    max-width: 100% !important;
+  }
+  
+  .department-filter-select {
+    font-size: 14px !important;
+    padding: 10px !important;
+    border: 2px solid #b3d9ff !important;
+    border-radius: 6px !important;
+  }
+
   .procedure-tabs {
     display: flex !important;
     flex-wrap: wrap !important;

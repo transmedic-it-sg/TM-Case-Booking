@@ -1,0 +1,771 @@
+/**
+ * Supabase Department Service
+ * Handles department-specific procedure types and categorized sets
+ */
+
+import { supabase } from '../lib/supabase';
+
+
+// Types
+export interface Department {
+  id: string;
+  name: string;
+  country: string;
+  description?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DepartmentProcedureType {
+  id: string;
+  department_id: string;
+  procedure_type: string;
+  country: string;
+  is_active: boolean;
+  is_hidden: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SurgerySet {
+  id: string;
+  name: string;
+  country: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ImplantBox {
+  id: string;
+  name: string;
+  country: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DepartmentCategorizedSet {
+  id: string;
+  department_id: string;
+  procedure_type: string;
+  surgery_set_id: string | null;
+  implant_box_id: string | null;
+  country: string;
+  created_at: string;
+  updated_at: string;
+  surgery_set?: SurgerySet;
+  implant_box?: ImplantBox;
+}
+
+export interface CategorizedSetsResult {
+  [procedureType: string]: {
+    surgerySets: string[];
+    implantBoxes: string[];
+  };
+}
+
+// =============================================================================
+// DEPARTMENT OPERATIONS
+// =============================================================================
+
+/**
+ * Get all departments for a country from the departments table
+ */
+export const getDepartments = async (country?: string): Promise<Department[]> => {
+  try {
+    console.log('🔍 Getting departments from Supabase:', { country });
+    
+    let query = supabase
+      .from('departments')
+      .select('*')
+      .eq('is_active', true)
+      .order('name');
+    
+    // Filter by country if specified
+    if (country) {
+      query = query.eq('country', country);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching departments:', error);
+      throw error;
+    }
+
+    console.log('✅ Found departments in Supabase:', data?.length || 0);
+    return data || [];
+  } catch (error) {
+    console.error('Error in getDepartments:', error);
+    throw error;
+  }
+};
+
+/**
+ * Add a new department
+ */
+export const addDepartment = async (name: string, country: string, description?: string): Promise<Department> => {
+  try {
+    const { data, error } = await supabase
+      .from('departments')
+      .insert({
+        name,
+        country,
+        description,
+        is_active: true
+      })
+      .select()
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error adding department:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in addDepartment:', error);
+    throw error;
+  }
+};
+
+// =============================================================================
+// PROCEDURE TYPE OPERATIONS
+// =============================================================================
+
+/**
+ * Get procedure types for a specific department from the database
+ */
+export const getProcedureTypesForDepartment = async (departmentName: string, country: string): Promise<string[]> => {
+  try {
+    console.log('🔍 Getting procedure types for:', { departmentName, country });
+    
+    // First, get the department ID
+    const { data: departments } = await supabase
+      .from('departments')
+      .select('id')
+      .eq('name', departmentName)
+      .eq('country', country)
+      .eq('is_active', true);
+    
+    if (!departments || departments.length === 0) {
+      console.warn('Department not found, using default procedure types');
+      return getDefaultProcedureTypesForDepartment(departmentName, country);
+    }
+    
+    const departmentId = departments[0].id;
+    
+    // Get procedure types from database
+    const { data, error } = await supabase
+      .from('department_procedure_types')
+      .select('procedure_type')
+      .eq('department_id', departmentId)
+      .eq('country', country)
+      .eq('is_active', true)
+      .eq('is_hidden', false)
+      .order('procedure_type');
+    
+    if (error) {
+      console.error('Error fetching procedure types:', error);
+      return getDefaultProcedureTypesForDepartment(departmentName, country);
+    }
+    
+    const dbProcedureTypes = data?.map(item => item.procedure_type) || [];
+    
+    // If no procedure types in database, return defaults
+    if (dbProcedureTypes.length === 0) {
+      console.log('No procedure types in database, using defaults');
+      return getDefaultProcedureTypesForDepartment(departmentName, country);
+    }
+    
+    console.log('✅ Found procedure types in Supabase:', dbProcedureTypes.length);
+    return dbProcedureTypes;
+  } catch (error) {
+    console.error('Error in getProcedureTypesForDepartment:', error);
+    // Fallback to default procedure types
+    return getDefaultProcedureTypesForDepartment(departmentName, country);
+  }
+};
+
+/**
+ * Get default procedure types based on department name
+ */
+const getDefaultProcedureTypesForDepartment = (departmentName: string, country: string = 'MY'): string[] => {
+  // Simplified - only 3 procedure types per department
+  const departmentSpecific: Record<string, string[]> = {
+    'Cardiology': [
+      'Cardiac Catheterization',
+      'Heart Surgery', 
+      'Diagnostic Cardiology'
+    ],
+    'Orthopedics': [
+      'Joint Replacement',
+      'Fracture Repair',
+      'Arthroscopy'
+    ],
+    'Neurosurgery': [
+      'Brain Surgery',
+      'Spinal Surgery',
+      'Tumor Removal'
+    ],
+    'Emergency': [
+      'Trauma Care',
+      'Emergency Surgery',
+      'Critical Care'
+    ],
+    'Radiology': [
+      'CT Scan',
+      'MRI',
+      'X-Ray'
+    ],
+    'Oncology': [
+      'Chemotherapy',
+      'Radiation Therapy',
+      'Tumor Resection'
+    ],
+    'Anesthesiology': [
+      'General Anesthesia',
+      'Regional Anesthesia',
+      'Pain Management'
+    ],
+    'Gastroenterology': [
+      'Endoscopy',
+      'Colonoscopy',
+      'Therapeutic Endoscopy'
+    ],
+    'Nephrology': [
+      'Dialysis',
+      'Kidney Biopsy',
+      'Renal Replacement'
+    ],
+    'Pulmonology': [
+      'Bronchoscopy',
+      'Pulmonary Function Test',
+      'Respiratory Therapy'
+    ]
+  };
+
+  // Return exactly 3 types for each department, or generic types if department not found
+  const specific = departmentSpecific[departmentName] || [
+    'General Procedure',
+    'Diagnostic Procedure', 
+    'Therapeutic Procedure'
+  ];
+  
+  return specific;
+};
+
+/**
+ * Add procedure type to a department in the database
+ */
+export const addProcedureTypeToDepartment = async (
+  departmentName: string, 
+  procedureType: string, 
+  country: string
+): Promise<boolean> => {
+  try {
+    console.log('🔍 Adding procedure type to Supabase:', { departmentName, procedureType, country });
+    
+    // First, get the department ID
+    const { data: departments } = await supabase
+      .from('departments')
+      .select('id')
+      .eq('name', departmentName)
+      .eq('country', country)
+      .eq('is_active', true);
+    
+    if (!departments || departments.length === 0) {
+      console.error('Department not found:', { departmentName, country });
+      return false;
+    }
+    
+    const departmentId = departments[0].id;
+    
+    // Check if procedure type already exists
+    const { data: existing } = await supabase
+      .from('department_procedure_types')
+      .select('id')
+      .eq('department_id', departmentId)
+      .eq('procedure_type', procedureType)
+      .eq('country', country);
+    
+    if (existing && existing.length > 0) {
+      console.log('⚠️ Procedure type already exists:', procedureType);
+      return true;
+    }
+    
+    // Insert the new procedure type
+    const { error } = await supabase
+      .from('department_procedure_types')
+      .insert({
+        department_id: departmentId,
+        procedure_type: procedureType,
+        country,
+        is_active: true,
+        is_hidden: false
+      });
+
+    if (error) {
+      console.error('Error adding procedure type:', error);
+      return false;
+    }
+
+    console.log('✅ Successfully added procedure type to Supabase');
+    return true;
+  } catch (error) {
+    console.error('Error in addProcedureTypeToDepartment:', error);
+    return false;
+  }
+};
+
+
+/**
+ * Remove procedure type from a department in the database
+ */
+export const removeProcedureTypeFromDepartment = async (
+  departmentName: string, 
+  procedureType: string, 
+  country: string
+): Promise<boolean> => {
+  try {
+    console.log('🔍 Removing procedure type from Supabase:', { departmentName, procedureType, country });
+    
+    // First, get the department ID
+    const { data: departments } = await supabase
+      .from('departments')
+      .select('id')
+      .eq('name', departmentName)
+      .eq('country', country)
+      .eq('is_active', true);
+    
+    if (!departments || departments.length === 0) {
+      console.error('Department not found:', { departmentName, country });
+      return false;
+    }
+    
+    const departmentId = departments[0].id;
+    
+    // Remove the procedure type from database
+    const { error } = await supabase
+      .from('department_procedure_types')
+      .delete()
+      .eq('department_id', departmentId)
+      .eq('procedure_type', procedureType)
+      .eq('country', country);
+    
+    if (error) {
+      console.error('Error removing procedure type:', error);
+      return false;
+    }
+    
+    console.log('✅ Successfully removed procedure type from Supabase');
+    return true;
+  } catch (error) {
+    console.error('Error in removeProcedureTypeFromDepartment:', error);
+    return false;
+  }
+};
+
+// =============================================================================
+// CATEGORIZED SETS OPERATIONS
+// =============================================================================
+
+/**
+ * Get categorized sets for a specific department from the database
+ */
+export const getCategorizedSetsForDepartment = async (
+  departmentName: string, 
+  country: string
+): Promise<CategorizedSetsResult> => {
+  try {
+    console.log('🔍 Getting categorized sets from Supabase:', { departmentName, country });
+    
+    // First, get the department ID
+    const { data: departments } = await supabase
+      .from('departments')
+      .select('id')
+      .eq('name', departmentName)
+      .eq('country', country)
+      .eq('is_active', true);
+    
+    if (!departments || departments.length === 0) {
+      console.warn('Department not found for categorized sets');
+      return {};
+    }
+    
+    const departmentId = departments[0].id;
+    
+    // Get categorized sets from database
+    const { data, error } = await supabase
+      .from('department_categorized_sets')
+      .select(`
+        procedure_type,
+        surgery_set:surgery_sets(name),
+        implant_box:implant_boxes(name)
+      `)
+      .eq('department_id', departmentId)
+      .eq('country', country);
+    
+    if (error) {
+      console.error('Error fetching categorized sets:', error);
+      return {};
+    }
+    
+    // Transform the data into the expected format
+    const result: CategorizedSetsResult = {};
+    
+    for (const item of data || []) {
+      if (!result[item.procedure_type]) {
+        result[item.procedure_type] = {
+          surgerySets: [],
+          implantBoxes: []
+        };
+      }
+      
+      if (item.surgery_set && (item.surgery_set as any).name) {
+        result[item.procedure_type].surgerySets.push((item.surgery_set as any).name);
+      }
+      
+      if (item.implant_box && (item.implant_box as any).name) {
+        result[item.procedure_type].implantBoxes.push((item.implant_box as any).name);
+      }
+    }
+    
+    console.log('✅ Found categorized sets in Supabase:', Object.keys(result).length, 'procedure types');
+    return result;
+  } catch (error) {
+    console.error('Error reading categorized sets from Supabase:', error);
+    return {};
+  }
+};
+
+/**
+ * Save categorized sets for a department to the database
+ */
+export const saveCategorizedSetsForDepartment = async (
+  departmentName: string,
+  categorizedSets: CategorizedSetsResult,
+  country: string
+): Promise<void> => {
+  try {
+    console.log('💾 Saving categorized sets to Supabase:', { departmentName, country, setsCount: Object.keys(categorizedSets).length });
+    
+    // First, get the department ID
+    const { data: departments } = await supabase
+      .from('departments')
+      .select('id')
+      .eq('name', departmentName)
+      .eq('country', country)
+      .eq('is_active', true);
+    
+    if (!departments || departments.length === 0) {
+      throw new Error(`Department not found: ${departmentName} in ${country}`);
+    }
+    
+    const departmentId = departments[0].id;
+    
+    // Delete existing categorized sets for this department
+    await supabase
+      .from('department_categorized_sets')
+      .delete()
+      .eq('department_id', departmentId)
+      .eq('country', country);
+    
+    // Prepare inserts for new categorized sets
+    const inserts = [];
+    
+    // Collect all unique surgery set names and implant box names
+    const allSurgerySetNames = new Set<string>();
+    const allImplantBoxNames = new Set<string>();
+    
+    for (const sets of Object.values(categorizedSets)) {
+      sets.surgerySets?.forEach(name => allSurgerySetNames.add(name));
+      sets.implantBoxes?.forEach(name => allImplantBoxNames.add(name));
+    }
+    
+    // Fetch all surgery sets in one query
+    const surgerySetMap = new Map<string, string>();
+    if (allSurgerySetNames.size > 0) {
+      const { data: surgerySets } = await supabase
+        .from('surgery_sets')
+        .select('id, name')
+        .in('name', Array.from(allSurgerySetNames))
+        .eq('country', country)
+        .eq('is_active', true);
+      
+      surgerySets?.forEach(set => surgerySetMap.set(set.name, set.id));
+    }
+    
+    // Fetch all implant boxes in one query
+    const implantBoxMap = new Map<string, string>();
+    if (allImplantBoxNames.size > 0) {
+      const { data: implantBoxes } = await supabase
+        .from('implant_boxes')
+        .select('id, name')
+        .in('name', Array.from(allImplantBoxNames))
+        .eq('country', country)
+        .eq('is_active', true);
+      
+      implantBoxes?.forEach(box => implantBoxMap.set(box.name, box.id));
+    }
+    
+    // Track missing items for logging
+    const missingSurgerySets: string[] = [];
+    const missingImplantBoxes: string[] = [];
+    
+    // Now build the inserts using the maps
+    for (const [procedureType, sets] of Object.entries(categorizedSets)) {
+      // Add surgery sets
+      for (const surgerySetName of sets.surgerySets || []) {
+        const surgerySetId = surgerySetMap.get(surgerySetName);
+        if (surgerySetId) {
+          inserts.push({
+            department_id: departmentId,
+            procedure_type: procedureType,
+            surgery_set_id: surgerySetId,
+            implant_box_id: null,
+            country
+          });
+        } else {
+          missingSurgerySets.push(surgerySetName);
+          console.warn(`Surgery set not found in database: "${surgerySetName}" for country ${country}`);
+        }
+      }
+      
+      // Add implant boxes
+      for (const implantBoxName of sets.implantBoxes || []) {
+        const implantBoxId = implantBoxMap.get(implantBoxName);
+        if (implantBoxId) {
+          inserts.push({
+            department_id: departmentId,
+            procedure_type: procedureType,
+            surgery_set_id: null,
+            implant_box_id: implantBoxId,
+            country
+          });
+        } else {
+          missingImplantBoxes.push(implantBoxName);
+          console.warn(`Implant box not found in database: "${implantBoxName}" for country ${country}`);
+        }
+      }
+    }
+    
+    // Create missing surgery sets
+    if (missingSurgerySets.length > 0) {
+      console.log(`📦 Creating ${missingSurgerySets.length} missing surgery sets for ${country}`);
+      const newSurgerySets = missingSurgerySets.map(name => ({
+        name,
+        country,
+        is_active: true
+      }));
+      
+      const { data: createdSurgerySets, error: surgerySetError } = await supabase
+        .from('surgery_sets')
+        .insert(newSurgerySets)
+        .select('id, name');
+        
+      if (surgerySetError) {
+        console.error('Error creating surgery sets:', surgerySetError);
+      } else {
+        console.log(`✅ Created ${createdSurgerySets?.length || 0} new surgery sets`);
+        // Add created surgery sets to our map
+        createdSurgerySets?.forEach(set => surgerySetMap.set(set.name, set.id));
+      }
+    }
+    
+    // Create missing implant boxes
+    if (missingImplantBoxes.length > 0) {
+      console.log(`📦 Creating ${missingImplantBoxes.length} missing implant boxes for ${country}`);
+      const newImplantBoxes = missingImplantBoxes.map(name => ({
+        name,
+        country,
+        is_active: true
+      }));
+      
+      const { data: createdImplantBoxes, error: implantBoxError } = await supabase
+        .from('implant_boxes')
+        .insert(newImplantBoxes)
+        .select('id, name');
+        
+      if (implantBoxError) {
+        console.error('Error creating implant boxes:', implantBoxError);
+      } else {
+        console.log(`✅ Created ${createdImplantBoxes?.length || 0} new implant boxes`);
+        // Add created implant boxes to our map
+        createdImplantBoxes?.forEach(box => implantBoxMap.set(box.name, box.id));
+      }
+    }
+    
+    // Now rebuild inserts with newly created items
+    const finalInserts: any[] = [];
+    for (const [procedureType, sets] of Object.entries(categorizedSets)) {
+      // Add surgery sets (now with created ones)
+      for (const surgerySetName of sets.surgerySets || []) {
+        const surgerySetId = surgerySetMap.get(surgerySetName);
+        if (surgerySetId) {
+          finalInserts.push({
+            department_id: departmentId,
+            procedure_type: procedureType,
+            surgery_set_id: surgerySetId,
+            implant_box_id: null,
+            country
+          });
+        } else {
+          console.error(`Still missing surgery set after creation: "${surgerySetName}"`);
+        }
+      }
+      
+      // Add implant boxes (now with created ones)  
+      for (const implantBoxName of sets.implantBoxes || []) {
+        const implantBoxId = implantBoxMap.get(implantBoxName);
+        if (implantBoxId) {
+          finalInserts.push({
+            department_id: departmentId,
+            procedure_type: procedureType,
+            surgery_set_id: null,
+            implant_box_id: implantBoxId,
+            country
+          });
+        } else {
+          console.error(`Still missing implant box after creation: "${implantBoxName}"`);
+        }
+      }
+    }
+    
+    // Insert all categorized sets
+    if (finalInserts.length > 0) {
+      const { error } = await supabase
+        .from('department_categorized_sets')
+        .insert(finalInserts);
+      
+      if (error) {
+        throw error;
+      }
+    }
+    
+    console.log('✅ Successfully saved categorized sets to Supabase:', finalInserts.length, 'records');
+    
+    // Log what was saved for debugging
+    for (const [procedureType, sets] of Object.entries(categorizedSets)) {
+      console.log(`  📋 ${procedureType}:`, {
+        surgerySets: sets.surgerySets?.length || 0,
+        implantBoxes: sets.implantBoxes?.length || 0
+      });
+    }
+  } catch (error) {
+    console.error('Error saving categorized sets to Supabase:', error);
+    throw error;
+  }
+};
+
+// =============================================================================
+// SURGERY SETS AND IMPLANT BOXES OPERATIONS
+// =============================================================================
+
+/**
+ * Get all surgery sets for a country from the database
+ */
+export const getSurgerySets = async (country: string): Promise<string[]> => {
+  try {
+    console.log('🔍 Getting surgery sets from Supabase for:', country);
+    
+    const { data, error } = await supabase
+      .from('surgery_sets')
+      .select('name')
+      .eq('country', country)
+      .eq('is_active', true)
+      .order('name');
+
+    if (error) {
+      console.error('Error fetching surgery sets:', error);
+      throw error;
+    }
+
+    const sets = data?.map(item => item.name) || [];
+    console.log('✅ Found surgery sets in Supabase:', sets.length);
+    return sets;
+  } catch (error) {
+    console.error('Error in getSurgerySets:', error);
+    return [];
+  }
+};
+
+/**
+ * Get all implant boxes for a country from the database
+ */
+export const getImplantBoxes = async (country: string): Promise<string[]> => {
+  try {
+    console.log('🔍 Getting implant boxes from Supabase for:', country);
+    
+    const { data, error } = await supabase
+      .from('implant_boxes')
+      .select('name')
+      .eq('country', country)
+      .eq('is_active', true)
+      .order('name');
+
+    if (error) {
+      console.error('Error fetching implant boxes:', error);
+      throw error;
+    }
+
+    const boxes = data?.map(item => item.name) || [];
+    console.log('✅ Found implant boxes in Supabase:', boxes.length);
+    return boxes;
+  } catch (error) {
+    console.error('Error in getImplantBoxes:', error);
+    return [];
+  }
+};
+
+/**
+ * Add a new surgery set
+ */
+export const addSurgerySet = async (name: string, country: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('surgery_sets')
+      .insert({
+        name,
+        country,
+        is_active: true
+      });
+
+    if (error) {
+      console.error('Error adding surgery set:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in addSurgerySet:', error);
+    return false;
+  }
+};
+
+/**
+ * Add a new implant box
+ */
+export const addImplantBox = async (name: string, country: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('implant_boxes')
+      .insert({
+        name,
+        country,
+        is_active: true
+      });
+
+    if (error) {
+      console.error('Error adding implant box:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in addImplantBox:', error);
+    return false;
+  }
+};

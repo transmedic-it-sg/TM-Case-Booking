@@ -181,7 +181,7 @@ export class SystemHealthMonitor {
       let totalCases = 0;
       try {
         const { count } = await supabase
-          .from('cases')
+          .from('case_bookings')
           .select('*', { count: 'exact', head: true });
         totalCases = count || 0;
       } catch {

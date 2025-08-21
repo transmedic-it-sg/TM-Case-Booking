@@ -275,7 +275,7 @@ export const caseOperations = {
     dateTo?: string
   }): Promise<CaseBooking[]> {
     let query = supabase
-      .from('cases')
+      .from('case_bookings')
       .select(`
         *,
         hospital:hospitals(name),
@@ -348,7 +348,7 @@ export const caseOperations = {
 
   async getById(id: string): Promise<CaseBooking | null> {
     const { data, error } = await supabase
-      .from('cases')
+      .from('case_bookings')
       .select(`
         *,
         hospital:hospitals(name),
@@ -410,7 +410,7 @@ export const caseOperations = {
 
     // Create case
     const { data, error } = await supabase
-      .from('cases')
+      .from('case_bookings')
       .insert({
         case_reference_number: refNumber,
         hospital_id: hospitalData?.id,
@@ -458,7 +458,7 @@ export const caseOperations = {
 
   async update(id: string, updates: Partial<CaseBooking>): Promise<CaseBooking> {
     const { data, error } = await supabase
-      .from('cases')
+      .from('case_bookings')
       .update(updates)
       .eq('id', id)
       .select()
@@ -484,7 +484,7 @@ export const caseOperations = {
 
     // Update case status
     await supabase
-      .from('cases')
+      .from('case_bookings')
       .update({ 
         status_id: statusData.id,
         processed_by: processedBy,
@@ -515,7 +515,7 @@ export const caseOperations = {
       .single()
 
     await supabase
-      .from('case_status_history')
+      .from('status_history')
       .insert({
         case_id: caseId,
         status_id: statusData?.id,
@@ -553,7 +553,7 @@ export const caseOperations = {
 
     // Update case amended flags
     await supabase
-      .from('cases')
+      .from('case_bookings')
       .update({
         is_amended: true,
         amended_by: amendedBy,
