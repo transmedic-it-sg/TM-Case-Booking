@@ -107,9 +107,19 @@ const EditSets: React.FC<EditSetsProps> = () => {
         
         if (selectedDepartment) {
           departmentTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountry);
+          console.log('🔍 Loaded department procedure types for', selectedDepartment, ':', departmentTypes);
+          
+          // If no department-specific types found, don't fall back to global types
+          // This prevents contamination with default procedure types
+          if (departmentTypes.length === 0) {
+            console.warn('⚠️ No procedure types found for department:', selectedDepartment);
+            // Keep existing allProcedureTypes instead of falling back
+            return;
+          }
         } else {
-          // Fallback to all procedure types if no department selected
+          // Only use global procedure types when no department is selected
           departmentTypes = getAllProcedureTypes(activeCountry);
+          console.log('🔍 Loaded global procedure types:', departmentTypes);
         }
         
         setAllProcedureTypes(departmentTypes);
@@ -120,10 +130,15 @@ const EditSets: React.FC<EditSetsProps> = () => {
         }
       } catch (error) {
         console.error('Error loading procedure types:', error);
-        // Fallback to default procedure types
-        setAllProcedureTypes([...PROCEDURE_TYPES]);
-        if (!PROCEDURE_TYPES.includes(selectedProcedureType as any)) {
-          setSelectedProcedureType(PROCEDURE_TYPES[0]);
+        // Don't fallback to default procedure types if we have a selected department
+        // This prevents contamination with hardcoded procedure types
+        if (!selectedDepartment) {
+          setAllProcedureTypes([...PROCEDURE_TYPES]);
+          if (!PROCEDURE_TYPES.includes(selectedProcedureType as any)) {
+            setSelectedProcedureType(PROCEDURE_TYPES[0]);
+          }
+        } else {
+          console.warn('⚠️ Keeping existing procedure types due to error loading department types');
         }
       }
     };
@@ -136,6 +151,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
     const loadSets = async () => {
       if (selectedDepartment) {
         const storedSets = await getCategorizedSetsForDepartment(selectedDepartment, activeCountry);
+        console.log('🔍 Loaded categorized sets for', selectedDepartment, ':', Object.keys(storedSets));
         if (Object.keys(storedSets).length > 0) {
           setCategorizedSets(storedSets);
         } else {
@@ -163,6 +179,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
   // Ensure selectedProcedureType exists in categorizedSets
   useEffect(() => {
     if (selectedProcedureType && !categorizedSets[selectedProcedureType]) {
+      console.log('🔄 Adding missing procedure type to categorized sets:', selectedProcedureType);
       setCategorizedSets(prev => ({
         ...prev,
         [selectedProcedureType]: {

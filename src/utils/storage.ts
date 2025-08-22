@@ -11,23 +11,52 @@ import {
 } from './supabaseCaseService';
 import { normalizeCountry } from './countryUtils';
 import { withConnectionRetry } from './databaseConnectionMonitor';
+import { ErrorHandler } from './errorHandler';
 
 const CASES_KEY = 'case-booking-cases';
 const CASE_COUNTER_KEY = 'case-booking-counter';
 
 export const generateCaseReferenceNumber = async (country: string = 'Singapore'): Promise<string> => {
-  try {
-    return await generateSupabaseReferenceNumber(normalizeCountry(country));
-  } catch (error) {
-    console.error('Error generating Supabase reference number, falling back to localStorage:', error);
-    // Fallback to localStorage
-    const currentCounter = localStorage.getItem(CASE_COUNTER_KEY);
-    const counter = currentCounter ? parseInt(currentCounter) + 1 : 1;
-    const paddedCounter = counter.toString().padStart(6, '0');
-    const referenceNumber = `TMC${paddedCounter}`;
-    localStorage.setItem(CASE_COUNTER_KEY, counter.toString());
-    return referenceNumber;
+  const result = await ErrorHandler.executeWithRetry(
+    async () => {
+      return await generateSupabaseReferenceNumber(normalizeCountry(country));
+    },
+    {
+      operation: 'Generate Reference Number',
+      userMessage: 'Failed to generate case reference number from database. Using offline mode.',
+      showToast: true,
+      showNotification: false,
+      includeDetails: true,
+      autoRetry: true,
+      maxRetries: 3,
+      fallbackToLocalStorage: true
+    }
+  );
+
+  if (result.success && result.data) {
+    return result.data;
   }
+
+  // Fallback to localStorage with user notification
+  ErrorHandler.executeWithRetry(
+    async () => { throw new Error('Using offline reference number generation'); },
+    {
+      operation: 'Reference Number Fallback',
+      userMessage: 'Database unavailable - generating reference number offline. This will sync when connection is restored.',
+      showToast: true,
+      showNotification: true,
+      includeDetails: false,
+      autoRetry: false,
+      maxRetries: 0
+    }
+  );
+
+  const currentCounter = localStorage.getItem(CASE_COUNTER_KEY);
+  const counter = currentCounter ? parseInt(currentCounter) + 1 : 1;
+  const paddedCounter = counter.toString().padStart(6, '0');
+  const referenceNumber = `TMC${paddedCounter}`;
+  localStorage.setItem(CASE_COUNTER_KEY, counter.toString());
+  return referenceNumber;
 };
 
 export const getCases = async (country?: string): Promise<CaseBooking[]> => {
@@ -109,20 +138,34 @@ export const getCases = async (country?: string): Promise<CaseBooking[]> => {
 };
 
 export const saveCase = async (caseData: CaseBooking): Promise<CaseBooking> => {
-  try {
-    // If case has an ID, it's an update; otherwise it's a new case
-    if (caseData.id && caseData.id !== '') {
-      // This is an update - use Supabase update function
-      const { updateSupabaseCase } = await import('./supabaseCaseService');
-      return await updateSupabaseCase(caseData.id, caseData);
-    } else {
-      // New case - save to Supabase
-      const { id, caseReferenceNumber, submittedAt, statusHistory, amendmentHistory, ...caseWithoutGeneratedFields } = caseData;
-      return await saveSupabaseCase(caseWithoutGeneratedFields);
+  const result = await ErrorHandler.executeWithRetry(
+    async () => {
+      // If case has an ID, it's an update; otherwise it's a new case
+      if (caseData.id && caseData.id !== '') {
+        // This is an update - use Supabase update function
+        const { updateSupabaseCase } = await import('./supabaseCaseService');
+        return await updateSupabaseCase(caseData.id, caseData);
+      } else {
+        // New case - save to Supabase
+        const { id, caseReferenceNumber, submittedAt, statusHistory, amendmentHistory, ...caseWithoutGeneratedFields } = caseData;
+        return await saveSupabaseCase(caseWithoutGeneratedFields);
+      }
+    },
+    {
+      operation: caseData.id ? 'Update Case' : 'Save New Case',
+      userMessage: `Failed to ${caseData.id ? 'update' : 'save'} case to database`,
+      showToast: true,
+      showNotification: true,
+      includeDetails: true,
+      autoRetry: true,
+      maxRetries: 3
     }
-  } catch (error) {
-    console.error('Error saving case to Supabase:', error);
-    throw error; // Don't fall back to localStorage, throw error to inform user
+  );
+
+  if (result.success && result.data) {
+    return result.data;
+  } else {
+    throw new Error(result.error || 'Failed to save case');
   }
 };
 
@@ -209,38 +252,60 @@ export const cleanupDuplicateStatusHistory = async (): Promise<void> => {
 };
 
 export const updateCaseStatus = async (caseId: string, status: CaseBooking['status'], processedBy?: string, details?: string): Promise<void> => {
-  try {
-    // Extract attachments from details if present
-    let attachments: string[] | undefined;
-    if (details) {
-      try {
-        const parsedDetails = JSON.parse(details);
-        attachments = parsedDetails.attachments;
-      } catch {
-        // If details are not JSON, no attachments
+  const result = await ErrorHandler.executeWithRetry(
+    async () => {
+      // Extract attachments from details if present
+      let attachments: string[] | undefined;
+      if (details) {
+        try {
+          const parsedDetails = JSON.parse(details);
+          attachments = parsedDetails.attachments;
+        } catch {
+          // If details are not JSON, no attachments
+        }
       }
+      
+      // Always use Supabase for status updates
+      await updateSupabaseCaseStatus(caseId, status, processedBy || 'unknown', details, attachments);
+      return true;
+    },
+    {
+      operation: 'Update Case Status',
+      userMessage: `Failed to update case status to "${status}"`,
+      showToast: true,
+      showNotification: true,
+      includeDetails: true,
+      autoRetry: true,
+      maxRetries: 3
     }
-    
-    // Always use Supabase for status updates
-    await updateSupabaseCaseStatus(caseId, status, processedBy || 'unknown', details, attachments);
-    console.log('Case status updated successfully in Supabase');
-    return;
-  } catch (error) {
-    console.error('Error updating case status in Supabase:', error);
-    throw error; // Don't fall back to localStorage, throw error to inform user
+  );
+
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to update case status');
   }
 };
 
 // Process order with specific order details
 export const processCaseOrder = async (caseId: string, processedBy: string, processOrderDetails: string): Promise<void> => {
-  try {
-    // Always use Supabase for order processing
-    await updateSupabaseCaseProcessing(caseId, processedBy, processOrderDetails, 'Order Prepared');
-    console.log('Case order processed successfully in Supabase');
-    return;
-  } catch (error) {
-    console.error('Error processing case order in Supabase:', error);
-    throw error; // Don't fall back to localStorage, throw error to inform user
+  const result = await ErrorHandler.executeWithRetry(
+    async () => {
+      // Always use Supabase for order processing
+      await updateSupabaseCaseProcessing(caseId, processedBy, processOrderDetails, 'Order Prepared');
+      return true;
+    },
+    {
+      operation: 'Process Case Order',
+      userMessage: 'Failed to process case order',
+      showToast: true,
+      showNotification: true,
+      includeDetails: true,
+      autoRetry: true,
+      maxRetries: 3
+    }
+  );
+
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to process case order');
   }
 };
 

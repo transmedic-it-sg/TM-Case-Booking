@@ -1,7 +1,7 @@
 // DEPRECATED: This file is being replaced by Supabase-based services
 // All functions now delegate to the proper Supabase services
 
-import { COUNTRIES, DEPARTMENTS } from '../types';
+import { DEPARTMENTS } from '../types';
 import { SUPPORTED_COUNTRIES } from './countryUtils';
 
 export interface CodeTable {
@@ -39,7 +39,7 @@ export const getDefaultCodeTables = (country?: string): CodeTable[] => {
       id: 'countries',
       name: 'Countries',
       description: 'Supported countries',
-      items: [...COUNTRIES]
+      items: [...SUPPORTED_COUNTRIES]
     }
   ];
 };

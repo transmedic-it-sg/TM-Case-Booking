@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { COUNTRIES, DEPARTMENTS } from '../types';
+import { DEPARTMENTS } from '../types';
 import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';

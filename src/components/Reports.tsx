@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { CaseBooking, CaseStatus, COUNTRIES, DEPARTMENTS } from '../types';
+import { CaseBooking, CaseStatus, DEPARTMENTS } from '../types';
 import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
 import { getCases } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';

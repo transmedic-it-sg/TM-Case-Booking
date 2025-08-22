@@ -1,3 +1,6 @@
+// Import countries from centralized utility
+import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
+
 export type CaseStatus = 
   | 'Case Booked'
   | 'Order Preparation'
@@ -10,9 +13,6 @@ export type CaseStatus =
   | 'To be billed'
   | 'Case Closed'
   | 'Case Cancelled';
-
-// Import countries from centralized utility
-import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
 
 export const COUNTRIES = SUPPORTED_COUNTRIES;
 

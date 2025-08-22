@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ConnectionStatus, connectionMonitor } from '../utils/databaseConnectionMonitor';
-import CustomModal from './CustomModal';
 import '../assets/components/DatabaseConnection.css';
 
 interface DatabaseConnectionStatusProps {

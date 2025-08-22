@@ -4,7 +4,7 @@ import { getDepartments } from '../utils/supabaseDepartmentService';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getCases } from '../utils/storage';
-import { CaseBooking, COUNTRIES } from '../types';
+import { CaseBooking } from '../types';
 import SearchableDropdown from './SearchableDropdown';
 import { getMonthYearDisplay } from '../utils/dateFormat';
 import { getStatusColor } from './CasesList/utils';

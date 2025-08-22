@@ -269,14 +269,15 @@ export const addProcedureTypeToDepartment = async (
   country: string
 ): Promise<boolean> => {
   try {
-    console.log('🔍 Adding procedure type to Supabase:', { departmentName, procedureType, country });
+    const dbCountry = getCountryForDatabase(country);
+    console.log('🔍 Adding procedure type to Supabase:', { departmentName, procedureType, country, dbCountry });
     
     // First, get the department ID
     const { data: departments } = await supabase
       .from('departments')
       .select('id')
       .eq('name', departmentName)
-      .eq('country', country)
+      .eq('country', dbCountry)
       .eq('is_active', true);
     
     if (!departments || departments.length === 0) {
@@ -292,7 +293,7 @@ export const addProcedureTypeToDepartment = async (
       .select('id')
       .eq('department_id', departmentId)
       .eq('procedure_type', procedureType)
-      .eq('country', country);
+      .eq('country', dbCountry);
     
     if (existing && existing.length > 0) {
       console.log('⚠️ Procedure type already exists:', procedureType);
@@ -333,14 +334,15 @@ export const removeProcedureTypeFromDepartment = async (
   country: string
 ): Promise<boolean> => {
   try {
-    console.log('🔍 Removing procedure type from Supabase:', { departmentName, procedureType, country });
+    const dbCountry = getCountryForDatabase(country);
+    console.log('🔍 Removing procedure type from Supabase:', { departmentName, procedureType, country, dbCountry });
     
     // First, get the department ID
     const { data: departments } = await supabase
       .from('departments')
       .select('id')
       .eq('name', departmentName)
-      .eq('country', country)
+      .eq('country', dbCountry)
       .eq('is_active', true);
     
     if (!departments || departments.length === 0) {
@@ -356,7 +358,7 @@ export const removeProcedureTypeFromDepartment = async (
       .delete()
       .eq('department_id', departmentId)
       .eq('procedure_type', procedureType)
-      .eq('country', country);
+      .eq('country', dbCountry);
     
     if (error) {
       console.error('Error removing procedure type:', error);
@@ -375,6 +377,10 @@ export const removeProcedureTypeFromDepartment = async (
 // CATEGORIZED SETS OPERATIONS
 // =============================================================================
 
+// Simple cache for categorized sets to prevent excessive API calls
+const categorizedSetsCache = new Map<string, { data: CategorizedSetsResult; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Get categorized sets for a specific department from the database
  */
@@ -383,15 +389,25 @@ export const getCategorizedSetsForDepartment = async (
   country: string
 ): Promise<CategorizedSetsResult> => {
   try {
-    const countryVariations = getCountryVariations(country);
-    console.log('🔍 Getting categorized sets from Supabase:', { departmentName, country, countryVariations });
+    const dbCountry = getCountryForDatabase(country);
+    const cacheKey = `${departmentName}-${dbCountry}`;
     
-    // First, get the department ID - use flexible country matching
+    // Check cache first
+    const cached = categorizedSetsCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log('🎯 Using cached categorized sets for:', { departmentName, country: dbCountry });
+      return cached.data;
+    }
+    
+    const countryVariations = getCountryVariations(country);
+    console.log('🔍 Getting categorized sets from Supabase:', { departmentName, country, dbCountry, countryVariations });
+    
+    // First, get the department ID - use normalized country
     const { data: departments } = await supabase
       .from('departments')
       .select('id')
       .eq('name', departmentName)
-      .in('country', countryVariations)
+      .eq('country', dbCountry)
       .eq('is_active', true);
     
     if (!departments || departments.length === 0) {
@@ -401,7 +417,7 @@ export const getCategorizedSetsForDepartment = async (
     
     const departmentId = departments[0].id;
     
-    // Get categorized sets from database - use flexible country matching
+    // Get categorized sets from database - use normalized country
     const { data, error } = await supabase
       .from('department_categorized_sets')
       .select(`
@@ -410,7 +426,7 @@ export const getCategorizedSetsForDepartment = async (
         implant_box:implant_boxes(name)
       `)
       .eq('department_id', departmentId)
-      .in('country', countryVariations);
+      .eq('country', dbCountry);
     
     if (error) {
       console.error('Error fetching categorized sets:', error);
@@ -438,6 +454,10 @@ export const getCategorizedSetsForDepartment = async (
     }
     
     console.log('✅ Found categorized sets in Supabase:', Object.keys(result).length, 'procedure types');
+    
+    // Cache the result
+    categorizedSetsCache.set(cacheKey, { data: result, timestamp: Date.now() });
+    
     return result;
   } catch (error) {
     console.error('Error reading categorized sets from Supabase:', error);
@@ -454,14 +474,15 @@ export const saveCategorizedSetsForDepartment = async (
   country: string
 ): Promise<void> => {
   try {
-    console.log('💾 Saving categorized sets to Supabase:', { departmentName, country, setsCount: Object.keys(categorizedSets).length });
+    const dbCountry = getCountryForDatabase(country);
+    console.log('💾 Saving categorized sets to Supabase:', { departmentName, country, dbCountry, setsCount: Object.keys(categorizedSets).length });
     
     // First, get the department ID
     const { data: departments } = await supabase
       .from('departments')
       .select('id')
       .eq('name', departmentName)
-      .eq('country', country)
+      .eq('country', dbCountry)
       .eq('is_active', true);
     
     if (!departments || departments.length === 0) {
@@ -475,7 +496,7 @@ export const saveCategorizedSetsForDepartment = async (
       .from('department_categorized_sets')
       .delete()
       .eq('department_id', departmentId)
-      .eq('country', country);
+      .eq('country', dbCountry);
     
     // Prepare inserts for new categorized sets
     const inserts = [];
@@ -496,7 +517,7 @@ export const saveCategorizedSetsForDepartment = async (
         .from('surgery_sets')
         .select('id, name')
         .in('name', Array.from(allSurgerySetNames))
-        .eq('country', country)
+        .eq('country', dbCountry)
         .eq('is_active', true);
       
       surgerySets?.forEach(set => surgerySetMap.set(set.name, set.id));
@@ -509,7 +530,7 @@ export const saveCategorizedSetsForDepartment = async (
         .from('implant_boxes')
         .select('id, name')
         .in('name', Array.from(allImplantBoxNames))
-        .eq('country', country)
+        .eq('country', dbCountry)
         .eq('is_active', true);
       
       implantBoxes?.forEach(box => implantBoxMap.set(box.name, box.id));
@@ -530,11 +551,11 @@ export const saveCategorizedSetsForDepartment = async (
             procedure_type: procedureType,
             surgery_set_id: surgerySetId,
             implant_box_id: null,
-            country
+            country: dbCountry
           });
         } else {
           missingSurgerySets.push(surgerySetName);
-          console.warn(`Surgery set not found in database: "${surgerySetName}" for country ${country}`);
+          console.warn(`Surgery set not found in database: "${surgerySetName}" for country ${dbCountry}`);
         }
       }
       
@@ -547,21 +568,21 @@ export const saveCategorizedSetsForDepartment = async (
             procedure_type: procedureType,
             surgery_set_id: null,
             implant_box_id: implantBoxId,
-            country
+            country: dbCountry
           });
         } else {
           missingImplantBoxes.push(implantBoxName);
-          console.warn(`Implant box not found in database: "${implantBoxName}" for country ${country}`);
+          console.warn(`Implant box not found in database: "${implantBoxName}" for country ${dbCountry}`);
         }
       }
     }
     
     // Create missing surgery sets
     if (missingSurgerySets.length > 0) {
-      console.log(`📦 Creating ${missingSurgerySets.length} missing surgery sets for ${country}`);
+      console.log(`📦 Creating ${missingSurgerySets.length} missing surgery sets for ${dbCountry}`);
       const newSurgerySets = missingSurgerySets.map(name => ({
         name,
-        country,
+        country: dbCountry,
         is_active: true
       }));
       
@@ -581,10 +602,10 @@ export const saveCategorizedSetsForDepartment = async (
     
     // Create missing implant boxes
     if (missingImplantBoxes.length > 0) {
-      console.log(`📦 Creating ${missingImplantBoxes.length} missing implant boxes for ${country}`);
+      console.log(`📦 Creating ${missingImplantBoxes.length} missing implant boxes for ${dbCountry}`);
       const newImplantBoxes = missingImplantBoxes.map(name => ({
         name,
-        country,
+        country: dbCountry,
         is_active: true
       }));
       
@@ -614,7 +635,7 @@ export const saveCategorizedSetsForDepartment = async (
             procedure_type: procedureType,
             surgery_set_id: surgerySetId,
             implant_box_id: null,
-            country
+            country: dbCountry
           });
         } else {
           console.error(`Still missing surgery set after creation: "${surgerySetName}"`);
@@ -630,7 +651,7 @@ export const saveCategorizedSetsForDepartment = async (
             procedure_type: procedureType,
             surgery_set_id: null,
             implant_box_id: implantBoxId,
-            country
+            country: dbCountry
           });
         } else {
           console.error(`Still missing implant box after creation: "${implantBoxName}"`);
@@ -650,6 +671,10 @@ export const saveCategorizedSetsForDepartment = async (
     }
     
     console.log('✅ Successfully saved categorized sets to Supabase:', finalInserts.length, 'records');
+    
+    // Invalidate cache for this department/country
+    const cacheKey = `${departmentName}-${dbCountry}`;
+    categorizedSetsCache.delete(cacheKey);
     
     // Log what was saved for debugging
     for (const [procedureType, sets] of Object.entries(categorizedSets)) {

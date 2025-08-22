@@ -1,4 +1,4 @@
-import { User, COUNTRIES } from '../types';
+import { User } from '../types';
 import { SUPPORTED_COUNTRIES } from './countryUtils';
 import { 
   getSupabaseUsers, 

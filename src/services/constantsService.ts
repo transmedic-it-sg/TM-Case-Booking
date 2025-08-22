@@ -1,6 +1,5 @@
 // Database-driven constants service to replace hardcoded values
 import { lookupOperations } from './supabaseService'
-import type { CaseStatus } from '../types'
 
 // =============================================================================
 // CACHE MANAGEMENT
@@ -345,7 +344,7 @@ export const migrateToAsync = (component: string): void => {
   console.warn(`Component ${component} is using sync constants. Consider migrating to async getters for real-time data.`)
 }
 
-export default {
+const constantsService = {
   getCountries,
   getCaseStatuses,
   getDepartments,
@@ -360,4 +359,6 @@ export default {
   getStatusWorkflow,
   clearCache,
   refreshCache
-}
+};
+
+export default constantsService;

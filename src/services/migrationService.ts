@@ -2,9 +2,7 @@
 import { 
   caseOperations, 
   lookupOperations, 
-  auditOperations, 
-  notificationOperations,
-  fileOperations 
+  auditOperations
 } from './supabaseService'
 import type { CaseBooking, FilterOptions } from '../types'
 import { sendStatusChangeNotification } from '../utils/emailNotificationService'

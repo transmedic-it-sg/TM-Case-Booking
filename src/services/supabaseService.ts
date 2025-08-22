@@ -2,8 +2,6 @@ import { supabase } from './supabase'
 import type { 
   CaseBooking, 
   User, 
-  StatusHistory, 
-  AmendmentHistory, 
   Notification
 } from '../types'
 
@@ -932,7 +930,7 @@ export const subscriptions = {
   }
 }
 
-export default {
+const supabaseService = {
   countryOperations,
   userOperations,
   caseOperations,
@@ -941,4 +939,6 @@ export default {
   auditOperations,
   fileOperations,
   subscriptions
-}
+};
+
+export default supabaseService;

@@ -28,6 +28,7 @@ import { SoundProvider, useSound } from './contexts/SoundContext';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { ToastProvider, useToast } from './components/ToastContainer';
 import { getSystemConfig } from './utils/systemSettingsService';
+import { getCases } from './utils/storage';
 import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
 import StatusLegend from './components/StatusLegend';
@@ -65,7 +66,7 @@ const AppContent: React.FC = () => {
   const adminPanelRef = useRef<HTMLDivElement>(null);
   const { playSound } = useSound();
   const { addNotification } = useNotifications();
-  const { showSuccess } = useToast();
+  const { showSuccess, showError, showWarning, showInfo } = useToast();
   
   // Cache version management
   // DISABLED: Aggressive cache versioning causing UX issues with too many popups
@@ -111,6 +112,47 @@ const AppContent: React.FC = () => {
 
     return () => clearInterval(maintenanceCheckInterval);
   }, []);
+
+  // Set up global error handling listeners
+  useEffect(() => {
+    const handleToastEvent = (event: CustomEvent) => {
+      const { type, message } = event.detail;
+      const [title, ...messageParts] = message.split('\n\n');
+      const detailMessage = messageParts.join('\n\n');
+      
+      switch (type) {
+        case 'success':
+          showSuccess(title, detailMessage || '');
+          break;
+        case 'error':
+          showError(title, detailMessage || '');
+          break;
+        case 'warning':
+          showWarning(title, detailMessage || '');
+          break;
+        case 'info':
+          showInfo(title, detailMessage || '');
+          break;
+      }
+    };
+
+    const handleNotificationEvent = (event: CustomEvent) => {
+      const { type, message } = event.detail;
+      addNotification({
+        type,
+        title: type.charAt(0).toUpperCase() + type.slice(1),
+        message
+      });
+    };
+
+    window.addEventListener('showToast', handleToastEvent as EventListener);
+    window.addEventListener('showNotification', handleNotificationEvent as EventListener);
+
+    return () => {
+      window.removeEventListener('showToast', handleToastEvent as EventListener);
+      window.removeEventListener('showNotification', handleNotificationEvent as EventListener);
+    };
+  }, [showSuccess, showError, showWarning, showInfo, addNotification]);
 
   // Check if this is an SSO callback route after all hooks
   const isCallbackRoute = window.location.pathname === '/auth/callback' || window.location.search.includes('code=');
@@ -258,9 +300,30 @@ const AppContent: React.FC = () => {
     playSound.click();
   };
 
-  const handleCalendarCaseClick = (caseId: string) => {
-    setHighlightedCaseId(caseId);
-    setActivePage('cases');
+  const handleCalendarCaseClick = async (caseId: string) => {
+    try {
+      // Load all cases and find the clicked case
+      const allCases = await getCases();
+      const clickedCase = allCases.find(c => c.id === caseId);
+      
+      if (clickedCase) {
+        // Pre-fill the booking form with the case's department and date
+        localStorage.setItem('calendar_prefill_date', clickedCase.dateOfSurgery + 'T00:00:00.000Z');
+        localStorage.setItem('calendar_prefill_department', clickedCase.department);
+        
+        // Navigate to booking page to create a new case in the same slot/department
+        setActivePage('booking');
+      } else {
+        // Fallback: just highlight the case in the cases list
+        setHighlightedCaseId(caseId);
+        setActivePage('cases');
+      }
+    } catch (error) {
+      console.error('Error loading case data:', error);
+      // Fallback: just highlight the case in the cases list
+      setHighlightedCaseId(caseId);
+      setActivePage('cases');
+    }
     playSound.click();
   };
 

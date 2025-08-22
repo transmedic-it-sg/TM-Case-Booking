@@ -3,6 +3,9 @@
  * Prevents scattered UI strings and values throughout the app
  */
 
+// Country and region data - now using centralized country utilities
+import { SUPPORTED_COUNTRIES, getLegacyCountryCode } from '../utils/countryUtils';
+
 // Application metadata
 export const APP_INFO = {
   NAME: 'Case Booking System',
@@ -127,9 +130,6 @@ export const SEARCH = {
   MAX_RESULTS: 100,
   HIGHLIGHT_CLASS: 'search-highlight'
 } as const;
-
-// Country and region data - now using centralized country utilities
-import { SUPPORTED_COUNTRIES, getLegacyCountryCode } from '../utils/countryUtils';
 
 export const COUNTRIES = {
   SINGAPORE: { code: getLegacyCountryCode('Singapore') || 'SG', name: 'Singapore', emoji: '🇸🇬', timezone: 'Asia/Singapore' },

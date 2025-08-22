@@ -18,7 +18,6 @@ import PasswordInput from './PasswordInput';
 import { validatePassword, getPasswordRequirementsSync } from '../utils/passwordValidation';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
-import { getDepartments } from '../utils/supabaseDepartmentService';
 import { getAllRoles } from '../data/permissionMatrixData';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import SearchableDropdown from './SearchableDropdown';
@@ -857,7 +856,6 @@ const UserManagement: React.FC = () => {
                 </div>
               <form onSubmit={handleAddUser}>
                 <div className="modal-body">
-                <div className="form-row">
                   <div className="form-group">
                     <label htmlFor="newUsername" className="form-label">Username *</label>
                     <input
@@ -872,21 +870,21 @@ const UserManagement: React.FC = () => {
 
                   {/* Only show password field for admin users */}
                   {currentUser?.role === 'admin' && (
-                    <PasswordInput
-                      id="newPassword"
-                      value={newUser.password}
-                      onChange={(password) => setNewUser(prev => ({ ...prev, password }))}
-                      label={editingUser ? 'Password (leave blank to keep current)' : 'Password'}
-                      placeholder={editingUser ? 'Leave blank to keep current password' : 'Enter password'}
-                      required={!editingUser}
-                      showStrength={true}
-                      showRequirements={!editingUser} // Only show requirements for new users
-                      showGenerateButton={true}
-                    />
+                    <div className="form-group">
+                      <PasswordInput
+                        id="newPassword"
+                        value={newUser.password}
+                        onChange={(password) => setNewUser(prev => ({ ...prev, password }))}
+                        label={editingUser ? 'Password (leave blank to keep current)' : 'Password'}
+                        placeholder={editingUser ? 'Leave blank to keep current password' : 'Enter password'}
+                        required={!editingUser}
+                        showStrength={true}
+                        showRequirements={!editingUser} // Only show requirements for new users
+                        showGenerateButton={true}
+                      />
+                    </div>
                   )}
-                </div>
 
-                <div className="form-row">
                   <div className="form-group">
                     <label htmlFor="newName" className="required">Full Name</label>
                     <input
@@ -908,9 +906,7 @@ const UserManagement: React.FC = () => {
                       placeholder="user@example.com"
                     />
                   </div>
-                </div>
 
-                <div className="form-row">
                   <div className="form-group">
                     <label htmlFor="newRole" className="required">Role</label>
                     <SearchableDropdown
@@ -949,9 +945,7 @@ const UserManagement: React.FC = () => {
                       />
                     </div>
                   )}
-                </div>
 
-                <div className="form-row">
                   <div className="form-group">
                     <label htmlFor="userEnabled">User Status</label>
                     <div className="checkbox-wrapper">
@@ -972,40 +966,35 @@ const UserManagement: React.FC = () => {
                       }
                     </small>
                   </div>
-                </div>
 
                 {/* Only show departments field for non-admin users AND when current user has edit-countries permission */}
                 {newUser.role !== 'admin' && canEditCountries && (
-                  <div className="form-row">
-                    <div className="form-group form-group-full">
-                      <label>Departments</label>
-                      <p className="form-helper-text departments-hint">
-                        Select departments for the assigned countries. Departments are organised by country.
-                      </p>
-                      <CountryGroupedDepartments
-                        selectedDepartments={newUser.departments}
-                        onChange={(departments) => {
-                          // CountryGroupedDepartments always sends country-specific format, no migration needed
-                          setNewUser(prev => ({ ...prev, departments }));
-                        }}
-                        userCountries={newUser.countries}
-                        compact={true}
-                      />
-                    </div>
+                  <div className="form-group">
+                    <label>Departments</label>
+                    <p className="form-helper-text departments-hint">
+                      Select departments for the assigned countries. Departments are organised by country.
+                    </p>
+                    <CountryGroupedDepartments
+                      selectedDepartments={newUser.departments}
+                      onChange={(departments) => {
+                        // CountryGroupedDepartments always sends country-specific format, no migration needed
+                        setNewUser(prev => ({ ...prev, departments }));
+                      }}
+                      userCountries={newUser.countries}
+                      compact={true}
+                    />
                   </div>
                 )}
                 
                 {/* Show message when user cannot edit countries/departments */}
                 {newUser.role !== 'admin' && !canEditCountries && (
-                  <div className="form-row">
-                    <div className="form-group form-group-full">
-                      <div className="permission-warning">
-                        <div className="warning-icon">⚠️</div>
-                        <div className="warning-content">
-                          <h4>Limited Access</h4>
-                          <p>You don't have permission to assign countries and departments to users.</p>
-                          <p>Contact an administrator to modify user country and department assignments.</p>
-                        </div>
+                  <div className="form-group">
+                    <div className="permission-warning">
+                      <div className="warning-icon">⚠️</div>
+                      <div className="warning-content">
+                        <h4>Limited Access</h4>
+                        <p>You don't have permission to assign countries and departments to users.</p>
+                        <p>Contact an administrator to modify user country and department assignments.</p>
                       </div>
                     </div>
                   </div>

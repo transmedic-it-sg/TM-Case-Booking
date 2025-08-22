@@ -4,7 +4,6 @@ import { CategorizedSets } from '../utils/storage';
 import { saveCase, generateCaseReferenceNumber, getProcedureTypesForDepartment, getCategorizedSetsForDepartment } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
-import { getDepartments } from '../utils/supabaseDepartmentService';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import TimePicker from './common/TimePicker';
 import SearchableDropdown from './SearchableDropdown';
