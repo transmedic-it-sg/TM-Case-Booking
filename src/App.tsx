@@ -32,6 +32,8 @@ import { getCases } from './utils/storage';
 import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
 import { getAppVersion } from './utils/version';
+import { initializeVersionManager, handleVersionUpdate } from './utils/appVersionManager';
+import VersionUpdatePopup from './components/VersionUpdatePopup';
 import StatusLegend from './components/StatusLegend';
 import MobileNavigation from './components/MobileNavigation';
 import MobileHeader from './components/MobileHeader';
@@ -61,6 +63,8 @@ const AppContent: React.FC = () => {
   const [processingCase, setProcessingCase] = useState<CaseBooking | null>(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
+  const [showVersionUpdatePopup, setShowVersionUpdatePopup] = useState(false);
+  const [versionUpdateInfo, setVersionUpdateInfo] = useState<{currentVersion: string; previousVersion: string}>({currentVersion: '', previousVersion: ''});
   const [adminPanelExpanded, setAdminPanelExpanded] = useState(false);
   const [highlightedCaseId, setHighlightedCaseId] = useState<string | null>(null);
   const [maintenanceModeActive, setMaintenanceModeActive] = useState(false);
@@ -85,14 +89,23 @@ const AppContent: React.FC = () => {
   const changedVersions: any[] = [];
   const forceLogout = () => {};
 
-  // Simple version management without auto-refresh
+  // App version management with logout on version change
   useEffect(() => {
-    const currentVersion = getAppVersion(); // Now gets version from package.json
-    // Just set the version for Settings display, no automatic refresh
-    localStorage.setItem('app-version', currentVersion);
+    const versionCheck = initializeVersionManager();
     
-    // Only log version info, don't auto-reload
-    console.log(`📱 TM Case Booking v${currentVersion} loaded`);
+    // If version changed and user is logged in, show update popup
+    if (versionCheck.versionChanged && versionCheck.userLoggedIn) {
+      console.log(`🔄 Version updated from ${versionCheck.storedVersion} to ${versionCheck.currentVersion} - user will be logged out`);
+      
+      setVersionUpdateInfo({
+        currentVersion: versionCheck.currentVersion,
+        previousVersion: versionCheck.storedVersion || 'Unknown'
+      });
+      setShowVersionUpdatePopup(true);
+    } else {
+      // Normal version logging
+      console.log(`📱 TM Case Booking v${versionCheck.currentVersion} loaded`);
+    }
   }, []);
 
   // Check maintenance mode status
@@ -264,6 +277,11 @@ const AppContent: React.FC = () => {
 
   const cancelLogout = () => {
     setShowLogoutConfirmation(false);
+  };
+
+  const handleVersionUpdateConfirm = async () => {
+    setShowVersionUpdatePopup(false);
+    await handleVersionUpdate();
   };
 
   const handleCaseSubmitted = () => {
@@ -740,6 +758,14 @@ const AppContent: React.FC = () => {
         changedVersions={changedVersions}
         onForceLogout={forceLogout}
       />
+
+      {showVersionUpdatePopup && (
+        <VersionUpdatePopup
+          currentVersion={versionUpdateInfo.currentVersion}
+          previousVersion={versionUpdateInfo.previousVersion}
+          onConfirm={handleVersionUpdateConfirm}
+        />
+      )}
 
       {/* Mobile Navigation */}
       <MobileNavigation
