@@ -559,7 +559,7 @@ const UserManagement: React.FC = () => {
     }
 
     // Check username availability
-    const isUsernameAvailable = await checkUsernameAvailable(newUser.username, editingUser || undefined);
+    const isUsernameAvailable = await checkUsernameAvailable(newUser.username, editingUser ? users.find(u => u.id === editingUser) : undefined);
     if (!isUsernameAvailable) {
       setError('Username already exists');
       return;

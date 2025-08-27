@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
-import { getDepartments } from '../utils/supabaseDepartmentService';
+import correctDatabaseService from '../services/correctDatabaseService';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getCases } from '../utils/storage';
@@ -56,10 +56,10 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
     // Get departments for the active country from Code Table Setup
     const country = isAdmin && selectedCountry ? selectedCountry : (user?.selectedCountry || user?.countries?.[0]);
     if (country) {
-      // Load country-specific departments from Supabase
-      getDepartments(country).then(depts => {
-        // Convert Department objects to strings
-        const countrySpecificDepts = depts.map(dept => typeof dept === 'string' ? dept : dept.name || String(dept));
+      // Load country-specific departments from corrected database service
+      correctDatabaseService.getDepartments(country).then(depts => {
+        // Convert department data to strings
+        const countrySpecificDepts = depts.map(dept => typeof dept === 'string' ? dept : dept.display_name || dept.name || String(dept));
         
         // Filter by user's assigned departments if not admin
         let availableDepartments = countrySpecificDepts;

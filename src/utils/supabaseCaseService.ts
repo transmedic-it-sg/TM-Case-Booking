@@ -681,7 +681,9 @@ export const updateSupabaseCaseProcessing = async (
   caseId: string,
   processedBy: string,
   processOrderDetails: string,
-  newStatus: CaseStatus
+  newStatus: CaseStatus,
+  attachments?: string[],
+  customDetails?: string
 ): Promise<void> => {
   try {
     // Update case with processing details
@@ -701,16 +703,24 @@ export const updateSupabaseCaseProcessing = async (
       throw updateError;
     }
     
+    // Prepare status history entry data
+    const historyData: any = {
+      case_id: caseId,
+      status: newStatus,
+      processed_by: processedBy,
+      timestamp: new Date().toISOString(),
+      details: customDetails || 'Order processed and prepared'
+    };
+    
+    // Add attachments if provided
+    if (attachments && attachments.length > 0) {
+      historyData.attachments = attachments;
+    }
+    
     // Add status history entry
     const { error: historyError } = await supabase
       .from('status_history')
-      .insert([{
-        case_id: caseId,
-        status: newStatus,
-        processed_by: processedBy,
-        timestamp: new Date().toISOString(),
-        details: 'Order processed and prepared'
-      }]);
+      .insert([historyData]);
     
     if (historyError) {
       console.error('Error creating status history:', historyError);

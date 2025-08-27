@@ -3,36 +3,39 @@ import { User } from '../types';
 import { Role } from '../components/PermissionMatrix';
 import { ErrorHandler } from './errorHandler';
 
-// Get all users from Supabase
-export const getSupabaseUsers = async (): Promise<User[]> => {
+// FIXED: Import the secure authentication service to resolve 406 errors
+import fixedAuthService from './fixedAuthService';
+
+// Main authentication function - USES FIXED SERVICE (no more 406 errors)
+export const authenticateSupabaseUser = fixedAuthService.authenticateSupabaseUser;
+
+// Get all users
+export const getAllSupabaseUsers = async (): Promise<User[]> => {
   const result = await ErrorHandler.executeWithRetry(
     async () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .order('name');
-      
-      if (error) {
-        throw new Error(`Failed to fetch users: ${error.message}`);
-      }
-      
-      // Transform Supabase data to User type
-      return data?.map(profile => ({
+        .order('username');
+
+      if (error) throw error;
+
+      return data?.map((profile: any) => ({
         id: profile.id,
         username: profile.username,
-        password: '', // Don't expose password
+        password: '', // Never expose password
         role: profile.role,
         name: profile.name,
         departments: profile.departments || [],
         countries: profile.countries || [],
         selectedCountry: profile.selected_country,
-        enabled: profile.enabled !== undefined ? profile.enabled : true,
+        enabled: profile.enabled,
         email: profile.email || ''
       })) || [];
     },
     {
-      operation: 'Load Users',
-      userMessage: 'Failed to load user list from database',
+      operation: 'Get All Users',
+      userMessage: 'Failed to fetch users',
       showToast: true,
       showNotification: false,
       includeDetails: true,
@@ -41,51 +44,90 @@ export const getSupabaseUsers = async (): Promise<User[]> => {
     }
   );
 
-  return result.success && result.data ? result.data : [];
+  return result.success ? result.data || [] : [];
 };
 
-// Add a new user to Supabase
-export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User | null> => {
+// Get user by ID
+export const getUserById = async (userId: string): Promise<User | null> => {
+  const result = await ErrorHandler.executeWithRetry(
+    async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        return {
+          id: data.id,
+          username: data.username,
+          password: '', // Never expose password
+          role: data.role,
+          name: data.name,
+          departments: data.departments || [],
+          countries: data.countries || [],
+          selectedCountry: data.selected_country,
+          enabled: data.enabled,
+          email: data.email || ''
+        };
+      }
+
+      return null;
+    },
+    {
+      operation: 'Get User By ID',
+      userMessage: 'Failed to fetch user',
+      showToast: false,
+      showNotification: false,
+      includeDetails: true,
+      autoRetry: true,
+      maxRetries: 2
+    }
+  );
+
+  return result.success ? (result.data || null) : null;
+};
+
+// Add new user
+export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User> => {
   const result = await ErrorHandler.executeWithRetry(
     async () => {
       const { data, error } = await supabase
         .from('profiles')
         .insert([{
           username: userData.username,
-          password: userData.password,
-          name: userData.name,
+          password_hash: userData.password, // Should be hashed in production
           role: userData.role,
-          departments: userData.departments || [],
-          countries: userData.countries || [],
+          name: userData.name,
+          departments: userData.departments,
+          countries: userData.countries,
           selected_country: userData.selectedCountry,
-          enabled: userData.enabled !== undefined ? userData.enabled : true,
-          email: userData.email || ''
+          enabled: userData.enabled,
+          email: userData.email
         }])
         .select()
         .single();
-      
-      if (error) {
-        throw new Error(`Failed to add user: ${error.message}`);
-      }
-      
-      // Transform to User type
+
+      if (error) throw error;
+
       return {
         id: data.id,
         username: data.username,
-        password: '', // Don't expose password
+        password: '', // Never expose password
         role: data.role,
         name: data.name,
         departments: data.departments || [],
         countries: data.countries || [],
         selectedCountry: data.selected_country,
-        enabled: data.enabled !== undefined ? data.enabled : true,
-        email: data.email || '',
-        passwordResetRequired: data.password_reset_required || false
+        enabled: data.enabled,
+        email: data.email || ''
       };
     },
     {
       operation: 'Add User',
-      userMessage: `Failed to add user "${userData.name}" to the database`,
+      userMessage: 'Failed to create user',
       showToast: true,
       showNotification: true,
       includeDetails: true,
@@ -94,150 +136,42 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User 
     }
   );
 
-  return result.success && result.data ? result.data : null;
-};
-
-// Update a user in Supabase
-export const updateSupabaseUser = async (userId: string, userData: Partial<User>): Promise<User | null> => {
-  // Separate profile updates from auth updates
-  const profileUpdateData: any = {};
-  
-  if (userData.username) profileUpdateData.username = userData.username;
-  if (userData.name) profileUpdateData.name = userData.name;
-  if (userData.role) profileUpdateData.role = userData.role;
-  if (userData.departments) profileUpdateData.departments = userData.departments;
-  if (userData.countries) profileUpdateData.countries = userData.countries;
-  if (userData.selectedCountry) profileUpdateData.selected_country = userData.selectedCountry;
-  if (userData.enabled !== undefined) profileUpdateData.enabled = userData.enabled;
-  if (userData.email) profileUpdateData.email = userData.email;
-    
-    // Handle password update by updating password_hash field
-    if (userData.password) {
-      profileUpdateData.password_hash = userData.password;
-    }
-    
-    // Update profile data (without password)
-    const profileResult = await ErrorHandler.executeWithRetry(
-      async () => {
-        const { data, error } = await supabase
-          .from('profiles')
-          .update(profileUpdateData)
-          .eq('id', userId)
-          .select()
-          .single();
-        
-        if (error) {
-          throw new Error(`Failed to update user profile: ${error.message}`);
-        }
-        
-        return data;
-      },
-      {
-        operation: 'Update User Profile',
-        userMessage: 'Failed to update user profile in database',
-        showToast: true,
-        showNotification: true,
-        includeDetails: true,
-        autoRetry: true,
-        maxRetries: 3
-      }
-    );
-    
-    if (!profileResult.success) {
-      return null;
-    }
-    
-    const data = profileResult.data;
-    
-    // Transform to User type
-    return {
-      id: data.id,
-      username: data.username,
-      password: '', // Don't expose password
-      role: data.role,
-      name: data.name,
-      departments: data.departments || [],
-      countries: data.countries || [],
-      selectedCountry: data.selected_country,
-      enabled: data.enabled !== undefined ? data.enabled : true,
-      email: data.email || '',
-      passwordResetRequired: data.password_reset_required || false
-    };
-};
-
-// Reset user password in Supabase
-export const resetSupabaseUserPassword = async (userId: string, newPassword: string): Promise<boolean> => {
-  const passwordResult = await ErrorHandler.executeWithRetry(
-    async () => {
-      // Get user details
-      const { data: user } = await supabase
-        .from('profiles')
-        .select('username, name')
-        .eq('id', userId)
-        .single();
-      
-      if (!user) {
-        throw new Error('User not found');
-      }
-      
-      // Update the password_hash field with the new password (plain text for now)
-      // In a real system, this would be hashed, but for simplicity we'll use plain text
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ 
-          password_hash: newPassword, // Store the new password
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId);
-      
-      if (profileError) {
-        throw new Error(`Failed to update password: ${profileError.message}`);
-      }
-      
-      return { userName: user.name, username: user.username, newPassword };
-    },
-    {
-      operation: 'Reset User Password',
-      userMessage: `Password reset successfully for user.`,
-      showToast: true,
-      showNotification: true,
-      includeDetails: false,
-      autoRetry: true,
-      maxRetries: 3
-    }
-  );
-
-  if (passwordResult.success && passwordResult.data) {
-    // Show the new password to admin
-    window.dispatchEvent(new CustomEvent('showToast', {
-      detail: { 
-        type: 'success', 
-        message: `Password Reset Complete\n\nUser: ${passwordResult.data.userName}\nUsername: ${passwordResult.data.username}\nNew Password: ${passwordResult.data.newPassword}\n\nThe user can now login with this new password.` 
-      }
-    }));
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to create user');
   }
 
-  return passwordResult.success;
+  return result.data!;
 };
 
-// Delete a user from Supabase
-export const deleteSupabaseUser = async (userId: string): Promise<boolean> => {
+// Update user
+export const updateSupabaseUser = async (userId: string, userData: Partial<User>): Promise<boolean> => {
   const result = await ErrorHandler.executeWithRetry(
     async () => {
+      const updateData: any = {};
+      
+      if (userData.username) updateData.username = userData.username;
+      if (userData.password) updateData.password_hash = userData.password; // Should be hashed
+      if (userData.role) updateData.role = userData.role;
+      if (userData.name) updateData.name = userData.name;
+      if (userData.departments) updateData.departments = userData.departments;
+      if (userData.countries) updateData.countries = userData.countries;
+      if (userData.selectedCountry) updateData.selected_country = userData.selectedCountry;
+      if (userData.enabled !== undefined) updateData.enabled = userData.enabled;
+      if (userData.email) updateData.email = userData.email;
+
+      updateData.updated_at = new Date().toISOString();
+
       const { error } = await supabase
         .from('profiles')
-        .delete()
+        .update(updateData)
         .eq('id', userId);
-      
-      if (error) {
-        throw new Error(`Failed to delete user: ${error.message}`);
-      }
-      
+
+      if (error) throw error;
       return true;
     },
     {
-      operation: 'Delete User',
-      userMessage: 'Failed to delete user from database',
+      operation: 'Update User',
+      userMessage: 'Failed to update user',
       showToast: true,
       showNotification: true,
       includeDetails: true,
@@ -247,6 +181,124 @@ export const deleteSupabaseUser = async (userId: string): Promise<boolean> => {
   );
 
   return result.success;
+};
+
+// Delete user
+export const deleteSupabaseUser = async (userId: string): Promise<boolean> => {
+  const result = await ErrorHandler.executeWithRetry(
+    async () => {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (error) throw error;
+      return true;
+    },
+    {
+      operation: 'Delete User',
+      userMessage: 'Failed to delete user',
+      showToast: true,
+      showNotification: true,
+      includeDetails: true,
+      autoRetry: true,
+      maxRetries: 2
+    }
+  );
+
+  return result.success;
+};
+
+// Reset user password
+export const resetSupabaseUserPassword = async (userId: string, newPassword: string): Promise<boolean> => {
+  const result = await ErrorHandler.executeWithRetry(
+    async () => {
+      // Update profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ 
+          password_hash: newPassword, // Should be hashed in production
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+
+      if (profileError) {
+        // Try users table as fallback
+        const { error: userError } = await supabase
+          .from('users')
+          .update({ 
+            password_hash: newPassword, // Should be hashed in production
+            password: null, // Remove plain text password
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId);
+
+        if (userError) throw userError;
+      }
+
+      return true;
+    },
+    {
+      operation: 'Reset User Password',
+      userMessage: 'Failed to reset password',
+      showToast: true,
+      showNotification: true,
+      includeDetails: true,
+      autoRetry: true,
+      maxRetries: 3
+    }
+  );
+
+  return result.success;
+};
+
+// Compatibility aliases - will be added after function definitions
+
+// Get available roles
+export const getAvailableRoles = async (): Promise<Role[]> => {
+  const result = await ErrorHandler.executeWithRetry(
+    async () => {
+      // Roles are stored in code_tables (NOT in separate 'roles' table)
+      const { data, error } = await supabase
+        .from('code_tables')
+        .select('*')
+        .eq('table_type', 'user_roles')
+        .eq('is_active', true)
+        .order('display_name');
+
+      if (error) throw error;
+
+      return data?.map((role: any) => ({
+        id: role.code,
+        name: role.code,
+        displayName: role.display_name,
+        description: role.display_name,
+        color: '#007bff'
+      })) || [];
+    },
+    {
+      operation: 'Get Available Roles',
+      userMessage: 'Failed to fetch user roles',
+      showToast: false,
+      showNotification: false,
+      includeDetails: true,
+      autoRetry: true,
+      maxRetries: 2
+    }
+  );
+
+  // Fallback to hardcoded roles if database fails
+  if (!result.success || !result.data || result.data.length === 0) {
+    return [
+      { id: 'admin', name: 'admin', displayName: 'Admin', description: 'System Administrator', color: '#e74c3c' },
+      { id: 'operations', name: 'operations', displayName: 'Operations', description: 'Operations Team', color: '#3498db' },
+      { id: 'sales', name: 'sales', displayName: 'Sales', description: 'Sales Team', color: '#27ae60' },
+      { id: 'driver', name: 'driver', displayName: 'Driver', description: 'Delivery Driver', color: '#f39c12' },
+      { id: 'it', name: 'it', displayName: 'IT', description: 'IT Support', color: '#9b59b6' }
+    ];
+  }
+
+  return result.data!;
 };
 
 // Toggle user enabled status
@@ -255,23 +307,23 @@ export const toggleUserEnabled = async (userId: string, enabled: boolean): Promi
     async () => {
       const { error } = await supabase
         .from('profiles')
-        .update({ enabled })
+        .update({ 
+          enabled: enabled,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', userId);
-      
-      if (error) {
-        throw new Error(`Failed to ${enabled ? 'enable' : 'disable'} user: ${error.message}`);
-      }
-      
+
+      if (error) throw error;
       return true;
     },
     {
-      operation: enabled ? 'Enable User' : 'Disable User',
-      userMessage: `Failed to ${enabled ? 'enable' : 'disable'} user`,
+      operation: 'Toggle User Status',
+      userMessage: 'Failed to update user status',
       showToast: true,
-      showNotification: false,
+      showNotification: true,
       includeDetails: true,
       autoRetry: true,
-      maxRetries: 3
+      maxRetries: 2
     }
   );
 
@@ -279,85 +331,39 @@ export const toggleUserEnabled = async (userId: string, enabled: boolean): Promi
 };
 
 // Check if username is available
-export const checkUsernameAvailable = async (username: string, excludeUserId?: string): Promise<boolean> => {
+export const checkUsernameAvailable = async (username: string, excludeUserId?: User): Promise<boolean> => {
   const result = await ErrorHandler.executeWithRetry(
     async () => {
       let query = supabase
         .from('profiles')
         .select('id')
         .eq('username', username);
-      
-      if (excludeUserId) {
-        query = query.neq('id', excludeUserId);
+
+      if (excludeUserId && excludeUserId.id) {
+        query = query.neq('id', excludeUserId.id);
       }
-      
+
       const { data, error } = await query;
-      
-      if (error) {
-        throw new Error(`Failed to check username availability: ${error.message}`);
-      }
-      
-      return data.length === 0;
+
+      if (error) throw error;
+
+      // Username is available if no records found
+      return !data || data.length === 0;
     },
     {
-      operation: 'Check Username',
-      userMessage: 'Failed to validate username availability',
-      showToast: true,
+      operation: 'Check Username Availability',
+      userMessage: 'Failed to check username availability',
+      showToast: false,
       showNotification: false,
       includeDetails: true,
       autoRetry: true,
-      maxRetries: 3
+      maxRetries: 2
     }
   );
 
-  return result.success && result.data !== undefined ? result.data : false;
+  return result.success ? (result.data ?? false) : false;
 };
 
-// Get unique roles from the database
-export const getSupabaseRoles = async (): Promise<Role[]> => {
-  const result = await ErrorHandler.executeWithRetry(
-    async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .not('role', 'is', null);
-      
-      if (error) {
-        throw new Error(`Failed to fetch roles: ${error.message}`);
-      }
-      
-      // Get unique roles and convert to Role objects
-      const roleSet = new Set(data.map(profile => profile.role));
-      const uniqueRoles = Array.from(roleSet);
-      
-      const roleColors: { [key: string]: string } = {
-        'admin': '#e74c3c',
-        'operations': '#3498db',
-        'operations-manager': '#2980b9',
-        'sales': '#27ae60',
-        'sales-manager': '#229954',
-        'driver': '#f39c12',
-        'it': '#9b59b6'
-      };
-      
-      return uniqueRoles.map(role => ({
-        id: role,
-        name: role,
-        displayName: role.charAt(0).toUpperCase() + role.slice(1).replace('-', ' '),
-        description: `${role} role`,
-        color: roleColors[role] || '#95a5a6'
-      }));
-    },
-    {
-      operation: 'Load Roles',
-      userMessage: 'Failed to load user roles from database',
-      showToast: false, // Don't show toast for background role loading
-      showNotification: false,
-      includeDetails: true,
-      autoRetry: true,
-      maxRetries: 3
-    }
-  );
-
-  return result.success && result.data ? result.data : [];
-};
+// Compatibility aliases for legacy code
+export const getSupabaseUsers = getAllSupabaseUsers;
+export const getSupabaseRoles = getAvailableRoles;

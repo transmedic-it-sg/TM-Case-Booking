@@ -54,6 +54,18 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
         }
         break;
 
+      case CASE_STATUSES.ORDER_PREPARED:
+        if (permissions.canMarkDelivered) {
+          actions.push({
+            key: 'deliver',
+            label: 'Mark as Delivered to Hospital',
+            action: onOrderDelivered,
+            className: 'btn btn-warning btn-sm',
+            icon: '🚚'
+          });
+        }
+        break;
+
       case CASE_STATUSES.DELIVERED_HOSPITAL:
         if (permissions.canReceiveOrder) {
           actions.push({

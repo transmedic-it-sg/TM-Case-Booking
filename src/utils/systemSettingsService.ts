@@ -53,11 +53,10 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
     // First try to get from localStorage as it's more reliable
     const localConfig = getSystemConfigFromLocalStorage();
     
-    // Try to get system settings from Supabase
+    // Try to get system settings from Supabase (key-value structure)
     const { data, error } = await supabase
       .from('system_settings')
-      .select('*')
-      .single();
+      .select('setting_key, setting_value');
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -82,21 +81,33 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
       return localConfig;
     }
 
-    // Transform database format to SystemConfig and merge with defaults  
-    const supabaseConfig = {
-      appVersion: data.app_version || DEFAULT_CONFIG.appVersion,
-      maintenanceMode: data.maintenance_mode !== null ? data.maintenance_mode : DEFAULT_CONFIG.maintenanceMode,
-      cacheTimeout: data.cache_timeout || DEFAULT_CONFIG.cacheTimeout,
-      maxFileSize: data.max_file_size || DEFAULT_CONFIG.maxFileSize,
-      sessionTimeout: data.session_timeout || DEFAULT_CONFIG.sessionTimeout,
-      passwordComplexity: data.password_complexity !== null ? data.password_complexity : DEFAULT_CONFIG.passwordComplexity,
-      auditLogRetention: data.audit_log_retention || DEFAULT_CONFIG.auditLogRetention,
-      amendmentTimeLimit: data.amendment_time_limit || DEFAULT_CONFIG.amendmentTimeLimit,
-      maxAmendmentsPerCase: data.max_amendments_per_case || DEFAULT_CONFIG.maxAmendmentsPerCase,
-      defaultTheme: data.default_theme || DEFAULT_CONFIG.defaultTheme,
-      defaultLanguage: data.default_language || DEFAULT_CONFIG.defaultLanguage
+    if (!data || data.length === 0) {
+      console.log('📋 No system settings data found in Supabase, using localStorage');
+      return localConfig;
+    }
+
+    // Transform key-value pairs to config object
+    const settingsMap = new Map();
+    data.forEach((row: any) => {
+      settingsMap.set(row.setting_key, row.setting_value);
+    });
+
+    // Build config from key-value pairs with defaults
+    const supabaseConfig: SystemConfig = {
+      appVersion: settingsMap.get('version') || DEFAULT_CONFIG.appVersion,
+      maintenanceMode: settingsMap.has('maintenance_mode') ? settingsMap.get('maintenance_mode') : DEFAULT_CONFIG.maintenanceMode,
+      cacheTimeout: settingsMap.get('cache_timeout') || DEFAULT_CONFIG.cacheTimeout,
+      maxFileSize: settingsMap.get('max_file_size') || DEFAULT_CONFIG.maxFileSize,
+      sessionTimeout: settingsMap.get('session_timeout') || DEFAULT_CONFIG.sessionTimeout,
+      passwordComplexity: settingsMap.has('password_complexity') ? settingsMap.get('password_complexity') : DEFAULT_CONFIG.passwordComplexity,
+      auditLogRetention: settingsMap.get('audit_logs_retention_days') || DEFAULT_CONFIG.auditLogRetention,
+      amendmentTimeLimit: settingsMap.get('amendment_time_limit') || DEFAULT_CONFIG.amendmentTimeLimit,
+      maxAmendmentsPerCase: settingsMap.get('max_amendments_per_case') || DEFAULT_CONFIG.maxAmendmentsPerCase,
+      defaultTheme: settingsMap.get('default_theme') || DEFAULT_CONFIG.defaultTheme,
+      defaultLanguage: settingsMap.get('default_language') || DEFAULT_CONFIG.defaultLanguage
     };
 
+    console.log('✅ Successfully loaded system settings from Supabase');
     // Save the merged config to localStorage for future use
     saveSystemConfigToLocalStorage(supabaseConfig);
     return supabaseConfig;
@@ -116,37 +127,46 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
   console.log('✅ System configuration saved to localStorage');
 
   try {
-    // Try to save to Supabase
-    const { error } = await supabase
-      .from('system_settings')
-      .upsert({
-        id: 1, // Single row for system settings
-        app_version: config.appVersion,
-        maintenance_mode: config.maintenanceMode,
-        cache_timeout: config.cacheTimeout,
-        max_file_size: config.maxFileSize,
-        session_timeout: config.sessionTimeout,
-        password_complexity: config.passwordComplexity,
-        audit_log_retention: config.auditLogRetention,
-        amendment_time_limit: config.amendmentTimeLimit,
-        max_amendments_per_case: config.maxAmendmentsPerCase,
-        default_theme: config.defaultTheme,
-        default_language: config.defaultLanguage,
-        updated_at: new Date().toISOString()
-      });
+    // Prepare key-value pairs for Supabase
+    const configMappings = [
+      { key: 'version', value: config.appVersion },
+      { key: 'maintenance_mode', value: config.maintenanceMode },
+      { key: 'cache_timeout', value: config.cacheTimeout },
+      { key: 'max_file_size', value: config.maxFileSize },
+      { key: 'session_timeout', value: config.sessionTimeout },
+      { key: 'password_complexity', value: config.passwordComplexity },
+      { key: 'audit_logs_retention_days', value: config.auditLogRetention },
+      { key: 'amendment_time_limit', value: config.amendmentTimeLimit },
+      { key: 'max_amendments_per_case', value: config.maxAmendmentsPerCase },
+      { key: 'default_theme', value: config.defaultTheme },
+      { key: 'default_language', value: config.defaultLanguage }
+    ];
 
-    if (error) {
-      if (error.code === '42P01') {
-        // Table doesn't exist, localStorage save is sufficient
-        console.log('⚠️ System settings table does not exist, but localStorage save completed');
-        return;
+    // Update or insert each setting
+    for (const mapping of configMappings) {
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({
+          setting_key: mapping.key,
+          setting_value: mapping.value,
+          description: getSettingDescription(mapping.key),
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'setting_key'
+        });
+
+      if (error) {
+        if (error.code === '42P01') {
+          // Table doesn't exist, localStorage save is sufficient
+          console.log('⚠️ System settings table does not exist, but localStorage save completed');
+          return;
+        }
+        if (error.code === '401' || error.message.includes('permission denied')) {
+          console.log('⚠️ Permission denied for Supabase, but localStorage save completed');
+          return;
+        }
+        console.warn(`⚠️ Failed to save setting ${mapping.key} to Supabase:`, error.message);
       }
-      if (error.code === '401' || error.message.includes('permission denied')) {
-        console.log('⚠️ Permission denied for Supabase, but localStorage save completed');
-        return;
-      }
-      console.warn('⚠️ Supabase save failed but localStorage save completed:', error.message);
-      return; // Don't throw error since localStorage save succeeded
     }
 
     console.log('✅ System configuration saved to both Supabase and localStorage');
@@ -155,6 +175,26 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
     console.log('✅ Configuration saved to localStorage successfully (Supabase unavailable)');
     // Don't throw error since localStorage save was successful
   }
+};
+
+/**
+ * Get description for a setting key
+ */
+const getSettingDescription = (key: string): string => {
+  const descriptions: Record<string, string> = {
+    'version': 'Current application version',
+    'maintenance_mode': 'Enable maintenance mode',
+    'cache_timeout': 'Cache timeout in seconds',
+    'max_file_size': 'Maximum file size in MB',
+    'session_timeout': 'Session timeout in seconds',
+    'password_complexity': 'Enable password complexity requirements',
+    'audit_logs_retention_days': 'Number of days to retain audit logs',
+    'amendment_time_limit': 'Time limit for amendments in minutes',
+    'max_amendments_per_case': 'Maximum amendments per case',
+    'default_theme': 'Default UI theme',
+    'default_language': 'Default application language'
+  };
+  return descriptions[key] || `Setting for ${key}`;
 };
 
 /**

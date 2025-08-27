@@ -153,6 +153,32 @@ const CaseDetails: React.FC<CaseDetailsProps> = ({
         </div>
       )}
 
+      {/* Case Submission Information */}
+      <div className="submission-info">
+        <div className="submission-item">
+          <span className="submission-label">Submitted by:</span>
+          <span className="submission-value">{getUserName(caseItem.submittedBy) || 'Unknown User'}</span>
+        </div>
+        {formattedSubmissionDate && (
+          <div className="submission-item">
+            <span className="submission-label">Submitted on:</span>
+            <span className="submission-value">{formattedSubmissionDate}</span>
+          </div>
+        )}
+        {caseItem.processedBy && (
+          <div className="submission-item">
+            <span className="submission-label">Last processed by:</span>
+            <span className="submission-value">{getUserName(caseItem.processedBy) || 'Unknown User'}</span>
+          </div>
+        )}
+        {formattedProcessedDate && (
+          <div className="submission-item">
+            <span className="submission-label">Last processed on:</span>
+            <span className="submission-value">{formattedProcessedDate}</span>
+          </div>
+        )}
+      </div>
+
       {/* Timeline Information */}
       <div className="case-timeline">
         <div className="timeline-item">

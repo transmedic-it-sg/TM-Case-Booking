@@ -9,6 +9,7 @@ import {
   saveCategorizedSets as saveSupabaseCategorizedSets, 
   migrateCasesFromLocalStorage 
 } from './supabaseCaseService';
+import offlineSyncService from '../services/offlineSyncService';
 import { normalizeCountry } from './countryUtils';
 import { withConnectionRetry } from './databaseConnectionMonitor';
 import { ErrorHandler } from './errorHandler';
@@ -138,34 +139,92 @@ export const getCases = async (country?: string): Promise<CaseBooking[]> => {
 };
 
 export const saveCase = async (caseData: CaseBooking): Promise<CaseBooking> => {
-  const result = await ErrorHandler.executeWithRetry(
-    async () => {
-      // If case has an ID, it's an update; otherwise it's a new case
-      if (caseData.id && caseData.id !== '') {
-        // This is an update - use Supabase update function
-        const { updateSupabaseCase } = await import('./supabaseCaseService');
-        return await updateSupabaseCase(caseData.id, caseData);
-      } else {
-        // New case - save to Supabase
-        const { id, caseReferenceNumber, submittedAt, statusHistory, amendmentHistory, ...caseWithoutGeneratedFields } = caseData;
-        return await saveSupabaseCase(caseWithoutGeneratedFields);
+  try {
+    // Try to save to Supabase first
+    const result = await ErrorHandler.executeWithRetry(
+      async () => {
+        // If case has an ID, it's an update; otherwise it's a new case
+        if (caseData.id && caseData.id !== '') {
+          // This is an update - use Supabase update function
+          const { updateSupabaseCase } = await import('./supabaseCaseService');
+          return await updateSupabaseCase(caseData.id, caseData);
+        } else {
+          // New case - save to Supabase
+          const { id, caseReferenceNumber, submittedAt, statusHistory, amendmentHistory, ...caseWithoutGeneratedFields } = caseData;
+          return await saveSupabaseCase(caseWithoutGeneratedFields);
+        }
+      },
+      {
+        operation: caseData.id ? 'Update Case' : 'Save New Case',
+        userMessage: `Failed to ${caseData.id ? 'update' : 'save'} case to database`,
+        showToast: false, // Don't show toast here, we'll handle offline mode
+        showNotification: false,
+        includeDetails: true,
+        autoRetry: true,
+        maxRetries: 2
       }
-    },
-    {
-      operation: caseData.id ? 'Update Case' : 'Save New Case',
-      userMessage: `Failed to ${caseData.id ? 'update' : 'save'} case to database`,
-      showToast: true,
-      showNotification: true,
-      includeDetails: true,
-      autoRetry: true,
-      maxRetries: 3
-    }
-  );
+    );
 
-  if (result.success && result.data) {
-    return result.data;
-  } else {
-    throw new Error(result.error || 'Failed to save case');
+    if (result.success && result.data) {
+      return result.data;
+    } else {
+      // Database failed, fall back to offline mode
+      throw new Error('Database save failed, switching to offline mode');
+    }
+  } catch (error) {
+    console.log('💾 Database unavailable, saving to localStorage and sync queue');
+    
+    // Generate offline data
+    let caseReferenceNumber = caseData.caseReferenceNumber;
+    if (!caseReferenceNumber) {
+      try {
+        caseReferenceNumber = await generateCaseReferenceNumber(caseData.country);
+      } catch (refError) {
+        console.warn('Failed to generate reference number, using fallback:', refError);
+        // Fallback reference number generation
+        const counter = Date.now();
+        caseReferenceNumber = `TMC${counter.toString().slice(-6)}`;
+      }
+    }
+
+    const offlineCaseData: CaseBooking = {
+      ...caseData,
+      id: caseData.id || `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      caseReferenceNumber,
+      submittedAt: caseData.submittedAt || new Date().toISOString(),
+      statusHistory: caseData.statusHistory || [{
+        status: caseData.status,
+        timestamp: new Date().toISOString(),
+        processedBy: caseData.submittedBy,
+        details: 'Case created offline'
+      }]
+    };
+
+    // Save to localStorage
+    const localCases = JSON.parse(localStorage.getItem('case-bookings') || '[]');
+    const existingIndex = localCases.findIndex((c: CaseBooking) => c.id === offlineCaseData.id);
+    
+    if (existingIndex >= 0) {
+      localCases[existingIndex] = offlineCaseData;
+    } else {
+      localCases.push(offlineCaseData);
+    }
+    
+    localStorage.setItem('case-bookings', JSON.stringify(localCases));
+
+    // Add to sync queue
+    const syncType = caseData.id && caseData.id !== '' && !caseData.id.startsWith('offline_') ? 'case_update' : 'case_create';
+    offlineSyncService.addToSyncQueue(syncType, offlineCaseData);
+
+    // Notify user about offline mode
+    window.dispatchEvent(new CustomEvent('showToast', {
+      detail: {
+        type: 'warning',
+        message: `Case saved offline. Will sync to database when connection is restored.`
+      }
+    }));
+
+    return offlineCaseData;
   }
 };
 
@@ -252,45 +311,106 @@ export const cleanupDuplicateStatusHistory = async (): Promise<void> => {
 };
 
 export const updateCaseStatus = async (caseId: string, status: CaseBooking['status'], processedBy?: string, details?: string): Promise<void> => {
-  const result = await ErrorHandler.executeWithRetry(
-    async () => {
-      // Extract attachments from details if present
-      let attachments: string[] | undefined;
-      if (details) {
-        try {
-          const parsedDetails = JSON.parse(details);
-          attachments = parsedDetails.attachments;
-        } catch {
-          // If details are not JSON, no attachments
-        }
+  // Extract attachments from details if present
+  let attachments: string[] | undefined;
+  if (details) {
+    try {
+      const parsedDetails = JSON.parse(details);
+      attachments = parsedDetails.attachments;
+    } catch {
+      // If details are not JSON, no attachments
+    }
+  }
+
+  try {
+    // Try to update in Supabase first
+    const result = await ErrorHandler.executeWithRetry(
+      async () => {
+        await updateSupabaseCaseStatus(caseId, status, processedBy || 'unknown', details, attachments);
+        return true;
+      },
+      {
+        operation: 'Update Case Status',
+        userMessage: `Failed to update case status to "${status}"`,
+        showToast: false, // Handle offline mode manually
+        showNotification: false,
+        includeDetails: true,
+        autoRetry: true,
+        maxRetries: 2
+      }
+    );
+
+    if (!result.success) {
+      throw new Error('Database update failed, switching to offline mode');
+    }
+  } catch (error) {
+    console.log('💾 Database unavailable for status update, using offline mode');
+    
+    // Update case in localStorage
+    const localCases = JSON.parse(localStorage.getItem('case-bookings') || '[]');
+    const caseIndex = localCases.findIndex((c: CaseBooking) => c.id === caseId);
+    
+    if (caseIndex >= 0) {
+      localCases[caseIndex].status = status;
+      if (processedBy) {
+        localCases[caseIndex].processedBy = processedBy;
+        localCases[caseIndex].processedAt = new Date().toISOString();
       }
       
-      // Always use Supabase for status updates
-      await updateSupabaseCaseStatus(caseId, status, processedBy || 'unknown', details, attachments);
-      return true;
-    },
-    {
-      operation: 'Update Case Status',
-      userMessage: `Failed to update case status to "${status}"`,
-      showToast: true,
-      showNotification: true,
-      includeDetails: true,
-      autoRetry: true,
-      maxRetries: 3
+      // Add status history entry
+      if (!localCases[caseIndex].statusHistory) {
+        localCases[caseIndex].statusHistory = [];
+      }
+      
+      localCases[caseIndex].statusHistory.push({
+        status,
+        timestamp: new Date().toISOString(),
+        processedBy: processedBy || 'unknown',
+        details: details || 'Status updated offline',
+        attachments: attachments
+      });
+      
+      localStorage.setItem('case-bookings', JSON.stringify(localCases));
     }
-  );
 
-  if (!result.success) {
-    throw new Error(result.error || 'Failed to update case status');
+    // Add to sync queue
+    offlineSyncService.addToSyncQueue('case_status', {
+      caseId,
+      status,
+      changedBy: processedBy || 'unknown',
+      details,
+      attachments: attachments
+    });
+
+    // Notify user about offline mode
+    window.dispatchEvent(new CustomEvent('showToast', {
+      detail: {
+        type: 'warning',
+        message: `Status updated offline. Will sync to database when connection is restored.`
+      }
+    }));
   }
 };
 
 // Process order with specific order details
-export const processCaseOrder = async (caseId: string, processedBy: string, processOrderDetails: string): Promise<void> => {
+export const processCaseOrder = async (
+  caseId: string, 
+  processedBy: string, 
+  processOrderDetails: string,
+  attachments?: string[],
+  customDetails?: string
+): Promise<void> => {
   const result = await ErrorHandler.executeWithRetry(
     async () => {
       // Always use Supabase for order processing
-      await updateSupabaseCaseProcessing(caseId, processedBy, processOrderDetails, 'Order Prepared');
+      await updateSupabaseCaseProcessing(
+        caseId, 
+        processedBy, 
+        processOrderDetails, 
+        'Order Prepared',
+        attachments,
+        customDetails
+      );
       return true;
     },
     {

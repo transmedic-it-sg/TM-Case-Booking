@@ -2,7 +2,8 @@ import { User } from '../types';
 import { SUPPORTED_COUNTRIES } from './countryUtils';
 import { 
   getSupabaseUsers, 
-  addSupabaseUser
+  addSupabaseUser,
+  authenticateSupabaseUser
 } from './supabaseUserService';
 
 const STORAGE_KEY = 'case-booking-users';
@@ -35,9 +36,9 @@ export const migrateUsersFromLocalStorage = async (): Promise<void> => {
 
 export const authenticateUser = async (username: string, password: string): Promise<User | null> => {
   try {
-    const users = await getSupabaseUsers();
-    const user = users.find(u => u.name === username && u.password === password);
-    return user || null;
+    // Use the new authentication function that checks both tables
+    const user = await authenticateSupabaseUser(username, password);
+    return user;
   } catch (error) {
     console.error('Authentication error:', error);
     return null;
@@ -93,7 +94,7 @@ export const getUsers = async (): Promise<User[]> => {
         username: 'Admin',
         password: 'Admin',
         role: 'admin',
-        name: 'Administrator',
+        name: 'System Administrator',
         departments: [],
         countries: [...SUPPORTED_COUNTRIES],
         enabled: true
@@ -126,11 +127,11 @@ const getUsersFromLocalStorage = (): User[] => {
   
   const defaultUsers: User[] = [
     {
-      id: '1',
+      id: '97a7414a-0edc-4623-96de-7a93004eb7a7',
       username: 'Admin',
       password: 'Admin',
       role: 'admin',
-      name: 'Administrator',
+      name: 'System Administrator',
       departments: [],
       countries: [...SUPPORTED_COUNTRIES],
       enabled: true

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { CaseBooking, CaseStatus, DEPARTMENTS } from '../types';
-import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
+import { CaseBooking, CaseStatus } from '../types';
 import { getCases } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
@@ -9,6 +8,7 @@ import { formatDate } from '../utils/dateFormat';
 import { useUserNames } from '../hooks/useUserNames';
 import FilterDatePicker from './FilterDatePicker';
 import SearchableDropdown from './SearchableDropdown';
+import dynamicConstantsService from '../services/dynamicConstantsService';
 import '../assets/components/Reports.css';
 
 interface ReportFilters {
@@ -39,6 +39,8 @@ const Reports: React.FC = () => {
   const [currentUser] = useState(getCurrentUser());
   const [showFilters, setShowFilters] = useState(true);
   const [globalCountries, setGlobalCountries] = useState<string[]>([]);
+  const [globalDepartments, setGlobalDepartments] = useState<string[]>([]);
+  const [caseStatuses, setCaseStatuses] = useState<any[]>([]);
   const [filters, setFilters] = useState<ReportFilters>({
     dateFrom: '',
     dateTo: '',
@@ -72,9 +74,28 @@ const Reports: React.FC = () => {
   // Hook to resolve user IDs to names
   const { getUserName } = useUserNames(userIds);
 
-  // Load countries from centralized country utils
+  // Load countries, departments, and case statuses from database
   useEffect(() => {
-    setGlobalCountries([...SUPPORTED_COUNTRIES]);
+    const loadConstants = async () => {
+      try {
+        const [countries, departments, statuses] = await Promise.all([
+          dynamicConstantsService.getCountries(),
+          dynamicConstantsService.getDepartments(),
+          dynamicConstantsService.getCaseStatuses()
+        ]);
+        setGlobalCountries(countries);
+        setGlobalDepartments(departments);
+        setCaseStatuses(statuses);
+      } catch (error) {
+        console.error('Error loading constants:', error);
+        // Fallback to empty arrays, services have their own fallbacks
+        setGlobalCountries([]);
+        setGlobalDepartments([]);
+        setCaseStatuses([]);
+      }
+    };
+    
+    loadConstants();
   }, []);
 
   // Load cases on component mount
@@ -171,14 +192,16 @@ const Reports: React.FC = () => {
   const reportData: ReportData = useMemo(() => {
     const totalCases = filteredCases.length;
     
-    // Status breakdown
+    // Status breakdown - use dynamic case statuses with fallback
     const statusBreakdown: Record<CaseStatus, number> = {} as Record<CaseStatus, number>;
-    const allStatuses: CaseStatus[] = [
-      'Case Booked', 'Order Preparation', 'Order Prepared',
-      'Pending Delivery (Hospital)', 'Delivered (Hospital)',
-      'Case Completed', 'Pending Delivery (Office)', 'Delivered (Office)',
-      'To be billed', 'Case Closed', 'Case Cancelled'
-    ];
+    const allStatuses = caseStatuses.length > 0 
+      ? caseStatuses.map(s => s.status || s.display_name) as CaseStatus[]
+      : [
+          'Case Booked', 'Order Preparation', 'Order Prepared',
+          'Pending Delivery (Hospital)', 'Delivered (Hospital)',
+          'Case Completed', 'Pending Delivery (Office)', 'Delivered (Office)',
+          'To be billed', 'Case Closed', 'Case Cancelled'
+        ] as CaseStatus[];
     
     allStatuses.forEach(status => {
       statusBreakdown[status] = filteredCases.filter(c => c.status === status).length;
@@ -192,7 +215,7 @@ const Reports: React.FC = () => {
 
     // Department breakdown
     const departmentBreakdown: Record<string, number> = {};
-    DEPARTMENTS.forEach(dept => {
+    globalDepartments.forEach(dept => {
       departmentBreakdown[dept] = filteredCases.filter(c => c.department === dept).length;
     });
 
@@ -245,7 +268,7 @@ const Reports: React.FC = () => {
       urgentCases,
       completionRate
     };
-  }, [filteredCases, globalCountries, getUserName]);
+  }, [filteredCases, globalCountries, globalDepartments, caseStatuses, getUserName]);
 
   // Get available options for dropdowns
   const availableSubmitters = useMemo(() => {
@@ -267,12 +290,12 @@ const Reports: React.FC = () => {
 
   const availableDepartments = useMemo(() => {
     const userDepartments = currentUser?.role === 'admin' || currentUser?.role === 'it'
-      ? DEPARTMENTS
+      ? globalDepartments
       : (currentUser?.departments || []);
-    return Array.from(new Set(cases.map(c => c.department).filter((dept): dept is typeof DEPARTMENTS[number] => 
-      userDepartments.includes(dept as typeof DEPARTMENTS[number])
+    return Array.from(new Set(cases.map(c => c.department).filter(dept => 
+      userDepartments.includes(dept)
     ))).sort();
-  }, [cases, currentUser]);
+  }, [cases, currentUser, globalDepartments]);
 
   const handleFilterChange = (key: keyof ReportFilters, value: string) => {
     setTempFilters(prev => ({ ...prev, [key]: value }));
@@ -493,17 +516,10 @@ const Reports: React.FC = () => {
                       <SearchableDropdown
                         options={[
                           { value: '', label: 'All Statuses' },
-                          { value: 'Case Booked', label: 'Case Booked' },
-                          { value: 'Order Preparation', label: 'Order Preparation' },
-                          { value: 'Order Prepared', label: 'Order Prepared' },
-                          { value: 'Pending Delivery (Hospital)', label: 'Pending Delivery (Hospital)' },
-                          { value: 'Delivered (Hospital)', label: 'Delivered (Hospital)' },
-                          { value: 'Case Completed', label: 'Case Completed' },
-                          { value: 'Pending Delivery (Office)', label: 'Pending Delivery (Office)' },
-                          { value: 'Delivered (Office)', label: 'Delivered (Office)' },
-                          { value: 'To be billed', label: 'To be billed' },
-                          { value: 'Case Closed', label: 'Case Closed' },
-                          { value: 'Case Cancelled', label: 'Case Cancelled' }
+                          ...caseStatuses.map(status => ({
+                            value: status.status || status.display_name,
+                            label: status.display_name || status.status
+                          }))
                         ]}
                         value={tempFilters.status}
                         onChange={(value) => handleFilterChange('status', value)}

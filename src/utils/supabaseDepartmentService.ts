@@ -625,18 +625,28 @@ export const saveCategorizedSetsForDepartment = async (
     
     // Now rebuild inserts with newly created items
     const finalInserts: any[] = [];
+    console.log('🔍 DEBUG: Processing categorizedSets entries:', Object.keys(categorizedSets));
     for (const [procedureType, sets] of Object.entries(categorizedSets)) {
+      console.log(`🔍 DEBUG: Processing ${procedureType}:`, {
+        surgerySets: sets.surgerySets?.length || 0,
+        implantBoxes: sets.implantBoxes?.length || 0,
+        surgerySetNames: sets.surgerySets,
+        implantBoxNames: sets.implantBoxes
+      });
       // Add surgery sets (now with created ones)
       for (const surgerySetName of sets.surgerySets || []) {
         const surgerySetId = surgerySetMap.get(surgerySetName);
+        console.log(`🔍 DEBUG: Surgery set "${surgerySetName}" -> ID: ${surgerySetId}`);
         if (surgerySetId) {
-          finalInserts.push({
+          const insertData = {
             department_id: departmentId,
             procedure_type: procedureType,
             surgery_set_id: surgerySetId,
             implant_box_id: null,
             country: dbCountry
-          });
+          };
+          console.log('➕ Adding surgery set insert:', insertData);
+          finalInserts.push(insertData);
         } else {
           console.error(`Still missing surgery set after creation: "${surgerySetName}"`);
         }
@@ -645,14 +655,17 @@ export const saveCategorizedSetsForDepartment = async (
       // Add implant boxes (now with created ones)  
       for (const implantBoxName of sets.implantBoxes || []) {
         const implantBoxId = implantBoxMap.get(implantBoxName);
+        console.log(`🔍 DEBUG: Implant box "${implantBoxName}" -> ID: ${implantBoxId}`);
         if (implantBoxId) {
-          finalInserts.push({
+          const insertData = {
             department_id: departmentId,
             procedure_type: procedureType,
             surgery_set_id: null,
             implant_box_id: implantBoxId,
             country: dbCountry
-          });
+          };
+          console.log('➕ Adding implant box insert:', insertData);
+          finalInserts.push(insertData);
         } else {
           console.error(`Still missing implant box after creation: "${implantBoxName}"`);
         }

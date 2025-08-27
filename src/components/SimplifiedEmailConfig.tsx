@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { DEPARTMENTS } from '../types';
-import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getAllRoles } from '../data/permissionMatrixData';
@@ -9,6 +7,7 @@ import { useToast } from './ToastContainer';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import { CASE_STATUSES, STATUS_WORKFLOW } from '../constants/statuses';
 import { USER_ROLES } from '../constants/permissions';
+import dynamicConstantsService from '../services/dynamicConstantsService';
 import {
   authenticateWithPopup,
   getStoredAuthTokens,
@@ -71,6 +70,8 @@ const SimplifiedEmailConfig: React.FC = () => {
   const [isTemplateVariablesCollapsed, setIsTemplateVariablesCollapsed] = useState<boolean>(true);
   const [emailMatrixConfigs, setEmailMatrixConfigs] = useState<Record<string, EmailNotificationMatrix>>({});
   const [ruleCollapsedStates, setRuleCollapsedStates] = useState<Record<number, boolean>>({});
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+  const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
 
   const { playSound } = useSound();
   const { showSuccess, showError } = useToast();
@@ -79,9 +80,25 @@ const SimplifiedEmailConfig: React.FC = () => {
   // Check permissions
   const canConfigureEmail = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EMAIL_CONFIG) : false;
 
-  // Get available countries for admin users
-  const availableCountries = React.useMemo(() => {
-    return [...SUPPORTED_COUNTRIES];
+  // Load countries and departments from database
+  useEffect(() => {
+    const loadConstants = async () => {
+      try {
+        const [countries, departments] = await Promise.all([
+          dynamicConstantsService.getCountries(),
+          dynamicConstantsService.getDepartments()
+        ]);
+        setAvailableCountries(countries);
+        setAvailableDepartments(departments);
+      } catch (error) {
+        console.error('Error loading constants for email config:', error);
+        // Fallback to empty arrays, services have their own fallbacks
+        setAvailableCountries([]);
+        setAvailableDepartments([]);
+      }
+    };
+    
+    loadConstants();
   }, []);
 
   // Check if user can switch countries (admin only)
@@ -1465,7 +1482,7 @@ Best regards,
                                   <MultiSelectDropdown
                                     id={`departments-${index}`}
                                     label="🏥 Additional Department Filter (Optional)"
-                                    options={DEPARTMENTS}
+                                    options={availableDepartments}
                                     value={rule.recipients.departmentFilter}
                                     onChange={(selectedDepartments: string[]) => {
                                       updateNotificationRule(index, {

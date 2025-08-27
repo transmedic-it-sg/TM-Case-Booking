@@ -1,6 +1,6 @@
 # Transmedic Case Booking System
 
-## Version 1.2.7
+## Version 1.2.8
 
 A comprehensive React-based case booking application for medical procedures with advanced role-based access control, workflow management, and professional mobile experience.
 
@@ -13,7 +13,7 @@ A comprehensive React-based case booking application for medical procedures with
 - **Role-Based Access**: Granular permissions for different user roles
 - **Multi-Country Support**: Singapore, Malaysia, Philippines, Indonesia, Vietnam, Hong Kong, Thailand
 
-### Latest Features (v1.2.7)
+### Latest Features (v1.2.8)
 - **🎯 Supabase Migration**: Complete migration from localStorage to Supabase database for all core functionality
 - **🌍 Country Standardization**: Unified country system using full names (Singapore, Malaysia, etc.) instead of codes
 - **🧹 Code Quality**: Achieved zero TypeScript compilation errors and removed all deprecated functions

@@ -31,6 +31,7 @@ import { getSystemConfig } from './utils/systemSettingsService';
 import { getCases } from './utils/storage';
 import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
+import { getAppVersion } from './utils/version';
 import StatusLegend from './components/StatusLegend';
 import MobileNavigation from './components/MobileNavigation';
 import MobileHeader from './components/MobileHeader';
@@ -86,7 +87,7 @@ const AppContent: React.FC = () => {
 
   // Simple version management without auto-refresh
   useEffect(() => {
-    const currentVersion = '1.2.7';
+    const currentVersion = getAppVersion(); // Now gets version from package.json
     // Just set the version for Settings display, no automatic refresh
     localStorage.setItem('app-version', currentVersion);
     
@@ -266,7 +267,10 @@ const AppContent: React.FC = () => {
   };
 
   const handleCaseSubmitted = () => {
-    setActivePage('cases');
+    // Only change page to 'cases' if not currently on 'sets' page
+    if (activePage !== 'sets') {
+      setActivePage('cases');
+    }
     playSound.submit();
     showSuccess('Case Submitted!', 'Your case booking has been submitted successfully with a reference number.');
     addNotification({

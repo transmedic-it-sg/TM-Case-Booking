@@ -5,10 +5,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { AmendmentFormProps } from './types';
-import { getAllProcedureTypes } from '../../utils/storage';
-import { getDepartments } from '../../utils/codeTable';
+import { getCategorizedSetsForDepartment } from '../../utils/storage';
 import TimePicker from '../common/TimePicker';
 import FilterDatePicker from '../FilterDatePicker';
+import MultiSelectDropdown from '../MultiSelectDropdown';
 
 const AmendmentForm: React.FC<AmendmentFormProps> = ({
   caseItem,
@@ -31,20 +31,38 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     amendmentReason: ''
   });
 
-  const [departments, setDepartments] = useState<string[]>([]);
-  const [procedureTypes, setProcedureTypes] = useState<string[]>([]);
+  // Removed unused state variables - departments and procedureTypes not needed since fields are read-only
+  const [surgerySetOptions, setSurgerySetOptions] = useState<string[]>([]);
+  const [implantBoxOptions, setImplantBoxOptions] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Removed loading of departments and procedure types - no longer needed since fields are read-only
+
+  // Load categorized sets when department and procedure type are available
   useEffect(() => {
-    // Load departments and procedure types
-    const loadData = async () => {
-      const depts = getDepartments();
-      const procedures = getAllProcedureTypes();
-      setDepartments(depts);
-      setProcedureTypes(procedures);
+    const loadCategorizedSets = async () => {
+      if (formData.department && formData.procedureType) {
+        try {
+          const categorizedSets = await getCategorizedSetsForDepartment(formData.department);
+          const procedureSets = categorizedSets[formData.procedureType];
+          
+          if (procedureSets) {
+            setSurgerySetOptions(procedureSets.surgerySets || []);
+            setImplantBoxOptions(procedureSets.implantBoxes || []);
+          } else {
+            setSurgerySetOptions([]);
+            setImplantBoxOptions([]);
+          }
+        } catch (error) {
+          console.error('Error loading categorized sets:', error);
+          setSurgerySetOptions([]);
+          setImplantBoxOptions([]);
+        }
+      }
     };
-    loadData();
-  }, []);
+    
+    loadCategorizedSets();
+  }, [formData.department, formData.procedureType]);
 
   useEffect(() => {
     if (amendmentData) {
@@ -69,14 +87,9 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     if (!formData.hospital.trim()) {
       newErrors.hospital = 'Hospital is required';
     }
-    if (!formData.department) {
-      newErrors.department = 'Department is required';
-    }
+    // Department and procedureType validation removed - these fields are read-only in amendment
     if (!formData.dateOfSurgery) {
       newErrors.dateOfSurgery = 'Surgery date is required';
-    }
-    if (!formData.procedureType) {
-      newErrors.procedureType = 'Procedure type is required';
     }
     if (!formData.procedureName.trim()) {
       newErrors.procedureName = 'Procedure name is required';
@@ -133,20 +146,18 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
               {errors.hospital && <span className="error-text">{errors.hospital}</span>}
             </div>
 
-            {/* Department */}
+            {/* Department - Read Only */}
             <div className="form-group">
-              <label className="required">Department</label>
-              <select
+              <label>Department</label>
+              <input
+                type="text"
                 value={formData.department}
-                onChange={(e) => handleInputChange('department', e.target.value)}
-                className={errors.department ? 'error' : ''}
-              >
-                <option value="">Select Department</option>
-                {departments.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))}
-              </select>
-              {errors.department && <span className="error-text">{errors.department}</span>}
+                className="readonly-field"
+                readOnly
+                disabled
+                style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+              />
+              <small className="field-note">Department cannot be changed during amendment</small>
             </div>
 
             {/* Surgery Date */}
@@ -171,20 +182,18 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
               />
             </div>
 
-            {/* Procedure Type */}
+            {/* Procedure Type - Read Only */}
             <div className="form-group">
-              <label className="required">Procedure Type</label>
-              <select
+              <label>Procedure Type</label>
+              <input
+                type="text"
                 value={formData.procedureType}
-                onChange={(e) => handleInputChange('procedureType', e.target.value)}
-                className={errors.procedureType ? 'error' : ''}
-              >
-                <option value="">Select Procedure Type</option>
-                {procedureTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-              {errors.procedureType && <span className="error-text">{errors.procedureType}</span>}
+                className="readonly-field"
+                readOnly
+                disabled
+                style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+              />
+              <small className="field-note">Procedure type cannot be changed during amendment</small>
             </div>
 
             {/* Procedure Name */}
@@ -222,6 +231,39 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
               />
             </div>
           </div>
+
+          {/* Surgery Sets and Implant Boxes */}
+          {(surgerySetOptions.length > 0 || implantBoxOptions.length > 0) && (
+            <div className="sets-section">
+              <h4>Surgery Sets & Implant Boxes</h4>
+              
+              {surgerySetOptions.length > 0 && (
+                <div className="form-group full-width">
+                  <MultiSelectDropdown
+                    id="amendment-surgery-sets"
+                    label="Surgery Set"
+                    options={surgerySetOptions}
+                    value={formData.surgerySetSelection}
+                    onChange={(values) => handleInputChange('surgerySetSelection', values)}
+                    placeholder="Select Surgery Sets..."
+                  />
+                </div>
+              )}
+
+              {implantBoxOptions.length > 0 && (
+                <div className="form-group full-width">
+                  <MultiSelectDropdown
+                    id="amendment-implant-boxes"
+                    label="Implant Box"
+                    options={implantBoxOptions}
+                    value={formData.implantBox}
+                    onChange={(values) => handleInputChange('implantBox', values)}
+                    placeholder="Select Implant Boxes..."
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Amendment Reason */}
           <div className="amendment-reason">

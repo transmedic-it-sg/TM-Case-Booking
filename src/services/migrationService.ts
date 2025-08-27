@@ -1,11 +1,12 @@
-// Migration service to replace localStorage operations with Supabase
+// Migration service to replace localStorage operations with Supabase - PRODUCTION READY
 import { 
   caseOperations, 
-  lookupOperations, 
-  auditOperations
-} from './supabaseService'
+  auditOperations,
+  lookupOperations
+} from './supabaseServiceFixed'
 import type { CaseBooking, FilterOptions } from '../types'
 import { sendStatusChangeNotification } from '../utils/emailNotificationService'
+import { dbCaseToAppCase, appCaseToDbCase } from '../utils/typeMapping'
 
 // =============================================================================
 // CASE MANAGEMENT OPERATIONS (Replacing storage.ts)
@@ -19,7 +20,13 @@ export const generateCaseReferenceNumber = async (country: string): Promise<stri
 
 export const getCases = async (filters?: FilterOptions): Promise<CaseBooking[]> => {
   try {
-    return await caseOperations.getAll(filters)
+    const result = await caseOperations.getAll(filters)
+    if (result.success && result.data) {
+      return result.data
+    } else {
+      console.error('Error fetching cases from Supabase:', result.error)
+      return []
+    }
   } catch (error) {
     console.error('Error fetching cases from Supabase:', error)
     return []
@@ -28,18 +35,24 @@ export const getCases = async (filters?: FilterOptions): Promise<CaseBooking[]> 
 
 export const saveCase = async (caseData: CaseBooking): Promise<void> => {
   try {
+    let result;
+    
     if (caseData.id && caseData.id !== 'temp-id') {
       // Update existing case
-      await caseOperations.update(caseData.id, caseData)
+      result = await caseOperations.update(caseData.id, caseData)
     } else {
       // Create new case
-      await caseOperations.create(caseData)
+      result = await caseOperations.create(caseData)
+    }
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to save case')
     }
     
     // Log the action
     await auditOperations.logAction(
-      caseData.submittedBy,
-      caseData.id ? 'update_case' : 'create_case',
+      caseData.submittedBy || 'system',
+      'case_save',
       'Case Management',
       caseData.caseReferenceNumber,
       `Case ${caseData.id ? 'updated' : 'created'}: ${caseData.caseReferenceNumber}`
@@ -58,13 +71,30 @@ export const updateCaseStatus = async (
 ): Promise<void> => {
   try {
     // Get current case data
-    const currentCase = await caseOperations.getById(caseId)
-    if (!currentCase) {
+    const caseResult = await caseOperations.getById(caseId)
+    if (!caseResult.success || !caseResult.data) {
       throw new Error('Case not found')
     }
 
+    const currentCase = caseResult.data
+
     // Update status in database
-    await caseOperations.updateStatus(caseId, status, processedBy || 'System', details)
+    const updateResult = await caseOperations.updateStatus(caseId, status, processedBy || 'System', details)
+    
+    if (!updateResult.success) {
+      throw new Error(updateResult.error || 'Failed to update case status')
+    }
+
+    // Trigger email notifications for status change
+    try {
+      const { sendStatusChangeNotification } = await import('../utils/emailNotificationService');
+      const updatedCase = { ...currentCase, status };
+      await sendStatusChangeNotification(updatedCase, status, currentCase.status, processedBy || 'System');
+      console.log(`✅ Email notifications sent for case ${caseId} status change to ${status}`);
+    } catch (emailError) {
+      // Don't fail the status update if email fails
+      console.warn('Failed to send email notification for status change:', emailError);
+    }
 
     // Handle special status-specific data updates
     if (details) {
@@ -93,18 +123,24 @@ export const updateCaseStatus = async (
 
         // Apply updates if any
         if (Object.keys(updates).length > 0) {
-          await caseOperations.update(caseId, updates)
+          const additionalUpdateResult = await caseOperations.update(caseId, updates)
+          if (!additionalUpdateResult.success) {
+            console.warn('Failed to apply additional status updates:', additionalUpdateResult.error)
+          }
         }
       } catch (error) {
         // If it's not JSON, treat as regular process details for certain statuses
         if (status === 'Order Prepared' || status === 'Order Preparation') {
-          await caseOperations.update(caseId, { processOrderDetails: details })
+          const detailsUpdateResult = await caseOperations.update(caseId, { processOrderDetails: details })
+          if (!detailsUpdateResult.success) {
+            console.warn('Failed to update process details:', detailsUpdateResult.error)
+          }
         }
       }
     }
 
     // Send email notification for status change (async, don't block the UI)
-    const statusHistory = currentCase.statusHistory || []
+    const statusHistory = (currentCase as any).statusHistory || []
     const previousStatus = statusHistory[statusHistory.length - 1]?.status || 'Unknown'
     
     try {
@@ -150,13 +186,15 @@ export const amendCase = async (
 ): Promise<void> => {
   try {
     // Get current case
-    const currentCase = await caseOperations.getById(caseId)
-    if (!currentCase) {
+    const caseResult = await caseOperations.getById(caseId)
+    if (!caseResult.success || !caseResult.data) {
       throw new Error('Case not found')
     }
+    
+    const currentCase = caseResult.data
 
     // Check if case has already been amended (Admin can bypass this restriction)
-    if (currentCase.isAmended && !isAdmin) {
+    if ((currentCase as any).isAmended && !isAdmin) {
       throw new Error('This case has already been amended and cannot be amended again.')
     }
 
@@ -166,7 +204,7 @@ export const amendCase = async (
     
     amendableFields.forEach(field => {
       if (amendments[field as keyof CaseBooking] !== undefined) {
-        const oldValue = currentCase[field as keyof CaseBooking] as string || ''
+        const oldValue = (currentCase as any)[field] as string || ''
         const newValue = amendments[field as keyof CaseBooking] as string || ''
         if (oldValue !== newValue) {
           changes.push({
@@ -179,15 +217,23 @@ export const amendCase = async (
     })
 
     // Apply amendments to the case
-    await caseOperations.update(caseId, {
+    const updateResult = await caseOperations.update(caseId, {
       ...amendments,
       amendedBy,
       amendedAt: new Date().toISOString(),
       isAmended: true
     })
+    
+    if (!updateResult.success) {
+      throw new Error(updateResult.error || 'Failed to update case with amendments')
+    }
 
     // Add amendment history
-    await caseOperations.addAmendment(caseId, amendedBy, changes)
+    const amendmentResult = await caseOperations.addAmendment(caseId, amendedBy, changes)
+    
+    if (!amendmentResult.success) {
+      console.warn('Failed to record amendment history:', amendmentResult.error)
+    }
 
     // Log the action
     await auditOperations.logAction(
@@ -247,15 +293,31 @@ export interface CategorizedSets {
 export const getCategorizedSets = async (country?: string): Promise<CategorizedSets> => {
   try {
     // Get all procedure types for the country
-    const procedureTypes = await lookupOperations.getProcedureTypes(country)
+    const procedureTypesResult = await lookupOperations.getProcedureTypes(country)
+    
+    if (!procedureTypesResult.success || !procedureTypesResult.data) {
+      console.error('Error fetching procedure types:', procedureTypesResult.error)
+      return {}
+    }
+    
+    const procedureTypes = procedureTypesResult.data
     const categorizedSets: CategorizedSets = {}
 
     // Build categorized sets by getting mappings for each procedure type
     for (const procedureType of procedureTypes) {
-      const mappings = await lookupOperations.getProcedureMappings(procedureType.name, country || 'Singapore')
-      categorizedSets[procedureType.name] = {
-        surgerySets: mappings.surgerySets,
-        implantBoxes: mappings.implantBoxes
+      const mappingsResult = await lookupOperations.getProcedureMappings(procedureType.name, country || 'Singapore')
+      
+      if (mappingsResult.success && mappingsResult.data) {
+        categorizedSets[procedureType.name] = {
+          surgerySets: mappingsResult.data.surgerySets,
+          implantBoxes: mappingsResult.data.implantBoxes
+        }
+      } else {
+        console.warn(`Failed to get mappings for ${procedureType.name}:`, mappingsResult.error)
+        categorizedSets[procedureType.name] = {
+          surgerySets: [],
+          implantBoxes: []
+        }
       }
     }
 
@@ -278,12 +340,18 @@ export const saveCategorizedSets = async (categorizedSets: CategorizedSets, coun
 
 export const getCustomProcedureTypes = async (country?: string): Promise<string[]> => {
   try {
-    const procedureTypes = await lookupOperations.getProcedureTypes(country)
-    // Filter for custom types (those not in the base set)
-    const baseProcedureTypes = ['Knee', 'Head', 'Hip', 'Hands', 'Neck', 'Spine']
-    return procedureTypes
-      .filter(pt => !baseProcedureTypes.includes(pt.name))
-      .map(pt => pt.name)
+    const result = await lookupOperations.getProcedureTypes(country)
+    
+    if (result.success && result.data) {
+      // Filter for custom types (those not in the base set)
+      const baseProcedureTypes = ['Knee', 'Head', 'Hip', 'Hands', 'Neck', 'Spine']
+      return result.data
+        .filter((pt: any) => !baseProcedureTypes.includes(pt.name))
+        .map((pt: any) => pt.name)
+    } else {
+      console.error('Error fetching custom procedure types:', result.error)
+      return []
+    }
   } catch (error) {
     console.error('Error fetching custom procedure types:', error)
     return []
@@ -297,10 +365,16 @@ export const saveCustomProcedureTypes = async (types: string[], country?: string
 
 export const getHiddenProcedureTypes = async (country?: string): Promise<string[]> => {
   try {
-    const allProcedureTypes = await lookupOperations.getProcedureTypes(country, true) // Include hidden
-    return allProcedureTypes
-      .filter(pt => pt.is_hidden)
-      .map(pt => pt.name)
+    const result = await lookupOperations.getProcedureTypes(country, true) // Include hidden
+    
+    if (result.success && result.data) {
+      return result.data
+        .filter((pt: any) => pt.is_hidden)
+        .map((pt: any) => pt.name)
+    } else {
+      console.error('Error fetching hidden procedure types:', result.error)
+      return []
+    }
   } catch (error) {
     console.error('Error fetching hidden procedure types:', error)
     return []
@@ -348,8 +422,15 @@ export const restoreProcedureType = async (typeName: string, country?: string): 
 
 export const getAllProcedureTypes = async (country?: string): Promise<string[]> => {
   try {
-    const procedureTypes = await lookupOperations.getProcedureTypes(country, false) // Exclude hidden
-    return procedureTypes.map(pt => pt.name)
+    const result = await lookupOperations.getProcedureTypes(country, false) // Exclude hidden
+    
+    if (result.success && result.data) {
+      return result.data.map((pt: any) => pt.name)
+    } else {
+      console.error('Error fetching procedure types:', result.error)
+      // Fallback to base types
+      return ['Knee', 'Head', 'Hip', 'Hands', 'Neck', 'Spine']
+    }
   } catch (error) {
     console.error('Error fetching all procedure types:', error)
     // Fallback to base types

@@ -42,7 +42,7 @@ export const getNextResponsibleRole = (status: CaseStatus): string | null => {
 
 export const getTooltipMessage = (requiredRoles: string[], action: string): string => {
   const roleNames = {
-    'admin': 'Administrator',
+    'admin': 'System Administrator',
     'operations': 'Operations',
     'operations-manager': 'Operations Manager', 
     'sales': 'Sales',

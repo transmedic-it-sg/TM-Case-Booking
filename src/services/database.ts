@@ -1,14 +1,12 @@
 // Authentication helpers from Supabase client
-import { supabase } from './supabase'
+import { supabase } from '../lib/supabase'
 // Re-export the comprehensive Supabase service
-import supabaseService from './supabaseService'
+import supabaseService, { caseOperations, userOperations, subscriptions } from './supabaseService'
 
 export * from './supabaseService'
 
 // Legacy compatibility - re-export main operations with original names
-export const caseOperations = supabaseService.caseOperations
-export const userOperations = supabaseService.userOperations
-export const subscriptions = supabaseService.subscriptions
+export { caseOperations, userOperations, subscriptions }
 
 export const auth = {
   // Sign up

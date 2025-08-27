@@ -224,7 +224,12 @@ const CaseCard: React.FC<CaseCardProps> = ({
           />
 
           {/* Attachment Manager (when needed) */}
-          {(isProcessing || isReceiving || isCompleting) && (
+          {(isProcessing || isReceiving || isCompleting || 
+           caseItem.status === 'Order Prepared' || 
+           caseItem.status === 'Order Preparation' ||
+           caseItem.status === 'Pending Delivery (Hospital)' ||
+           caseItem.status === 'Delivered (Hospital)' ||
+           caseItem.status === 'Case Completed') && (
             <AttachmentManager
               caseId={caseItem.id}
               attachments={localAttachments}

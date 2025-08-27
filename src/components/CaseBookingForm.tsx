@@ -343,14 +343,18 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       newErrors.procedureName = 'Procedure Name is required';
     }
 
-    // Only require surgery sets if options are available
-    if (surgerySetOptions.length > 0 && formData.surgerySetSelection.length === 0) {
-      newErrors.surgerySetSelection = 'Surgery Set Selection is required';
+    // Surgery sets are mandatory - require selection even if no options are available
+    if (formData.surgerySetSelection.length === 0) {
+      newErrors.surgerySetSelection = surgerySetOptions.length > 0 
+        ? 'Surgery Set Selection is required - please select at least one set'
+        : 'Surgery Set Selection is required - no sets available for this procedure/department combination';
     }
 
-    // Only require implant boxes if options are available
-    if (implantBoxOptions.length > 0 && formData.implantBox.length === 0) {
-      newErrors.implantBox = 'Implant Box selection is required';
+    // Implant boxes are mandatory - require selection even if no options are available  
+    if (formData.implantBox.length === 0) {
+      newErrors.implantBox = implantBoxOptions.length > 0
+        ? 'Implant Box selection is required - please select at least one box'
+        : 'Implant Box selection is required - no boxes available for this procedure/department combination';
     }
 
     setErrors(newErrors);
@@ -429,12 +433,20 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       }
       
       // Send enhanced email notification for new case with debugging
-      sendNewCaseNotificationEnhanced(newCase).then(emailSent => {
-        if (emailSent) {
+      console.log('🚀 Attempting to send email notification for new case:', newCase.caseReferenceNumber);
+      sendNewCaseNotificationEnhanced(newCase).then((result: any) => {
+        // Handle both boolean and object return types
+        const success = typeof result === 'boolean' ? result : result?.success;
+        const debugInfo = typeof result === 'object' ? result?.debugInfo : undefined;
+        
+        if (success) {
           console.log('✅ Enhanced email notification sent for new case:', newCase.caseReferenceNumber);
+          showSuccess('Case Submitted Successfully!', `Case ${newCase.caseReferenceNumber} has been submitted and email notifications have been sent.`);
         } else {
           console.warn('⚠️ Enhanced email notification failed for new case:', newCase.caseReferenceNumber);
           console.log('💡 Check browser console for detailed debugging information');
+          console.log('📧 Debug Info:', debugInfo || 'No debug info available');
+          showSuccess('Case Submitted Successfully!', `Case ${newCase.caseReferenceNumber} has been submitted, but email notifications may not have been sent. Check the Email Configuration.`);
         }
       }).catch(error => {
         console.error('💥 Error in enhanced email notification:', error);
@@ -582,10 +594,11 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               !formData.procedureType 
                 ? "Please select a procedure type first" 
                 : surgerySetOptions.length === 0 
-                  ? "No surgery sets configured for this procedure type" 
+                  ? "No surgery sets configured for this procedure type - Contact admin to add sets" 
                   : "Select Surgery Sets..."
             }
-            required={surgerySetOptions.length > 0}
+            required={true}
+            className={errors.surgerySetSelection ? 'error' : ''}
           />
           {errors.surgerySetSelection && <span className="error-text">{errors.surgerySetSelection}</span>}
         </div>
@@ -601,10 +614,11 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               !formData.procedureType 
                 ? "Please select a procedure type first" 
                 : implantBoxOptions.length === 0 
-                  ? "No implant boxes configured for this procedure type" 
+                  ? "No implant boxes configured for this procedure type - Contact admin to add boxes" 
                   : "Select Implant Boxes..."
             }
-            required={implantBoxOptions.length > 0}
+            required={true}
+            className={errors.implantBox ? 'error' : ''}
           />
           {errors.implantBox && <span className="error-text">{errors.implantBox}</span>}
         </div>

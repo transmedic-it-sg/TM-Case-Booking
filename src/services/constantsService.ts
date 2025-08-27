@@ -140,7 +140,7 @@ export const getDepartments = async (country?: string): Promise<string[]> => {
     const departments = await lookupOperations.getDepartments(country)
     cache.departments[cacheKey] = departments
     setCacheTimestamp(`departments_${cacheKey}`)
-    return departments.map(d => d.name)
+    return departments.map((d: any) => d.name)
   } catch (error) {
     console.error('Error fetching departments:', error)
     // Fallback to hardcoded values
@@ -163,7 +163,7 @@ export const getHospitals = async (country?: string): Promise<string[]> => {
     const hospitals = await lookupOperations.getHospitals(country)
     cache.hospitals[cacheKey] = hospitals
     setCacheTimestamp(`hospitals_${cacheKey}`)
-    return hospitals.map(h => h.name)
+    return hospitals.map((h: any) => h.name)
   } catch (error) {
     console.error('Error fetching hospitals:', error)
     // Return empty array if no hospitals found, let user input custom values
@@ -183,10 +183,10 @@ export const getProcedureTypes = async (country?: string): Promise<string[]> => 
   }
 
   try {
-    const procedureTypes = await lookupOperations.getProcedureTypes(country, false) // Exclude hidden
+    const procedureTypes = await lookupOperations.getProcedureTypes(country) // Get procedure types
     cache.procedureTypes[cacheKey] = procedureTypes
     setCacheTimestamp(`procedureTypes_${cacheKey}`)
-    return procedureTypes.map(p => p.name)
+    return procedureTypes.map((p: any) => p.name)
   } catch (error) {
     console.error('Error fetching procedure types:', error)
     // Fallback to hardcoded values
@@ -209,7 +209,7 @@ export const getSurgerySets = async (country?: string): Promise<string[]> => {
     const surgerySets = await lookupOperations.getSurgerySets(country)
     cache.surgerySets[cacheKey] = surgerySets
     setCacheTimestamp(`surgerySets_${cacheKey}`)
-    return surgerySets.map(s => s.name)
+    return surgerySets.map((s: any) => s.name)
   } catch (error) {
     console.error('Error fetching surgery sets:', error)
     // Fallback to hardcoded values
@@ -240,7 +240,7 @@ export const getImplantBoxes = async (country?: string): Promise<string[]> => {
     const implantBoxes = await lookupOperations.getImplantBoxes(country)
     cache.implantBoxes[cacheKey] = implantBoxes
     setCacheTimestamp(`implantBoxes_${cacheKey}`)
-    return implantBoxes.map(b => b.name)
+    return implantBoxes.map((b: any) => b.name)
   } catch (error) {
     console.error('Error fetching implant boxes:', error)
     // Fallback to hardcoded values
@@ -262,7 +262,7 @@ export const getImplantBoxes = async (country?: string): Promise<string[]> => {
 
 export const getProcedureMappings = async (procedureType: string, country?: string) => {
   try {
-    return await lookupOperations.getProcedureMappings(procedureType, country || 'Singapore')
+    return await lookupOperations.getProcedureMappings()
   } catch (error) {
     console.error('Error fetching procedure mappings:', error)
     return { surgerySets: [], implantBoxes: [] }
