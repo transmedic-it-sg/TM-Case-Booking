@@ -143,22 +143,40 @@ const DatabaseConnectionStatus: React.FC<DatabaseConnectionStatusProps> = ({ onF
     </div>
   ) : null;
 
-  // Connection status indicator in the header
-  const statusIndicator = (
-    <div className={`db-status-indicator ${status.fallbackMode ? 'offline' : status.isConnected ? 'online' : 'error'}`}>
-      {status.fallbackMode ? (
-        <span title="Working offline - data not syncing">📴 Offline</span>
-      ) : status.isConnected ? (
-        <span title="Connected to database">🟢 Online</span>
-      ) : (
-        <span title="Database connection error">🔴 Reconnecting...</span>
-      )}
+  // Connection status panel matching header-stats.png design
+  const statusPanel = (
+    <div 
+      className={`db-connection-panel ${status.fallbackMode ? 'offline' : status.isConnected ? 'online' : 'error'}`}
+      onClick={() => setShowModal(true)}
+      title="Click to view database connection details"
+    >
+      <div className="db-panel-indicator">
+        {status.fallbackMode ? '📴' : status.isConnected ? '🟢' : '🔴'}
+      </div>
+      <div className="db-panel-text">
+        {status.fallbackMode ? (
+          <>
+            <span className="db-status">Disconnected</span>
+            <span className="db-environment">Offline Mode</span>
+          </>
+        ) : status.isConnected ? (
+          <>
+            <span className="db-status">Connected to:</span>
+            <span className="db-environment">Production DB</span>
+          </>
+        ) : (
+          <>
+            <span className="db-status">Connecting to:</span>
+            <span className="db-environment">Production DB</span>
+          </>
+        )}
+      </div>
     </div>
   );
 
   return (
     <>
-      {statusIndicator}
+      {statusPanel}
       {retryModal}
       {fallbackWarningModal}
     </>

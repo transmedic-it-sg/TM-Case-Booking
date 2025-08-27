@@ -1,6 +1,6 @@
 # Transmedic Case Booking System
 
-## Version 1.2.8
+## Version 1.2.8 - Production Ready with Critical Bug Fixes
 
 A comprehensive React-based case booking application for medical procedures with advanced role-based access control, workflow management, and professional mobile experience.
 
@@ -13,46 +13,42 @@ A comprehensive React-based case booking application for medical procedures with
 - **Role-Based Access**: Granular permissions for different user roles
 - **Multi-Country Support**: Singapore, Malaysia, Philippines, Indonesia, Vietnam, Hong Kong, Thailand
 
-### Latest Features (v1.2.8) - Production Ready Implementation
+### Latest Features (v1.2.8) - Critical Bug Fixes & Production Enhancements
 
-#### 🚀 **COMPREHENSIVE PRODUCTION-READY FEATURES**
-- **🔧 System Versioning Fix**: Fixed system versioning to automatically follow package.json version
-- **💾 Hybrid Storage System**: Supabase-first with LocalStorage fallback after 3 failed connection attempts
-- **📊 Multi-User Optimization**: Console logging optimized for 100+ concurrent users with bandwidth efficiency
-- **🛡️ Error Tracking System**: Comprehensive error tracking with user traceability and session management
-- **⚡ Performance Validation**: Validated for 100+ concurrent users with memory and bandwidth constraints
-- **🎯 Zero Bypasses**: All legacy database/migration service issues fixed properly without shortcuts
+#### 🔧 **CRITICAL FIXES IMPLEMENTED**
+- **✅ Department Filtering Consistency**: Fixed BookingCalendar and EditSets to use the same department service as New Case Booking
+- **✅ Database Connectivity Panel**: Redesigned to match proper design with "Connected to: Production DB" clickable panel
+- **✅ Permission System Security**: Fixed Edit Countries permission to only hide countries field, not departments
+- **✅ Permission Cache Management**: Resolved caching issues causing incorrect permissions after login/refresh/logout
+- **✅ Data Cleanup Service**: New comprehensive service to handle orphaned data when departments/countries are modified
 
-#### 🛠️ **NEW PRODUCTION SERVICES**
-- **hybridStorageService.ts**: Automatic Supabase/LocalStorage switching with sync queue
-- **productionLogger.ts**: Bandwidth-optimized logging system for production multi-user environment
-- **errorTracker.ts**: Complete error tracking with user context, session management, and critical alerts
-- **supabaseServiceFixed.ts**: Production-ready database service with comprehensive error handling
-- **appVersionManager.ts**: Automatic version checking with user logout on version updates
-- **typeMapping.ts**: Proper database/application schema conversion layer
+#### 🛡️ **SECURITY & DATA INTEGRITY**
+- **Fail-Secure Permission System**: Permissions now properly deny access when cache is invalid
+- **Force Refresh on Login**: Permissions cache automatically refreshes on user login to prevent stale permissions  
+- **Cache Invalidation**: Permissions cache cleared on logout to prevent cross-user permission leakage
+- **Orphaned Data Detection**: New `dataCleanupService.ts` to find and clean orphaned cases/users when departments change
+- **Enhanced Permission Logging**: Comprehensive debugging for permission grant/deny decisions
 
-#### 🎯 **CRITICAL FIXES IMPLEMENTED**
-- **Legacy Service Issues**: Complete refactor of migration service without bypasses or shortcuts
-- **Type Safety**: Zero TypeScript compilation errors (down from 21 initial errors)
-- **Connection Resilience**: Automatic fallback and recovery mechanisms for database connectivity
-- **Memory Management**: Limited buffer sizes and automatic cleanup for multi-user scalability
-- **User Traceability**: Complete session tracking, error context, and audit logging
-- **Version Management**: Automatic logout with popup notification when app version updates
+#### 🔄 **DATA CONSISTENCY IMPROVEMENTS**
+- **Service Layer Consistency**: All components now use `getSupabaseCodeTables` for department loading
+- **Automatic Data Migration**: Cases/users with invalid departments automatically updated to valid alternatives
+- **Preview Mode**: Dry-run capability to preview data cleanup before execution  
+- **Department Validation**: Enhanced validation when departments are modified in Country-Based Code Tables
+- **User Department Cleanup**: Automatic cleanup of user department assignments when departments are removed
 
-#### 🔄 **AUTOMATIC SYSTEMS**
-- **Connection Monitoring**: Real-time Supabase health checks with 3-attempt fallback threshold
-- **Sync Queue**: Offline operations automatically sync when connection restored
-- **Version Detection**: Users automatically logged out with informative popup on version updates  
-- **Error Escalation**: Similar errors grouped and severity escalated based on frequency
-- **Session Management**: Isolated user sessions with cleanup and traceability
-- **Performance Tracking**: Automated performance monitoring with threshold alerts
+#### 🎯 **PRODUCTION READY FEATURES**
+- **Zero Build Errors**: Clean production build with no TypeScript or ESLint warnings
+- **Enhanced Error Handling**: Graceful fallbacks when departments/countries are missing from database
+- **Comprehensive Logging**: Production-ready debugging for permission and data consistency issues
+- **Database Panel Design**: Professional database connectivity indicator matching reference design
+- **Permission Matrix Integrity**: Robust permission system that prevents unauthorized access
 
-#### 📊 **SCALABILITY FEATURES**
-- **100+ Concurrent Users**: Optimized for high-concurrency production environment
-- **Bandwidth Optimization**: Batched operations, compressed logs, production-only critical logging
-- **Memory Efficiency**: Buffer limits, automatic cleanup, data size constraints
-- **Offline Capability**: Users can work offline with automatic sync when connection restored
-- **Real-time Recovery**: Automatic connection restoration and sync queue processing
+#### 🧹 **DATA CLEANUP UTILITIES**
+- **Orphaned Data Scanner**: Automatically detect cases/users referencing deleted departments
+- **Batch Cleanup Operations**: Efficiently update multiple records with invalid department references
+- **Fallback Department Assignment**: Smart assignment of valid departments when cleaning orphaned data
+- **Cleanup Reports**: Detailed reporting of cleaned cases, users, and any errors encountered
+- **Country-Specific Cleanup**: Option to clean data for specific countries or globally
 
 ## 🏗️ Architecture
 
@@ -186,7 +182,33 @@ The application is deployed on Vercel:
 
 ## 📝 Changelog
 
-### Version 1.2.7 (Latest)
+### Version 1.2.8 (Latest) - Critical Production Fixes
+#### 🔧 **CRITICAL BUG FIXES**
+- **Department Service Consistency**: Fixed BookingCalendar and EditSets department filtering to match New Case Booking implementation
+- **Database Connectivity UI**: Redesigned database status panel to match reference design with proper clickable "Connected to: Production DB" format
+- **Permission System Logic**: Fixed Edit Countries permission to only control countries field visibility, departments remain accessible
+- **Permission Caching Issues**: Resolved permission matrix not applying after login/refresh - now properly refreshes on user sessions
+- **Data Orphan Handling**: New comprehensive cleanup service for when departments are deleted/modified in Country-Based Code Tables
+
+#### 🛡️ **SECURITY ENHANCEMENTS**
+- **Fail-Secure Permissions**: Permission system now properly denies access when permissions cannot be verified from database
+- **Permission Cache Management**: Automatic cache refresh on login, cache clearing on logout to prevent stale permissions
+- **Enhanced Debugging**: Comprehensive logging for permission decisions and data consistency issues
+- **Service Layer Security**: Consistent use of authenticated services across all components
+
+#### 🔄 **DATA CONSISTENCY TOOLS**
+- **Orphaned Data Detection**: Automatically scan for cases/users referencing deleted departments
+- **Data Migration Utilities**: Clean and update orphaned records with valid department alternatives
+- **Preview & Report System**: Dry-run cleanup with detailed reports before execution
+- **Country-Specific Operations**: Targeted cleanup operations for specific countries
+
+#### ✅ **PRODUCTION QUALITY**
+- **Zero Build Warnings**: Clean TypeScript compilation and ESLint validation
+- **Enhanced Error Handling**: Graceful degradation when database references are missing
+- **Professional UI**: Database connectivity panel matches design specifications
+- **Robust Permission Matrix**: Secure permission enforcement that cannot be bypassed
+
+### Version 1.2.7
 #### 🧹 Code Quality & Performance Improvements
 - **Build System Optimization**: Switched from react-app-rewired to react-scripts for better build performance
 - **File Cleanup**: Removed unnecessary temporary SQL, JS, HTML, and MD files from root directory
@@ -345,7 +367,44 @@ See version control history for complete changelog.
 
 ---
 
-**Version**: 1.2.7  
-**Last Updated**: 2025-08-21  
-**Deployment**: Production Ready with Code Quality Improvements  
+## 🧹 Data Management
+
+### Orphaned Data Cleanup
+When departments or countries are modified in Country-Based Code Tables, the system provides comprehensive cleanup utilities:
+
+#### Using Data Cleanup Service
+```typescript
+import { DataCleanupService } from './src/utils/dataCleanupService';
+
+// Preview what would be cleaned (dry run)
+const preview = await DataCleanupService.previewCleanup('Singapore');
+console.log(preview.summary);
+
+// Run actual cleanup
+const report = await DataCleanupService.runCleanup('Singapore', 'General');
+console.log(`Cleaned ${report.cleanedCases} cases and ${report.cleanedUsers} users`);
+```
+
+#### Cleanup Features
+- **Orphaned Case Detection**: Find cases referencing deleted departments
+- **User Department Validation**: Clean invalid user department assignments  
+- **Automatic Fallback**: Assign valid departments when cleaning orphaned data
+- **Country-Specific Operations**: Clean data for specific countries or globally
+- **Preview Mode**: See what would be cleaned before executing
+- **Detailed Reporting**: Comprehensive reports of all cleanup operations
+
+#### Data Consistency Handling
+The system gracefully handles scenarios where:
+- Departments are deleted from Country-Based Code Tables
+- Countries are removed from the system
+- Procedure types are modified or removed
+- Users have invalid department assignments
+
+All components include fallback mechanisms and will not crash when referenced data is missing.
+
+---
+
+**Version**: 1.2.8  
+**Last Updated**: 2025-08-27  
+**Deployment**: Production Ready with Critical Bug Fixes & Data Consistency Tools  
 **License**: Proprietary

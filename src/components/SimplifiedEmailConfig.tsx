@@ -80,26 +80,40 @@ const SimplifiedEmailConfig: React.FC = () => {
   // Check permissions
   const canConfigureEmail = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EMAIL_CONFIG) : false;
 
-  // Load countries and departments from database
+  // Load countries from database
   useEffect(() => {
-    const loadConstants = async () => {
+    const loadCountries = async () => {
       try {
-        const [countries, departments] = await Promise.all([
-          dynamicConstantsService.getCountries(),
-          dynamicConstantsService.getDepartments()
-        ]);
+        const countries = await dynamicConstantsService.getCountries();
         setAvailableCountries(countries);
+      } catch (error) {
+        console.error('Error loading countries for email config:', error);
+        setAvailableCountries([]);
+      }
+    };
+    
+    loadCountries();
+  }, []);
+
+  // Load departments based on selected country
+  useEffect(() => {
+    const loadDepartments = async () => {
+      if (!selectedCountry) {
+        setAvailableDepartments([]);
+        return;
+      }
+      
+      try {
+        const departments = await dynamicConstantsService.getDepartments(selectedCountry);
         setAvailableDepartments(departments);
       } catch (error) {
-        console.error('Error loading constants for email config:', error);
-        // Fallback to empty arrays, services have their own fallbacks
-        setAvailableCountries([]);
+        console.error('Error loading departments for email config:', error);
         setAvailableDepartments([]);
       }
     };
     
-    loadConstants();
-  }, []);
+    loadDepartments();
+  }, [selectedCountry]);
 
   // Check if user can switch countries (admin only)
   const canSwitchCountries = currentUser?.role === 'admin';

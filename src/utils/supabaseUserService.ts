@@ -29,8 +29,7 @@ export const getAllSupabaseUsers = async (): Promise<User[]> => {
         departments: profile.departments || [],
         countries: profile.countries || [],
         selectedCountry: profile.selected_country,
-        enabled: profile.enabled,
-        email: profile.email || ''
+        enabled: profile.enabled
       })) || [];
     },
     {
@@ -69,8 +68,7 @@ export const getUserById = async (userId: string): Promise<User | null> => {
           departments: data.departments || [],
           countries: data.countries || [],
           selectedCountry: data.selected_country,
-          enabled: data.enabled,
-          email: data.email || ''
+          enabled: data.enabled
         };
       }
 
@@ -104,8 +102,7 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
           departments: userData.departments,
           countries: userData.countries,
           selected_country: userData.selectedCountry,
-          enabled: userData.enabled,
-          email: userData.email
+          enabled: userData.enabled
         }])
         .select()
         .single();
@@ -121,8 +118,7 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
         departments: data.departments || [],
         countries: data.countries || [],
         selectedCountry: data.selected_country,
-        enabled: data.enabled,
-        email: data.email || ''
+        enabled: data.enabled
       };
     },
     {
@@ -157,7 +153,6 @@ export const updateSupabaseUser = async (userId: string, userData: Partial<User>
       if (userData.countries) updateData.countries = userData.countries;
       if (userData.selectedCountry) updateData.selected_country = userData.selectedCountry;
       if (userData.enabled !== undefined) updateData.enabled = userData.enabled;
-      if (userData.email) updateData.email = userData.email;
 
       updateData.updated_at = new Date().toISOString();
 

@@ -30,6 +30,7 @@ export interface Database {
         Row: {
           id: string
           username: string | null
+          password_hash: string | null
           name: string
           role: 'admin' | 'operations' | 'operations-manager' | 'sales' | 'sales-manager' | 'driver' | 'it'
           departments: string[]
@@ -42,6 +43,7 @@ export interface Database {
         Insert: {
           id: string
           username: string
+          password_hash?: string
           name: string
           role?: 'admin' | 'operations' | 'operations-manager' | 'sales' | 'sales-manager' | 'driver' | 'it'
           departments?: string[]
@@ -51,6 +53,7 @@ export interface Database {
         }
         Update: {
           username?: string
+          password_hash?: string
           name?: string
           role?: 'admin' | 'operations' | 'operations-manager' | 'sales' | 'sales-manager' | 'driver' | 'it'
           departments?: string[]
@@ -225,6 +228,213 @@ export interface Database {
           code?: string
           display_name?: string
           is_active?: boolean
+        }
+      }
+      departments: {
+        Row: {
+          id: string
+          name: string
+          country: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          name: string
+          country: string
+          is_active?: boolean
+        }
+        Update: {
+          name?: string
+          country?: string
+          is_active?: boolean
+        }
+      }
+      surgery_sets: {
+        Row: {
+          id: string
+          name: string
+          country: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          name: string
+          country?: string | null
+          is_active?: boolean
+        }
+        Update: {
+          name?: string
+          country?: string | null
+          is_active?: boolean
+        }
+      }
+      implant_boxes: {
+        Row: {
+          id: string
+          name: string
+          country: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          name: string
+          country?: string | null
+          is_active?: boolean
+        }
+        Update: {
+          name?: string
+          country?: string | null
+          is_active?: boolean
+        }
+      }
+      system_settings: {
+        Row: {
+          id: string
+          key: string
+          value: any
+          description: string | null
+          updated_by: string
+          updated_at: string
+          created_at: string
+        }
+        Insert: {
+          key: string
+          value: any
+          description?: string | null
+          updated_by: string
+        }
+        Update: {
+          key?: string
+          value?: any
+          description?: string | null
+          updated_by?: string
+        }
+      }
+      audit_logs: {
+        Row: {
+          id: string
+          user_id: string
+          action: string
+          table_name: string | null
+          record_id: string | null
+          old_data: any | null
+          new_data: any | null
+          ip_address: string | null
+          user_agent: string | null
+          timestamp: string
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          action: string
+          table_name?: string | null
+          record_id?: string | null
+          old_data?: any | null
+          new_data?: any | null
+          ip_address?: string | null
+          user_agent?: string | null
+          timestamp?: string
+        }
+        Update: {
+          user_id?: string
+          action?: string
+          table_name?: string | null
+          record_id?: string | null
+          old_data?: any | null
+          new_data?: any | null
+          ip_address?: string | null
+          user_agent?: string | null
+          timestamp?: string
+        }
+      }
+      permissions: {
+        Row: {
+          id: string
+          role: string
+          action: string
+          resource: string
+          allowed: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          role: string
+          action: string
+          resource: string
+          allowed?: boolean
+        }
+        Update: {
+          role?: string
+          action?: string
+          resource?: string
+          allowed?: boolean
+        }
+      }
+      department_procedure_types: {
+        Row: {
+          id: string
+          department_id: string
+          procedure_type: string
+          country: string
+          created_at: string
+        }
+        Insert: {
+          department_id: string
+          procedure_type: string
+          country: string
+        }
+        Update: {
+          department_id?: string
+          procedure_type?: string
+          country?: string
+        }
+      }
+      department_categorized_sets: {
+        Row: {
+          id: string
+          department_id: string
+          procedure_type: string
+          surgery_set_id: string | null
+          implant_box_id: string | null
+          country: string
+          created_at: string
+        }
+        Insert: {
+          department_id: string
+          procedure_type: string
+          surgery_set_id?: string | null
+          implant_box_id?: string | null
+          country: string
+        }
+        Update: {
+          department_id?: string
+          procedure_type?: string
+          surgery_set_id?: string | null
+          implant_box_id?: string | null
+          country?: string
+        }
+      }
+      cache_versions: {
+        Row: {
+          id: string
+          cache_type: string
+          version: string
+          country: string | null
+          updated_at: string
+          created_at: string
+        }
+        Insert: {
+          cache_type: string
+          version: string
+          country?: string | null
+        }
+        Update: {
+          cache_type?: string
+          version?: string
+          country?: string | null
         }
       }
     }

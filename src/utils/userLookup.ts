@@ -14,15 +14,19 @@ export const getCachedUsers = async (): Promise<User[]> => {
   const now = Date.now();
   
   if (usersCache && (now - cacheTimestamp < CACHE_DURATION)) {
+    console.log('📋 Using cached users (', usersCache.length, 'users )');
     return usersCache;
   }
   
+  console.log('🔄 Loading users from auth service...');
   try {
     usersCache = await getUsers();
     cacheTimestamp = now;
+    console.log('✅ Users loaded successfully:', usersCache.length, 'users');
+    console.log('👥 User IDs and names:', usersCache.map(u => ({ id: u.id, name: u.name })));
     return usersCache;
   } catch (error) {
-    console.error('Error loading users for lookup:', error);
+    console.error('❌ Error loading users for lookup:', error);
     return usersCache || [];
   }
 };
@@ -42,33 +46,61 @@ export const getUserNameById = async (userId: string): Promise<string> => {
  * Convert multiple user IDs to names
  */
 export const getUserNamesByIds = async (userIds: string[]): Promise<Record<string, string>> => {
+  console.log('🔍 getUserNamesByIds called with:', userIds);
+  
   // First try the cached users approach
   const users = await getCachedUsers();
+  console.log('👥 Cached users loaded:', users.length, 'users');
+  
   const result: Record<string, string> = {};
   
   userIds.forEach(userId => {
     const user = users.find(u => u.id === userId);
     result[userId] = user ? user.name : userId;
+    
+    if (!user && userId.includes('-')) {
+      console.log(`⚠️ User not found in cache: ${userId}`);
+    }
   });
   
   // For any UUIDs that weren't found, try direct Supabase lookup
   const missingIds = userIds.filter(id => result[id] === id && id.includes('-'));
   if (missingIds.length > 0) {
+    console.log('🔍 Attempting direct Supabase lookup for missing UUIDs:', missingIds);
+    
     try {
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('id, name')
         .in('id', missingIds);
       
-      if (!error && profiles) {
-        profiles.forEach(profile => {
-          result[profile.id] = profile.name;
-        });
+      if (error) {
+        console.error('❌ Supabase lookup error:', error);
+      } else {
+        console.log('📋 Direct Supabase lookup results:', profiles);
+        if (profiles) {
+          profiles.forEach(profile => {
+            result[profile.id] = profile.name;
+            console.log(`✅ Mapped ${profile.id} → ${profile.name}`);
+          });
+        }
       }
     } catch (error) {
-      console.error('Error in direct Supabase user lookup:', error);
+      console.error('💥 Error in direct Supabase user lookup:', error);
     }
   }
+  
+  // Final fallback: Create user-friendly names for any remaining UUIDs
+  Object.keys(result).forEach(userId => {
+    if (result[userId] === userId && userId.includes('-')) {
+      // Create a short readable identifier from UUID
+      const shortId = userId.substring(0, 8);
+      result[userId] = `User ${shortId}`;
+      console.log(`🔄 Created fallback name for ${userId} → ${result[userId]}`);
+    }
+  });
+  
+  console.log('📤 Final user name mappings:', result);
   return result;
 };
 

@@ -51,6 +51,53 @@ export const getEmailConfig = (country: string) => {
   }
 };
 
+// Default notification matrix used when none is configured
+const getDefaultNotificationMatrix = (country: string): EmailNotificationMatrix => {
+  return {
+    country,
+    rules: [
+      {
+        status: 'Case Booked',
+        enabled: true,
+        recipients: {
+          roles: ['operations', 'operations-manager'],
+          specificEmails: [],
+          includeSubmitter: false,
+          departmentFilter: [],
+          requireSameDepartment: true,
+          adminOverride: true,
+          adminGlobalAccess: true
+        },
+        template: {
+          subject: 'New Case Booked: {{caseReferenceNumber}} - {{hospital}}',
+          body: `Dear Team,
+
+A new case has been booked and requires your attention.
+
+Case Details:
+• Case Reference: {{caseReferenceNumber}}
+• Hospital: {{hospital}}
+• Department: {{department}}
+• Procedure Type: {{procedureType}}
+• Surgery Date: {{surgeryDate}}
+• Surgery Time: {{surgeryTime}}
+• Surgeon: {{surgeon}}
+
+Surgery Sets: {{surgerySets}}
+Implant Boxes: {{implantBoxes}}
+
+Special Instructions: {{specialInstructions}}
+
+Please process this case according to your department's procedures.
+
+Best regards,
+TM Case Booking System`
+        }
+      }
+    ]
+  };
+};
+
 // Get notification matrix for a country
 export const getNotificationMatrix = (country: string): EmailNotificationMatrix | null => {
   console.log(`🔍 getNotificationMatrix called for country: "${country}"`);
@@ -58,19 +105,26 @@ export const getNotificationMatrix = (country: string): EmailNotificationMatrix 
   console.log(`📋 Raw localStorage data:`, stored ? 'Found' : 'Not found');
   
   if (!stored) {
-    console.warn(`❌ No stored notification matrix found in localStorage`);
-    return null;
+    console.warn(`❌ No stored notification matrix found in localStorage, using default matrix`);
+    return getDefaultNotificationMatrix(country);
   }
   
   try {
     const matrixConfigs = JSON.parse(stored);
     console.log(`📊 Available countries in matrix:`, Object.keys(matrixConfigs));
-    const result = matrixConfigs[country] || null;
+    const result = matrixConfigs[country];
+    
+    if (!result) {
+      console.warn(`❌ No matrix found for "${country}", using default matrix`);
+      return getDefaultNotificationMatrix(country);
+    }
+    
     console.log(`🎯 Matrix for "${country}":`, result ? `Found with ${result.rules?.length} rules` : 'Not found');
     return result;
   } catch (error) {
     console.error('Failed to parse notification matrix configs:', error);
-    return null;
+    console.warn(`Using default notification matrix for "${country}" due to parse error`);
+    return getDefaultNotificationMatrix(country);
   }
 };
 

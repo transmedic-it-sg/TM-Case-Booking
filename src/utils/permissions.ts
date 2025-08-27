@@ -42,55 +42,76 @@ export const saveRuntimePermissions = async (permissions: Permission[]): Promise
 
 // Check if a role has permission for a specific action
 export const hasPermission = (roleId: string, actionId: string): boolean => {
-  // Admin has all permissions
+  // Admin has all permissions (hardcoded as root user)
   if (roleId === 'admin') {
     return true;
   }
   
-  // Use cached permissions if available and not expired
-  let permissionsToCheck = defaultPermissions;
-  if (permissionsCache && (Date.now() - permissionsCacheTime < CACHE_DURATION)) {
-    permissionsToCheck = permissionsCache;
-    // console.log(`Using cached permissions for ${roleId} - ${actionId}`);
-  } else {
-    // console.log(`Using default permissions for ${roleId} - ${actionId} (cache expired or not available)`);
-  }
-  
-  const permission = permissionsToCheck.find(p => p.roleId === roleId && p.actionId === actionId);
-  let result = permission?.allowed || false;
-  
-  // If permission not found in dynamic permissions, check default permissions as fallback
-  if (!permission && permissionsToCheck !== defaultPermissions) {
-    const fallbackPermission = defaultPermissions.find(p => p.roleId === roleId && p.actionId === actionId);
-    result = fallbackPermission?.allowed || false;
-  }
-  
-  // Debug logging for IT role permissions
-  if (roleId === 'it' && ['create-case', 'code-table-setup', 'view-users', 'email-config', 'audit-logs', 'edit-countries'].includes(actionId)) {
-    console.log(`Permission check for IT ${actionId}: ${result}`, {
+  // For all other roles, use database permissions only - FAIL SECURE
+  // If permissions are not loaded or cache is expired, DENY access
+  if (!permissionsCache || (Date.now() - permissionsCacheTime >= CACHE_DURATION)) {
+    console.warn(`🔒 Permission DENIED for ${roleId} - ${actionId}: No valid permissions cache available`);
+    console.log('🚨 SECURITY: Failing secure - permissions must be explicitly loaded from database');
+    
+    // Enhanced debugging for permission issues
+    console.log('🔍 Permission system state:', {
       roleId,
       actionId,
-      permission,
-      usingCache: permissionsCache && (Date.now() - permissionsCacheTime < CACHE_DURATION),
-      cacheTime: permissionsCacheTime,
-      now: Date.now(),
-      cacheAge: Date.now() - permissionsCacheTime,
-      cacheDuration: CACHE_DURATION
+      hasCachedPermissions: !!permissionsCache,
+      cacheAge: permissionsCache ? Date.now() - permissionsCacheTime : 'N/A',
+      cacheDuration: CACHE_DURATION,
+      cacheExpired: permissionsCache ? (Date.now() - permissionsCacheTime >= CACHE_DURATION) : 'N/A'
     });
+    
+    // FAIL SECURE: Deny access when permissions cannot be verified
+    return false;
+  }
+  
+  // Use cached database permissions for authorization
+  const permission = permissionsCache.find(p => p.roleId === roleId && p.actionId === actionId);
+  const result = permission?.allowed || false;
+  
+  // Enhanced debug logging for troubleshooting
+  if (!result && roleId !== 'admin') {
+    console.log(`🚫 Permission DENIED for ${roleId} - ${actionId}:`, {
+      roleId,
+      actionId,
+      permissionFound: !!permission,
+      permissionValue: permission?.allowed,
+      totalPermissionsInCache: permissionsCache.length,
+      permissionsForRole: permissionsCache.filter(p => p.roleId === roleId).length,
+      cacheAge: Date.now() - permissionsCacheTime
+    });
+  } else if (result && roleId !== 'admin') {
+    console.log(`✅ Permission GRANTED for ${roleId} - ${actionId}`);
   }
   
   return result;
 };
 
-// Initialize permissions cache
-export const initializePermissions = async (): Promise<void> => {
+// Initialize permissions cache - force refresh on app start for browser refresh scenarios
+export const initializePermissions = async (forceRefresh: boolean = false): Promise<void> => {
+  console.log('🚀 Initializing permissions system...', forceRefresh ? '(force refresh)' : '');
   try {
-    // Initializing permissions system...
-    await getRuntimePermissions();
-    // Permissions loaded successfully
+    // Clear cache if force refresh is requested (e.g., on login or app startup)
+    if (forceRefresh) {
+      console.log('🔄 Force refreshing permissions cache');
+      clearPermissionsCache();
+    }
+    
+    const permissions = await getRuntimePermissions();
+    console.log('✅ Permissions system initialized successfully');
+    console.log(`📊 Loaded ${permissions.length} permissions from database`);
+    console.log('🔍 Permission breakdown by role:', 
+      permissions.reduce((acc, p) => {
+        acc[p.roleId] = (acc[p.roleId] || 0) + (p.allowed ? 1 : 0);
+        return acc;
+      }, {} as Record<string, number>)
+    );
   } catch (error) {
-    console.error('Error initializing permissions, using defaults:', error);
-    // Ensure we use default permissions if initialization fails
+    console.error('❌ Error initializing permissions system:', error);
+    console.error('🚨 SECURITY WARNING: Permission system failed to initialize - access will be denied to all non-admin users');
+    // Clear cache to ensure fail-secure behavior
     permissionsCache = null;
     permissionsCacheTime = 0;
   }

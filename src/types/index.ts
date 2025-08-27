@@ -112,8 +112,8 @@ export interface User {
   name: string;
   departments: string[];
   countries: string[];
-  selectedCountry?: string;
   email?: string;
+  selectedCountry?: string;
   enabled?: boolean;
   passwordResetRequired?: boolean;
 }

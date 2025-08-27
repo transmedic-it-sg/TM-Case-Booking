@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PROCEDURE_TYPES, COUNTRIES } from '../../types';
-import { getCountries, getDepartments } from '../../utils/codeTable';
+import dynamicConstantsService from '../../services/dynamicConstantsService';
 import { useToast } from '../ToastContainer';
 import { useSound } from '../../contexts/SoundContext';
 import { getCurrentUser } from '../../utils/auth';
@@ -76,28 +76,80 @@ const EditSets: React.FC<EditSetsProps> = () => {
   };
   
   const activeCountry = getCountryCode(activeCountryName || 'Singapore');
+  
+  console.log(`EditSets - Country Info:`, {
+    activeCountryName,
+    activeCountry,
+    isAdmin,
+    selectedCountry,
+    userCountry
+  });
 
-  // Load countries from Global-Table and initialize selected country for Admin users
+  // Load countries from dynamic constants service and initialize selected country for Admin users
   useEffect(() => {
-    const globalCountries = getCountries();
-    const countries = globalCountries.length > 0 ? globalCountries : [...COUNTRIES];
-    setAvailableCountries(countries);
+    const loadCountries = async () => {
+      try {
+        const countries = await dynamicConstantsService.getCountries();
+        const availableCountries = countries.length > 0 ? countries : [...COUNTRIES];
+        setAvailableCountries(availableCountries);
+        
+        if (isAdmin && !selectedCountry) {
+          setSelectedCountry(userCountry || availableCountries[0]);
+        }
+      } catch (error) {
+        console.error('Error loading countries:', error);
+        setAvailableCountries([...COUNTRIES]);
+        if (isAdmin && !selectedCountry) {
+          setSelectedCountry(userCountry || COUNTRIES[0]);
+        }
+      }
+    };
     
-    if (isAdmin && !selectedCountry) {
-      setSelectedCountry(userCountry || countries[0]);
-    }
+    loadCountries();
   }, [isAdmin, selectedCountry, userCountry]);
 
   // Load departments when country changes
   useEffect(() => {
-    const departments = getDepartments();
-    setAvailableDepartments(departments);
+    const loadDepartments = async () => {
+      if (!activeCountryName) {
+        console.log('No active country name, skipping department loading');
+        return;
+      }
+
+      try {
+        console.log(`Loading departments for country: ${activeCountryName}`);
+        
+        // Use the same service as CaseBookingForm for consistency
+        const { getSupabaseCodeTables } = await import('../../utils/supabaseCodeTableService');
+        const codeTables = await getSupabaseCodeTables(activeCountryName);
+        const departmentTable = codeTables.find(table => table.name === 'departments');
+        const departments = departmentTable?.items || [];
+        
+        console.log(`Loaded ${departments.length} departments from Supabase code tables:`, departments);
+        
+        setAvailableDepartments(departments);
+        
+        // Set default department if none selected or current selection is invalid
+        if (!selectedDepartment || !departments.includes(selectedDepartment)) {
+          if (departments.length > 0) {
+            console.log(`Setting default department to: ${departments[0]}`);
+            setSelectedDepartment(departments[0]);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading departments for EditSets:', error);
+        // Use fallback departments
+        const fallbackDepartments = ['Cardiology', 'Orthopedics', 'Neurosurgery', 'Oncology'];
+        setAvailableDepartments(fallbackDepartments);
+        if (!selectedDepartment) {
+          setSelectedDepartment(fallbackDepartments[0]);
+        }
+      }
+    };
     
-    // Set default department if none selected
-    if (!selectedDepartment && departments.length > 0) {
-      setSelectedDepartment(departments[0]);
-    }
-  }, [selectedCountry, selectedDepartment]);
+    loadDepartments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCountryName, isAdmin, userCountry]); // selectedDepartment intentionally excluded to prevent infinite loop
 
   // Load procedure types for the selected department
   useEffect(() => {
@@ -107,19 +159,19 @@ const EditSets: React.FC<EditSetsProps> = () => {
         
         if (selectedDepartment) {
           departmentTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountry);
-          console.log('🔍 Loaded department procedure types for', selectedDepartment, ':', departmentTypes);
+          // console.log('🔍 Loaded department procedure types for', selectedDepartment, ':', departmentTypes);
           
           // If no department-specific types found, don't fall back to global types
           // This prevents contamination with default procedure types
           if (departmentTypes.length === 0) {
-            console.warn('⚠️ No procedure types found for department:', selectedDepartment);
+            // console.warn('⚠️ No procedure types found for department:', selectedDepartment);
             // Keep existing allProcedureTypes instead of falling back
             return;
           }
         } else {
           // Only use global procedure types when no department is selected
           departmentTypes = getAllProcedureTypes(activeCountry);
-          console.log('🔍 Loaded global procedure types:', departmentTypes);
+          // console.log('🔍 Loaded global procedure types:', departmentTypes);
         }
         
         setAllProcedureTypes(departmentTypes);
@@ -179,7 +231,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
   // Ensure selectedProcedureType exists in categorizedSets
   useEffect(() => {
     if (selectedProcedureType && !categorizedSets[selectedProcedureType]) {
-      console.log('🔄 Adding missing procedure type to categorized sets:', selectedProcedureType);
+      // console.log('🔄 Adding missing procedure type to categorized sets:', selectedProcedureType);
       setCategorizedSets(prev => ({
         ...prev,
         [selectedProcedureType]: {
@@ -200,13 +252,13 @@ const EditSets: React.FC<EditSetsProps> = () => {
             const procedureTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountry);
             if (procedureTypes.length > 0) {
               await saveCategorizedSetsForDepartment(selectedDepartment, categorizedSets, activeCountry);
-              console.log(`Categorized sets saved successfully for department: ${selectedDepartment}`);
+              // console.log(`Categorized sets saved successfully for department: ${selectedDepartment}`);
             } else {
               console.log(`Skipping save for department ${selectedDepartment} - no procedure types found`);
             }
           } else {
             await saveCategorizedSets(categorizedSets, activeCountry);
-            console.log('Categorized sets saved successfully to global storage');
+            // console.log('Categorized sets saved successfully to global storage');
           }
         } catch (error) {
           console.warn('Error saving categorized sets (will retry later):', error);

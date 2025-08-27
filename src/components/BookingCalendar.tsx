@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
-import correctDatabaseService from '../services/correctDatabaseService';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getCases } from '../utils/storage';
@@ -53,29 +52,37 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
       setSelectedCountry(defaultCountry);
     }
     
-    // Get departments for the active country from Code Table Setup
+    // Get departments for the active country using the same service as New Case Booking
     const country = isAdmin && selectedCountry ? selectedCountry : (user?.selectedCountry || user?.countries?.[0]);
     if (country) {
-      // Load country-specific departments from corrected database service
-      correctDatabaseService.getDepartments(country).then(depts => {
-        // Convert department data to strings
-        const countrySpecificDepts = depts.map(dept => typeof dept === 'string' ? dept : dept.display_name || dept.name || String(dept));
-        
-        // Filter by user's assigned departments if not admin
-        let availableDepartments = countrySpecificDepts;
-        if (user?.role !== 'admin' && user?.role !== 'it') {
-          const userDepartments = user?.departments || [];
-          availableDepartments = countrySpecificDepts.filter(dept => userDepartments.includes(dept));
+      // Use the same service as CaseBookingForm for consistency
+      const loadDepartments = async () => {
+        try {
+          const { getSupabaseCodeTables } = await import('../utils/supabaseCodeTableService');
+          const codeTables = await getSupabaseCodeTables(country);
+          const departmentTable = codeTables.find(table => table.name === 'departments');
+          const countrySpecificDepts = departmentTable?.items || [];
+          
+          // Filter by user's assigned departments if not admin
+          let availableDepartments = countrySpecificDepts;
+          if (user?.role !== 'admin' && user?.role !== 'it') {
+            const userDepartments = user?.departments || [];
+            availableDepartments = countrySpecificDepts.filter(dept => userDepartments.includes(dept));
+          }
+          
+          setDepartments(availableDepartments.sort());
+          if (availableDepartments.length > 0) {
+            setSelectedDepartment(availableDepartments[0]);
+          }
+        } catch (error) {
+          console.error('Error loading departments from Supabase code tables:', error);
+          // Use fallback departments
+          setDepartments(['Cardiology', 'Orthopedics', 'Neurosurgery', 'Oncology'].sort());
+          setSelectedDepartment('Cardiology');
         }
-        
-        setDepartments(availableDepartments.sort());
-        if (availableDepartments.length > 0) {
-          setSelectedDepartment(availableDepartments[0]);
-        }
-      }).catch(error => {
-        console.error('Error loading departments:', error);
-        setDepartments([]);
-      });
+      };
+      
+      loadDepartments();
     } else {
       // Use default departments as fallback
       const defaultDepartments = ['Cardiology', 'Orthopedics', 'Neurosurgery', 'Oncology', 'Emergency', 'Radiology', 'Anesthesiology', 'Gastroenterology'];

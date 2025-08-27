@@ -967,8 +967,8 @@ const UserManagement: React.FC = () => {
                     </small>
                   </div>
 
-                {/* Only show departments field for non-admin users AND when current user has edit-countries permission */}
-                {newUser.role !== 'admin' && canEditCountries && (
+                {/* Show departments field for non-admin users (edit-countries permission only affects countries field) */}
+                {newUser.role !== 'admin' && (
                   <div className="form-group">
                     <label>Departments</label>
                     <p className="form-helper-text departments-hint">
@@ -986,15 +986,15 @@ const UserManagement: React.FC = () => {
                   </div>
                 )}
                 
-                {/* Show message when user cannot edit countries/departments */}
+                {/* Show message when user cannot edit countries (departments are still editable) */}
                 {newUser.role !== 'admin' && !canEditCountries && (
                   <div className="form-group">
                     <div className="permission-warning">
                       <div className="warning-icon">⚠️</div>
                       <div className="warning-content">
                         <h4>Limited Access</h4>
-                        <p>You don't have permission to assign countries and departments to users.</p>
-                        <p>Contact an administrator to modify user country and department assignments.</p>
+                        <p>You don't have permission to assign countries to users.</p>
+                        <p>Contact an administrator to modify user country assignments.</p>
                       </div>
                     </div>
                   </div>

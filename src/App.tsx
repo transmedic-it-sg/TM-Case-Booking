@@ -31,7 +31,7 @@ import { getSystemConfig } from './utils/systemSettingsService';
 import { getCases } from './utils/storage';
 import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
-import { getAppVersion } from './utils/version';
+// Removed unused import: getAppVersion
 import { initializeVersionManager, handleVersionUpdate } from './utils/appVersionManager';
 import VersionUpdatePopup from './components/VersionUpdatePopup';
 import StatusLegend from './components/StatusLegend';
@@ -39,6 +39,7 @@ import MobileNavigation from './components/MobileNavigation';
 import MobileHeader from './components/MobileHeader';
 import CacheVersionMismatchPopup from './components/CacheVersionMismatchPopup';
 import MaintenanceMode from './components/MaintenanceMode';
+import DatabaseConnectionStatus from './components/DatabaseConnectionStatus';
 // import { SystemHealthMonitor } from './utils/systemHealthMonitor'; // Temporarily disabled
 // import { DataValidationService } from './utils/dataValidationService'; // Unused
 import './assets/components/App.css';
@@ -181,7 +182,8 @@ const AppContent: React.FC = () => {
     const initialize = async () => {
       try {
         initializeCodeTables();
-        await initializePermissions();
+        // Force refresh permissions on app startup to handle browser refresh scenarios
+        await initializePermissions(true);
         
         const currentUser = getCurrentUser();
         if (currentUser) {
@@ -234,10 +236,21 @@ const AppContent: React.FC = () => {
     return <SSOCallback />;
   }
 
-  const handleLogin = (loggedInUser: User) => {
+  const handleLogin = async (loggedInUser: User) => {
     setUser(loggedInUser);
     setShowWelcomePopup(true);
     setShowMobileEntry(false);
+    
+    // Refresh permissions cache for the new user to ensure correct permissions
+    console.log('🔄 Refreshing permissions cache for new user login:', loggedInUser.name);
+    try {
+      // Force refresh permissions on login to ensure fresh permissions
+      await initializePermissions(true);
+      console.log('✅ Permissions refreshed successfully for user login');
+    } catch (error) {
+      console.error('❌ Failed to refresh permissions on user login:', error);
+    }
+    
     playSound.success();
     showSuccess('Welcome back!', `You're now logged in as ${loggedInUser.name}`);
     addNotification({
@@ -263,6 +276,12 @@ const AppContent: React.FC = () => {
     }
     
     await logout();
+    
+    // Clear permissions cache on logout to prevent stale permissions for next user
+    console.log('🗑️ Clearing permissions cache on user logout');
+    const { clearPermissionsCache } = await import('./utils/permissions');
+    clearPermissionsCache();
+    
     setUser(null);
     setActivePage('booking');
     setProcessingCase(null);
@@ -385,6 +404,12 @@ const AppContent: React.FC = () => {
     }
     
     await logout();
+    
+    // Clear permissions cache on maintenance mode logout
+    console.log('🗑️ Clearing permissions cache on maintenance mode logout');
+    const { clearPermissionsCache } = await import('./utils/permissions');
+    clearPermissionsCache();
+    
     setUser(null);
     setActivePage('booking');
     setProcessingCase(null);
@@ -423,6 +448,7 @@ const AppContent: React.FC = () => {
         <div className="header-content">
           <div className="header-left">
             <h1>
+              <DatabaseConnectionStatus />
               Transmedic Case Booking
             </h1>
             <div className="header-info">

@@ -75,7 +75,7 @@ export interface CategorizedSetsResult {
  */
 export const getDepartments = async (country?: string): Promise<Department[]> => {
   try {
-    console.log('🔍 Getting departments from Supabase:', { country });
+    // console.log('🔍 Getting departments from Supabase:', { country });
     
     let query = supabase
       .from('departments')
@@ -96,7 +96,7 @@ export const getDepartments = async (country?: string): Promise<Department[]> =>
       throw error;
     }
 
-    console.log('✅ Found departments in Supabase:', data?.length || 0);
+    // console.log('✅ Found departments in Supabase:', data?.length || 0);
     return data || [];
   } catch (error) {
     console.error('Error in getDepartments:', error);
@@ -143,7 +143,7 @@ export const addDepartment = async (name: string, country: string, description?:
 export const getProcedureTypesForDepartment = async (departmentName: string, country: string): Promise<string[]> => {
   try {
     const countryVariations = getCountryVariations(country);
-    console.log('🔍 Getting procedure types for:', { departmentName, country, countryVariations });
+    // console.log('🔍 Getting procedure types for:', { departmentName, country, countryVariations });
     
     // First, get the department ID - use flexible country matching
     const { data: departments } = await supabase
