@@ -51,7 +51,7 @@ export class DataCleanupService {
       
       // Find orphaned cases
       let casesQuery = supabase
-        .from('cases')
+        .from('case_bookings')
         .select('id, case_reference_number, department, country, created_at');
       
       if (country) {
@@ -124,7 +124,7 @@ export class DataCleanupService {
     for (const caseItem of orphanedCases) {
       try {
         const { error } = await supabase
-          .from('cases')
+          .from('case_bookings')
           .update({ 
             department: fallbackDepartment,
             updated_at: new Date().toISOString()

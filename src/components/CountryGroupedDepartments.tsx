@@ -24,33 +24,33 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isComponentMounted = true;
+    
     const loadDepartments = async () => {
+      if (!isComponentMounted) return;
+      
       setIsLoading(true);
       try {
         // Load departments from Supabase for consistency with Code Table Setup
         const departmentsByCountryFromDB: Record<string, string[]> = {};
         
-        // Import the Supabase service
-        const { getSupabaseCodeTables } = await import('../utils/supabaseCodeTableService');
+        // Import the service once to avoid repeated imports
+        const { getDepartmentsForCountry } = await import('../utils/supabaseCodeTableService');
         
-        await Promise.all(
-          userCountries.map(async (country) => {
-            try {
-              const codeTables = await getSupabaseCodeTables(country);
-              const departmentsTable = codeTables.find(table => table.id === 'departments');
-              
-              if (departmentsTable && departmentsTable.items) {
-                departmentsByCountryFromDB[country] = departmentsTable.items;
-              } else {
-                // Fallback to empty array if no departments found
-                departmentsByCountryFromDB[country] = [];
-              }
-            } catch (error) {
-              console.error(`Error loading departments for ${country}:`, error);
-              departmentsByCountryFromDB[country] = [];
-            }
-          })
-        );
+        // Process countries sequentially to avoid overwhelming the API
+        for (const country of userCountries) {
+          if (!isComponentMounted) return;
+          
+          try {
+            const departments = await getDepartmentsForCountry(country);
+            departmentsByCountryFromDB[country] = departments || [];
+          } catch (error) {
+            console.error(`Error loading departments for ${country}:`, error);
+            departmentsByCountryFromDB[country] = [];
+          }
+        }
+        
+        if (!isComponentMounted) return;
         
         setDepartmentsByCountry(departmentsByCountryFromDB);
         
@@ -68,7 +68,9 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
         setExpandedCountries(countriesWithSelections);
         
       } finally {
-        setIsLoading(false);
+        if (isComponentMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -80,6 +82,10 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
       setExpandedCountries(new Set());
       setIsLoading(false);
     }
+    
+    return () => {
+      isComponentMounted = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userCountries]); // selectedDepartments intentionally excluded to prevent reload loops
 

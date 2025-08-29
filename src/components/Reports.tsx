@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { CaseBooking, CaseStatus } from '../types';
-import { getCases } from '../utils/storage';
+import { useCases } from '../hooks/useCases';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getStatusColor } from './CasesList/utils';
@@ -34,7 +34,7 @@ interface ReportData {
 }
 
 const Reports: React.FC = () => {
-  const [cases, setCases] = useState<CaseBooking[]>([]);
+  const { cases } = useCases();
   const [filteredCases, setFilteredCases] = useState<CaseBooking[]>([]);
   const [currentUser] = useState(getCurrentUser());
   const [showFilters, setShowFilters] = useState(true);
@@ -98,46 +98,11 @@ const Reports: React.FC = () => {
     loadConstants();
   }, []);
 
-  // Load cases on component mount
+  // Cases are automatically loaded by useCases hook
+  // Apply initial filter when cases are loaded
   useEffect(() => {
-    const loadCases = async () => {
-      // Admin and IT users should see ALL cases from ALL countries
-      let allCases: CaseBooking[];
-      
-      if (currentUser?.role === 'admin' || currentUser?.role === 'it') {
-        console.log('Loading ALL cases for admin/IT user...');
-        // Get cases from ALL countries for admin users
-        allCases = await getCases(); // No country filter for admin
-      } else {
-        console.log('Loading country-specific cases for regular user...');
-        // For regular users, get cases only from their countries
-        const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
-        allCases = userCountry ? await getCases(userCountry) : await getCases();
-      }
-      
-      const userCases = allCases.filter(caseItem => {
-        // Filter by user's access permissions
-        if (currentUser?.role === 'admin' || currentUser?.role === 'it') {
-          console.log(`Admin user can see case from ${caseItem.country}: ${caseItem.caseReferenceNumber}`);
-          return true; // Admin sees ALL cases
-        }
-        
-        // Filter by user's countries and departments
-        const hasCountryAccess = !currentUser?.countries?.length || 
-          currentUser.countries.includes(caseItem.country);
-        const hasDepartmentAccess = !currentUser?.departments?.length || 
-          currentUser.departments.includes(caseItem.department);
-        
-        return hasCountryAccess && hasDepartmentAccess;
-      });
-      
-      console.log(`Loaded ${allCases.length} total cases, showing ${userCases.length} to user`);
-      setCases(userCases);
-      setFilteredCases(userCases);
-    };
-    
-    loadCases();
-  }, [currentUser]);
+    setFilteredCases(cases);
+  }, [cases]);
 
   // Initialize tempFilters with current filters
   useEffect(() => {

@@ -69,20 +69,44 @@ export const getUserNamesByIds = async (userIds: string[]): Promise<Record<strin
     console.log('🔍 Attempting direct Supabase lookup for missing UUIDs:', missingIds);
     
     try {
-      const { data: profiles, error } = await supabase
+      // Try profiles table first
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, name')
         .in('id', missingIds);
       
-      if (error) {
-        console.error('❌ Supabase lookup error:', error);
+      if (profilesError) {
+        console.error('❌ Profiles lookup error:', profilesError);
       } else {
-        console.log('📋 Direct Supabase lookup results:', profiles);
+        console.log('📋 Direct Supabase profiles lookup results:', profiles);
         if (profiles) {
           profiles.forEach(profile => {
             result[profile.id] = profile.name;
-            console.log(`✅ Mapped ${profile.id} → ${profile.name}`);
+            console.log(`✅ Mapped from profiles: ${profile.id} → ${profile.name}`);
           });
+        }
+      }
+      
+      // Try users table for any remaining missing users
+      const stillMissingIds = missingIds.filter(id => result[id] === id);
+      if (stillMissingIds.length > 0) {
+        console.log('🔍 Attempting users table lookup for remaining UUIDs:', stillMissingIds);
+        
+        const { data: users, error: usersError } = await supabase
+          .from('users')
+          .select('id, name')
+          .in('id', stillMissingIds);
+        
+        if (usersError) {
+          console.error('❌ Users lookup error:', usersError);
+        } else {
+          console.log('📋 Direct Supabase users lookup results:', users);
+          if (users) {
+            users.forEach(user => {
+              result[user.id] = user.name;
+              console.log(`✅ Mapped from users: ${user.id} → ${user.name}`);
+            });
+          }
         }
       }
     } catch (error) {

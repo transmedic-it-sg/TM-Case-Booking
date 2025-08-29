@@ -94,7 +94,7 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
 
     // Build config from key-value pairs with defaults
     const supabaseConfig: SystemConfig = {
-      appVersion: settingsMap.get('version') || DEFAULT_CONFIG.appVersion,
+      appVersion: getAppVersion(), // Always use current version from package.json
       maintenanceMode: settingsMap.has('maintenance_mode') ? settingsMap.get('maintenance_mode') : DEFAULT_CONFIG.maintenanceMode,
       cacheTimeout: settingsMap.get('cache_timeout') || DEFAULT_CONFIG.cacheTimeout,
       maxFileSize: settingsMap.get('max_file_size') || DEFAULT_CONFIG.maxFileSize,
@@ -221,7 +221,7 @@ const getSystemConfigFromLocalStorage = (): SystemConfig => {
       const parsed = JSON.parse(stored);
       // Ensure all required fields are present with proper defaults
       const config = {
-        appVersion: parsed.appVersion || DEFAULT_CONFIG.appVersion,
+        appVersion: getAppVersion(), // Always use current version from package.json
         maintenanceMode: parsed.maintenanceMode !== undefined ? parsed.maintenanceMode : DEFAULT_CONFIG.maintenanceMode,
         cacheTimeout: parsed.cacheTimeout || DEFAULT_CONFIG.cacheTimeout,
         maxFileSize: parsed.maxFileSize || DEFAULT_CONFIG.maxFileSize,

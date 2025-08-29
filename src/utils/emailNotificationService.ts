@@ -38,16 +38,45 @@ export interface EmailNotificationMatrix {
 }
 
 // Get email configuration for a country
-export const getEmailConfig = (country: string) => {
-  const stored = localStorage.getItem('simplified_email_configs');
-  if (!stored) return null;
-  
+export const getEmailConfig = async (country: string) => {
   try {
-    const configs = JSON.parse(stored);
-    return configs[country] || null;
+    // Import supabase dynamically to avoid circular dependencies
+    const { supabase } = await import('../lib/supabase');
+    
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', `email_config_${country}`)
+      .single();
+      
+    if (error || !data) {
+      // Fallback to localStorage for backward compatibility
+      const stored = localStorage.getItem('simplified_email_configs');
+      if (!stored) return null;
+      
+      try {
+        const configs = JSON.parse(stored);
+        return configs[country] || null;
+      } catch (error) {
+        console.error('Failed to parse email configs from localStorage:', error);
+        return null;
+      }
+    }
+    
+    return data.setting_value;
   } catch (error) {
-    console.error('Failed to parse email configs:', error);
-    return null;
+    console.error('Failed to get email config from database:', error);
+    // Fallback to localStorage
+    const stored = localStorage.getItem('simplified_email_configs');
+    if (!stored) return null;
+    
+    try {
+      const configs = JSON.parse(stored);
+      return configs[country] || null;
+    } catch (fallbackError) {
+      console.error('Failed to parse email configs from localStorage fallback:', fallbackError);
+      return null;
+    }
   }
 };
 
@@ -99,8 +128,43 @@ TM Case Booking System`
 };
 
 // Get notification matrix for a country
-export const getNotificationMatrix = (country: string): EmailNotificationMatrix | null => {
+export const getNotificationMatrix = async (country: string): Promise<EmailNotificationMatrix | null> => {
   console.log(`🔍 getNotificationMatrix called for country: "${country}"`);
+  
+  try {
+    // Import supabase dynamically to avoid circular dependencies
+    const { supabase } = await import('../lib/supabase');
+    
+    // First try to get from email_notification_rules table
+    const { data: rules, error } = await supabase
+      .from('email_notification_rules')
+      .select('*')
+      .eq('country', country);
+      
+    if (!error && rules && rules.length > 0) {
+      console.log(`✅ Found ${rules.length} notification rules in database for "${country}"`);
+      
+      // Convert database format to EmailNotificationMatrix format
+      const matrix: EmailNotificationMatrix = {
+        country,
+        rules: rules.map(rule => ({
+          status: rule.status,
+          enabled: rule.enabled,
+          recipients: rule.recipients,
+          template: rule.template,
+          conditions: rule.conditions
+        }))
+      };
+      
+      return matrix;
+    }
+    
+    console.log(`📋 No rules found in database for "${country}", checking localStorage fallback`);
+  } catch (error) {
+    console.error('Error querying database for notification matrix:', error);
+  }
+  
+  // Fallback to localStorage for backward compatibility
   const stored = localStorage.getItem('email-matrix-configs-by-country');
   console.log(`📋 Raw localStorage data:`, stored ? 'Found' : 'Not found');
   
@@ -129,8 +193,8 @@ export const getNotificationMatrix = (country: string): EmailNotificationMatrix 
 };
 
 // Get OAuth tokens for active provider
-export const getActiveProviderTokens = (country: string) => {
-  const config = getEmailConfig(country);
+export const getActiveProviderTokens = async (country: string) => {
+  const config = await getEmailConfig(country);
   if (!config || !config.activeProvider) return null;
   
   const provider = config.providers[config.activeProvider];
@@ -500,9 +564,29 @@ export const validateNotificationRule = (rule: EmailNotificationRule): {
 };
 
 // Check if email notifications are globally enabled for the application
-export const areEmailNotificationsEnabled = (): boolean => {
+export const areEmailNotificationsEnabled = async (): Promise<boolean> => {
   try {
-    // Check from system settings first
+    // Import supabase dynamically to avoid circular dependencies
+    const { supabase } = await import('../lib/supabase');
+    
+    // Check from system_settings table first
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'emailNotificationsEnabled')
+      .single();
+      
+    if (!error && data && data.setting_value !== null) {
+      return data.setting_value === true || data.setting_value === 'true';
+    }
+    
+    console.log('No system setting found, checking localStorage fallback');
+  } catch (error) {
+    console.error('Error querying system settings:', error);
+  }
+  
+  try {
+    // Fallback to localStorage for backward compatibility
     const systemConfig = localStorage.getItem('emailNotificationsEnabled');
     if (systemConfig !== null) {
       return systemConfig === 'true';
@@ -516,7 +600,7 @@ export const areEmailNotificationsEnabled = (): boolean => {
     }
     return true; // Default to enabled if no settings found
   } catch (error) {
-    console.warn('Failed to check global email notification settings:', error);
+    console.warn('Failed to check global email notification settings from localStorage:', error);
     return true; // Default to enabled on error
   }
 };
@@ -535,7 +619,7 @@ export const sendCaseStatusNotification = async (
     });
     
     // Check if email notifications are globally enabled
-    if (!areEmailNotificationsEnabled()) {
+    if (!(await areEmailNotificationsEnabled())) {
       console.log('📵 Email notifications are globally disabled');
       return false;
     }
@@ -563,11 +647,11 @@ export const sendCaseStatusNotification = async (
     const fullCountryName = normalizeCountry(caseData.country);
     
     // Get notification matrix for the case's country
-    const notificationMatrix = getNotificationMatrix(fullCountryName);
+    const notificationMatrix = await getNotificationMatrix(fullCountryName);
     if (!notificationMatrix) {
       console.warn('⚠️ No email notification matrix found for country:', caseData.country);
       console.warn('💡 Solution: Visit Email Configuration page to initialize notification rules');
-      console.warn('🔍 Expected localStorage key: "email-matrix-configs-by-country"');
+      console.warn('🔍 Expected database table: "email_notification_rules" or localStorage key: "email-matrix-configs-by-country"');
       return false;
     }
     
@@ -604,7 +688,7 @@ export const sendCaseStatusNotification = async (
     console.log('🔄 Include submitter:', statusRule.recipients.includeSubmitter);
 
     // Get OAuth tokens for active provider
-    const authData = getActiveProviderTokens(caseData.country);
+    const authData = await getActiveProviderTokens(caseData.country);
     if (!authData) {
       console.warn('🔐 No authenticated email provider found for country:', caseData.country);
       return false;

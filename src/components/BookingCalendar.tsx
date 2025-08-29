@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
-import { getCases } from '../utils/storage';
+import { useCases } from '../hooks/useCases';
 import { CaseBooking } from '../types';
 import SearchableDropdown from './SearchableDropdown';
 import { getMonthYearDisplay } from '../utils/dateFormat';
@@ -16,11 +16,11 @@ interface BookingCalendarProps {
 
 const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateClick }) => {
   const initialCurrentUser = getCurrentUser();
+  const { cases } = useCases();
   
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [departments, setDepartments] = useState<string[]>([]);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [cases, setCases] = useState<CaseBooking[]>([]);
   const [showMoreCasesPopup, setShowMoreCasesPopup] = useState(false);
   const [moreCasesData, setMoreCasesData] = useState<{date: string, cases: CaseBooking[]}>({date: '', cases: []});
   const [moreCasesCurrentPage, setMoreCasesCurrentPage] = useState(1);
@@ -58,10 +58,11 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
       // Use the same service as CaseBookingForm for consistency
       const loadDepartments = async () => {
         try {
-          const { getSupabaseCodeTables } = await import('../utils/supabaseCodeTableService');
-          const codeTables = await getSupabaseCodeTables(country);
-          const departmentTable = codeTables.find(table => table.name === 'departments');
-          const countrySpecificDepts = departmentTable?.items || [];
+          // Use the CORRECT code table service instead of the wrong departments table
+          const { getDepartmentsForCountry } = await import('../utils/supabaseCodeTableService');
+          const countrySpecificDepts = await getDepartmentsForCountry(country);
+          
+          console.log(`🔍 BookingCalendar: Found ${countrySpecificDepts.length} departments for ${country}:`, countrySpecificDepts);
           
           // Filter by user's assigned departments if not admin
           let availableDepartments = countrySpecificDepts;
@@ -94,82 +95,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCountry]); // isAdmin is derived from currentUser which is already handled
 
-  // Load and filter cases whenever active country changes
-  useEffect(() => {
-    const loadCases = async () => {
-      try {
-        const allCases = await getCases();
-        
-        // Ensure allCases is an array
-        if (!Array.isArray(allCases)) {
-          console.error('getCases returned non-array in BookingCalendar:', allCases);
-          setCases([]);
-          return;
-        }
-        
-        const filteredCases = allCases.filter(caseItem => {
-          // Normalize country names for comparison - handle both full names and codes
-          const normalizeCountryName = (country: string) => {
-            const countryMap: { [key: string]: string } = {
-              'Singapore': 'Singapore',
-              'SG': 'Singapore',
-              'Malaysia': 'Malaysia', 
-              'MY': 'Malaysia',
-              'Philippines': 'Philippines',
-              'PH': 'Philippines',
-              'Indonesia': 'Indonesia',
-              'ID': 'Indonesia',
-              'Vietnam': 'Vietnam',
-              'VN': 'Vietnam',
-              'Hong Kong': 'Hong Kong',
-              'HK': 'Hong Kong',
-              'Thailand': 'Thailand',
-              'TH': 'Thailand'
-            };
-            return countryMap[country] || country;
-          };
-          
-          // Filter by active country (normalize both for comparison)
-          if (activeCountry) {
-            const normalizedActiveCountry = normalizeCountryName(activeCountry);
-            const normalizedCaseCountry = normalizeCountryName(caseItem.country);
-            if (normalizedCaseCountry !== normalizedActiveCountry) {
-              return false;
-            }
-          }
-          
-          // Filter by user's assigned departments (excluding admin/IT/operations/operations-manager)
-          if (currentUser?.role !== 'admin' && 
-              currentUser?.role !== 'it' && 
-              currentUser?.role !== 'operations' && 
-              currentUser?.role !== 'operations-manager') {
-            
-            if (currentUser?.departments && currentUser.departments.length > 0) {
-              // Clean department names - remove country prefixes like "Singapore:", "Malaysia:"
-              const cleanDepartmentName = (department: string) => {
-                return department.replace(/^[A-Za-z\s]+:/, '').trim();
-              };
-              
-              const userDepartments = currentUser.departments.map(cleanDepartmentName);
-              const caseDepartment = cleanDepartmentName(caseItem.department);
-              
-              if (!userDepartments.includes(caseDepartment)) {
-                return false;
-              }
-            }
-          }
-          
-          return true;
-        });
-        setCases(filteredCases);
-      } catch (error) {
-        console.error('Error loading cases in BookingCalendar:', error);
-        setCases([]);
-      }
-    };
-    
-    loadCases();
-  }, [activeCountry, currentUser]);
+  // Cases are automatically loaded by useCases hook - no need to manually load
 
   // Close date picker when clicking outside
   useEffect(() => {

@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CaseCardProps } from './types';
 import { getStatusColor, getNextResponsibleRole, formatDateTime } from './utils';
 import CaseActions from './CaseActions';
 import { getCurrentUser } from '../../utils/auth';
 import { getAllProcedureTypes } from '../../utils/storage';
-import { getDepartments, initializeCodeTables, getCodeTables, getDepartmentNamesForUser } from '../../utils/codeTable';
+import { getDepartments, initializeCodeTables, getDepartmentNamesForUser } from '../../utils/codeTable';
 import { useUserNames } from '../../hooks/useUserNames';
 import TimePicker from '../common/TimePicker';
 import { formatDate, getTodayForInput } from '../../utils/dateFormat';
@@ -110,40 +110,50 @@ const CaseCard: React.FC<CaseCardProps> = ({
     }
   }, [currentUser?.selectedCountry, currentUser?.countries]);
 
-  const availableDepartments = useMemo(() => {
-    try {
-      const currentUser = getCurrentUser();
-      if (!currentUser) {
-        return getDepartments();
-      }
-      
-      // Get departments for user's current country
-      const userCountry = currentUser.selectedCountry || currentUser.countries?.[0];
-      if (userCountry) {
-        // Load country-specific departments from Code Table Setup
-        const countryTables = getCodeTables(userCountry);
-        const departmentsTable = countryTables.find(table => table.id === 'departments');
-        const countrySpecificDepts = departmentsTable?.items || [];
-        
-        // Admin and IT users can access all departments for their country
-        if (currentUser.role === 'admin' || currentUser.role === 'it') {
-          return countrySpecificDepts.sort();
+  const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
+
+  // Load departments using Supabase service
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        const currentUser = getCurrentUser();
+        if (!currentUser) {
+          setAvailableDepartments(getDepartments());
+          return;
         }
         
-        // Other users are restricted to their assigned departments
-        const userDepartments = currentUser.departments || [];
+        // Get departments for user's current country
+        const userCountry = currentUser.selectedCountry || currentUser.countries?.[0];
+        if (userCountry) {
+          // Use the CORRECT code table service instead of the wrong departments table
+          const { getDepartmentsForCountry } = await import('../../utils/supabaseCodeTableService');
+          const countrySpecificDepts = await getDepartmentsForCountry(userCountry);
+          
+          // Admin and IT users can access all departments for their country
+          if (currentUser.role === 'admin' || currentUser.role === 'it') {
+            setAvailableDepartments(countrySpecificDepts.sort());
+            return;
+          }
+          
+          // Other users are restricted to their assigned departments
+          const userDepartments = currentUser.departments || [];
+          
+          // Handle both legacy and new country-specific department formats
+          const userDepartmentNames = getDepartmentNamesForUser(userDepartments, [userCountry]);
+          setAvailableDepartments(countrySpecificDepts.filter(dept => userDepartmentNames.includes(dept)).sort());
+          return;
+        }
         
-        // Handle both legacy and new country-specific department formats
-        const userDepartmentNames = getDepartmentNamesForUser(userDepartments, [userCountry]);
-        return countrySpecificDepts.filter(dept => userDepartmentNames.includes(dept)).sort();
+        // Fallback to global departments
+        setAvailableDepartments(getDepartments());
+      } catch (error) {
+        console.error('Error loading departments:', error);
+        // Use fallback departments on error
+        setAvailableDepartments(getDepartments());
       }
-      
-      // Fallback to global departments
-      return getDepartments();
-    } catch (error) {
-      console.error('Error loading departments:', error);
-      return [];
-    }
+    };
+
+    loadDepartments();
   }, []);
 
   // Initialize code tables only once when component mounts

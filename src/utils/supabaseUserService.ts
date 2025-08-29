@@ -9,28 +9,61 @@ import fixedAuthService from './fixedAuthService';
 // Main authentication function - USES FIXED SERVICE (no more 406 errors)
 export const authenticateSupabaseUser = fixedAuthService.authenticateSupabaseUser;
 
-// Get all users
+// Get all users from both profiles and users tables
 export const getAllSupabaseUsers = async (): Promise<User[]> => {
   const result = await ErrorHandler.executeWithRetry(
     async () => {
-      const { data, error } = await supabase
+      // Get users from profiles table first
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .order('username');
 
-      if (error) throw error;
+      let allUsers: User[] = [];
 
-      return data?.map((profile: any) => ({
-        id: profile.id,
-        username: profile.username,
-        password: '', // Never expose password
-        role: profile.role,
-        name: profile.name,
-        departments: profile.departments || [],
-        countries: profile.countries || [],
-        selectedCountry: profile.selected_country,
-        enabled: profile.enabled
-      })) || [];
+      if (!profilesError && profilesData) {
+        allUsers = profilesData.map((profile: any) => ({
+          id: profile.id,
+          username: profile.username,
+          password: '', // Never expose password
+          role: profile.role,
+          name: profile.name,
+          departments: profile.departments || [],
+          countries: profile.countries || [],
+          selectedCountry: profile.selected_country,
+          enabled: profile.enabled
+        }));
+      }
+
+      // Get users from users table as fallback/additional
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('*')
+        .order('username');
+
+      if (!usersError && usersData) {
+        const additionalUsers = usersData
+          .filter((user: any) => !allUsers.some(u => u.username.toLowerCase() === user.username.toLowerCase())) // Avoid duplicates by username
+          .map((user: any) => ({
+            id: user.id,
+            username: user.username,
+            password: '', // Never expose password
+            role: user.role,
+            name: user.name,
+            departments: user.departments || [],
+            countries: user.countries || [],
+            selectedCountry: user.selected_country,
+            enabled: user.enabled
+          }));
+        
+        allUsers = [...allUsers, ...additionalUsers];
+      }
+
+      if (profilesError && usersError) {
+        throw profilesError || usersError;
+      }
+
+      return allUsers;
     },
     {
       operation: 'Get All Users',
@@ -50,26 +83,51 @@ export const getAllSupabaseUsers = async (): Promise<User[]> => {
 export const getUserById = async (userId: string): Promise<User | null> => {
   const result = await ErrorHandler.executeWithRetry(
     async () => {
-      const { data, error } = await supabase
+      // Try profiles table first
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
-
-      if (data) {
+      if (!profileError && profileData) {
         return {
-          id: data.id,
-          username: data.username,
+          id: profileData.id,
+          username: profileData.username,
           password: '', // Never expose password
-          role: data.role,
-          name: data.name,
-          departments: data.departments || [],
-          countries: data.countries || [],
-          selectedCountry: data.selected_country,
-          enabled: data.enabled
+          role: profileData.role,
+          name: profileData.name,
+          departments: profileData.departments || [],
+          countries: profileData.countries || [],
+          selectedCountry: profileData.selected_country,
+          enabled: profileData.enabled
         };
+      }
+
+      // If not found in profiles, try users table as fallback
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (!userError && userData) {
+        return {
+          id: userData.id,
+          username: userData.username,
+          password: '', // Never expose password
+          role: userData.role,
+          name: userData.name,
+          departments: userData.departments || [],
+          countries: userData.countries || [],
+          selectedCountry: userData.selected_country,
+          enabled: userData.enabled
+        };
+      }
+
+      // If both fail, throw the more relevant error
+      if (profileError && userError) {
+        throw profileError;
       }
 
       return null;

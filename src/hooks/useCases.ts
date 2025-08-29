@@ -23,7 +23,7 @@ export const useCases = (options: UseCasesOptions = {}) => {
     try {
       setLoading(true);
       setError(null);
-      const casesData = caseService.getAllCases(forceRefresh);
+      const casesData = await caseService.getAllCases(forceRefresh);
       setCases(casesData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load cases');
@@ -37,29 +37,29 @@ export const useCases = (options: UseCasesOptions = {}) => {
     loadCases(true);
   }, [loadCases]);
 
-  const updateCaseStatus = useCallback((
+  const updateCaseStatus = useCallback(async (
     caseId: string,
     newStatus: CaseStatus,
     details?: string,
     attachments?: string[]
   ) => {
-    const success = caseService.updateCaseStatus(caseId, newStatus, details, attachments);
+    const success = await caseService.updateCaseStatus(caseId, newStatus, details, attachments);
     if (success) {
       refreshCases();
     }
     return success;
   }, [refreshCases]);
 
-  const saveCase = useCallback((caseData: CaseBooking) => {
-    const success = caseService.saveCase(caseData);
+  const saveCase = useCallback(async (caseData: CaseBooking) => {
+    const success = await caseService.saveCase(caseData);
     if (success) {
       refreshCases();
     }
     return success;
   }, [refreshCases]);
 
-  const deleteCase = useCallback((caseId: string) => {
-    const success = caseService.deleteCase(caseId);
+  const deleteCase = useCallback(async (caseId: string) => {
+    const success = await caseService.deleteCase(caseId);
     if (success) {
       refreshCases();
     }
@@ -87,7 +87,7 @@ export const useCases = (options: UseCasesOptions = {}) => {
     updateCaseStatus,
     saveCase,
     deleteCase,
-    generateCaseReferenceNumber: caseService.generateCaseReferenceNumber.bind(caseService)
+    generateCaseReferenceNumber: () => caseService.generateCaseReferenceNumber()
   };
 };
 
@@ -170,9 +170,9 @@ export const useCaseById = (caseId: string) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCase = () => {
+    const fetchCase = async () => {
       setLoading(true);
-      const foundCase = caseService.getCaseById(caseId);
+      const foundCase = await caseService.getCaseById(caseId);
       setCaseItem(foundCase);
       setLoading(false);
     };
@@ -180,8 +180,8 @@ export const useCaseById = (caseId: string) => {
     fetchCase();
   }, [caseId]);
 
-  const updateCase = useCallback((updatedCase: CaseBooking) => {
-    const success = caseService.saveCase(updatedCase);
+  const updateCase = useCallback(async (updatedCase: CaseBooking) => {
+    const success = await caseService.saveCase(updatedCase);
     if (success) {
       setCaseItem(updatedCase);
     }

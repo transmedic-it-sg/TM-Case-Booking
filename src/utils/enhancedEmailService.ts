@@ -86,7 +86,7 @@ class EnhancedEmailService {
       this.addDebugLog('country-mapping', 'info', `Country mapping: ${caseData.country} -> ${fullCountryName}`);
 
       // Step 3: Get notification matrix
-      const notificationMatrix = getNotificationMatrix(fullCountryName);
+      const notificationMatrix = await getNotificationMatrix(fullCountryName);
       if (!notificationMatrix) {
         this.addDebugLog('matrix-check', 'error', `No notification matrix found for country: ${fullCountryName}`, {
           availableCountries: this.getAvailableMatrixCountries()
@@ -123,7 +123,7 @@ class EnhancedEmailService {
       this.addDebugLog('rule-check', 'success', 'Found enabled rule for "Case Booked"');
 
       // Step 5: Get OAuth authentication
-      const authData = getActiveProviderTokens(fullCountryName);
+      const authData = await getActiveProviderTokens(fullCountryName);
       if (!authData) {
         this.addDebugLog('auth-check', 'error', `No authenticated email provider found for ${fullCountryName}`, {
           suggestion: 'Visit Email Configuration to authenticate with Google or Microsoft'
@@ -286,12 +286,12 @@ class EnhancedEmailService {
     this.addDebugLog('test-init', 'info', `Testing email configuration for ${country}`);
 
     // Check global settings
-    if (!areEmailNotificationsEnabled()) {
+    if (!(await areEmailNotificationsEnabled())) {
       issues.push('Email notifications are globally disabled');
     }
 
     // Check notification matrix
-    const matrix = getNotificationMatrix(country);
+    const matrix = await getNotificationMatrix(country);
     if (!matrix) {
       issues.push(`No notification matrix found for ${country}`);
     } else {
@@ -304,7 +304,7 @@ class EnhancedEmailService {
     }
 
     // Check authentication
-    const authData = getActiveProviderTokens(country);
+    const authData = await getActiveProviderTokens(country);
     if (!authData) {
       issues.push(`No authenticated email provider for ${country}`);
     } else {

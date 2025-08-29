@@ -758,9 +758,7 @@ export const getDepartmentProcedureTypes = async (country?: string): Promise<Dep
   try {
     // Try Supabase first
     if (country) {
-      const { getDepartments } = await import('./supabaseDepartmentService');
-      // Note: departments fetched but not used as procedure types are handled elsewhere
-      await getDepartments(country);
+      // Note: departments are not needed here as procedure types are handled elsewhere
       const result: DepartmentProcedureTypes = {};
       
       // For each department, we would need to get its procedure types
@@ -907,16 +905,17 @@ export const getDepartmentCategorizedSets = async (country?: string): Promise<De
   try {
     // Try Supabase first if country is provided
     if (country) {
-      const { getDepartments } = await import('./supabaseDepartmentService');
-      const departments = await getDepartments(country);
+      // Use the CORRECT code table service instead of the wrong departments table
+      const { getDepartmentsForCountry } = await import('./supabaseCodeTableService');
+      const departmentNames = await getDepartmentsForCountry(country);
       const result: DepartmentCategorizedSets = {};
       
       // Get categorized sets for each department
-      for (const department of departments) {
+      for (const departmentName of departmentNames) {
         const { getCategorizedSetsForDepartment } = await import('./supabaseDepartmentService');
-        const sets = await getCategorizedSetsForDepartment(department.name, country);
+        const sets = await getCategorizedSetsForDepartment(departmentName, country);
         if (Object.keys(sets).length > 0) {
-          result[department.name] = sets;
+          result[departmentName] = sets;
         }
       }
       

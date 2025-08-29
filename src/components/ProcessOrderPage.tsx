@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { CaseBooking } from '../types';
-import { updateCaseStatus } from '../utils/storage';
+import { useCases } from '../hooks/useCases';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { formatDateTime } from '../utils/dateFormat';
@@ -18,6 +18,7 @@ const ProcessOrderPage: React.FC<ProcessOrderPageProps> = ({
   onBack 
 }) => {
   const currentUser = getCurrentUser();
+  const { updateCaseStatus } = useCases();
   
   const [processOrderDetails, setProcessOrderDetails] = useState(
     caseData.processOrderDetails || ''
@@ -66,10 +67,9 @@ const ProcessOrderPage: React.FC<ProcessOrderPageProps> = ({
     setIsProcessing(true);
 
     try {
-      updateCaseStatus(
+      await updateCaseStatus(
         caseData.id,
         'Order Prepared',
-        currentUser.name,
         JSON.stringify({
           processDetails: processOrderDetails
         })

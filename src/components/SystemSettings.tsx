@@ -15,7 +15,6 @@ import {
   resetSystemConfig,
   applySystemConfig
 } from '../utils/systemSettingsService';
-import { supabase } from '../lib/supabase';
 import { getAppVersion } from '../utils/version';
 import '../assets/components/AdminComponents.css';
 import '../assets/components/SystemSettings.css';
@@ -29,17 +28,6 @@ const SystemSettings: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
-  const [databaseStatus, setDatabaseStatus] = useState<{
-    isConnected: boolean;
-    latency: number | null;
-    lastCheck: Date | null;
-    error: string | null;
-  }>({
-    isConnected: false,
-    latency: null,
-    lastCheck: null,
-    error: null
-  });
   
   // Collapsible sections state - all collapsed by default
   const [expandedSections, setExpandedSections] = useState<{
@@ -48,7 +36,6 @@ const SystemSettings: React.FC = () => {
     security: boolean;
     amendment: boolean;
     notification: boolean;
-    database: boolean;
     ui: boolean;
   }>({
     application: false,
@@ -56,48 +43,12 @@ const SystemSettings: React.FC = () => {
     security: false,
     amendment: false,
     notification: false,
-    database: false,
     ui: false
   });
 
   // Check permissions
   const canManageSettings = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) : false;
 
-  const testDatabaseConnection = useCallback(async () => {
-    const startTime = Date.now();
-    try {
-      // Test basic connection with a simple query
-      const { error } = await supabase
-        .from('code_tables')
-        .select('count')
-        .limit(1);
-      
-      const latency = Date.now() - startTime;
-      
-      if (error) {
-        setDatabaseStatus({
-          isConnected: false,
-          latency: null,
-          lastCheck: new Date(),
-          error: error.message
-        });
-      } else {
-        setDatabaseStatus({
-          isConnected: true,
-          latency,
-          lastCheck: new Date(),
-          error: null
-        });
-      }
-    } catch (error) {
-      setDatabaseStatus({
-        isConnected: false,
-        latency: null,
-        lastCheck: new Date(),
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  }, []);
 
   const loadSystemConfig = useCallback(async () => {
     setIsLoading(true);
@@ -139,9 +90,8 @@ const SystemSettings: React.FC = () => {
   useEffect(() => {
     if (canManageSettings) {
       loadSystemConfig();
-      testDatabaseConnection();
     }
-  }, [canManageSettings, loadSystemConfig, testDatabaseConnection]);
+  }, [canManageSettings, loadSystemConfig]);
 
   // Check for changes
   useEffect(() => {
@@ -554,72 +504,6 @@ const SystemSettings: React.FC = () => {
         </div>
       </CollapsibleSection>
 
-        {/* Database Settings */}
-        <CollapsibleSection 
-          title="Database Status" 
-          description="Database connectivity and performance monitoring"
-          sectionKey="database"
-          icon="🗄️"
-        >
-          <div className="modern-setting-item">
-            <label className="modern-setting-label">Connection Status</label>
-            <div className={`connection-status ${databaseStatus.isConnected ? 'connected' : 'disconnected'}`}>
-              <span className="status-indicator">
-                {databaseStatus.isConnected ? '🟢' : '🔴'}
-              </span>
-              <span className="status-text">
-                {databaseStatus.isConnected ? 'Connected' : 'Disconnected'}
-              </span>
-            </div>
-            <small className="modern-setting-description">
-              Current database connection status
-            </small>
-          </div>
-
-          {databaseStatus.latency !== null && (
-            <div className="modern-setting-item">
-              <label className="modern-setting-label">Response Time</label>
-              <div className="latency-display">
-                <span className="latency-value">{databaseStatus.latency}ms</span>
-                <span className={`latency-quality ${databaseStatus.latency < 100 ? 'excellent' : databaseStatus.latency < 500 ? 'good' : 'poor'}`}>
-                  {databaseStatus.latency < 100 ? 'Excellent' : databaseStatus.latency < 500 ? 'Good' : 'Poor'}
-                </span>
-              </div>
-              <small className="modern-setting-description">Database query response time</small>
-            </div>
-          )}
-
-          {databaseStatus.lastCheck && (
-            <div className="modern-setting-item">
-              <label className="modern-setting-label">Last Checked</label>
-              <div className="last-check-display">
-                {databaseStatus.lastCheck.toLocaleString()}
-              </div>
-              <small className="modern-setting-description">Last connectivity test timestamp</small>
-            </div>
-          )}
-
-          {databaseStatus.error && (
-            <div className="modern-setting-item">
-              <label className="modern-setting-label">Error Details</label>
-              <div className="error-display">
-                {databaseStatus.error}
-              </div>
-              <small className="modern-setting-description">Connection error information</small>
-            </div>
-          )}
-
-          <div className="modern-setting-item">
-            <button
-              onClick={testDatabaseConnection}
-              className="btn btn-primary btn-sm"
-              disabled={isLoading}
-            >
-              🔄 Test Connection
-            </button>
-            <small className="modern-setting-description">Test database connectivity now</small>
-          </div>
-        </CollapsibleSection>
 
       </div>
     </div>

@@ -5,6 +5,7 @@ import { getSupabasePermissions } from './supabasePermissionService';
 // Cache for permissions to avoid repeated async calls
 let permissionsCache: Permission[] | null = null;
 let permissionsCacheTime = 0;
+let initializationPromise: Promise<void> | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // Get current runtime permissions (from Supabase or default)
@@ -91,30 +92,46 @@ export const hasPermission = (roleId: string, actionId: string): boolean => {
 
 // Initialize permissions cache - force refresh on app start for browser refresh scenarios
 export const initializePermissions = async (forceRefresh: boolean = false): Promise<void> => {
-  console.log('🚀 Initializing permissions system...', forceRefresh ? '(force refresh)' : '');
-  try {
-    // Clear cache if force refresh is requested (e.g., on login or app startup)
-    if (forceRefresh) {
-      console.log('🔄 Force refreshing permissions cache');
-      clearPermissionsCache();
-    }
-    
-    const permissions = await getRuntimePermissions();
-    console.log('✅ Permissions system initialized successfully');
-    console.log(`📊 Loaded ${permissions.length} permissions from database`);
-    console.log('🔍 Permission breakdown by role:', 
-      permissions.reduce((acc, p) => {
-        acc[p.roleId] = (acc[p.roleId] || 0) + (p.allowed ? 1 : 0);
-        return acc;
-      }, {} as Record<string, number>)
-    );
-  } catch (error) {
-    console.error('❌ Error initializing permissions system:', error);
-    console.error('🚨 SECURITY WARNING: Permission system failed to initialize - access will be denied to all non-admin users');
-    // Clear cache to ensure fail-secure behavior
-    permissionsCache = null;
-    permissionsCacheTime = 0;
+  // If there's already an initialization in progress and not forcing refresh, wait for it
+  if (initializationPromise && !forceRefresh) {
+    return initializationPromise;
   }
+  
+  // If forcing refresh, clear the existing promise
+  if (forceRefresh) {
+    initializationPromise = null;
+  }
+  
+  // Create new initialization promise
+  initializationPromise = (async () => {
+    try {
+      // Clear cache if force refresh is requested (e.g., on login or app startup)
+      if (forceRefresh) {
+        clearPermissionsCache();
+      }
+      
+      const permissions = await getRuntimePermissions();
+      console.log('✅ Permissions system initialized successfully');
+      console.log(`📊 Loaded ${permissions.length} permissions from database`);
+      console.log('🔍 Permission breakdown by role:', 
+        permissions.reduce((acc, p) => {
+          acc[p.roleId] = (acc[p.roleId] || 0) + (p.allowed ? 1 : 0);
+          return acc;
+        }, {} as Record<string, number>)
+      );
+    } catch (error) {
+      console.error('❌ Error initializing permissions system:', error);
+      console.error('🚨 SECURITY WARNING: Permission system failed to initialize - access will be denied to all non-admin users');
+      // Clear cache to ensure fail-secure behavior
+      permissionsCache = null;
+      permissionsCacheTime = 0;
+    } finally {
+      // Clear the promise when done
+      initializationPromise = null;
+    }
+  })();
+  
+  return initializationPromise;
 };
 
 // Clear permissions cache to force reload

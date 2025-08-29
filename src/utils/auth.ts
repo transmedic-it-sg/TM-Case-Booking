@@ -46,12 +46,83 @@ export const authenticateUser = async (username: string, password: string): Prom
 };
 
 export const createSession = async (userId: string): Promise<void> => {
-  // Simple session management - you might want to enhance this
-  sessionStorage.setItem('session-token', `session-${userId}-${Date.now()}`);
+  try {
+    // Import supabase dynamically to avoid circular dependencies
+    const { supabase } = await import('../lib/supabase');
+    
+    // First verify that the user exists in the users table
+    const { data: userExists, error: userCheckError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single();
+    
+    if (userCheckError || !userExists) {
+      console.warn('User not found in users table, skipping session creation:', userId);
+      // Use sessionStorage as fallback
+      sessionStorage.setItem('session-token', `session-${userId}-${Date.now()}`);
+      return;
+    }
+    
+    // Generate secure session token
+    const sessionToken = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    // Set expiration to 24 hours from now
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+    
+    // Store in database
+    const { error } = await supabase
+      .from('user_sessions')
+      .insert({
+        user_id: userId,
+        session_token: sessionToken,
+        expires_at: expiresAt.toISOString()
+      });
+    
+    if (error) {
+      console.error('Failed to create database session:', error);
+      // Fallback to sessionStorage for backward compatibility
+      sessionStorage.setItem('session-token', `session-${userId}-${Date.now()}`);
+      return;
+    }
+    
+    // Store session token in browser for quick access
+    sessionStorage.setItem('session-token', sessionToken);
+  } catch (error) {
+    console.error('Error creating session:', error);
+    // Fallback to simple session management
+    sessionStorage.setItem('session-token', `session-${userId}-${Date.now()}`);
+  }
 };
 
 export const deleteSession = async (sessionToken?: string): Promise<void> => {
-  sessionStorage.removeItem('session-token');
+  try {
+    const token = sessionToken || sessionStorage.getItem('session-token');
+    
+    if (token) {
+      // Import supabase dynamically to avoid circular dependencies
+      const { supabase } = await import('../lib/supabase');
+      
+      // Remove from database
+      const { error } = await supabase
+        .from('user_sessions')
+        .delete()
+        .eq('session_token', token);
+      
+      if (error) {
+        console.error('Failed to delete database session:', error);
+      }
+    }
+    
+    // Always remove from browser storage
+    sessionStorage.removeItem('session-token');
+  } catch (error) {
+    console.error('Error deleting session:', error);
+    // Always remove from browser storage even if database operation fails
+    sessionStorage.removeItem('session-token');
+  }
 };
 
 export const getCurrentUserFromStorage = (): User | null => {

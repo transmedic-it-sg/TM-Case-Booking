@@ -119,13 +119,11 @@ const EditSets: React.FC<EditSetsProps> = () => {
       try {
         console.log(`Loading departments for country: ${activeCountryName}`);
         
-        // Use the same service as CaseBookingForm for consistency
-        const { getSupabaseCodeTables } = await import('../../utils/supabaseCodeTableService');
-        const codeTables = await getSupabaseCodeTables(activeCountryName);
-        const departmentTable = codeTables.find(table => table.name === 'departments');
-        const departments = departmentTable?.items || [];
+        // Use the CORRECT code table service instead of the wrong departments table
+        const { getDepartmentsForCountry } = await import('../../utils/supabaseCodeTableService');
+        const departments = await getDepartmentsForCountry(activeCountryName);
         
-        console.log(`Loaded ${departments.length} departments from Supabase code tables:`, departments);
+        console.log(`EditSets: Loaded ${departments.length} departments from code_tables for ${activeCountryName}:`, departments);
         
         setAvailableDepartments(departments);
         

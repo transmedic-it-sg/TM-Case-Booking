@@ -335,7 +335,7 @@ export const caseOperations = {
         };
 
         const { error } = await supabase
-          .from('case_amendments')
+          .from('amendment_history')
           .insert(amendmentRecord);
 
         if (error) throw error;

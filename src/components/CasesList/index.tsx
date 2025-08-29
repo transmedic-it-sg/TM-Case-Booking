@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CaseBooking, FilterOptions, CaseStatus } from '../../types';
-import { getCases, filterCases, updateCaseStatus, amendCase, processCaseOrder } from '../../utils/storage';
 import { getCurrentUser } from '../../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { useCases } from '../../hooks/useCases';
 import { CasesListProps } from './types';
 import CasesFilter from './CasesFilter';
 import CaseCard from './CaseCard';
@@ -15,11 +15,12 @@ import { useModal } from '../../hooks/useModal';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { userHasDepartmentAccess } from '../../utils/departmentUtils';
 import { normalizeCountry } from '../../utils/countryUtils';
+import { amendCase, processCaseOrder } from '../../utils/storage'; // Keep these for now until replaced
 
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
   const { modal, closeModal, showConfirm, showConfirmWithCustomButtons } = useModal();
-  const [cases, setCases] = useState<CaseBooking[]>([]);
+  const { cases, loading, error, refreshCases, updateCaseStatus: updateCaseStatusHook, deleteCase } = useCases();
   const [filteredCases, setFilteredCases] = useState<CaseBooking[]>([]);
   const [availableSubmitters, setAvailableSubmitters] = useState<string[]>([]);
   const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);
@@ -47,6 +48,55 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   // State for new comment and attachment fields for status transitions
   const [processAttachments, setProcessAttachments] = useState<string[]>([]);
   const [processComments, setProcessComments] = useState('');
+  
+  // Filter cases locally
+  const filterCases = useCallback((casesToFilter: CaseBooking[], filterOptions: FilterOptions) => {
+    let filtered = casesToFilter;
+  
+    // Apply search filter
+    if (filterOptions.search) {
+      const searchTerm = filterOptions.search.toLowerCase();
+      filtered = filtered.filter(caseItem =>
+        caseItem.caseReferenceNumber.toLowerCase().includes(searchTerm) ||
+        caseItem.hospital.toLowerCase().includes(searchTerm) ||
+        caseItem.doctorName?.toLowerCase().includes(searchTerm) ||
+        caseItem.procedureType.toLowerCase().includes(searchTerm) ||
+        caseItem.procedureName.toLowerCase().includes(searchTerm) ||
+        caseItem.submittedBy.toLowerCase().includes(searchTerm)
+      );
+    }
+  
+    // Apply status filter
+    if (filterOptions.status) {
+      filtered = filtered.filter(caseItem => caseItem.status === filterOptions.status);
+    }
+  
+    // Apply submitter filter
+    if (filterOptions.submitter) {
+      filtered = filtered.filter(caseItem => caseItem.submittedBy === filterOptions.submitter);
+    }
+  
+    // Apply hospital filter
+    if (filterOptions.hospital) {
+      filtered = filtered.filter(caseItem => caseItem.hospital === filterOptions.hospital);
+    }
+  
+    // Apply country filter
+    if (filterOptions.country) {
+      filtered = filtered.filter(caseItem => caseItem.country === filterOptions.country);
+    }
+  
+    // Apply date range filter
+    if (filterOptions.dateFrom) {
+      filtered = filtered.filter(caseItem => caseItem.dateOfSurgery >= filterOptions.dateFrom!);
+    }
+  
+    if (filterOptions.dateTo) {
+      filtered = filtered.filter(caseItem => caseItem.dateOfSurgery <= filterOptions.dateTo!);
+    }
+  
+    return filtered;
+  }, []);
   const [hospitalDeliveryAttachments, setHospitalDeliveryAttachments] = useState<string[]>([]);
   const [hospitalDeliveryComments, setHospitalDeliveryComments] = useState('');
   const [hospitalDeliveryCase, setHospitalDeliveryCase] = useState<string | null>(null);
@@ -86,12 +136,20 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   useEffect(() => {
-    // Load data from Supabase (cleanup is now handled at the Supabase level)
-    const loadData = async () => {
-      await loadCases();
-    };
-    loadData();
-  }, [currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Cases are automatically loaded by useCases hook
+    // Update available options when cases change
+    if (cases.length > 0) {
+      const uniqueSubmitters = Array.from(new Set(cases.map(caseItem => caseItem.submittedBy)))
+        .filter(submitter => submitter && submitter.trim())
+        .sort();
+      setAvailableSubmitters(uniqueSubmitters);
+      
+      const uniqueHospitals = Array.from(new Set(cases.map(caseItem => caseItem.hospital)))
+        .filter(hospital => hospital && hospital.trim())
+        .sort();
+      setAvailableHospitals(uniqueHospitals);
+    }
+  }, [cases]);
 
 
   useEffect(() => {
@@ -171,62 +229,6 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
   }, [highlightedCaseId, onClearHighlight, filteredCases, casesPerPage]);
 
-  const loadCases = useCallback(async () => {
-    try {
-      // Admin and IT users should get ALL cases from ALL countries
-      const isAdminOrIT = currentUser && (currentUser.role === 'admin' || currentUser.role === 'it');
-      
-      let allCases;
-      if (isAdminOrIT) {
-        // For admin/IT users, don't pass any country filter to get ALL cases
-        allCases = await getCases();
-      } else {
-        // For regular users, filter by their selected/assigned country
-        const userCountry = currentUser?.selectedCountry;
-        const normalizedCountry = userCountry ? normalizeCountry(userCountry) : undefined;
-        allCases = await getCases(normalizedCountry);
-      }
-      
-      // Ensure allCases is an array
-      if (!Array.isArray(allCases)) {
-        console.error('getCases returned non-array:', allCases);
-        setCases([]);
-        setAvailableSubmitters([]);
-        setAvailableHospitals([]);
-        addNotification({
-          title: 'Data Load Error',
-          message: 'Failed to load cases. Please try refreshing the page.',
-          type: 'error'
-        });
-        return;
-      }
-      
-      // Extract unique submitters from all cases
-      const uniqueSubmitters = Array.from(new Set(allCases.map(caseItem => caseItem.submittedBy)))
-        .filter(submitter => submitter && submitter.trim())
-        .sort();
-      setAvailableSubmitters(uniqueSubmitters);
-
-      // Extract unique hospitals from all cases
-      const uniqueHospitals = Array.from(new Set(allCases.map(caseItem => caseItem.hospital)))
-        .filter(hospital => hospital && hospital.trim())
-        .sort();
-      setAvailableHospitals(uniqueHospitals);
-      
-      // Set the cases directly since we've already applied country filtering during load
-      setCases(allCases);
-    } catch (error) {
-      console.error('Error loading cases:', error);
-      setCases([]);
-      setAvailableSubmitters([]);
-      setAvailableHospitals([]);
-      addNotification({
-        title: 'Data Load Error',
-        message: `Failed to load cases: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        type: 'error'
-      });
-    }
-  }, [currentUser, addNotification]);
 
   const handleFilterChange = (field: keyof FilterOptions, value: string) => {
     setTempFilters(prev => ({
@@ -307,8 +309,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     if (!currentUser) return;
 
     const caseItem = cases.find(c => c.id === caseId);
-    await updateCaseStatus(caseId, newStatus, currentUser.id);
-    await loadCases();
+    await updateCaseStatusHook(caseId, newStatus);
+    refreshCases();
     
     // Reset to page 1 and expand the updated case
     setCurrentPage(1);
@@ -362,7 +364,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       
       setAmendingCase(null);
       setAmendmentData({});
-      await loadCases();
+      refreshCases();
       
       // Reset to page 1 and expand the updated case AND amendment history
       setCurrentPage(1);
@@ -442,7 +444,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setProcessingCase(null);
       setProcessDetails('');
       setProcessAttachments([]);
-      await loadCases();
+      refreshCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -494,11 +496,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         attachments: hospitalDeliveryAttachments,
         comments: hospitalDeliveryComments
       };
-      await updateCaseStatus(caseId, 'Pending Delivery (Hospital)', currentUser.id, JSON.stringify(additionalData));
+      await updateCaseStatusHook(caseId, 'Pending Delivery (Hospital)', JSON.stringify(additionalData));
       setHospitalDeliveryCase(null);
       setHospitalDeliveryAttachments([]);
       setHospitalDeliveryComments('');
-      await loadCases();
+      refreshCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -554,11 +556,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         comments: receivedDetails,
         attachments: attachments
       };
-      await updateCaseStatus(caseId, 'Delivered (Hospital)', currentUser.id, JSON.stringify(additionalData));
+      await updateCaseStatusHook(caseId, 'Delivered (Hospital)', JSON.stringify(additionalData));
       setReceivedCase(null);
       setReceivedDetails('');
       setReceivedImage('');
-      await loadCases();
+      refreshCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -602,12 +604,12 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         orderSummary,
         doNumber
       };
-      await updateCaseStatus(caseId, 'Case Completed', currentUser.id, JSON.stringify(additionalData));
+      await updateCaseStatusHook(caseId, 'Case Completed', JSON.stringify(additionalData));
       setCompletedCase(null);
       setAttachments([]);
       setOrderSummary('');
       setDoNumber('');
-      await loadCases();
+      refreshCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -636,8 +638,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
     try {
       const caseItem = cases.find(c => c.id === caseId);
-      await updateCaseStatus(caseId, 'Delivered (Office)', currentUser.id);
-      await loadCases();
+      await updateCaseStatusHook(caseId, 'Delivered (Office)');
+      refreshCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -666,8 +668,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
     try {
       const caseItem = cases.find(c => c.id === caseId);
-      await updateCaseStatus(caseId, 'To be billed', currentUser.id);
-      await loadCases();
+      await updateCaseStatusHook(caseId, 'To be billed');
+      refreshCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -706,11 +708,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         attachments: pendingOfficeAttachments,
         comments: pendingOfficeComments
       };
-      await updateCaseStatus(caseId, 'Pending Delivery (Office)', currentUser.id, JSON.stringify(additionalData));
+      await updateCaseStatusHook(caseId, 'Pending Delivery (Office)', JSON.stringify(additionalData));
       setPendingOfficeCase(null);
       setPendingOfficeAttachments([]);
       setPendingOfficeComments('');
-      await loadCases();
+      refreshCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -755,11 +757,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         attachments: officeDeliveryAttachments,
         comments: officeDeliveryComments
       };
-      await updateCaseStatus(caseId, 'Delivered (Office)', currentUser.id, JSON.stringify(additionalData));
+      await updateCaseStatusHook(caseId, 'Delivered (Office)', JSON.stringify(additionalData));
       setOfficeDeliveryCase(null);
       setOfficeDeliveryAttachments([]);
       setOfficeDeliveryComments('');
-      await loadCases();
+      refreshCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -798,8 +800,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     
     showConfirmWithCustomButtons('Cancel Case', confirmMessage, async () => {
       try {
-        await updateCaseStatus(caseId, 'Case Cancelled', currentUser.id, 'Case cancelled by user request');
-        await loadCases();
+        await updateCaseStatusHook(caseId, 'Case Cancelled', 'Case cancelled by user request');
+        refreshCases();
         
         // Reset to page 1 and expand the updated case
         setCurrentPage(1);
@@ -844,38 +846,24 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     
     showConfirm('Delete Case', confirmMessage, async () => {
       try {
-        // Use the proper storage service to delete from Supabase
-        const { deleteSupabaseCase } = await import('../../utils/supabaseCaseService');
-        await deleteSupabaseCase(caseId);
+        // Use the deleteCase hook which handles database deletion with localStorage fallback
+        const success = await deleteCase(caseId);
         
-        // Fallback to localStorage if Supabase fails
-        try {
-          // Get all cases from localStorage
-          const allCases = await getCases();
-          // Filter out the case to delete
-          const updatedCases = allCases.filter(c => c.id !== caseId);
-          // Save back to localStorage
-          localStorage.setItem('case-booking-cases', JSON.stringify(updatedCases));
-        } catch (localStorageError) {
-          console.error('localStorage fallback failed:', localStorageError);
+        if (success) {
+          // Reset to page 1 (case was deleted, so no need to expand)
+          setCurrentPage(1);
+        
+          // Add notification
+          addNotification({
+            title: 'Case Deleted',
+            message: `Case ${caseItem.caseReferenceNumber} has been successfully deleted by ${currentUser.name}`,
+            type: 'warning'
+          });
+          
+          // Show success popup
+          setSuccessMessage(`Case ${caseItem.caseReferenceNumber} has been successfully deleted`);
+          setShowSuccessPopup(true);
         }
-        
-        // Reload cases to update the UI
-        await loadCases();
-        
-        // Reset to page 1 (case was deleted, so no need to expand)
-        setCurrentPage(1);
-        
-        // Add notification
-        addNotification({
-          title: 'Case Deleted',
-          message: `Case ${caseItem.caseReferenceNumber} has been successfully deleted by ${currentUser.name}`,
-          type: 'warning'
-        });
-        
-        // Show success popup
-        setSuccessMessage(`Case ${caseItem.caseReferenceNumber} has been successfully deleted`);
-        setShowSuccessPopup(true);
       } catch (error) {
         console.error('Delete failed:', error);
         // Show error notification
@@ -905,7 +893,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     <div className="cases-list">
       <div className="cases-header">
         <h2>All Submitted Cases</h2>
-        <button onClick={loadCases} className="btn btn-outline-secondary btn-md refresh-button">
+        <button onClick={refreshCases} className="btn btn-outline-secondary btn-md refresh-button">
           Refresh
         </button>
       </div>

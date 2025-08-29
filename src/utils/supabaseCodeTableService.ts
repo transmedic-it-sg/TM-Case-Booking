@@ -236,6 +236,18 @@ export const addSupabaseCodeTableItem = async (
     }
     
     console.log(`✅ Successfully added ${item} to ${tableType}`);
+    
+    // Clear cache to ensure UI updates immediately
+    const cacheKey = normalizedCountry || 'Global';
+    codeTableCache.delete(cacheKey);
+    pendingRequests.delete(cacheKey);
+    
+    // Also clear department-specific cache if this is a departments table
+    if (tableType === 'departments') {
+      departmentCache.clear();
+      departmentPendingRequests.clear();
+    }
+    
     return true;
   } catch (error) {
     console.error('Error in addSupabaseCodeTableItem:', error);
@@ -272,6 +284,18 @@ export const updateSupabaseCodeTableItem = async (
     }
     
     console.log(`✅ Successfully updated ${oldItem} to ${newItem} in ${tableType}`);
+    
+    // Clear cache to ensure UI updates immediately
+    const cacheKey = normalizedCountry || 'Global';
+    codeTableCache.delete(cacheKey);
+    pendingRequests.delete(cacheKey);
+    
+    // Also clear department-specific cache if this is a departments table
+    if (tableType === 'departments') {
+      departmentCache.clear();
+      departmentPendingRequests.clear();
+    }
+    
     return true;
   } catch (error) {
     console.error('Error in updateSupabaseCodeTableItem:', error);
@@ -304,6 +328,18 @@ export const removeSupabaseCodeTableItem = async (
     }
     
     console.log(`✅ Successfully removed ${item} from ${tableType}`);
+    
+    // Clear cache to ensure UI updates immediately
+    const cacheKey = normalizedCountry || 'Global';
+    codeTableCache.delete(cacheKey);
+    pendingRequests.delete(cacheKey);
+    
+    // Also clear department-specific cache if this is a departments table
+    if (tableType === 'departments') {
+      departmentCache.clear();
+      departmentPendingRequests.clear();
+    }
+    
     return true;
   } catch (error) {
     console.error('Error in removeSupabaseCodeTableItem:', error);
@@ -334,3 +370,125 @@ function getTableDescription(tableType: string): string {
   };
   return descriptions[tableType] || `List of ${tableType}`;
 }
+
+/**
+ * Clear the code table cache for debugging
+ */
+export const clearCodeTableCache = (): void => {
+  codeTableCache.clear();
+  pendingRequests.clear();
+  console.log('🧹 Cleared code table cache');
+};
+
+/**
+ * Force refresh code tables by clearing cache and fetching fresh data
+ */
+export const forceRefreshCodeTables = async (country?: string): Promise<CodeTable[]> => {
+  const normalizedCountry = country ? normalizeCountryForDB(country) : null;
+  const cacheKey = normalizedCountry || 'Global';
+  
+  // Clear cache for this country
+  codeTableCache.delete(cacheKey);
+  pendingRequests.delete(cacheKey);
+  
+  console.log(`🔄 Force refreshing code tables for ${cacheKey}`);
+  return await getSupabaseCodeTables(country);
+};
+
+// Department-specific cache to prevent excessive requests
+const departmentCache = new Map<string, { data: string[]; timestamp: number }>();
+const departmentPendingRequests = new Map<string, Promise<string[]>>();
+
+/**
+ * Get departments for a country from code_tables (CORRECT METHOD)
+ * This should be used instead of the departments table
+ */
+export const getDepartmentsForCountry = async (country: string): Promise<string[]> => {
+  try {
+    const normalizedCountry = normalizeCountryForDB(country);
+    const cacheKey = `departments_${normalizedCountry}`;
+    
+    // Check cache first
+    const cached = departmentCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      return cached.data;
+    }
+    
+    // Check if there's already a pending request
+    const pendingRequest = departmentPendingRequests.get(cacheKey);
+    if (pendingRequest) {
+      return await pendingRequest;
+    }
+    
+    // Create a promise for the fetch operation
+    const fetchPromise = (async (): Promise<string[]> => {
+      const { data, error } = await supabase
+        .from('code_tables')
+        .select('display_name')
+        .eq('table_type', 'departments')
+        .in('country', ['Global', normalizedCountry])
+        .eq('is_active', true)
+        .order('display_name');
+
+      if (error) {
+        console.error('Error fetching departments from code_tables:', error);
+        throw error;
+      }
+
+      const departments = data?.map(item => item.display_name) || [];
+      
+      // Cache the result
+      departmentCache.set(cacheKey, {
+        data: departments,
+        timestamp: Date.now()
+      });
+      
+      return departments;
+    })();
+    
+    // Store the promise in pendingRequests
+    departmentPendingRequests.set(cacheKey, fetchPromise);
+    
+    try {
+      const result = await fetchPromise;
+      return result;
+    } finally {
+      // Clean up the pending request
+      departmentPendingRequests.delete(cacheKey);
+    }
+
+  } catch (error) {
+    console.error('Error in getDepartmentsForCountry:', error);
+    return [];
+  }
+};
+
+/**
+ * Get hospitals for a country from code_tables
+ */
+export const getHospitalsForCountry = async (country: string): Promise<string[]> => {
+  try {
+    console.log('🔍 Getting hospitals from code_tables for country:', country);
+    
+    const { data, error } = await supabase
+      .from('code_tables')
+      .select('display_name')
+      .eq('table_type', 'hospitals')
+      .eq('country', country)
+      .eq('is_active', true)
+      .order('display_name');
+
+    if (error) {
+      console.error('Error fetching hospitals from code_tables:', error);
+      throw error;
+    }
+
+    const hospitals = data?.map(item => item.display_name) || [];
+    console.log(`✅ Found ${hospitals.length} hospitals from code_tables for ${country}:`, hospitals);
+    return hospitals;
+
+  } catch (error) {
+    console.error('Error in getHospitalsForCountry:', error);
+    return [];
+  }
+};

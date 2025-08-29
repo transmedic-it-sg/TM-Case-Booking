@@ -24,7 +24,7 @@ export const useCaseActions = (caseItem: CaseBooking) => {
     }
 
     try {
-      const updateResult = caseService.updateCaseStatus(
+      const updateResult = await caseService.updateCaseStatus(
         caseItem.id,
         newStatus,
         details,

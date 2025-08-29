@@ -38,6 +38,16 @@ class DatabaseConnectionMonitor {
 
   constructor(options?: Partial<ConnectionMonitorOptions>) {
     this.options = { ...this.options, ...options };
+    // Run initial connection test
+    this.initialize();
+  }
+
+  private async initialize(): Promise<void> {
+    console.log('🔗 Initializing database connection monitor');
+    const isConnected = await this.testConnection();
+    this.status.isConnected = isConnected;
+    console.log(`🔗 Initial connection status: ${isConnected ? 'Connected' : 'Disconnected'}`);
+    this.notifyListeners();
   }
 
   public getStatus(): ConnectionStatus {
@@ -64,15 +74,27 @@ class DatabaseConnectionMonitor {
 
   public async testConnection(): Promise<boolean> {
     try {
-      // Simple test query to check connection
+      // Simple test query to check connection using a table that should always be accessible
       const { error } = await supabase
-        .from('departments')
+        .from('code_tables')
         .select('id')
         .limit(1);
 
       if (error) {
         console.error('Database connection test failed:', error);
-        return false;
+        // If code_tables fails, try a different approach
+        try {
+          // Test basic connectivity
+          const { error: pingError } = await supabase.rpc('ping');
+          if (pingError) {
+            console.error('Database ping failed:', pingError);
+            return false;
+          }
+          return true;
+        } catch (pingError) {
+          console.error('Database ping error:', pingError);
+          return false;
+        }
       }
 
       return true;

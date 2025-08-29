@@ -1,185 +1,144 @@
-import React, { useState, useEffect } from 'react';
-import { ConnectionStatus, connectionMonitor } from '../utils/databaseConnectionMonitor';
+import React, { useState } from 'react';
+import { testConnectionWithTimeout } from '../utils/databaseConnectivity';
 import '../assets/components/DatabaseConnection.css';
 
-interface DatabaseConnectionStatusProps {
-  onFallbackWarning?: () => void;
-}
+const DatabaseConnectionStatus: React.FC = () => {
+  const [isConnected, setIsConnected] = useState(true);
+  const [showPanel, setShowPanel] = useState(false);
+  const [lastChecked, setLastChecked] = useState<Date>(new Date());
+  const [isTesting, setIsTesting] = useState(false);
+  const [responseTime, setResponseTime] = useState<number | undefined>();
+  const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
-const DatabaseConnectionStatus: React.FC<DatabaseConnectionStatusProps> = ({ onFallbackWarning }) => {
-  const [status, setStatus] = useState<ConnectionStatus>(connectionMonitor.getStatus());
-  const [showModal, setShowModal] = useState(false);
-  const [showFallbackWarning, setShowFallbackWarning] = useState(false);
-
-  useEffect(() => {
-    const handleStatusChange = (newStatus: ConnectionStatus) => {
-      setStatus(newStatus);
-
-      // Show modal when connection is lost and retrying
-      if (!newStatus.isConnected && newStatus.isRetrying) {
-        setShowModal(true);
-      }
-
-      // Show fallback warning when fallback mode is activated
-      if (newStatus.fallbackMode && !showFallbackWarning) {
-        setShowFallbackWarning(true);
-        if (onFallbackWarning) {
-          onFallbackWarning();
-        }
-      }
-
-      // Hide modal when connection is restored
-      if (newStatus.isConnected && !newStatus.isRetrying) {
-        setShowModal(false);
-        setShowFallbackWarning(false);
-      }
-    };
-
-    connectionMonitor.addListener(handleStatusChange);
-
-    return () => {
-      connectionMonitor.removeListener(handleStatusChange);
-    };
-  }, [onFallbackWarning, showFallbackWarning]);
-
-  const handleRetry = async () => {
-    const reconnected = await connectionMonitor.forceReconnect();
-    if (reconnected) {
-      setShowModal(false);
-      setShowFallbackWarning(false);
+  const checkConnection = async () => {
+    setIsTesting(true);
+    try {
+      const result = await testConnectionWithTimeout(3000);
+      setIsConnected(result.status === 'connected');
+      setLastChecked(result.lastChecked);
+      setResponseTime(result.responseTime);
+      setErrorMessage(result.errorMessage);
+    } catch (error) {
+      setIsConnected(false);
+      setErrorMessage(error instanceof Error ? error.message : 'Connection failed');
     }
+    setIsTesting(false);
   };
 
-  const handleUseFallback = () => {
-    setShowModal(false);
-    setShowFallbackWarning(true);
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit' 
+    });
   };
 
-  const closeFallbackWarning = () => {
-    setShowFallbackWarning(false);
+  const handleTogglePanel = () => {
+    setShowPanel(!showPanel);
   };
 
-  // Connection retry modal
-  const retryModal = showModal ? (
-    <div className="db-connection-modal-overlay">
-      <div className="db-connection-modal">
-        <div className="db-connection-header">
-          <h3>Database Connection Lost</h3>
-        </div>
-        <div className="db-connection-icon">
-          {status.isRetrying ? (
-            <div className="retry-spinner"></div>
-          ) : (
-            <div className="error-icon">⚠️</div>
-          )}
-        </div>
-        
-        <div className="db-connection-content">
-          {status.isRetrying ? (
-            <>
-              <p>Attempting to reconnect to database...</p>
-              <p className="retry-info">
-                Retry {status.retryCount} of 3 - Next attempt in a few seconds
-              </p>
-            </>
-          ) : (
-            <>
-              <p>Connection to database has been lost.</p>
-              <p className="error-details">{status.lastError}</p>
-            </>
-          )}
-        </div>
+  const handleTestConnection = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    await checkConnection();
+  };
 
-        {!status.isRetrying && (
-          <div className="db-connection-actions">
-            <button 
-              className="btn-primary" 
-              onClick={handleRetry}
-              disabled={status.isRetrying}
-            >
-              Try Again
-            </button>
-            <button 
-              className="btn-secondary" 
-              onClick={handleUseFallback}
-            >
-              Work Offline
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  ) : null;
-
-  // Fallback warning modal
-  const fallbackWarningModal = showFallbackWarning ? (
-    <div className="db-connection-modal-overlay">
-      <div className="db-fallback-warning">
-        <div className="db-connection-header">
-          <h3>Working in Offline Mode</h3>
-          <button className="close-btn" onClick={closeFallbackWarning}>×</button>
-        </div>
-        <div className="warning-icon">⚠️</div>
-        <div className="warning-content">
-          <p><strong>You are now working in offline mode.</strong></p>
-          <p>Changes will be saved locally but will not sync to the server until connection is restored.</p>
-          <p>Please ensure you have a stable internet connection and try refreshing the page.</p>
-        </div>
-        <div className="warning-actions">
-          <button 
-            className="btn-primary" 
-            onClick={handleRetry}
-          >
-            Test Connection
-          </button>
-          <button 
-            className="btn-secondary" 
-            onClick={closeFallbackWarning}
-          >
-            Continue Offline
-          </button>
-        </div>
-      </div>
-    </div>
-  ) : null;
-
-  // Connection status panel matching header-stats.png design
-  const statusPanel = (
+  // Simple status indicator
+  const statusIndicator = (
     <div 
-      className={`db-connection-panel ${status.fallbackMode ? 'offline' : status.isConnected ? 'online' : 'error'}`}
-      onClick={() => setShowModal(true)}
-      title="Click to view database connection details"
+      className="db-status-indicator-simple"
+      onClick={handleTogglePanel}
+      title="Click for database connection details"
     >
-      <div className="db-panel-indicator">
-        {status.fallbackMode ? '📴' : status.isConnected ? '🟢' : '🔴'}
-      </div>
-      <div className="db-panel-text">
-        {status.fallbackMode ? (
-          <>
-            <span className="db-status">Disconnected</span>
-            <span className="db-environment">Offline Mode</span>
-          </>
-        ) : status.isConnected ? (
-          <>
-            <span className="db-status">Connected to:</span>
-            <span className="db-environment">Production DB</span>
-          </>
-        ) : (
-          <>
-            <span className="db-status">Connecting to:</span>
-            <span className="db-environment">Production DB</span>
-          </>
-        )}
-      </div>
+      <span className="db-dot">{isConnected ? '🟢' : '🔴'}</span>
+      <span className="db-text">
+        Connected to: {isConnected ? 'Custom DB' : 'Local Storage (Fallback)'}
+      </span>
     </div>
   );
 
+  // Detailed panel
+  const detailPanel = showPanel ? (
+    <div className="db-connection-detail-panel">
+      <div className="db-panel-header">
+        <div className="db-panel-title">
+          <span className="db-icon">{isConnected ? '🟢' : '🔴'}</span>
+          Database Connection Status
+        </div>
+        <button 
+          className="db-panel-close"
+          onClick={() => setShowPanel(false)}
+          title="Close"
+        >
+          ✕
+        </button>
+      </div>
+      
+      <div className="db-panel-content">
+        <div className="db-info-row">
+          <span className="db-label">Status:</span>
+          <span className={`db-value status-${isConnected ? 'connected' : 'disconnected'}`}>
+            {isConnected ? 'Database Connected' : 'Database Disconnected'}
+          </span>
+        </div>
+        
+        <div className="db-info-row">
+          <span className="db-label">Last Checked:</span>
+          <span className="db-value">{formatTime(lastChecked)}</span>
+        </div>
+        
+        <div className="db-info-row">
+          <span className="db-label">Data Source:</span>
+          <span className="db-value">{isConnected ? 'Custom DB' : 'Local Storage (Fallback)'}</span>
+        </div>
+        
+        {responseTime && (
+          <div className="db-info-row">
+            <span className="db-label">Response Time:</span>
+            <span className="db-value">{responseTime}ms</span>
+          </div>
+        )}
+        
+        {!isConnected && (
+          <div className="db-connection-info">
+            Connected to: Custom DB (undefined ms)
+          </div>
+        )}
+        
+        {errorMessage && (
+          <div className="db-error-message">
+            {errorMessage}
+          </div>
+        )}
+        
+        <div className="db-panel-actions">
+          <button 
+            className="db-test-button"
+            onClick={handleTestConnection}
+            disabled={isTesting}
+          >
+            {isTesting ? '🔄 Testing...' : '🔄 Test Connection'}
+          </button>
+        </div>
+        
+        <div className="db-status-indicators">
+          <div className={`db-indicator ${isConnected ? 'active' : ''}`}>
+            <div className="db-indicator-dot green"></div>
+            <span>Supabase</span>
+          </div>
+          <div className={`db-indicator ${!isConnected ? 'active' : ''}`}>
+            <div className="db-indicator-dot amber"></div>
+            <span>Local Storage (fallback)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <>
-      {statusPanel}
-      {retryModal}
-      {fallbackWarningModal}
-    </>
+    <div className="db-connection-wrapper">
+      {statusIndicator}
+      {detailPanel}
+    </div>
   );
 };
 

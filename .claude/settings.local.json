@@ -1,72 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git add:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm test:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)"
     ],
-    "deny": [],
-    "defaultMode": "acceptAll",
-    "ask": []
-  },
-  "enableAllProjectMcpServers": true,
-  "autoConnectMcpServers": true,
-  "mcpConnectionRetry": {
-    "enabled": true,
-    "maxRetries": 3,
-    "retryDelay": 2000
-  },
-  "enabledMcpjsonServers": [
-    "supabase"
-  ],
-  "mcpServers": {
-    "supabase": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@supabase/mcp-server-supabase@latest",
-        "--project-ref=aqzjzjygflmxkcbfnjbe"
-      ],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "sbp_5ccd2b2a4710ef9c0d1d5cb5262be9bf06380f26"
-      },
-      "autoRestart": true,
-      "healthCheck": {
-        "enabled": true,
-        "interval": 30000,
-        "timeout": 5000
-      }
-    }
-  },
-  "hooks": {
-    "startup": {
-      "enabled": true,
-      "script": ".claude/hooks/startup.sh",
-      "timeout": 60000
-    },
-    "mcpConnection": {
-      "enabled": true,
-      "onFailure": "retry",
-      "maxRetries": 3,
-      "retryDelay": 2000
-    }
-  },
-  "autoRunValidation": {
-    "enabled": true,
-    "script": "validate-mcp-startup.sh",
-    "runOnStartup": true,
-    "runOnMcpFailure": true
-  },
-  "suppressPrompts": {
-    "enabled": true,
-    "autoApprove": [
-      "mcp__*",
-      "Bash(*)",
-      "Read(*)",
-      "Write(*)",
-      "Edit(*)",
-      "Grep(*)",
-      "Glob(*)",
-      "WebFetch(*)",
-      "WebSearch(*)"
-    ]
+    "defaultMode": "bypassPermissions"
   }
 }

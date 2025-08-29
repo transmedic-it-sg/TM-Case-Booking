@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp:*)"
+    ],
+    "deny": [],
+    "defaultMode": "bypassPermissions",
+    "ask": []
+  },
+  "enableAllProjectMcpServers": true,
+  "autoConnectMcpServers": true,
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref=aqzjzjygflmxkcbfnjbe"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_5ccd2b2a4710ef9c0d1d5cb5262be9bf06380f26"
+      }
+    }
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": {},
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash",
+            "args": [
+              ".claude/hooks/startup.sh"
+            ],
+            "timeout": 60000
+          }
+        ]
+      }
+    ]
+  }
+}
