@@ -149,6 +149,11 @@ class SimplifiedOAuthManager {
    */
   async getAuthUrl(state?: string): Promise<string> {
     console.log(`[OAuth] Building auth URL for ${this.provider}`);
+    
+    if (!this.config.config.clientId || this.config.config.clientId.includes('your-') || this.config.config.clientId === '') {
+      throw new Error(`${this.provider} OAuth client ID is not properly configured. Please check your environment variables.`);
+    }
+    
     const params: Record<string, string> = {
       client_id: this.config.config.clientId,
       response_type: 'code',

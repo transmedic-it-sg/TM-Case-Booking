@@ -247,12 +247,11 @@
   
   .db-connection-detail-panel {
     position: fixed;
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    width: auto;
+    top: 60px;
+    left: 12px;
+    width: 280px;
     min-width: auto;
-    max-height: 85vh;
+    max-height: 70vh;
     overflow-y: auto;
     animation: slideInFromTop 0.3s ease-out;
     z-index: 60000;
@@ -365,13 +364,63 @@
   }
 }
 
+/* Mobile-specific database connection status */
+.db-status-indicator-mobile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.db-status-indicator-mobile:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.db-dot-mobile {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.db-connection-wrapper.mobile .db-connection-detail-panel.mobile-optimized {
+  position: fixed;
+  top: 56px;
+  left: 8px;
+  right: 8px;
+  max-width: 340px;
+  margin: 0 auto;
+  min-width: auto;
+  max-height: 60vh;
+  overflow-y: auto;
+  animation: slideInFromTop 0.3s ease-out;
+  z-index: 70000;
+  border-radius: 12px;
+}
+
 /* Extra small mobile devices */
 @media (max-width: 480px) {
   .db-connection-detail-panel {
-    top: 5px;
-    left: 5px;
-    right: 5px;
+    top: 55px;
+    left: 8px;
+    width: 260px;
     border-radius: 10px;
+  }
+  
+  .db-connection-wrapper.mobile .db-connection-detail-panel.mobile-optimized {
+    left: 4px;
+    right: 4px;
+    top: 52px;
+    max-width: none;
   }
   
   .db-panel-header {

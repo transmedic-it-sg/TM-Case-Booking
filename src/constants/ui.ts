@@ -228,8 +228,7 @@ export const getCountryEmoji = (countryName: string): string => {
 };
 
 export const getCountryCode = (countryName: string): string => {
-  const country = Object.values(COUNTRIES).find(c => c.name === countryName);
-  return country?.code || '';
+  return getLegacyCountryCode(countryName) || '';
 };
 
 export const formatFileSize = (bytes: number): string => {

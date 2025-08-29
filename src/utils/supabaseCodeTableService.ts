@@ -79,10 +79,15 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
       .eq('is_active', true)
       .order('table_type, display_name');
     
-    // Filter by country if specified, or get global data
+    // Apply country filter based on data model:
+    // - countries: Always Global
+    // - departments/hospitals: Country-specific only
     if (normalizedCountry) {
+      // For a specific country request, we need different logic per table type
+      // We'll filter in the grouping logic below since SQL doesn't easily support this
       query = query.in('country', ['Global', normalizedCountry]);
     } else {
+      // For global request, only get Global data (countries)
       query = query.eq('country', 'Global');
     }
     
@@ -98,9 +103,31 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
       return [];
     }
     
+    // Apply data model filtering rules:
+    // - countries: Always from Global
+    // - departments: Always from specific country (never Global)
+    // - hospitals: Always from specific country (never Global)
+    const filteredData = codeTableData.filter(item => {
+      if (item.table_type === 'countries') {
+        // Countries always come from Global
+        return item.country === 'Global';
+      } else if (item.table_type === 'departments' || item.table_type === 'hospitals') {
+        // Departments and hospitals are country-specific
+        if (normalizedCountry) {
+          // For a specific country, only return that country's data
+          return item.country === normalizedCountry;
+        } else {
+          // For global request, don't return departments/hospitals
+          return false;
+        }
+      }
+      // For any other table types, use existing logic
+      return normalizedCountry ? (item.country === 'Global' || item.country === normalizedCountry) : item.country === 'Global';
+    });
+    
     // Group by table_type and transform to CodeTable format
     const grouped: Record<string, SupabaseCodeTableItem[]> = {};
-    codeTableData.forEach(item => {
+    filteredData.forEach(item => {
       if (!grouped[item.table_type]) {
         grouped[item.table_type] = [];
       }
@@ -220,10 +247,27 @@ export const addSupabaseCodeTableItem = async (
   try {
     const normalizedCountry = normalizeCountryForDB(country);
     
+    // Apply correct data model logic:
+    // - countries: Always add to Global
+    // - departments/hospitals: Always add to specific country
+    let targetCountry: string;
+    if (tableType === 'countries') {
+      targetCountry = 'Global';
+    } else if (tableType === 'departments' || tableType === 'hospitals') {
+      if (!country) {
+        console.error('Country is required for departments/hospitals addition');
+        return false;
+      }
+      targetCountry = normalizedCountry;
+    } else {
+      // Fallback for other table types
+      targetCountry = country ? normalizedCountry : 'Global';
+    }
+    
     const { error } = await supabase
       .from('code_tables')
       .insert({
-        country: country ? normalizedCountry : 'Global',
+        country: targetCountry,
         table_type: tableType,
         code: item.toLowerCase().replace(/\s+/g, '_'),
         display_name: item,
@@ -268,13 +312,30 @@ export const updateSupabaseCodeTableItem = async (
     const normalizedCountry = normalizeCountryForDB(country);
     const oldCode = oldItem.toLowerCase().replace(/\s+/g, '_');
     
+    // Apply correct data model logic:
+    // - countries: Always update in Global
+    // - departments/hospitals: Always update in specific country
+    let targetCountry: string;
+    if (tableType === 'countries') {
+      targetCountry = 'Global';
+    } else if (tableType === 'departments' || tableType === 'hospitals') {
+      if (!country) {
+        console.error('Country is required for departments/hospitals update');
+        return false;
+      }
+      targetCountry = normalizedCountry;
+    } else {
+      // Fallback for other table types
+      targetCountry = country ? normalizedCountry : 'Global';
+    }
+    
     const { error } = await supabase
       .from('code_tables')
       .update({
         code: newItem.toLowerCase().replace(/\s+/g, '_'),
         display_name: newItem
       })
-      .eq('country', country ? normalizedCountry : 'Global')
+      .eq('country', targetCountry)
       .eq('table_type', tableType)
       .eq('code', oldCode);
       
@@ -315,15 +376,32 @@ export const removeSupabaseCodeTableItem = async (
     const normalizedCountry = normalizeCountryForDB(country);
     const code = item.toLowerCase().replace(/\s+/g, '_');
     
-    const { error } = await supabase
+    // Apply correct data model logic:
+    // - countries: Always delete from Global
+    // - departments/hospitals: Always delete from specific country
+    let targetCountry: string;
+    if (tableType === 'countries') {
+      targetCountry = 'Global';
+    } else if (tableType === 'departments' || tableType === 'hospitals') {
+      if (!country) {
+        console.error('Country is required for departments/hospitals deletion');
+        return false;
+      }
+      targetCountry = normalizedCountry;
+    } else {
+      // Fallback for other table types
+      targetCountry = country ? normalizedCountry : 'Global';
+    }
+    
+    const result = await supabase
       .from('code_tables')
       .update({ is_active: false })
-      .eq('country', country ? normalizedCountry : 'Global')
+      .eq('country', targetCountry)
       .eq('table_type', tableType)
       .eq('code', code);
-      
-    if (error) {
-      console.error('Error removing code table item:', error);
+    
+    if (result.error) {
+      console.error('Error removing code table item:', result.error);
       return false;
     }
     

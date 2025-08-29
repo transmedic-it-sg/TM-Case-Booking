@@ -4,7 +4,7 @@ import { getStatusColor, getNextResponsibleRole, formatDateTime } from './utils'
 import CaseActions from './CaseActions';
 import { getCurrentUser } from '../../utils/auth';
 import { getAllProcedureTypes } from '../../utils/storage';
-import { getDepartments, initializeCodeTables, getDepartmentNamesForUser } from '../../utils/codeTable';
+import { getDepartments, getDepartmentNamesForUser } from '../../utils/codeTable';
 import { useUserNames } from '../../hooks/useUserNames';
 import TimePicker from '../common/TimePicker';
 import { formatDate, getTodayForInput } from '../../utils/dateFormat';
@@ -157,13 +157,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
   }, []);
 
   // Initialize code tables only once when component mounts
-  useEffect(() => {
-    try {
-      initializeCodeTables();
-    } catch (error) {
-      console.error('Error initializing code tables:', error);
-    }
-  }, []);
+  // Code tables are now initialized at app level via Supabase service
+  // No need for component-level initialization
 
   // Memoize status history parsing to prevent expensive JSON.parse operations during rendering
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -306,7 +306,7 @@ export const addProcedureTypeToDepartment = async (
       .insert({
         department_id: departmentId,
         procedure_type: procedureType,
-        country,
+        country: dbCountry,
         is_active: true,
         is_hidden: false
       });
@@ -769,11 +769,12 @@ export const getImplantBoxes = async (country: string): Promise<string[]> => {
  */
 export const addSurgerySet = async (name: string, country: string): Promise<boolean> => {
   try {
+    const dbCountry = getCountryForDatabase(country);
     const { error } = await supabase
       .from('surgery_sets')
       .insert({
         name,
-        country,
+        country: dbCountry,
         is_active: true
       });
 
@@ -794,11 +795,12 @@ export const addSurgerySet = async (name: string, country: string): Promise<bool
  */
 export const addImplantBox = async (name: string, country: string): Promise<boolean> => {
   try {
+    const dbCountry = getCountryForDatabase(country);
     const { error } = await supabase
       .from('implant_boxes')
       .insert({
         name,
-        country,
+        country: dbCountry,
         is_active: true
       });
 

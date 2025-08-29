@@ -18,6 +18,7 @@ import {
   getCategorizedSetsForDepartment,
   saveCategorizedSetsForDepartment
 } from '../../utils/storage';
+import { getLegacyCountryCode } from '../../utils/countryUtils';
 // Removed cache versioning - was causing UX disruptions
 // import { forceCacheVersionUpdate } from '../../utils/cacheVersionService';
 import SetsList from './SetsList';
@@ -62,20 +63,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
   const activeCountryName = isAdmin && selectedCountry ? selectedCountry : userCountry;
   
   // Convert country name to country code for database operations
-  const getCountryCode = (country: string) => {
-    const countryMap: { [key: string]: string } = {
-      'Singapore': 'SG',
-      'Malaysia': 'MY',
-      'Philippines': 'PH',
-      'Indonesia': 'ID',
-      'Vietnam': 'VN',
-      'Hong Kong': 'HK',
-      'Thailand': 'TH'
-    };
-    return countryMap[country] || 'SG';
-  };
-  
-  const activeCountry = getCountryCode(activeCountryName || 'Singapore');
+  const activeCountry = getLegacyCountryCode(activeCountryName || 'Singapore') || 'SG';
   
   console.log(`EditSets - Country Info:`, {
     activeCountryName,
@@ -156,7 +144,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
         let departmentTypes: string[] = [];
         
         if (selectedDepartment) {
-          departmentTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountry);
+          departmentTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountryName);
           // console.log('🔍 Loaded department procedure types for', selectedDepartment, ':', departmentTypes);
           
           // If no department-specific types found, don't fall back to global types
@@ -168,7 +156,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
           }
         } else {
           // Only use global procedure types when no department is selected
-          departmentTypes = getAllProcedureTypes(activeCountry);
+          departmentTypes = getAllProcedureTypes(activeCountryName);
           // console.log('🔍 Loaded global procedure types:', departmentTypes);
         }
         
@@ -194,13 +182,13 @@ const EditSets: React.FC<EditSetsProps> = () => {
     };
     
     loadProcedureTypes();
-  }, [selectedDepartment, selectedProcedureType, activeCountry]);
+  }, [selectedDepartment, selectedProcedureType, activeCountry, activeCountryName]);
 
   // Initialize categorized sets for the selected department
   useEffect(() => {
     const loadSets = async () => {
       if (selectedDepartment) {
-        const storedSets = await getCategorizedSetsForDepartment(selectedDepartment, activeCountry);
+        const storedSets = await getCategorizedSetsForDepartment(selectedDepartment, activeCountryName);
         console.log('🔍 Loaded categorized sets for', selectedDepartment, ':', Object.keys(storedSets));
         if (Object.keys(storedSets).length > 0) {
           setCategorizedSets(storedSets);
@@ -212,7 +200,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
         }
       } else {
         // Fallback to global sets if no department selected
-        const storedSets = await getCategorizedSets(activeCountry);
+        const storedSets = await getCategorizedSets(activeCountryName);
         if (Object.keys(storedSets).length > 0) {
           setCategorizedSets(storedSets);
         } else {
@@ -224,7 +212,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
       }
     };
     loadSets();
-  }, [selectedDepartment, activeCountry]);
+  }, [selectedDepartment, activeCountry, activeCountryName]);
 
   // Ensure selectedProcedureType exists in categorizedSets
   useEffect(() => {
@@ -247,15 +235,15 @@ const EditSets: React.FC<EditSetsProps> = () => {
         try {
           if (selectedDepartment) {
             // Check if department has procedure types before trying to save
-            const procedureTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountry);
+            const procedureTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountryName);
             if (procedureTypes.length > 0) {
-              await saveCategorizedSetsForDepartment(selectedDepartment, categorizedSets, activeCountry);
+              await saveCategorizedSetsForDepartment(selectedDepartment, categorizedSets, activeCountryName);
               // console.log(`Categorized sets saved successfully for department: ${selectedDepartment}`);
             } else {
               console.log(`Skipping save for department ${selectedDepartment} - no procedure types found`);
             }
           } else {
-            await saveCategorizedSets(categorizedSets, activeCountry);
+            await saveCategorizedSets(categorizedSets, activeCountryName);
             // console.log('Categorized sets saved successfully to global storage');
           }
         } catch (error) {
@@ -274,7 +262,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
     }, 1000); // Wait 1 second before saving to reduce frequency
     
     return () => clearTimeout(timeoutId);
-  }, [categorizedSets, selectedDepartment, activeCountry]);
+  }, [categorizedSets, selectedDepartment, activeCountry, activeCountryName]);
 
   // Procedure Type Management Functions
   const handleAddProcedureType = () => {
@@ -308,11 +296,11 @@ const EditSets: React.FC<EditSetsProps> = () => {
           return;
         }
         
-        const success = await addProcedureTypeToDepartment(selectedDepartment, trimmedName, activeCountry);
+        const success = await addProcedureTypeToDepartment(selectedDepartment, trimmedName, activeCountryName);
         
         if (success) {
           // Update local state
-          const updatedTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountry);
+          const updatedTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountryName);
           setAllProcedureTypes(updatedTypes);
           
           // Initialize empty sets for the new procedure type
@@ -358,11 +346,11 @@ const EditSets: React.FC<EditSetsProps> = () => {
             return;
           }
           
-          const success = await removeProcedureTypeFromDepartment(selectedDepartment, typeName, activeCountry);
+          const success = await removeProcedureTypeFromDepartment(selectedDepartment, typeName, activeCountryName);
           
           if (success) {
             // Update local state for this department
-            const updatedTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountry);
+            const updatedTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountryName);
             setAllProcedureTypes(updatedTypes);
             
             // Remove from categorized sets for this department

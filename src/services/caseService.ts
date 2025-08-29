@@ -195,16 +195,6 @@ class CaseService {
         }
       });
 
-      // Create amended case
-      const updatedCase: CaseBooking = {
-        ...caseItem,
-        ...amendmentData,
-        isAmended: true,
-        amendedBy: currentUser.name,
-        amendedAt: new Date().toISOString(),
-        amendmentReason: amendmentData.amendmentReason
-      };
-
       // Use Supabase amendment service instead of saveCase
       try {
         await amendSupabaseCase(caseId, amendmentData, currentUser.name);

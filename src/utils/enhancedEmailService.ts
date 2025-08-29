@@ -11,6 +11,7 @@ import {
   getRecipientEmails,
   applyTemplateVariables 
 } from './emailNotificationService';
+import { normalizeCountry } from './countryUtils';
 import { createOAuthManager } from './simplifiedOAuth';
 
 interface EmailDebugInfo {
@@ -82,7 +83,7 @@ class EnhancedEmailService {
       this.addDebugLog('global-check', 'success', 'Email notifications are globally enabled');
 
       // Step 2: Get country name (convert from code if needed)
-      const fullCountryName = this.getFullCountryName(caseData.country);
+      const fullCountryName = normalizeCountry(caseData.country);
       this.addDebugLog('country-mapping', 'info', `Country mapping: ${caseData.country} -> ${fullCountryName}`);
 
       // Step 3: Get notification matrix
@@ -240,21 +241,6 @@ class EnhancedEmailService {
     }
   }
 
-  /**
-   * Convert country code to full country name
-   */
-  private getFullCountryName(countryCode: string): string {
-    const countryMap: { [key: string]: string } = {
-      'SG': 'Singapore',
-      'MY': 'Malaysia',
-      'PH': 'Philippines', 
-      'ID': 'Indonesia',
-      'VN': 'Vietnam',
-      'HK': 'Hong Kong',
-      'TH': 'Thailand'
-    };
-    return countryMap[countryCode] || countryCode;
-  }
 
   /**
    * Get available matrix countries for debugging

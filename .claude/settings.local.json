@@ -2,11 +2,16 @@
   "permissions": {
     "allow": [
       "Bash(npm run build:*)",
-      "Bash(npm test:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git checkout:*)"
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__list_edge_functions",
+      "mcp__supabase__get_advisors",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run:*)",
+      "mcp__supabase__list_tables",
+      "Bash(git add:*)"
     ],
-    "defaultMode": "bypassPermissions"
+    "deny": [],
+    "ask": []
   }
 }

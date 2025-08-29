@@ -488,7 +488,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
         <div className="country-selector">
           <div className="country-selector-header">
             <h3>🏥 Country Selection:</h3>
-            <p>Select the country to manage {selectedTable ? getTableOptions().find(opt => opt.value === selectedTable)?.label || selectedTable : 'tables'}</p>
+            <p>Select the country to manage</p>
           </div>
           
           <div className="dropdown-input-container" style={{ maxWidth: '300px' }}>

@@ -22,7 +22,7 @@ import SSOCallback from './components/SSOCallback';
 import { User, CaseBooking } from './types';
 import { getCurrentUser, logout } from './utils/auth';
 import { hasPermission, PERMISSION_ACTIONS, initializePermissions } from './utils/permissions';
-import { initializeCodeTables } from './utils/codeTable';
+import { getSupabaseCodeTables } from './utils/supabaseCodeTableService';
 import { auditLogout } from './utils/auditService';
 import { SoundProvider, useSound } from './contexts/SoundContext';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
@@ -181,7 +181,8 @@ const AppContent: React.FC = () => {
     // Initialize code tables and permissions
     const initialize = async () => {
       try {
-        initializeCodeTables();
+        // Initialize Supabase code tables instead of legacy localStorage
+        await getSupabaseCodeTables();
         // Force refresh permissions on app startup to handle browser refresh scenarios
         await initializePermissions(true);
         

@@ -471,7 +471,7 @@
     padding: 2px 4px !important;
     min-height: 20px !important;
     min-width: 20px !important;
-    border-radius: 3px !important;
+    border-radius: 50% !important;
   }
   
   /* Empty state mobile */

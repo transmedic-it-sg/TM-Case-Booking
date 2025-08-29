@@ -20,7 +20,7 @@ import { amendCase, processCaseOrder } from '../../utils/storage'; // Keep these
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
   const { modal, closeModal, showConfirm, showConfirmWithCustomButtons } = useModal();
-  const { cases, loading, error, refreshCases, updateCaseStatus: updateCaseStatusHook, deleteCase } = useCases();
+  const { cases, refreshCases, updateCaseStatus: updateCaseStatusHook, deleteCase } = useCases();
   const [filteredCases, setFilteredCases] = useState<CaseBooking[]>([]);
   const [availableSubmitters, setAvailableSubmitters] = useState<string[]>([]);
   const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);
@@ -195,7 +195,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
     
     setFilteredCases(filteredResults);
-  }, [cases, filters]);
+  }, [cases, filters, filterCases]);
 
   // Handle highlighted case from calendar
   useEffect(() => {
