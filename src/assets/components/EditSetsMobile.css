@@ -148,14 +148,18 @@
     right: -6px !important;
     width: 16px !important;
     height: 16px !important;
+    min-width: 16px !important;
+    min-height: 16px !important;
     border-radius: 50% !important;
     background: #ef4444 !important;
     color: white !important;
     border: none !important;
     font-size: 8px !important;
+    line-height: 1 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    padding: 0 !important;
     cursor: pointer;
     z-index: 2;
   }
@@ -531,7 +535,9 @@
   
   .procedure-tab {
     font-size: 9px !important;
-    padding: 5px 8px !important;
+    padding: 4px 6px !important;
+    min-height: 24px !important;
+    max-width: 100px !important;
   }
   
   .set-item {

@@ -7,6 +7,8 @@ export interface ToastData {
   message: string;
   type: 'success' | 'error' | 'warning' | 'info';
   duration?: number;
+  caseId?: string;
+  caseReferenceNumber?: string;
   action?: {
     label: string;
     handler: () => void;
@@ -16,11 +18,15 @@ export interface ToastData {
 interface ToastNotificationProps {
   toast: ToastData;
   onClose: (id: string) => void;
+  onCaseClick?: (caseId: string, caseReferenceNumber: string) => void;
 }
 
-const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onClose }) => {
+const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onClose, onCaseClick }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [startX, setStartX] = useState<number | null>(null);
+  const [currentX, setCurrentX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const { playSound } = useSound();
 
   const handleClose = useCallback(() => {
@@ -29,6 +35,79 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onClose })
       onClose(toast.id);
     }, 300); // Animation duration
   }, [onClose, toast.id]);
+
+  const handleCaseClick = useCallback(() => {
+    if (toast.caseId && toast.caseReferenceNumber && onCaseClick) {
+      onCaseClick(toast.caseId, toast.caseReferenceNumber);
+      handleClose();
+    }
+  }, [toast.caseId, toast.caseReferenceNumber, onCaseClick, handleClose]);
+
+  // Touch/drag handlers for swipe-to-dismiss
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (startX === null || !isDragging) return;
+    const touchX = e.touches[0].clientX;
+    const diffX = touchX - startX;
+    
+    // Only allow rightward swipe
+    if (diffX > 0) {
+      setCurrentX(diffX);
+    }
+  }, [startX, isDragging]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (currentX > 100) { // Swipe threshold
+      handleClose();
+    } else {
+      setCurrentX(0);
+    }
+    setStartX(null);
+    setIsDragging(false);
+  }, [currentX, handleClose]);
+
+  // Mouse drag handlers for desktop
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    setStartX(e.clientX);
+    setIsDragging(true);
+    e.preventDefault();
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (startX === null || !isDragging) return;
+    const diffX = e.clientX - startX;
+    
+    // Only allow rightward drag
+    if (diffX > 0) {
+      setCurrentX(diffX);
+    }
+  }, [startX, isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    if (currentX > 100) { // Drag threshold
+      handleClose();
+    } else {
+      setCurrentX(0);
+    }
+    setStartX(null);
+    setIsDragging(false);
+  }, [currentX, handleClose]);
+
+  // Setup mouse event listeners
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   useEffect(() => {
     // Trigger entrance animation
@@ -79,9 +158,20 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onClose })
 
   const duration = toast.duration || 5000;
 
+  const isClickableCase = toast.caseId && toast.caseReferenceNumber;
+
   return (
     <div
-      className={`toast-notification toast-${toast.type} ${isVisible ? 'toast-visible' : ''} ${isLeaving ? 'toast-leaving' : ''}`}
+      className={`toast-notification toast-${toast.type} ${isVisible ? 'toast-visible' : ''} ${isLeaving ? 'toast-leaving' : ''} ${isClickableCase ? 'toast-clickable' : ''}`}
+      style={{
+        transform: `translateX(${currentX}px)`,
+        opacity: Math.max(0.3, 1 - currentX / 200)
+      }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onMouseDown={handleMouseDown}
+      onClick={isClickableCase ? handleCaseClick : undefined}
     >
       <div className="toast-content">
         <div className="toast-icon">
@@ -89,12 +179,18 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onClose })
         </div>
         <div className="toast-text">
           <div className="toast-title">{toast.title}</div>
-          <div className="toast-message">{toast.message}</div>
+          <div className="toast-message">
+            {toast.message}
+            {isClickableCase && (
+              <div className="toast-case-hint">Click to view case details</div>
+            )}
+          </div>
         </div>
         {toast.action && (
           <button
             className="toast-action"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               toast.action!.handler();
               handleClose();
             }}
@@ -104,11 +200,17 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onClose })
         )}
         <button
           className="toast-close"
-          onClick={handleClose}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClose();
+          }}
           title="Close notification"
         >
           ✕
         </button>
+        {isClickableCase && (
+          <div className="toast-swipe-hint">← Swipe right to dismiss</div>
+        )}
       </div>
       <div 
         className="toast-progress"

@@ -288,6 +288,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
     <div 
       id={`case-${caseItem.id}`}
       className="case-card"
+      data-case-id={caseItem.id}
       style={{ '--status-color': getStatusColor(caseItem.status) } as React.CSSProperties}
     >
       <div className="case-summary" onClick={() => onToggleExpansion(caseItem.id)}>
@@ -297,7 +298,12 @@ const CaseCard: React.FC<CaseCardProps> = ({
             <strong>{getUserName(caseItem.submittedBy)}</strong>
             <span className="case-reference">#{caseItem.caseReferenceNumber}</span>
             <div className="case-status">
-              <div className="status-text">{caseItem.status}</div>
+              <div 
+                className="status-text"
+                style={{ backgroundColor: getStatusColor(caseItem.status) }}
+              >
+                {caseItem.status}
+              </div>
               {getNextResponsibleRole(caseItem.status) && (
                 <div className="pending-indicator">
                   <span className="pending-icon">⏳</span>
@@ -435,7 +441,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 <strong>Prepared at:</strong> {formatDateTime(caseItem.processedAt)}
               </div>
             )}
-            {caseItem.statusHistory && caseItem.statusHistory.length > 0 && caseItem.status !== 'Case Booked' && (
+            {caseItem.statusHistory && caseItem.statusHistory.length > 1 && (
               <div className="detail-item full-width">
                 <div className="status-history-header-container">
                   <strong>Status Updates:</strong>

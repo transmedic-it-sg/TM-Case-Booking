@@ -51,7 +51,7 @@ const DatabaseConnectionStatus: React.FC = () => {
     >
       <span className="db-dot">{isConnected ? '🟢' : '🔴'}</span>
       <span className="db-text">
-        Connected to: {isConnected ? 'Custom DB' : 'Local Storage (Fallback)'}
+        Connected to: {isConnected ? 'Production DB' : 'Local Storage (Fallback)'}
       </span>
     </div>
   );
@@ -88,7 +88,7 @@ const DatabaseConnectionStatus: React.FC = () => {
         
         <div className="db-info-row">
           <span className="db-label">Data Source:</span>
-          <span className="db-value">{isConnected ? 'Custom DB' : 'Local Storage (Fallback)'}</span>
+          <span className="db-value">{isConnected ? 'Production DB' : 'Local Storage (Fallback)'}</span>
         </div>
         
         {responseTime && (
@@ -100,7 +100,7 @@ const DatabaseConnectionStatus: React.FC = () => {
         
         {!isConnected && (
           <div className="db-connection-info">
-            Connected to: Custom DB (undefined ms)
+            Connected to: Production DB (undefined ms)
           </div>
         )}
         

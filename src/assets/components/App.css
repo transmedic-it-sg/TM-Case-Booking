@@ -4901,6 +4901,70 @@ textarea:focus {
   to { width: 0%; }
 }
 
+/* Clickable case notification styles */
+.toast-clickable {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.toast-clickable:hover {
+  box-shadow: var(--shadow-large), 0 4px 20px rgba(0, 123, 255, 0.15);
+  transform: translateX(-2px);
+}
+
+.toast-case-hint {
+  font-size: 11px;
+  color: #007bff;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.toast-swipe-hint {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: #999;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Mobile specific styles for touch interactions */
+@media (max-width: 768px) {
+  .toast-notification {
+    min-width: 280px;
+    max-width: calc(100vw - 32px);
+  }
+  
+  .toast-clickable {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .toast-swipe-hint {
+    display: block;
+  }
+}
+
+@media (min-width: 769px) {
+  .toast-swipe-hint {
+    display: none;
+  }
+}
+
+/* Case highlight animation */
+@keyframes highlight-case {
+  0%, 100% { 
+    background-color: transparent; 
+    transform: scale(1);
+  }
+  50% { 
+    background-color: rgba(0, 123, 255, 0.1); 
+    transform: scale(1.02);
+  }
+}
+
 /* Toast type specific styles */
 .toast-success {
   border-left: 4px solid #28a745;
@@ -6931,14 +6995,18 @@ textarea:focus {
   border-radius: 50%;
   width: 20px;
   height: 20px;
+  min-width: 20px;
+  min-height: 20px;
   font-size: 10px;
   font-weight: bold;
+  line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
   z-index: 2;
+  padding: 0;
 }
 
 .delete-procedure-type-button:hover {

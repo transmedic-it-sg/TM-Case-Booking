@@ -10,6 +10,7 @@ interface DataValidationResult {
   isValid: boolean;
   issues: string[];
   recommendations: string[];
+  crossCountryContamination?: string[];
 }
 
 interface DatabaseHealthStatus {
@@ -20,6 +21,18 @@ interface DatabaseHealthStatus {
   hasProcedureTypes: boolean;
   departmentCoverage: { [country: string]: number };
   hospitalCoverage: { [country: string]: number };
+  dataIntegrityIssues: string[];
+}
+
+interface CrossCountryContaminationCheck {
+  hasContamination: boolean;
+  contaminationDetails: {
+    departments: { country: string; contaminatedWith: string[] }[];
+    hospitals: { country: string; contaminatedWith: string[] }[];
+    cases: { country: string; contaminatedWith: string[] }[];
+  };
+  severity: 'none' | 'low' | 'medium' | 'high';
+  recommendations: string[];
 }
 
 export class DataValidationService {
@@ -45,7 +58,8 @@ export class DataValidationService {
           hasHospitals: false,
           hasProcedureTypes: false,
           departmentCoverage: {},
-          hospitalCoverage: {}
+          hospitalCoverage: {},
+          dataIntegrityIssues: ['code_tables table does not exist']
         };
       }
 
@@ -77,6 +91,15 @@ export class DataValidationService {
         hospitalCoverage[hosp.country] = (hospitalCoverage[hosp.country] || 0) + 1;
       });
 
+      // Check for data integrity issues
+      const dataIntegrityIssues: string[] = [];
+      
+      // Check for potential cross-country contamination
+      const contaminationCheck = await DataValidationService.checkCrossCountryContamination();
+      if (contaminationCheck.hasContamination) {
+        dataIntegrityIssues.push(`Cross-country data contamination detected (${contaminationCheck.severity} severity)`);
+      }
+
       const status: DatabaseHealthStatus = {
         tablesExist: true,
         hasCountries: countries.length > 0,
@@ -84,7 +107,8 @@ export class DataValidationService {
         hasHospitals: hospitals.length > 0,
         hasProcedureTypes: procedureTypes.length > 0,
         departmentCoverage,
-        hospitalCoverage
+        hospitalCoverage,
+        dataIntegrityIssues
       };
 
       console.log('✅ Database health check completed:', status);
@@ -386,6 +410,224 @@ export class DataValidationService {
 
     } catch (error) {
       console.error('❌ System validation failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * CRITICAL: Check for cross-country data contamination
+   * This prevents users from seeing data from other countries due to caching issues,
+   * database inconsistencies, or programming errors
+   */
+  static async checkCrossCountryContamination(): Promise<CrossCountryContaminationCheck> {
+    try {
+      console.log('🔍 Checking for cross-country data contamination...');
+
+      const contaminationDetails = {
+        departments: [] as { country: string; contaminatedWith: string[] }[],
+        hospitals: [] as { country: string; contaminatedWith: string[] }[],
+        cases: [] as { country: string; contaminatedWith: string[] }[]
+      };
+
+      // 1. Check department contamination
+      // Find departments that appear in multiple countries (except Global fallbacks)
+      const { data: allDepartments, error: deptError } = await supabase
+        .from('code_tables')
+        .select('display_name, country')
+        .eq('table_type', 'departments')
+        .eq('is_active', true)
+        .neq('country', 'Global'); // Exclude Global fallbacks
+
+      if (deptError) {
+        console.error('Error checking department contamination:', deptError);
+        throw deptError;
+      }
+
+      // Group departments by name to find cross-country duplicates
+      const deptsByName = new Map<string, string[]>();
+      (allDepartments || []).forEach(dept => {
+        if (!deptsByName.has(dept.display_name)) {
+          deptsByName.set(dept.display_name, []);
+        }
+        deptsByName.get(dept.display_name)!.push(dept.country);
+      });
+
+      // Identify contamination
+      deptsByName.forEach((countries, deptName) => {
+        if (countries.length > 1) {
+          countries.forEach(country => {
+            const otherCountries = countries.filter(c => c !== country);
+            const existingEntry = contaminationDetails.departments.find(d => d.country === country);
+            if (existingEntry) {
+              existingEntry.contaminatedWith.push(...otherCountries.map(c => `${deptName} (from ${c})`));
+            } else {
+              contaminationDetails.departments.push({
+                country,
+                contaminatedWith: otherCountries.map(c => `${deptName} (from ${c})`)
+              });
+            }
+          });
+        }
+      });
+
+      // 2. Check hospital contamination
+      const { data: allHospitals, error: hospError } = await supabase
+        .from('code_tables')
+        .select('display_name, country')
+        .eq('table_type', 'hospitals')
+        .eq('is_active', true)
+        .neq('country', 'Global');
+
+      if (hospError) {
+        console.error('Error checking hospital contamination:', hospError);
+        throw hospError;
+      }
+
+      const hospsByName = new Map<string, string[]>();
+      (allHospitals || []).forEach(hosp => {
+        if (!hospsByName.has(hosp.display_name)) {
+          hospsByName.set(hosp.display_name, []);
+        }
+        hospsByName.get(hosp.display_name)!.push(hosp.country);
+      });
+
+      hospsByName.forEach((countries, hospName) => {
+        if (countries.length > 1) {
+          countries.forEach(country => {
+            const otherCountries = countries.filter(c => c !== country);
+            const existingEntry = contaminationDetails.hospitals.find(h => h.country === country);
+            if (existingEntry) {
+              existingEntry.contaminatedWith.push(...otherCountries.map(c => `${hospName} (from ${c})`));
+            } else {
+              contaminationDetails.hospitals.push({
+                country,
+                contaminatedWith: otherCountries.map(c => `${hospName} (from ${c})`)
+              });
+            }
+          });
+        }
+      });
+
+      // 3. Check case booking contamination
+      // Look for cases where department/hospital doesn't match the case's country
+      const { data: casesWithDetails, error: casesError } = await supabase
+        .from('case_bookings')
+        .select('id, country, department, hospital_name')
+        .limit(500); // Sample recent cases to avoid performance issues
+
+      if (casesError) {
+        console.error('Error checking case contamination:', casesError);
+        throw casesError;
+      }
+
+      // Check each case for cross-country contamination
+      for (const caseItem of casesWithDetails || []) {
+        const contaminationIssues: string[] = [];
+
+        // Check if department exists in the case's country
+        const { data: deptCheck } = await supabase
+          .from('code_tables')
+          .select('display_name')
+          .eq('table_type', 'departments')
+          .eq('country', caseItem.country)
+          .eq('display_name', caseItem.department)
+          .eq('is_active', true);
+
+        if (!deptCheck || deptCheck.length === 0) {
+          // Check if department exists in other countries
+          const { data: deptInOtherCountries } = await supabase
+            .from('code_tables')
+            .select('country')
+            .eq('table_type', 'departments')
+            .eq('display_name', caseItem.department)
+            .eq('is_active', true)
+            .neq('country', caseItem.country);
+
+          if (deptInOtherCountries && deptInOtherCountries.length > 0) {
+            contaminationIssues.push(`Department ${caseItem.department} from ${deptInOtherCountries.map(d => d.country).join(', ')}`);
+          }
+        }
+
+        // Check if hospital exists in the case's country
+        if (caseItem.hospital_name) {
+          const { data: hospCheck } = await supabase
+            .from('code_tables')
+            .select('display_name')
+            .eq('table_type', 'hospitals')
+            .eq('country', caseItem.country)
+            .eq('display_name', caseItem.hospital_name)
+            .eq('is_active', true);
+
+          if (!hospCheck || hospCheck.length === 0) {
+            const { data: hospInOtherCountries } = await supabase
+              .from('code_tables')
+              .select('country')
+              .eq('table_type', 'hospitals')
+              .eq('display_name', caseItem.hospital_name)
+              .eq('is_active', true)
+              .neq('country', caseItem.country);
+
+            if (hospInOtherCountries && hospInOtherCountries.length > 0) {
+              contaminationIssues.push(`Hospital ${caseItem.hospital_name} from ${hospInOtherCountries.map(h => h.country).join(', ')}`);
+            }
+          }
+        }
+
+        if (contaminationIssues.length > 0) {
+          const existingEntry = contaminationDetails.cases.find(c => c.country === caseItem.country);
+          if (existingEntry) {
+            existingEntry.contaminatedWith.push(...contaminationIssues);
+          } else {
+            contaminationDetails.cases.push({
+              country: caseItem.country,
+              contaminatedWith: contaminationIssues
+            });
+          }
+        }
+      }
+
+      // Calculate severity
+      const totalContamination = 
+        contaminationDetails.departments.length +
+        contaminationDetails.hospitals.length +
+        contaminationDetails.cases.length;
+
+      let severity: 'none' | 'low' | 'medium' | 'high' = 'none';
+      if (totalContamination > 0) {
+        if (contaminationDetails.cases.length > 0) {
+          severity = 'high'; // Case contamination is critical
+        } else if (totalContamination > 5) {
+          severity = 'medium';
+        } else {
+          severity = 'low';
+        }
+      }
+
+      // Generate recommendations
+      const recommendations: string[] = [];
+      if (totalContamination > 0) {
+        recommendations.push('Review and clean up duplicate entries across countries');
+        recommendations.push('Implement stricter validation in data entry forms');
+        recommendations.push('Add country-specific data validation in the application');
+        
+        if (contaminationDetails.cases.length > 0) {
+          recommendations.push('URGENT: Review case bookings for data integrity issues');
+          recommendations.push('Consider implementing case data migration to fix contamination');
+        }
+      }
+
+      const result: CrossCountryContaminationCheck = {
+        hasContamination: totalContamination > 0,
+        contaminationDetails,
+        severity,
+        recommendations
+      };
+
+      console.log('✅ Cross-country contamination check completed:', result);
+      return result;
+
+    } catch (error) {
+      console.error('❌ Cross-country contamination check failed:', error);
       throw error;
     }
   }

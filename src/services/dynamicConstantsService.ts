@@ -137,14 +137,8 @@ class DynamicConstantsService {
         return fallbackData;
       }
 
-      // Ultimate fallback
-      return [
-        'Anesthesiology', 'Cardiology', 'Dermatology', 'Emergency', 'Endocrinology',
-        'ENT', 'Gastroenterology', 'General Surgery', 'Gynecology', 'Nephrology',
-        'Neurosurgery', 'Oncology', 'Ophthalmology', 'Orthopedics', 'Pathology',
-        'Pediatrics', 'Physical Medicine', 'Plastic Surgery', 'Psychiatry',
-        'Pulmonology', 'Radiology', 'Rheumatology', 'Urology'
-      ];
+      // Return empty array instead of false fallback data
+      return [];
     }
   }
 
@@ -196,19 +190,8 @@ class DynamicConstantsService {
         return fallbackData;
       }
 
-      // Ultimate fallback based on department
-      if (department?.toLowerCase().includes('cardiology')) {
-        return ['Cardiac Catheterization', 'Diagnostic Cardiology', 'Heart Surgery'];
-      }
-      if (department?.toLowerCase().includes('orthopedics')) {
-        return ['Joint Replacement', 'Arthroscopy', 'Fracture Repair', 'Spinal Surgery'];
-      }
-      
-      return [
-        'Arthroscopy', 'Brain Surgery', 'Cardiac Catheterization', 'Diagnostic Procedure',
-        'Emergency Surgery', 'Endoscopy', 'General Procedure', 'Joint Replacement',
-        'Spinal Surgery', 'Therapeutic Procedure'
-      ];
+      // Return empty array instead of false fallback data
+      return [];
     }
   }
 
@@ -261,11 +244,8 @@ class DynamicConstantsService {
         return fallbackData;
       }
 
-      // Ultimate fallback
-      return [
-        'Basic Surgery Set', 'Advanced Surgery Set', 'Cardiac Surgery Set',
-        'Orthopedic Surgery Set', 'Neurosurgery Set', 'Emergency Surgery Set'
-      ];
+      // Return empty array instead of false fallback data
+      return [];
     }
   }
 
@@ -318,11 +298,8 @@ class DynamicConstantsService {
         return fallbackData;
       }
 
-      // Ultimate fallback
-      return [
-        'Basic Implant Box', 'Cardiac Implant Box', 'Orthopedic Implant Box',
-        'Spinal Implant Box', 'Joint Implant Box', 'Emergency Implant Box'
-      ];
+      // Return empty array instead of false fallback data
+      return [];
     }
   }
 
@@ -421,8 +398,8 @@ class DynamicConstantsService {
         return fallbackData;
       }
 
-      // Ultimate fallback
-      return ['Singapore', 'Malaysia', 'Philippines', 'Indonesia', 'Vietnam', 'Hong Kong', 'Thailand'];
+      // Return empty array instead of false fallback data
+      return [];
     }
   }
 
@@ -466,20 +443,8 @@ class DynamicConstantsService {
         return fallbackData;
       }
 
-      // Ultimate fallback
-      return [
-        { code: 'case_booked', display_name: 'Case Booked', table_type: 'case_statuses', is_active: true },
-        { code: 'order_preparation', display_name: 'Order Preparation', table_type: 'case_statuses', is_active: true },
-        { code: 'order_prepared', display_name: 'Order Prepared', table_type: 'case_statuses', is_active: true },
-        { code: 'pending_delivery_hospital', display_name: 'Pending Delivery (Hospital)', table_type: 'case_statuses', is_active: true },
-        { code: 'delivered_hospital', display_name: 'Delivered (Hospital)', table_type: 'case_statuses', is_active: true },
-        { code: 'case_completed', display_name: 'Case Completed', table_type: 'case_statuses', is_active: true },
-        { code: 'pending_delivery_office', display_name: 'Pending Delivery (Office)', table_type: 'case_statuses', is_active: true },
-        { code: 'delivered_office', display_name: 'Delivered (Office)', table_type: 'case_statuses', is_active: true },
-        { code: 'to_be_billed', display_name: 'To be billed', table_type: 'case_statuses', is_active: true },
-        { code: 'case_closed', display_name: 'Case Closed', table_type: 'case_statuses', is_active: true },
-        { code: 'case_cancelled', display_name: 'Case Cancelled', table_type: 'case_statuses', is_active: true }
-      ];
+      // Return empty array instead of false fallback data
+      return [];
     }
   }
 

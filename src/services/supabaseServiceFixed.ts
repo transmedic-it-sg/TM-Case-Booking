@@ -359,25 +359,93 @@ export const userOperations = {
 };
 
 export const lookupOperations = {
-  // Get departments for a specific country
-  getDepartments: async (country?: string): Promise<CaseOperationsResult<string[]>> => {
+  // Get countries - ALWAYS from Global only (consistent data model)
+  getCountries: async (): Promise<CaseOperationsResult<any[]>> => {
     return await ErrorHandler.executeWithRetry(
       async () => {
-        let query = supabase
+        const { data, error } = await supabase
+          .from('code_tables')
+          .select('display_name, code')
+          .eq('table_type', 'countries')
+          .eq('country', 'Global') // Countries are ALWAYS Global
+          .eq('is_active', true)
+          .order('display_name');
+
+        if (error) throw error;
+        
+        return data?.map(item => ({
+          name: item.display_name,
+          code: item.code || item.display_name.substring(0, 2).toUpperCase()
+        })) || [];
+      },
+      {
+        operation: 'Get Countries',
+        userMessage: 'Failed to fetch countries',
+        showToast: false,
+        showNotification: false,
+        includeDetails: true,
+        autoRetry: true,
+        maxRetries: 3
+      }
+    );
+  },
+
+  // Get case statuses - Global only (consistent data model)
+  getCaseStatuses: async (): Promise<CaseOperationsResult<any[]>> => {
+    return await ErrorHandler.executeWithRetry(
+      async () => {
+        const { data, error } = await supabase
+          .from('code_tables')
+          .select('*')
+          .eq('table_type', 'case_statuses')
+          .eq('country', 'Global') // Case statuses are ALWAYS Global
+          .eq('is_active', true)
+          .order('display_name');
+
+        if (error) throw error;
+        
+        return data?.map(item => ({
+          status_key: item.code,
+          display_name: item.display_name,
+          color: '#6c757d', // Default color - should be enhanced with metadata
+          icon: 'circle',    // Default icon - should be enhanced with metadata  
+          sort_order: 1      // Default order - should be enhanced with metadata
+        })) || [];
+      },
+      {
+        operation: 'Get Case Statuses',
+        userMessage: 'Failed to fetch case statuses',
+        showToast: false,
+        showNotification: false,
+        includeDetails: true,
+        autoRetry: true,
+        maxRetries: 3
+      }
+    );
+  },
+
+  // Get departments - ALWAYS country-specific, NEVER Global
+  getDepartments: async (country?: string): Promise<CaseOperationsResult<any[]>> => {
+    return await ErrorHandler.executeWithRetry(
+      async () => {
+        if (!country) {
+          // If no country provided, return empty array (departments are country-specific)
+          return [];
+        }
+
+        const { data, error } = await supabase
           .from('code_tables')
           .select('display_name')
           .eq('table_type', 'departments')
-          .eq('enabled', true)
+          .eq('country', country) // Departments are ONLY country-specific
+          .eq('is_active', true)
           .order('display_name');
 
-        if (country) {
-          query = query.eq('country', country);
-        }
-
-        const { data, error } = await query;
         if (error) throw error;
         
-        return data?.map(item => item.display_name) || [];
+        return data?.map(item => ({
+          name: item.display_name
+        })) || [];
       },
       {
         operation: 'Get Departments',
@@ -391,25 +459,28 @@ export const lookupOperations = {
     );
   },
 
-  // Get hospitals for a specific country
-  getHospitals: async (country?: string): Promise<CaseOperationsResult<string[]>> => {
+  // Get hospitals - ALWAYS country-specific, NEVER Global  
+  getHospitals: async (country?: string): Promise<CaseOperationsResult<any[]>> => {
     return await ErrorHandler.executeWithRetry(
       async () => {
-        let query = supabase
+        if (!country) {
+          // If no country provided, return empty array (hospitals are country-specific)
+          return [];
+        }
+
+        const { data, error } = await supabase
           .from('code_tables')
           .select('display_name')
           .eq('table_type', 'hospitals')
-          .eq('enabled', true)
+          .eq('country', country) // Hospitals are ONLY country-specific
+          .eq('is_active', true)
           .order('display_name');
 
-        if (country) {
-          query = query.eq('country', country);
-        }
-
-        const { data, error } = await query;
         if (error) throw error;
         
-        return data?.map(item => item.display_name) || [];
+        return data?.map(item => ({
+          name: item.display_name
+        })) || [];
       },
       {
         operation: 'Get Hospitals',
@@ -423,7 +494,7 @@ export const lookupOperations = {
     );
   },
 
-  // Get procedure types for a specific country
+  // Get procedure types - Country-specific with Global fallback (consistent data model)
   getProcedureTypes: async (country?: string, includeHidden = false): Promise<CaseOperationsResult<any[]>> => {
     return await ErrorHandler.executeWithRetry(
       async () => {
@@ -433,12 +504,15 @@ export const lookupOperations = {
           .eq('table_type', 'procedure_types')
           .order('display_name');
 
+        // Apply consistent country filtering: country-specific first, then Global fallback
         if (country) {
-          query = query.eq('country', country);
+          query = query.in('country', [country, 'Global']);
+        } else {
+          query = query.eq('country', 'Global');
         }
 
         if (!includeHidden) {
-          query = query.eq('enabled', true);
+          query = query.eq('is_active', true);
         }
 
         const { data, error } = await query;
@@ -446,7 +520,7 @@ export const lookupOperations = {
         
         return data?.map(item => ({
           name: item.display_name,
-          is_hidden: !item.enabled
+          is_hidden: !item.is_active
         })) || [];
       },
       {
@@ -461,35 +535,91 @@ export const lookupOperations = {
     );
   },
 
-  // Get procedure mappings (surgery sets and implant boxes) for a procedure type
-  getProcedureMappings: async (procedureType: string, country: string): Promise<CaseOperationsResult<{surgerySets: string[], implantBoxes: string[]}>> => {
+  // Get surgery sets - Country-specific with Global fallback
+  getSurgerySets: async (country?: string): Promise<CaseOperationsResult<any[]>> => {
     return await ErrorHandler.executeWithRetry(
       async () => {
-        // Get surgery sets
-        const { data: surgerySetsData, error: surgerySetsError } = await supabase
+        let query = supabase
           .from('code_tables')
           .select('display_name')
           .eq('table_type', 'surgery_sets')
-          .eq('country', country)
-          .eq('enabled', true)
+          .eq('is_active', true)
           .order('display_name');
 
-        if (surgerySetsError) throw surgerySetsError;
+        // Apply consistent country filtering: country-specific first, then Global fallback
+        if (country) {
+          query = query.in('country', [country, 'Global']);
+        } else {
+          query = query.eq('country', 'Global');
+        }
 
-        // Get implant boxes
-        const { data: implantBoxesData, error: implantBoxesError } = await supabase
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        return data?.map(item => ({
+          name: item.display_name
+        })) || [];
+      },
+      {
+        operation: 'Get Surgery Sets',
+        userMessage: 'Failed to fetch surgery sets',
+        showToast: false,
+        showNotification: false,
+        includeDetails: true,
+        autoRetry: true,
+        maxRetries: 3
+      }
+    );
+  },
+
+  // Get implant boxes - Country-specific with Global fallback
+  getImplantBoxes: async (country?: string): Promise<CaseOperationsResult<any[]>> => {
+    return await ErrorHandler.executeWithRetry(
+      async () => {
+        let query = supabase
           .from('code_tables')
           .select('display_name')
           .eq('table_type', 'implant_boxes')
-          .eq('country', country)
-          .eq('enabled', true)
+          .eq('is_active', true)
           .order('display_name');
 
-        if (implantBoxesError) throw implantBoxesError;
+        // Apply consistent country filtering: country-specific first, then Global fallback
+        if (country) {
+          query = query.in('country', [country, 'Global']);
+        } else {
+          query = query.eq('country', 'Global');
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        return data?.map(item => ({
+          name: item.display_name
+        })) || [];
+      },
+      {
+        operation: 'Get Implant Boxes',
+        userMessage: 'Failed to fetch implant boxes',
+        showToast: false,
+        showNotification: false,
+        includeDetails: true,
+        autoRetry: true,
+        maxRetries: 3
+      }
+    );
+  },
+
+  // Get procedure mappings (surgery sets and implant boxes) - Fixed to use consistent parameters
+  getProcedureMappings: async (procedureType?: string, country?: string): Promise<CaseOperationsResult<{surgerySets: string[], implantBoxes: string[]}>> => {
+    return await ErrorHandler.executeWithRetry(
+      async () => {
+        // Get surgery sets with country-specific + Global fallback
+        const surgerySetsResult = await lookupOperations.getSurgerySets(country);
+        const implantBoxesResult = await lookupOperations.getImplantBoxes(country);
         
         return {
-          surgerySets: surgerySetsData?.map(item => item.display_name) || [],
-          implantBoxes: implantBoxesData?.map(item => item.display_name) || []
+          surgerySets: surgerySetsResult.success ? surgerySetsResult.data?.map(item => item.name) || [] : [],
+          implantBoxes: implantBoxesResult.success ? implantBoxesResult.data?.map(item => item.name) || [] : []
         };
       },
       {

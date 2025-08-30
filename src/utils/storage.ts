@@ -366,8 +366,9 @@ export const updateCaseStatus = async (caseId: string, status: CaseBooking['stat
         status,
         timestamp: new Date().toISOString(),
         processedBy: processedBy || 'unknown',
+        user: processedBy || 'unknown', // Add user field for compatibility
         details: details || 'Status updated offline',
-        attachments: attachments
+        attachments: attachments || []
       });
       
       localStorage.setItem('case-bookings', JSON.stringify(localCases));
@@ -590,20 +591,8 @@ export const getCategorizedSets = async (country?: string): Promise<CategorizedS
     return globalSets;
   }
   
-  // If no sets found anywhere, initialize with defaults
-  const { initializeCategorizedSets } = await import('../components/EditSets/utils');
-  const defaultSets = initializeCategorizedSets();
-  
-  // Save the default sets to Supabase for future use
-  if (country) {
-    try {
-      await saveCategorizedSets(defaultSets, country);
-    } catch (error) {
-      console.error('Error saving default categorized sets:', error);
-    }
-  }
-  
-  return defaultSets;
+  // If no sets found anywhere, return empty object - don't create false data
+  return {};
 };
 
 // Dynamic Procedure Types Management - Country-specific

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../types';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
+import StatusLegend from './StatusLegend';
 import '../assets/components/MobileNavigation.css';
 
 type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config' | 'backup-restore' | 'data-import' | 'system-settings';
@@ -119,13 +120,6 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       icon: '📅',
       permission: PERMISSION_ACTIONS.BOOKING_CALENDAR,
       primary: true
-    },
-    {
-      id: 'reports',
-      label: 'Reports',
-      icon: '📊',
-      permission: PERMISSION_ACTIONS.VIEW_REPORTS,
-      primary: true
     }
   ];
 
@@ -147,6 +141,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               onClick={() => onNavigate(item.id)}
               className={`mobile-nav-item ${activePage === item.id ? 'active' : ''}`}
               aria-label={item.label}
+              data-page={item.id}
             >
               <span className="mobile-nav-icon">{item.icon}</span>
               <span className="mobile-nav-label">{item.label}</span>
@@ -215,11 +210,28 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   )}
                 </div>
 
+                <div className="mobile-menu-section">
+                  <h3>Status Colors</h3>
+                  <div className="mobile-menu-item status-legend-item">
+                    <StatusLegend />
+                  </div>
+                </div>
+
                 {(hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) || 
                   hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) ||
-                  hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP)) && (
+                  hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) ||
+                  hasPermission(user.role, PERMISSION_ACTIONS.VIEW_REPORTS)) && (
                   <div className="mobile-menu-section">
                     <h3>Administration</h3>
+                    {hasPermission(user.role, PERMISSION_ACTIONS.VIEW_REPORTS) && (
+                      <button
+                        onClick={() => handleMenuNavigate('reports')}
+                        className={`mobile-menu-item ${activePage === 'reports' ? 'active' : ''}`}
+                      >
+                        <span className="mobile-menu-icon">📊</span>
+                        Reports
+                      </button>
+                    )}
                     {hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) && (
                       <button
                         onClick={() => handleMenuNavigate('system-settings')}

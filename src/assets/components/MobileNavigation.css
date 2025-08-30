@@ -516,6 +516,41 @@
   outline-offset: 2px;
 }
 
+/* Mobile Status Legend in Menu */
+.status-legend-item {
+  padding: 0 !important;
+  background: none !important;
+  cursor: default !important;
+}
+
+.status-legend-item .status-legend-button {
+  width: 100%;
+  padding: 16px;
+  margin: 0;
+  font-size: 16px;
+  border-radius: 12px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 52px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.status-legend-item .status-legend-button:hover,
+.status-legend-item .status-legend-button:focus {
+  background: var(--background-light);
+  outline: none;
+  transform: translateX(4px);
+}
+
 /* Improved touch feedback */
 @media (hover: none) {
   .mobile-nav-item:active {
@@ -524,6 +559,11 @@
   }
   
   .mobile-menu-item:active {
+    background: var(--background-light);
+    transform: scale(0.98);
+  }
+  
+  .status-legend-item .status-legend-button:active {
     background: var(--background-light);
     transform: scale(0.98);
   }

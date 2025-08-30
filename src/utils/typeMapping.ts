@@ -57,7 +57,7 @@ export const dbCaseToAppCase = (dbCase: DbCaseBooking): CaseBooking => ({
   department: dbCase.department,
   dateOfSurgery: dbCase.date_of_surgery,
   procedureType: dbCase.procedure_type,
-  procedureName: dbCase.procedure_name || dbCase.patient_name, // Use patient_name as procedureName fallback
+  procedureName: dbCase.procedure_name || '', // Don't use patient_name as fallback to prevent data mixing
   doctorName: dbCase.surgeon_name,
   timeOfProcedure: dbCase.time_of_procedure,
   surgerySetSelection: dbCase.surgery_sets || [],

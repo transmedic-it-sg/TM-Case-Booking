@@ -172,22 +172,8 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
   } catch (error) {
     console.error('❌ Error in getSupabaseCodeTables:', error);
     
-    // Fallback to minimal static data only if database fails
-    console.warn('⚠️ Using fallback data due to database error');
-    return [
-      {
-        id: 'countries',
-        name: 'Countries',
-        description: 'List of available countries', 
-        items: ['Singapore', 'Malaysia', 'Philippines', 'Indonesia', 'Vietnam', 'Hong Kong', 'Thailand']
-      },
-      {
-        id: 'departments',
-        name: 'Departments',
-        description: 'List of medical departments',
-        items: ['Cardiology', 'Orthopedics', 'Neurosurgery', 'Oncology', 'Emergency', 'Radiology']
-      }
-    ];
+    // Return empty array instead of false fallback data
+    return [];
   }
 };
 
@@ -281,6 +267,20 @@ export const addSupabaseCodeTableItem = async (
     
     console.log(`✅ Successfully added ${item} to ${tableType}`);
     
+    // Update cache version to notify other users
+    try {
+      const { forceCacheVersionUpdate } = await import('./cacheVersionService');
+      await forceCacheVersionUpdate(
+        normalizedCountry, 
+        tableType,
+        `Added ${tableType}: ${item}`,
+        'system' // Could be enhanced with actual user info
+      );
+      console.log(`📢 Cache version updated for ${normalizedCountry}:${tableType}`);
+    } catch (cacheError) {
+      console.error('Failed to update cache version:', cacheError);
+    }
+    
     // Clear cache to ensure UI updates immediately
     const cacheKey = normalizedCountry || 'Global';
     codeTableCache.delete(cacheKey);
@@ -346,6 +346,20 @@ export const updateSupabaseCodeTableItem = async (
     
     console.log(`✅ Successfully updated ${oldItem} to ${newItem} in ${tableType}`);
     
+    // Update cache version to notify other users
+    try {
+      const { forceCacheVersionUpdate } = await import('./cacheVersionService');
+      await forceCacheVersionUpdate(
+        normalizedCountry, 
+        tableType,
+        `Updated ${tableType}: ${oldItem} → ${newItem}`,
+        'system' // Could be enhanced with actual user info
+      );
+      console.log(`📢 Cache version updated for ${normalizedCountry}:${tableType}`);
+    } catch (cacheError) {
+      console.error('Failed to update cache version:', cacheError);
+    }
+    
     // Clear cache to ensure UI updates immediately
     const cacheKey = normalizedCountry || 'Global';
     codeTableCache.delete(cacheKey);
@@ -407,6 +421,20 @@ export const removeSupabaseCodeTableItem = async (
     
     console.log(`✅ Successfully removed ${item} from ${tableType}`);
     
+    // Update cache version to notify other users
+    try {
+      const { forceCacheVersionUpdate } = await import('./cacheVersionService');
+      await forceCacheVersionUpdate(
+        normalizedCountry, 
+        tableType,
+        `Removed ${tableType}: ${item}`,
+        'system' // Could be enhanced with actual user info
+      );
+      console.log(`📢 Cache version updated for ${normalizedCountry}:${tableType}`);
+    } catch (cacheError) {
+      console.error('Failed to update cache version:', cacheError);
+    }
+    
     // Clear cache to ensure UI updates immediately
     const cacheKey = normalizedCountry || 'Global';
     codeTableCache.delete(cacheKey);
@@ -416,6 +444,7 @@ export const removeSupabaseCodeTableItem = async (
     if (tableType === 'departments') {
       departmentCache.clear();
       departmentPendingRequests.clear();
+      console.log(`🧹 Cleared department cache after deleting ${item} from ${normalizedCountry}`);
     }
     
     return true;
@@ -504,7 +533,7 @@ export const getDepartmentsForCountry = async (country: string): Promise<string[
         .from('code_tables')
         .select('display_name')
         .eq('table_type', 'departments')
-        .in('country', ['Global', normalizedCountry])
+        .eq('country', normalizedCountry) // Departments are ONLY country-specific, not Global
         .eq('is_active', true)
         .order('display_name');
 

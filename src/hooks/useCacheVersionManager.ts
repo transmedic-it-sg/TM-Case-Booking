@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { 
   isCacheOutdated, 
   updateStoredCacheVersions, 
@@ -22,6 +22,9 @@ export const useCacheVersionManager = () => {
     outdatedTypes: [],
     changedVersions: []
   });
+  
+  // Track if popup has been shown to prevent repeated popups for same version
+  const [popupShownForVersion, setPopupShownForVersion] = useState<string>('');
 
   /**
    * Check cache versions for current user's country
@@ -32,6 +35,11 @@ export const useCacheVersionManager = () => {
       return false; // No user or country, skip check
     }
 
+    // Don't check if popup is already showing
+    if (state.showMismatchPopup) {
+      return false;
+    }
+    
     // Don't check too frequently
     if (!shouldCheckVersions()) {
       return false;
@@ -45,6 +53,21 @@ export const useCacheVersionManager = () => {
       );
 
       if (outdated) {
+        // Check if popup was recently dismissed
+        const recentlyDismissed = sessionStorage.getItem('cache-popup-dismissed');
+        if (recentlyDismissed) {
+          // Clear the flag and skip showing popup this time
+          sessionStorage.removeItem('cache-popup-dismissed');
+          return false;
+        }
+
+        // Create a stable version signature based on actual changed versions
+        const stableVersionSignature = `${currentUser.selectedCountry}_${changedVersions.map(v => `${v.version_type}:${v.version_number}`).join('_')}`;
+        
+        if (popupShownForVersion === stableVersionSignature) {
+          return false; // Already shown popup for this exact version set
+        }
+
         console.log('Cache version mismatch detected:', {
           country: currentUser.selectedCountry,
           outdatedTypes,
@@ -62,6 +85,9 @@ export const useCacheVersionManager = () => {
           changedVersions,
           isCheckingVersions: false
         }));
+        
+        // Mark this specific version set as shown
+        setPopupShownForVersion(stableVersionSignature);
 
         return true; // Cache is outdated
       } else {
@@ -80,7 +106,7 @@ export const useCacheVersionManager = () => {
       setState(prev => ({ ...prev, isCheckingVersions: false }));
       return false;
     }
-  }, []);
+  }, [popupShownForVersion, state.showMismatchPopup]);
 
   /**
    * Force logout and clear cache
@@ -117,36 +143,21 @@ export const useCacheVersionManager = () => {
   }, []);
 
   /**
-   * Periodic version checking
+   * Removed automatic cache checking - now only triggered manually when user accesses specific features
    */
-  useEffect(() => {
-    // Initial check after component mount
-    const initialCheckTimer = setTimeout(() => {
-      checkCacheVersions();
-    }, 2000); // Wait 2 seconds after mount
-
-    // Periodic checking every 5 minutes
-    const intervalTimer = setInterval(() => {
-      checkCacheVersions();
-    }, 5 * 60 * 1000); // 5 minutes
-
-    return () => {
-      clearTimeout(initialCheckTimer);
-      clearInterval(intervalTimer);
-    };
-  }, [checkCacheVersions]);
+  // useEffect(() => {
+  //   if (process.env.NODE_ENV === 'production') {
+  //     const initialCheckTimer = setTimeout(() => {
+  //       checkCacheVersions();
+  //     }, 60000); // Wait 1 minute after mount in production only
+  //     return () => clearTimeout(initialCheckTimer);
+  //   }
+  // }, [checkCacheVersions]);
 
   /**
-   * Check versions when user focuses on the app
+   * Removed focus check to prevent aggressive popups
+   * Version checks now only happen on initial load and hourly
    */
-  useEffect(() => {
-    const handleFocus = () => {
-      checkCacheVersions();
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [checkCacheVersions]);
 
   /**
    * Manual version check (call this after user makes changes)
@@ -155,9 +166,71 @@ export const useCacheVersionManager = () => {
     return await checkCacheVersions();
   }, [checkCacheVersions]);
 
+  /**
+   * Selective cache check - only for specific data types when user tries to access them
+   * This should be called when user opens Edit Sets or Code Tables pages
+   */
+  const checkCacheForDataType = useCallback(async (dataType: string): Promise<boolean> => {
+    const currentUser = getCurrentUser();
+    if (!currentUser || !currentUser.selectedCountry) {
+      return false;
+    }
+
+    // Don't check if popup is already showing
+    if (state.showMismatchPopup) {
+      return false;
+    }
+
+    setState(prev => ({ ...prev, isCheckingVersions: true }));
+
+    try {
+      const { isCacheOutdated } = await import('../utils/cacheVersionService');
+      const { outdatedTypes, changedVersions } = await isCacheOutdated(
+        currentUser.selectedCountry
+      );
+
+      // Filter to only show popup for the specific data type being accessed
+      const relevantOutdatedTypes = outdatedTypes.filter(type => type.includes(dataType));
+      const relevantChangedVersions = changedVersions.filter(v => v.version_type === dataType);
+
+      if (relevantOutdatedTypes.length > 0) {
+        console.log(`Cache version mismatch for ${dataType}:`, {
+          country: currentUser.selectedCountry,
+          outdatedTypes: relevantOutdatedTypes,
+          changes: relevantChangedVersions.map(v => ({
+            type: v.version_type,
+            reason: v.reason,
+            updatedBy: v.updated_by
+          }))
+        });
+
+        setState(prev => ({
+          ...prev,
+          showMismatchPopup: true,
+          outdatedTypes: relevantOutdatedTypes,
+          changedVersions: relevantChangedVersions,
+          isCheckingVersions: false
+        }));
+
+        return true; // Cache is outdated for this data type
+      } else {
+        setState(prev => ({
+          ...prev,
+          isCheckingVersions: false
+        }));
+        return false; // Cache is up to date for this data type
+      }
+    } catch (error) {
+      console.error('Error checking cache for data type:', error);
+      setState(prev => ({ ...prev, isCheckingVersions: false }));
+      return false;
+    }
+  }, [state.showMismatchPopup]);
+
   return {
     ...state,
     forceLogout,
-    manualVersionCheck
+    manualVersionCheck,
+    checkCacheForDataType
   };
 };

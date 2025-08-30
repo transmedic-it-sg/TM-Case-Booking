@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CaseBooking, FilterOptions, CaseStatus } from '../../types';
+import { CASE_STATUSES } from '../../constants/statuses';
 import { getCurrentUser } from '../../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -52,6 +53,21 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   // Filter cases locally
   const filterCases = useCallback((casesToFilter: CaseBooking[], filterOptions: FilterOptions) => {
     let filtered = casesToFilter;
+    
+    // Driver role filtering - only show delivery-related cases
+    const currentUser = getCurrentUser();
+    if (currentUser?.role === 'driver') {
+      const deliveryStatuses = [
+        CASE_STATUSES.PENDING_DELIVERY_HOSPITAL,
+        CASE_STATUSES.DELIVERED_HOSPITAL,
+        CASE_STATUSES.PENDING_DELIVERY_OFFICE,
+        CASE_STATUSES.DELIVERED_OFFICE
+      ];
+      
+      filtered = filtered.filter(caseItem => 
+        deliveryStatuses.includes(caseItem.status)
+      );
+    }
   
     // Apply search filter
     if (filterOptions.search) {
@@ -151,6 +167,22 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
   }, [cases]);
 
+  // Auto-apply filters for Driver role
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    if (currentUser?.role === 'driver' && Object.keys(filters).length === 0) {
+      // Auto-apply delivery status filters for drivers
+      // Set the first delivery status as default filter to show driver-relevant cases
+      const defaultFilters = {
+        status: CASE_STATUSES.PENDING_DELIVERY_HOSPITAL as CaseStatus
+      };
+      
+      setFilters(defaultFilters);
+      setTempFilters(defaultFilters);
+      
+      console.log('🚚 Driver role detected: Applied default delivery filters');
+    }
+  }, [cases, filters]); // Re-run when cases change or filters are cleared
 
   useEffect(() => {
     const currentUser = getCurrentUser();

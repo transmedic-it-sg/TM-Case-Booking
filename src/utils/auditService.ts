@@ -33,7 +33,8 @@ export type AuditCategory =
   | 'Permission'
   | 'Data Export'
   | 'Code Table'
-  | 'Email Configuration';
+  | 'Email Configuration'
+  | 'Attachment Management';
 
 const AUDIT_LOGS_KEY = 'audit-logs';
 
@@ -510,6 +511,36 @@ export const auditCodeTableChange = async (user: string, userId: string, userRol
     details,
     'success',
     { table, action },
+    country
+  );
+};
+
+// Attachment management audit logs
+export const auditAttachmentChange = async (
+  user: string, 
+  userId: string, 
+  userRole: string, 
+  caseId: string, 
+  action: 'add' | 'delete' | 'replace', 
+  fileName: string, 
+  country: string
+) => {
+  const actionMap = {
+    add: 'Added Attachment',
+    delete: 'Deleted Attachment',
+    replace: 'Replaced Attachment'
+  };
+
+  await addAuditLog(
+    user, 
+    userId, 
+    userRole, 
+    actionMap[action], 
+    'Attachment Management', 
+    caseId, 
+    `${actionMap[action]}: ${fileName}`,
+    'success',
+    { action, fileName, caseId },
     country
   );
 };

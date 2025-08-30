@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { CacheVersion } from '../utils/cacheVersionService';
-import '../assets/components/CacheVersionMismatchPopup.css';
 
 export interface CacheVersionMismatchPopupProps {
   isOpen: boolean;
@@ -15,12 +14,12 @@ const CacheVersionMismatchPopup: React.FC<CacheVersionMismatchPopupProps> = ({
   changedVersions,
   onForceLogout
 }) => {
-  // Auto logout after 10 seconds if user doesn't click
+  // Auto reload after 15 seconds if user doesn't click
   useEffect(() => {
     if (isOpen) {
       const timer = setTimeout(() => {
-        onForceLogout();
-      }, 10000);
+        window.location.reload();
+      }, 15000);
 
       return () => clearTimeout(timer);
     }
@@ -28,76 +27,79 @@ const CacheVersionMismatchPopup: React.FC<CacheVersionMismatchPopupProps> = ({
 
   if (!isOpen) return null;
 
-  const getChangeDescription = (versions: CacheVersion[]): string => {
-    const changes = versions.map(v => {
-      if (v.country === 'GLOBAL') {
-        return 'Application updates';
-      }
-      
-      switch (v.version_type) {
-        case 'surgery_sets':
-          return `${v.country} surgery sets or implant boxes`;
-        case 'departments':
-          return `${v.country} departments`;
-        case 'procedure_types':
-          return `${v.country} procedure types`;
-        default:
-          return `${v.country} ${v.version_type}`;
-      }
-    });
-
-    return changes.join(', ');
+  const handleRefresh = () => {
+    // Clear any cached version checking state before refreshing
+    sessionStorage.setItem('cache-popup-dismissed', 'true');
+    window.location.reload();
   };
 
   return (
-    <div className="cache-mismatch-overlay">
-      <div className="cache-mismatch-modal">
-        <div className="cache-mismatch-header">
-          <div className="cache-mismatch-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z"
-                fill="#ff6b6b"
-                stroke="#ff6b6b"
-                strokeWidth="2"
-              />
-              <circle cx="12" cy="12" r="1" fill="white" />
-            </svg>
-          </div>
-          <h2>System Update Available</h2>
-        </div>
-
-        <div className="cache-mismatch-content">
-          <p className="cache-mismatch-message">
-            New updates are available for your region. To ensure data consistency, 
-            you need to refresh your session.
-          </p>
-          
-          <div className="cache-mismatch-details">
-            <h4>What's Updated:</h4>
-            <p>{getChangeDescription(changedVersions)}</p>
-          </div>
-
-          <div className="cache-mismatch-note">
-            <p>
-              <strong>Note:</strong> This affects only your country's data. 
-              Users from other regions will continue working normally.
-            </p>
-          </div>
-        </div>
-
-        <div className="cache-mismatch-actions">
-          <button
-            className="btn-cache-logout"
-            onClick={onForceLogout}
-          >
-            Refresh Session
-          </button>
-          
-          <div className="cache-mismatch-countdown">
-            Auto-refresh in 10 seconds...
-          </div>
-        </div>
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 9999
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        padding: '24px',
+        maxWidth: '400px',
+        width: '90%',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔄</div>
+        
+        <h3 style={{ 
+          color: '#333', 
+          marginBottom: '16px',
+          fontSize: '18px',
+          fontWeight: '600'
+        }}>
+          System Update Available
+        </h3>
+        
+        <p style={{ 
+          color: '#666', 
+          marginBottom: '24px',
+          lineHeight: '1.5'
+        }}>
+          New updates are available. Please refresh to get the latest data and features.
+        </p>
+        
+        <button 
+          onClick={handleRefresh}
+          style={{
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            padding: '10px 24px',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            marginBottom: '12px'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0056b3'}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#007bff'}
+        >
+          Refresh Now
+        </button>
+        
+        <p style={{ 
+          fontSize: '12px', 
+          color: '#888',
+          margin: 0
+        }}>
+          Auto-refresh in 15 seconds...
+        </p>
       </div>
     </div>
   );

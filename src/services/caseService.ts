@@ -18,6 +18,12 @@ import {
   checkCasesExist,
   migrateCasesFromLocalStorage
 } from '../utils/supabaseCaseService';
+import { 
+  sendCaseStatusNotification,
+  sendNewCaseNotification,
+  shouldReceiveNotification,
+  getNotificationPreferences
+} from '../utils/pushNotificationHelper';
 
 class CaseService {
   private static instance: CaseService;
@@ -138,6 +144,27 @@ class CaseService {
       this.casesCache.set(newCase.id, newCase);
       this.clearCache(); // Force refresh on next load
       
+      // Add in-app notification
+      notificationService.addNotification({
+        title: 'Case Created Successfully',
+        message: `Case ${newCase.caseReferenceNumber} has been created`,
+        type: 'success',
+        timestamp: new Date().toISOString(),
+        caseId: newCase.id,
+        caseReferenceNumber: newCase.caseReferenceNumber
+      });
+
+      // Send push notification for new case if enabled
+      const preferences = getNotificationPreferences();
+      if (preferences.newCases && shouldReceiveNotification(newCase, 'new-case')) {
+        try {
+          await sendNewCaseNotification(newCase);
+          console.log('📱 Push notification sent for new case');
+        } catch (error) {
+          console.error('📱 Failed to send new case push notification:', error);
+        }
+      }
+      
       return true;
     } catch (error) {
       console.error('Error saving case to database:', error);
@@ -216,7 +243,9 @@ class CaseService {
           title: 'Case Amended',
           message: `Case ${caseItem.caseReferenceNumber} has been amended by ${currentUser.name}`,
           type: 'success',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          caseId: caseItem.id,
+          caseReferenceNumber: caseItem.caseReferenceNumber
         });
         
         return true;
@@ -256,7 +285,9 @@ class CaseService {
             title: 'Case Amended',
             message: `Case ${caseItem.caseReferenceNumber} has been amended by ${currentUser.name}`,
             type: 'success',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            caseId: caseItem.id,
+            caseReferenceNumber: caseItem.caseReferenceNumber
           });
           
           return true;
@@ -291,6 +322,10 @@ class CaseService {
         return false;
       }
 
+      // Get current case for comparison and notifications
+      const currentCase = await this.getCaseById(caseId);
+      const oldStatus = currentCase?.status;
+
       // Use Supabase service to update case status
       await updateSupabaseCaseStatus(
         caseId, 
@@ -311,8 +346,21 @@ class CaseService {
           title: `Case Status Updated: ${newStatus}`,
           message: `Case ${updatedCase.caseReferenceNumber} has been updated to ${newStatus} by ${currentUser.name}`,
           type: 'success',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          caseId: updatedCase.id,
+          caseReferenceNumber: updatedCase.caseReferenceNumber
         });
+
+        // Send push notification if enabled and user should receive it
+        const preferences = getNotificationPreferences();
+        if (preferences.caseStatus && shouldReceiveNotification(updatedCase, 'case-status')) {
+          try {
+            await sendCaseStatusNotification(updatedCase, newStatus, oldStatus);
+            console.log('📱 Push notification sent for case status update');
+          } catch (error) {
+            console.error('📱 Failed to send push notification:', error);
+          }
+        }
       }
 
       return true;
@@ -340,7 +388,7 @@ class CaseService {
           status: newStatus,
           timestamp,
           processedBy: currentUser.name,
-          user: currentUser.name,
+          user: currentUser.name, // Ensure user field is set for compatibility
           details: details || '',
           attachments: attachments || []
         };
@@ -370,7 +418,9 @@ class CaseService {
             title: `Case Status Updated: ${newStatus}`,
             message: `Case ${caseItem.caseReferenceNumber} has been updated to ${newStatus} by ${currentUser.name}`,
             type: 'success',
-            timestamp
+            timestamp,
+            caseId: caseItem.id,
+            caseReferenceNumber: caseItem.caseReferenceNumber
           });
           
           return true;

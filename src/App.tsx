@@ -28,7 +28,8 @@ import { SoundProvider, useSound } from './contexts/SoundContext';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { ToastProvider, useToast } from './components/ToastContainer';
 import { getSystemConfig } from './utils/systemSettingsService';
-import { getCases } from './utils/storage';
+import { useCacheVersionManager } from './hooks/useCacheVersionManager';
+// import { getCases } from './utils/storage'; // Removed unused import
 import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
 // Removed unused import: getAppVersion
@@ -74,21 +75,14 @@ const AppContent: React.FC = () => {
   const { addNotification } = useNotifications();
   const { showSuccess, showError, showWarning, showInfo } = useToast();
   
-  // Cache version management
-  // DISABLED: Aggressive cache versioning causing UX issues with too many popups
-  // const {
-  //   showMismatchPopup,
-  //   outdatedTypes,
-  //   changedVersions,
-  //   forceLogout,
-  //   manualVersionCheck
-  // } = useCacheVersionManager();
-  
-  // Temporary disable cache version popups - they're too disruptive
-  const showMismatchPopup = false;
-  const outdatedTypes: string[] = [];
-  const changedVersions: any[] = [];
-  const forceLogout = () => {};
+  // Cache version management - Re-enabled with improved UX
+  const {
+    showMismatchPopup,
+    outdatedTypes,
+    changedVersions,
+    forceLogout
+    // manualVersionCheck - removed unused variable
+  } = useCacheVersionManager();
 
   // App version management with logout on version change
   useEffect(() => {
@@ -344,25 +338,18 @@ const AppContent: React.FC = () => {
 
   const handleCalendarCaseClick = async (caseId: string) => {
     try {
-      // Load all cases and find the clicked case
-      const allCases = await getCases();
-      const clickedCase = allCases.find(c => c.id === caseId);
+      // Clear any previous pre-fill data that might interfere with case viewing
+      localStorage.removeItem('calendar_prefill_date');
+      localStorage.removeItem('calendar_prefill_department');
       
-      if (clickedCase) {
-        // Pre-fill the booking form with the case's department and date
-        localStorage.setItem('calendar_prefill_date', clickedCase.dateOfSurgery + 'T00:00:00.000Z');
-        localStorage.setItem('calendar_prefill_department', clickedCase.department);
-        
-        // Navigate to booking page to create a new case in the same slot/department
-        setActivePage('booking');
-      } else {
-        // Fallback: just highlight the case in the cases list
-        setHighlightedCaseId(caseId);
-        setActivePage('cases');
-      }
+      // Navigate to cases view and highlight the specific case
+      setHighlightedCaseId(caseId);
+      setActivePage('cases');
+      
+      console.log(`📅 Calendar: Navigating to case ${caseId} in View All Cases`);
     } catch (error) {
-      console.error('Error loading case data:', error);
-      // Fallback: just highlight the case in the cases list
+      console.error('Error navigating to case from calendar:', error);
+      // Still try to navigate to the cases page
       setHighlightedCaseId(caseId);
       setActivePage('cases');
     }
@@ -481,6 +468,18 @@ const AppContent: React.FC = () => {
                     
                     {adminPanelExpanded && (
                       <div className="header-admin-submenu">
+                        {hasPermission(user.role, PERMISSION_ACTIONS.VIEW_REPORTS) && (
+                          <button
+                            onClick={() => {
+                              setActivePage('reports');
+                              playSound.click();
+                              setAdminPanelExpanded(false);
+                            }}
+                            className={`header-admin-item ${activePage === 'reports' ? 'active' : ''}`}
+                          >
+                            📊 Reports
+                          </button>
+                        )}
                         {hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) && (
                           <button
                             onClick={() => {
@@ -623,6 +622,7 @@ const AppContent: React.FC = () => {
                 playSound.click();
               }}
               className={activePage === 'cases' ? 'active' : ''}
+              data-page="cases"
             >
               📋 View All Cases
             </button>
@@ -648,17 +648,6 @@ const AppContent: React.FC = () => {
               className={activePage === 'sets' ? 'active' : ''}
             >
               ⚙️ Edit Sets
-            </button>
-          )}
-          {hasPermission(user.role, PERMISSION_ACTIONS.VIEW_REPORTS) && (
-            <button
-              onClick={() => {
-                setActivePage('reports');
-                playSound.click();
-              }}
-              className={activePage === 'reports' ? 'active' : ''}
-            >
-              📊 Reports
             </button>
           )}
         </div>

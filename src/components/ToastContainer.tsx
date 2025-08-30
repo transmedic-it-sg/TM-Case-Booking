@@ -3,7 +3,7 @@ import ToastNotification, { ToastData } from './ToastNotification';
 
 interface ToastContextType {
   showToast: (toast: Omit<ToastData, 'id'>) => void;
-  showSuccess: (title: string, message: string, action?: ToastData['action']) => void;
+  showSuccess: (title: string, message: string, action?: ToastData['action'], caseId?: string, caseReferenceNumber?: string) => void;
   showError: (title: string, message: string, action?: ToastData['action']) => void;
   showWarning: (title: string, message: string, action?: ToastData['action']) => void;
   showInfo: (title: string, message: string, action?: ToastData['action']) => void;
@@ -27,8 +27,25 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     setToasts(prev => [...prev, newToast]);
   };
 
-  const showSuccess = (title: string, message: string, action?: ToastData['action']) => {
-    showToast({ title, message, type: 'success', action });
+  const handleCaseClick = (caseId: string, caseReferenceNumber: string) => {
+    // Navigate to cases page and highlight the specific case
+    const casesPage = document.querySelector('[data-page="cases"]') as HTMLElement;
+    if (casesPage) {
+      casesPage.click();
+      
+      // Wait for page to load, then scroll to case
+      setTimeout(() => {
+        const caseElement = document.querySelector(`[data-case-id="${caseId}"]`) as HTMLElement;
+        if (caseElement) {
+          caseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          caseElement.style.animation = 'highlight-case 2s ease-in-out';
+        }
+      }, 500);
+    }
+  };
+
+  const showSuccess = (title: string, message: string, action?: ToastData['action'], caseId?: string, caseReferenceNumber?: string) => {
+    showToast({ title, message, type: 'success', action, caseId, caseReferenceNumber });
   };
 
   const showError = (title: string, message: string, action?: ToastData['action']) => {
@@ -64,6 +81,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
             key={toast.id}
             toast={toast}
             onClose={removeToast}
+            onCaseClick={handleCaseClick}
           />
         ))}
       </div>

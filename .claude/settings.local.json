@@ -9,7 +9,11 @@
       "Bash(npm run lint)",
       "Bash(npm run:*)",
       "mcp__supabase__list_tables",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

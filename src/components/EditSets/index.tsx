@@ -25,6 +25,7 @@ import SetsList from './SetsList';
 import CustomModal from '../CustomModal';
 import SearchableDropdown from '../SearchableDropdown';
 import { useModal } from '../../hooks/useModal';
+import { useCacheVersionManager } from '../../hooks/useCacheVersionManager';
 import '../../assets/components/EditSetsMobile.css';
 
 const EditSets: React.FC<EditSetsProps> = () => {
@@ -53,6 +54,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
 
   const { showError, showSuccess } = useToast();
   const { playSound } = useSound();
+  const { checkCacheForDataType } = useCacheVersionManager();
   
   const currentUser = getCurrentUser();
   const canManageProcedureTypes = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_SETS) : false;
@@ -72,6 +74,19 @@ const EditSets: React.FC<EditSetsProps> = () => {
     selectedCountry,
     userCountry
   });
+
+  // Check cache version for Edit Sets when component mounts
+  useEffect(() => {
+    const checkEditSetsCache = async () => {
+      try {
+        await checkCacheForDataType('edit_sets');
+      } catch (error) {
+        console.error('Error checking Edit Sets cache:', error);
+      }
+    };
+    
+    checkEditSetsCache();
+  }, [checkCacheForDataType]); // Include checkCacheForDataType dependency
 
   // Load countries from dynamic constants service and initialize selected country for Admin users
   useEffect(() => {
@@ -147,11 +162,12 @@ const EditSets: React.FC<EditSetsProps> = () => {
           departmentTypes = await getProcedureTypesForDepartment(selectedDepartment, activeCountryName);
           // console.log('🔍 Loaded department procedure types for', selectedDepartment, ':', departmentTypes);
           
-          // If no department-specific types found, don't fall back to global types
-          // This prevents contamination with default procedure types
+          // If no department-specific types found, clear the procedure types
+          // This ensures data consistency with CaseBookingForm
           if (departmentTypes.length === 0) {
-            // console.warn('⚠️ No procedure types found for department:', selectedDepartment);
-            // Keep existing allProcedureTypes instead of falling back
+            console.warn('⚠️ No procedure types found for department:', selectedDepartment);
+            setAllProcedureTypes([]);
+            setSelectedProcedureType(''); // Clear selected procedure type when no types available
             return;
           }
         } else {
@@ -707,29 +723,38 @@ const EditSets: React.FC<EditSetsProps> = () => {
         </div>
         
         <div className="procedure-tabs">
-          {allProcedureTypes.map(procedureType => {
-            const isCustomType = !PROCEDURE_TYPES.includes(procedureType as any);
-            return (
-              <div key={procedureType} className="procedure-tab-container">
-                <button
-                  onClick={() => setSelectedProcedureType(procedureType)}
-                  className={`procedure-tab ${selectedProcedureType === procedureType ? 'active' : ''}`}
-                >
-                  {procedureType}
-                  {isCustomType && <span className="custom-type-indicator">★</span>}
-                </button>
-                {canManageProcedureTypes && (
+          {allProcedureTypes.length === 0 ? (
+            <div className="empty-state">
+              <p className="empty-state-message">
+                No procedure types configured for this department.
+                {canManageProcedureTypes && ' Click "Add Procedure Type" to create one.'}
+              </p>
+            </div>
+          ) : (
+            allProcedureTypes.map(procedureType => {
+              const isCustomType = !PROCEDURE_TYPES.includes(procedureType as any);
+              return (
+                <div key={procedureType} className="procedure-tab-container">
                   <button
-                    className="delete-procedure-type-button"
-                    onClick={() => handleDeleteProcedureType(procedureType)}
-                    title={`${isCustomType ? 'Delete' : 'Hide'} ${procedureType}`}
+                    onClick={() => setSelectedProcedureType(procedureType)}
+                    className={`procedure-tab ${selectedProcedureType === procedureType ? 'active' : ''}`}
                   >
-                    ✕
+                    {procedureType}
+                    {isCustomType && <span className="custom-type-indicator">★</span>}
                   </button>
-                )}
-              </div>
-            );
-          })}
+                  {canManageProcedureTypes && (
+                    <button
+                      className="delete-procedure-type-button"
+                      onClick={() => handleDeleteProcedureType(procedureType)}
+                      title={`${isCustomType ? 'Delete' : 'Hide'} ${procedureType}`}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Add Procedure Type Form */}

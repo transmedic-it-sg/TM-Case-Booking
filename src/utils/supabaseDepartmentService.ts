@@ -154,8 +154,8 @@ export const getProcedureTypesForDepartment = async (departmentName: string, cou
       .eq('is_active', true);
     
     if (!departments || departments.length === 0) {
-      console.warn('Department not found, using default procedure types');
-      return getDefaultProcedureTypesForDepartment(departmentName, country);
+      console.warn('Department not found in database:', { departmentName, country });
+      return [];
     }
     
     const departmentId = departments[0].id;
@@ -172,29 +172,29 @@ export const getProcedureTypesForDepartment = async (departmentName: string, cou
     
     if (error) {
       console.error('Error fetching procedure types:', error);
-      return getDefaultProcedureTypesForDepartment(departmentName, country);
+      return [];
     }
     
     const dbProcedureTypes = data?.map(item => item.procedure_type) || [];
     
-    // If no procedure types in database, return defaults
+    // If no procedure types in database, return empty array
     if (dbProcedureTypes.length === 0) {
-      console.log('No procedure types in database, using defaults');
-      return getDefaultProcedureTypesForDepartment(departmentName, country);
+      console.log('No procedure types configured for department:', { departmentName, country });
+      return [];
     }
     
     console.log('✅ Found procedure types in Supabase:', dbProcedureTypes.length);
     return dbProcedureTypes;
   } catch (error) {
     console.error('Error in getProcedureTypesForDepartment:', error);
-    // Fallback to default procedure types
-    return getDefaultProcedureTypesForDepartment(departmentName, country);
+    return [];
   }
 };
 
 /**
  * Get default procedure types based on department name
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getDefaultProcedureTypesForDepartment = (departmentName: string, country: string = 'MY'): string[] => {
   // Simplified - only 3 procedure types per department
   const departmentSpecific: Record<string, string[]> = {
@@ -317,6 +317,21 @@ export const addProcedureTypeToDepartment = async (
     }
 
     console.log('✅ Successfully added procedure type to Supabase');
+    
+    // Update cache version to notify other users
+    try {
+      const { forceCacheVersionUpdate } = await import('./cacheVersionService');
+      await forceCacheVersionUpdate(
+        dbCountry, 
+        'procedure_types',
+        `Added procedure type: ${procedureType} to ${departmentName}`,
+        'system'
+      );
+      console.log(`📢 Cache version updated for ${dbCountry}:procedure_types`);
+    } catch (cacheError) {
+      console.error('Failed to update cache version:', cacheError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Error in addProcedureTypeToDepartment:', error);
@@ -353,19 +368,41 @@ export const removeProcedureTypeFromDepartment = async (
     const departmentId = departments[0].id;
     
     // Remove the procedure type from database
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('department_procedure_types')
       .delete()
       .eq('department_id', departmentId)
       .eq('procedure_type', procedureType)
-      .eq('country', dbCountry);
+      .eq('country', dbCountry)
+      .select();
     
     if (error) {
       console.error('Error removing procedure type:', error);
       return false;
     }
     
-    console.log('✅ Successfully removed procedure type from Supabase');
+    // Check if anything was actually deleted
+    if (!data || data.length === 0) {
+      console.warn('No procedure type was deleted - it may not have existed:', { departmentId, procedureType, country: dbCountry });
+      return false;
+    }
+    
+    console.log('✅ Successfully removed procedure type from Supabase:', data.length, 'rows deleted');
+    
+    // Update cache version to notify other users
+    try {
+      const { forceCacheVersionUpdate } = await import('./cacheVersionService');
+      await forceCacheVersionUpdate(
+        dbCountry, 
+        'procedure_types',
+        `Removed procedure type: ${procedureType} from ${departmentName}`,
+        'system'
+      );
+      console.log(`📢 Cache version updated for ${dbCountry}:procedure_types`);
+    } catch (cacheError) {
+      console.error('Failed to update cache version:', cacheError);
+    }
+    
     return true;
   } catch (error) {
     console.error('Error in removeProcedureTypeFromDepartment:', error);
@@ -491,10 +528,11 @@ export const saveCategorizedSetsForDepartment = async (
     
     const departmentId = departments[0].id;
     
-    // Delete existing categorized sets for this department
-    await supabase
+    // First, get existing categorized sets to minimize database operations
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { data: _existingSets } = await supabase
       .from('department_categorized_sets')
-      .delete()
+      .select('id, procedure_type, surgery_set_id, implant_box_id')
       .eq('department_id', departmentId)
       .eq('country', dbCountry);
     
@@ -672,18 +710,50 @@ export const saveCategorizedSetsForDepartment = async (
       }
     }
     
-    // Insert all categorized sets
-    if (finalInserts.length > 0) {
-      const { error } = await supabase
+    // Use single atomic operation to prevent race conditions
+    // Delete all existing categorized sets for this department and insert new ones in one operation
+    try {
+      // First delete existing sets for this department/country combination
+      const { error: deleteError } = await supabase
         .from('department_categorized_sets')
-        .insert(finalInserts);
+        .delete()
+        .eq('department_id', departmentId)
+        .eq('country', dbCountry);
       
-      if (error) {
-        throw error;
+      if (deleteError) {
+        throw new Error(`Failed to delete existing categorized sets: ${deleteError.message}`);
       }
+      
+      // Then insert new sets (only if we have data to insert)
+      if (finalInserts.length > 0) {
+        const { error: insertError } = await supabase
+          .from('department_categorized_sets')
+          .insert(finalInserts);
+        
+        if (insertError) {
+          throw new Error(`Failed to insert new categorized sets: ${insertError.message}`);
+        }
+      }
+    } catch (error) {
+      console.error('Transaction failed:', error);
+      throw error;
     }
     
     console.log('✅ Successfully saved categorized sets to Supabase:', finalInserts.length, 'records');
+    
+    // Update cache version to notify other users about Edit Sets changes
+    try {
+      const { forceCacheVersionUpdate } = await import('./cacheVersionService');
+      await forceCacheVersionUpdate(
+        dbCountry, 
+        'edit_sets',
+        `Updated Edit Sets for ${departmentName}`,
+        'system' // Could be enhanced with actual user info
+      );
+      console.log(`📢 Cache version updated for ${dbCountry}:edit_sets`);
+    } catch (cacheError) {
+      console.error('Failed to update cache version:', cacheError);
+    }
     
     // Invalidate cache for this department/country
     const cacheKey = `${departmentName}-${dbCountry}`;

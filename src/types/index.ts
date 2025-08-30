@@ -179,4 +179,6 @@ export interface Notification {
   timestamp: string;
   read?: boolean;
   duration?: number;
+  caseId?: string;
+  caseReferenceNumber?: string;
 }

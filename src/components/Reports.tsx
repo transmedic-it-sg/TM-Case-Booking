@@ -151,7 +151,8 @@ const Reports: React.FC = () => {
   useEffect(() => {
     const filtered = applyFiltersToCase(cases, filters);
     setFilteredCases(filtered);
-  }, [cases, filters, applyFiltersToCase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cases, filters]); // Removed applyFiltersToCase from dependencies to prevent infinite loop
 
   // Generate report data
   const reportData: ReportData = useMemo(() => {

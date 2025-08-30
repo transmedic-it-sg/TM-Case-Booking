@@ -1,42 +1,158 @@
 // Database-driven constants service to replace hardcoded values
-import { lookupOperations } from './supabaseService'
+import { lookupOperations } from './supabaseServiceFixed'
 
 // =============================================================================
-// CACHE MANAGEMENT
+// CACHE MANAGEMENT - Enhanced with corruption prevention
 // =============================================================================
+
+interface ConstantsCacheEntry<T> {
+  data: T
+  timestamp: number
+  version: number
+  country?: string
+  isPending?: boolean
+}
 
 interface ConstantsCache {
-  countries: any[]
-  caseStatuses: any[]
-  departments: { [country: string]: any[] }
-  hospitals: { [country: string]: any[] }
-  procedureTypes: { [country: string]: any[] }
-  surgerySets: { [country: string]: any[] }
-  implantBoxes: { [country: string]: any[] }
-  lastUpdated: { [key: string]: number }
+  countries: ConstantsCacheEntry<any[]> | null
+  caseStatuses: ConstantsCacheEntry<any[]> | null
+  departments: Map<string, ConstantsCacheEntry<any[]>>
+  hospitals: Map<string, ConstantsCacheEntry<any[]>>
+  procedureTypes: Map<string, ConstantsCacheEntry<any[]>>
+  surgerySets: Map<string, ConstantsCacheEntry<any[]>>
+  implantBoxes: Map<string, ConstantsCacheEntry<any[]>>
+  pendingRequests: Map<string, Promise<any>>
 }
 
 const cache: ConstantsCache = {
-  countries: [],
-  caseStatuses: [],
-  departments: {},
-  hospitals: {},
-  procedureTypes: {},
-  surgerySets: {},
-  implantBoxes: {},
-  lastUpdated: {}
+  countries: null,
+  caseStatuses: null,
+  departments: new Map(),
+  hospitals: new Map(),
+  procedureTypes: new Map(),
+  surgerySets: new Map(),
+  implantBoxes: new Map(),
+  pendingRequests: new Map()
 }
 
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+const CACHE_VERSION = 1 // Increment when cache structure changes
 
-const isCacheValid = (key: string): boolean => {
-  const lastUpdated = cache.lastUpdated[key]
-  if (!lastUpdated) return false
-  return Date.now() - lastUpdated < CACHE_DURATION
+// Prevent cache corruption with atomic operations
+const isCacheValid = <T>(cacheEntry: ConstantsCacheEntry<T> | null): boolean => {
+  if (!cacheEntry) return false
+  if (cacheEntry.version !== CACHE_VERSION) return false
+  if (cacheEntry.isPending) return false
+  return Date.now() - cacheEntry.timestamp < CACHE_DURATION
 }
 
-const setCacheTimestamp = (key: string): void => {
-  cache.lastUpdated[key] = Date.now()
+const createCacheEntry = <T>(data: T, country?: string): ConstantsCacheEntry<T> => {
+  return {
+    data,
+    timestamp: Date.now(),
+    version: CACHE_VERSION,
+    country,
+    isPending: false
+  }
+}
+
+// Atomic cache operations to prevent corruption
+const setCacheEntry = <T>(key: string, data: T, isGlobal = false): void => {
+  const entry = createCacheEntry(data, isGlobal ? 'Global' : undefined)
+  
+  if (key === 'countries') {
+    cache.countries = entry as ConstantsCacheEntry<any[]>
+  } else if (key === 'caseStatuses') {
+    cache.caseStatuses = entry as ConstantsCacheEntry<any[]>
+  } else if (key.startsWith('departments_')) {
+    const country = key.replace('departments_', '')
+    cache.departments.set(country, entry as ConstantsCacheEntry<any[]>)
+  } else if (key.startsWith('hospitals_')) {
+    const country = key.replace('hospitals_', '')
+    cache.hospitals.set(country, entry as ConstantsCacheEntry<any[]>)
+  } else if (key.startsWith('procedureTypes_')) {
+    const country = key.replace('procedureTypes_', '')
+    cache.procedureTypes.set(country, entry as ConstantsCacheEntry<any[]>)
+  } else if (key.startsWith('surgerySets_')) {
+    const country = key.replace('surgerySets_', '')
+    cache.surgerySets.set(country, entry as ConstantsCacheEntry<any[]>)
+  } else if (key.startsWith('implantBoxes_')) {
+    const country = key.replace('implantBoxes_', '')
+    cache.implantBoxes.set(country, entry as ConstantsCacheEntry<any[]>)
+  }
+}
+
+const getCacheEntry = <T>(key: string): ConstantsCacheEntry<T> | null => {
+  if (key === 'countries') {
+    return cache.countries as ConstantsCacheEntry<T> | null
+  } else if (key === 'caseStatuses') {
+    return cache.caseStatuses as ConstantsCacheEntry<T> | null
+  } else if (key.startsWith('departments_')) {
+    const country = key.replace('departments_', '')
+    return cache.departments.get(country) as ConstantsCacheEntry<T> | null
+  } else if (key.startsWith('hospitals_')) {
+    const country = key.replace('hospitals_', '')
+    return cache.hospitals.get(country) as ConstantsCacheEntry<T> | null
+  } else if (key.startsWith('procedureTypes_')) {
+    const country = key.replace('procedureTypes_', '')
+    return cache.procedureTypes.get(country) as ConstantsCacheEntry<T> | null
+  } else if (key.startsWith('surgerySets_')) {
+    const country = key.replace('surgerySets_', '')
+    return cache.surgerySets.get(country) as ConstantsCacheEntry<T> | null
+  } else if (key.startsWith('implantBoxes_')) {
+    const country = key.replace('implantBoxes_', '')
+    return cache.implantBoxes.get(country) as ConstantsCacheEntry<T> | null
+  }
+  return null
+}
+
+// Generic helper to prevent duplicate requests and cache corruption
+const getCachedOrFetch = async <T>(
+  cacheKey: string,
+  fetchFn: () => Promise<{ success: boolean; data?: T; error?: string }>,
+  mapFn?: (data: T) => any[],
+  isGlobal = false
+): Promise<any[]> => {
+  const cachedEntry = getCacheEntry<T>(cacheKey)
+  
+  // Return valid cache data
+  if (isCacheValid(cachedEntry)) {
+    return mapFn ? mapFn(cachedEntry!.data) : cachedEntry!.data as any[]
+  }
+
+  // Check for pending request to prevent duplicate requests
+  const pendingRequest = cache.pendingRequests.get(cacheKey)
+  if (pendingRequest) {
+    try {
+      return await pendingRequest
+    } catch (error) {
+      console.error(`Error waiting for pending ${cacheKey} request:`, error)
+      return []
+    }
+  }
+
+  // Create new request and cache it
+  const fetchPromise = (async (): Promise<any[]> => {
+    try {
+      const result = await fetchFn()
+      if (result.success && result.data) {
+        setCacheEntry(cacheKey, result.data, isGlobal)
+        return mapFn ? mapFn(result.data) : result.data as any[]
+      } else {
+        console.error(`Error fetching ${cacheKey}:`, result.error)
+        return []
+      }
+    } catch (error) {
+      console.error(`Error fetching ${cacheKey}:`, error)
+      return []
+    } finally {
+      // Clean up pending request
+      cache.pendingRequests.delete(cacheKey)
+    }
+  })()
+
+  cache.pendingRequests.set(cacheKey, fetchPromise)
+  return fetchPromise
 }
 
 // =============================================================================
@@ -44,24 +160,25 @@ const setCacheTimestamp = (key: string): void => {
 // =============================================================================
 
 export const getCountries = async (): Promise<string[]> => {
-  if (isCacheValid('countries') && cache.countries.length > 0) {
-    return cache.countries.map(c => c.name)
-  }
-
-  try {
-    const countries = await lookupOperations.getCountries()
-    cache.countries = countries
-    setCacheTimestamp('countries')
-    return countries.map((c: any) => c.name)
-  } catch (error) {
-    console.error('Error fetching countries:', error)
-    // Fallback to hardcoded values
-    return ['Singapore', 'Malaysia', 'Philippines', 'Indonesia', 'Vietnam', 'Hong Kong', 'Thailand']
-  }
+  return getCachedOrFetch(
+    'countries',
+    () => lookupOperations.getCountries(),
+    (data: any[]) => data.map(c => c.name),
+    true // Countries are Global
+  )
 }
 
 export const getCountryByCode = async (code: string): Promise<string | null> => {
-  const countries = cache.countries.length > 0 ? cache.countries : await lookupOperations.getCountries()
+  const cachedEntry = getCacheEntry<any[]>('countries')
+  let countries: any[] = []
+  
+  if (isCacheValid(cachedEntry)) {
+    countries = cachedEntry!.data
+  } else {
+    const result = await lookupOperations.getCountries()
+    countries = result.success && result.data ? result.data : []
+  }
+  
   const country = countries.find((c: any) => c.code === code)
   return country?.name || null
 }
@@ -71,33 +188,12 @@ export const getCountryByCode = async (code: string): Promise<string | null> => 
 // =============================================================================
 
 export const getCaseStatuses = async (): Promise<any[]> => {
-  if (isCacheValid('caseStatuses') && cache.caseStatuses.length > 0) {
-    return cache.caseStatuses
-  }
-
-  try {
-    const statuses = await lookupOperations.getCaseStatuses()
-    cache.caseStatuses = statuses
-    setCacheTimestamp('caseStatuses')
-    return statuses
-  } catch (error) {
-    console.error('Error fetching case statuses:', error)
-    // Fallback to hardcoded values
-    return [
-      { status_key: 'pending', display_name: 'Pending', color: '#ffa500', icon: 'clock', sort_order: 1 },
-      { status_key: 'confirmed', display_name: 'Confirmed', color: '#0080ff', icon: 'check', sort_order: 2 },
-      { status_key: 'order-placed', display_name: 'Order Placed', color: '#8000ff', icon: 'shopping-cart', sort_order: 3 },
-      { status_key: 'order-processed', display_name: 'Order Processed', color: '#ff4080', icon: 'package', sort_order: 4 },
-      { status_key: 'ready-for-delivery', display_name: 'Ready for Delivery', color: '#00ff80', icon: 'truck-loading', sort_order: 5 },
-      { status_key: 'out-for-delivery', display_name: 'Out for Delivery', color: '#ff8000', icon: 'truck', sort_order: 6 },
-      { status_key: 'delivered', display_name: 'Delivered', color: '#4080ff', icon: 'check-circle', sort_order: 7 },
-      { status_key: 'order-received', display_name: 'Order Received', color: '#8080ff', icon: 'clipboard-check', sort_order: 8 },
-      { status_key: 'completed', display_name: 'Completed', color: '#00ff00', icon: 'check-double', sort_order: 9 },
-      { status_key: 'to-be-billed', display_name: 'To Be Billed', color: '#ffff00', icon: 'dollar-sign', sort_order: 10 },
-      { status_key: 'cancelled', display_name: 'Cancelled', color: '#ff0000', icon: 'times', sort_order: 11 },
-      { status_key: 'on-hold', display_name: 'On Hold', color: '#808080', icon: 'pause', sort_order: 12 }
-    ]
-  }
+  return getCachedOrFetch(
+    'caseStatuses',
+    () => lookupOperations.getCaseStatuses(),
+    undefined, // No mapping needed - return data as-is
+    true // Case statuses are Global
+  )
 }
 
 export const getStatusColor = async (statusKey: string): Promise<string> => {
@@ -130,22 +226,13 @@ export const getStatusWorkflow = async (): Promise<string[]> => {
 // =============================================================================
 
 export const getDepartments = async (country?: string): Promise<string[]> => {
-  const cacheKey = country || 'global'
-  
-  if (isCacheValid(`departments_${cacheKey}`) && cache.departments[cacheKey]?.length > 0) {
-    return cache.departments[cacheKey].map(d => d.name)
-  }
-
-  try {
-    const departments = await lookupOperations.getDepartments(country)
-    cache.departments[cacheKey] = departments
-    setCacheTimestamp(`departments_${cacheKey}`)
-    return departments.map((d: any) => d.name)
-  } catch (error) {
-    console.error('Error fetching departments:', error)
-    // Fallback to hardcoded values
-    return ['Cardiology', 'Orthopedics', 'Neurosurgery', 'Oncology', 'Emergency', 'Radiology', 'General Surgery', 'Pediatrics']
-  }
+  const cacheKey = `departments_${country || 'global'}`
+  return getCachedOrFetch(
+    cacheKey,
+    () => lookupOperations.getDepartments(country),
+    (data: any[]) => data.map(d => d.name),
+    false // Departments are country-specific
+  )
 }
 
 // =============================================================================
@@ -153,22 +240,13 @@ export const getDepartments = async (country?: string): Promise<string[]> => {
 // =============================================================================
 
 export const getHospitals = async (country?: string): Promise<string[]> => {
-  const cacheKey = country || 'global'
-  
-  if (isCacheValid(`hospitals_${cacheKey}`) && cache.hospitals[cacheKey]?.length > 0) {
-    return cache.hospitals[cacheKey].map(h => h.name)
-  }
-
-  try {
-    const hospitals = await lookupOperations.getHospitals(country)
-    cache.hospitals[cacheKey] = hospitals
-    setCacheTimestamp(`hospitals_${cacheKey}`)
-    return hospitals.map((h: any) => h.name)
-  } catch (error) {
-    console.error('Error fetching hospitals:', error)
-    // Return empty array if no hospitals found, let user input custom values
-    return []
-  }
+  const cacheKey = `hospitals_${country || 'global'}`
+  return getCachedOrFetch(
+    cacheKey,
+    () => lookupOperations.getHospitals(country),
+    (data: any[]) => data.map(h => h.name),
+    false // Hospitals are country-specific
+  )
 }
 
 // =============================================================================
@@ -176,22 +254,13 @@ export const getHospitals = async (country?: string): Promise<string[]> => {
 // =============================================================================
 
 export const getProcedureTypes = async (country?: string): Promise<string[]> => {
-  const cacheKey = country || 'global'
-  
-  if (isCacheValid(`procedureTypes_${cacheKey}`) && cache.procedureTypes[cacheKey]?.length > 0) {
-    return cache.procedureTypes[cacheKey].map(p => p.name)
-  }
-
-  try {
-    const procedureTypes = await lookupOperations.getProcedureTypes(country) // Get procedure types
-    cache.procedureTypes[cacheKey] = procedureTypes
-    setCacheTimestamp(`procedureTypes_${cacheKey}`)
-    return procedureTypes.map((p: any) => p.name)
-  } catch (error) {
-    console.error('Error fetching procedure types:', error)
-    // Fallback to hardcoded values
-    return ['Knee', 'Head', 'Hip', 'Hands', 'Neck', 'Spine']
-  }
+  const cacheKey = `procedureTypes_${country || 'global'}`
+  return getCachedOrFetch(
+    cacheKey,
+    () => lookupOperations.getProcedureTypes(country),
+    (data: any[]) => data.map(p => p.name),
+    false // Procedure types have country-specific + Global fallback
+  )
 }
 
 // =============================================================================
@@ -199,30 +268,13 @@ export const getProcedureTypes = async (country?: string): Promise<string[]> => 
 // =============================================================================
 
 export const getSurgerySets = async (country?: string): Promise<string[]> => {
-  const cacheKey = country || 'global'
-  
-  if (isCacheValid(`surgerySets_${cacheKey}`) && cache.surgerySets[cacheKey]?.length > 0) {
-    return cache.surgerySets[cacheKey].map(s => s.name)
-  }
-
-  try {
-    const surgerySets = await lookupOperations.getSurgerySets(country)
-    cache.surgerySets[cacheKey] = surgerySets
-    setCacheTimestamp(`surgerySets_${cacheKey}`)
-    return surgerySets.map((s: any) => s.name)
-  } catch (error) {
-    console.error('Error fetching surgery sets:', error)
-    // Fallback to hardcoded values
-    return [
-      'Comprehensive Spine Fusion Set',
-      'Advanced Joint Replacement Kit',
-      'Precision Sports Medicine Collection',
-      'Complete Trauma Surgery Package',
-      'Specialized Minimally Invasive Set',
-      'Elite Orthopedic Reconstruction Kit',
-      'Premium Surgical Navigation Tools'
-    ]
-  }
+  const cacheKey = `surgerySets_${country || 'global'}`
+  return getCachedOrFetch(
+    cacheKey,
+    () => lookupOperations.getSurgerySets(country),
+    (data: any[]) => data.map(s => s.name),
+    false // Surgery sets have country-specific + Global fallback
+  )
 }
 
 // =============================================================================
@@ -230,30 +282,13 @@ export const getSurgerySets = async (country?: string): Promise<string[]> => {
 // =============================================================================
 
 export const getImplantBoxes = async (country?: string): Promise<string[]> => {
-  const cacheKey = country || 'global'
-  
-  if (isCacheValid(`implantBoxes_${cacheKey}`) && cache.implantBoxes[cacheKey]?.length > 0) {
-    return cache.implantBoxes[cacheKey].map(b => b.name)
-  }
-
-  try {
-    const implantBoxes = await lookupOperations.getImplantBoxes(country)
-    cache.implantBoxes[cacheKey] = implantBoxes
-    setCacheTimestamp(`implantBoxes_${cacheKey}`)
-    return implantBoxes.map((b: any) => b.name)
-  } catch (error) {
-    console.error('Error fetching implant boxes:', error)
-    // Fallback to hardcoded values
-    return [
-      'Spinal Implant Collection Box',
-      'Joint Replacement Implant Set',
-      'Sports Medicine Implant Kit',
-      'Trauma Implant System Box',
-      'Minimally Invasive Implant Set',
-      'Reconstruction Implant Package',
-      'Specialized Implant Collection'
-    ]
-  }
+  const cacheKey = `implantBoxes_${country || 'global'}`
+  return getCachedOrFetch(
+    cacheKey,
+    () => lookupOperations.getImplantBoxes(country),
+    (data: any[]) => data.map(b => b.name),
+    false // Implant boxes have country-specific + Global fallback
+  )
 }
 
 // =============================================================================
@@ -262,7 +297,13 @@ export const getImplantBoxes = async (country?: string): Promise<string[]> => {
 
 export const getProcedureMappings = async (procedureType: string, country?: string) => {
   try {
-    return await lookupOperations.getProcedureMappings()
+    const result = await lookupOperations.getProcedureMappings(procedureType, country)
+    if (result.success && result.data) {
+      return result.data
+    } else {
+      console.error('Error fetching procedure mappings:', result.error)
+      return { surgerySets: [], implantBoxes: [] }
+    }
   } catch (error) {
     console.error('Error fetching procedure mappings:', error)
     return { surgerySets: [], implantBoxes: [] }
@@ -275,25 +316,40 @@ export const getProcedureMappings = async (procedureType: string, country?: stri
 
 export const clearCache = (key?: string): void => {
   if (key) {
-    delete cache.lastUpdated[key]
     // Clear specific cache entries
-    if (key === 'countries') cache.countries = []
-    else if (key === 'caseStatuses') cache.caseStatuses = []
-    else if (key.startsWith('departments_')) {
-      const cacheKey = key.replace('departments_', '')
-      delete cache.departments[cacheKey]
+    if (key === 'countries') {
+      cache.countries = null
+    } else if (key === 'caseStatuses') {
+      cache.caseStatuses = null
+    } else if (key.startsWith('departments_')) {
+      const country = key.replace('departments_', '')
+      cache.departments.delete(country)
+    } else if (key.startsWith('hospitals_')) {
+      const country = key.replace('hospitals_', '')
+      cache.hospitals.delete(country)
+    } else if (key.startsWith('procedureTypes_')) {
+      const country = key.replace('procedureTypes_', '')
+      cache.procedureTypes.delete(country)
+    } else if (key.startsWith('surgerySets_')) {
+      const country = key.replace('surgerySets_', '')
+      cache.surgerySets.delete(country)
+    } else if (key.startsWith('implantBoxes_')) {
+      const country = key.replace('implantBoxes_', '')
+      cache.implantBoxes.delete(country)
     }
-    // Add more specific cache clearing as needed
+    
+    // Also clear any pending requests for this key
+    cache.pendingRequests.delete(key)
   } else {
-    // Clear all cache
-    Object.keys(cache.lastUpdated).forEach(k => delete cache.lastUpdated[k])
-    cache.countries = []
-    cache.caseStatuses = []
-    cache.departments = {}
-    cache.hospitals = {}
-    cache.procedureTypes = {}
-    cache.surgerySets = {}
-    cache.implantBoxes = {}
+    // Clear all cache - atomic operation to prevent corruption
+    cache.countries = null
+    cache.caseStatuses = null
+    cache.departments.clear()
+    cache.hospitals.clear()
+    cache.procedureTypes.clear()
+    cache.surgerySets.clear()
+    cache.implantBoxes.clear()
+    cache.pendingRequests.clear()
   }
 }
 

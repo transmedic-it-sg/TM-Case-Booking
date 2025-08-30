@@ -554,7 +554,13 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
                 implantBox: []
               }))}
               options={filteredProcedureTypes}
-              placeholder={formData.department ? "Search and select procedure type" : "Please select a department first"}
+              placeholder={
+                !formData.department 
+                  ? "Please select a department first" 
+                  : filteredProcedureTypes.length === 0
+                    ? "No procedure types configured for this department - Contact admin to add types"
+                    : "Search and select procedure type"
+              }
               className={errors.procedureType ? 'error' : ''}
               disabled={!formData.department || filteredProcedureTypes.length === 0}
               required

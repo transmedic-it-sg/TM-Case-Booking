@@ -31,16 +31,17 @@ interface SupabaseCase {
   updated_at: string;
 }
 
-// Interface for case status history (for future nested queries)
-// interface SupabaseCaseStatusHistory {
-//   id: string;
-//   case_id: string;
-//   status: string;
-//   processed_by: string;
-//   timestamp: string;
-//   details?: string;
-//   attachments?: string[];
-// }
+// Interface for case status history (matching database schema)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface SupabaseCaseStatusHistory {
+  id: string;
+  case_id: string;
+  status: string;
+  processed_by: string;
+  timestamp: string;
+  details?: string;
+  attachments?: string[];
+}
 
 // Interface for amendment history (matching current database schema)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -269,6 +270,8 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
     const statusHistoryMap = new Map<string, StatusHistory[]>();
     const amendmentHistoryMap = new Map<string, AmendmentHistory[]>();
     
+    console.log(`📚 Loading status histories for ${caseIds.length} cases. Found ${statusHistories?.length || 0} history entries.`);
+    
     statusHistories?.forEach(history => {
       if (!statusHistoryMap.has(history.case_id)) {
         statusHistoryMap.set(history.case_id, []);
@@ -277,8 +280,9 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
         status: history.status as CaseStatus,
         timestamp: history.timestamp,
         processedBy: history.processed_by,
-        details: history.details,
-        attachments: history.attachments
+        user: history.processed_by, // Add user field for compatibility
+        details: history.details || '',
+        attachments: history.attachments || []
       });
     });
     
@@ -548,7 +552,16 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
       isAmended: insertedCase.is_amended,
       amendedBy: insertedCase.amended_by,
       amendedAt: insertedCase.amended_at,
-      statusHistory: []
+      statusHistory: [
+        {
+          status: 'Case Booked' as CaseStatus,
+          timestamp: insertedCase.submitted_at,
+          processedBy: insertedCase.submitted_by,
+          user: insertedCase.submitted_by,
+          details: 'Case initially submitted',
+          attachments: []
+        }
+      ]
     };
   } catch (error) {
     console.error('Error in saveSupabaseCase:', error);
@@ -630,21 +643,27 @@ export const updateSupabaseCaseStatus = async (
     
     // Add status history entry only if it's not a duplicate
     if (shouldAddHistoryEntry) {
+      const historyEntry = {
+        case_id: caseId,
+        status: newStatus,
+        processed_by: changedBy,
+        timestamp: new Date().toISOString(),
+        details: details || null,
+        attachments: attachments || null
+      };
+      
+      console.log('📝 Creating status history entry:', historyEntry);
+      
       const { error: historyError } = await supabase
         .from('status_history')
-        .insert([{
-          case_id: caseId,
-          status: newStatus,
-          processed_by: changedBy,
-          timestamp: new Date().toISOString(),
-          details: details || null,
-          attachments: attachments || null
-        }]);
+        .insert([historyEntry]);
       
       if (historyError) {
-        console.error('Error creating status history:', historyError);
+        console.error('❌ Error creating status history:', historyError);
         throw historyError;
       }
+      
+      console.log('✅ Status history entry created successfully for case:', caseId);
       
       // Add audit log for status change (only if history entry was added)
       if (caseRef && oldStatus !== newStatus) {
@@ -1016,7 +1035,7 @@ export const deleteSupabaseCase = async (caseId: string): Promise<void> => {
 export const getCategorizedSets = async (country: string): Promise<Record<string, { surgerySets: string[], implantBoxes: string[] }>> => {
   try {
     const { data, error } = await supabase
-      .from('categorized_sets')
+      .from('department_categorized_sets')
       .select('*')
       .eq('country', country);
     
@@ -1060,7 +1079,7 @@ export const saveCategorizedSets = async (
     
     // Use upsert to insert or update existing sets
     const { error: upsertError } = await supabase
-      .from('categorized_sets')
+      .from('department_categorized_sets')
       .upsert(setsArray, {
         onConflict: 'country,procedure_type'
       });

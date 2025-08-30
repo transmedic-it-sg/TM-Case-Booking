@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tm-case-booking-v1.2.5-mobile';
+const CACHE_NAME = 'tm-case-booking-v1.2.8-mobile';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -119,49 +119,148 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Handle push notifications (if needed)
+// Handle push notifications - Enhanced for better mobile experience
 self.addEventListener('push', (event) => {
-  console.log('Push message received:', event);
+  console.log('📱 Push notification received:', event);
   
-  const options = {
-    body: event.data ? event.data.text() : 'New notification from TM Case Booking',
+  let notificationData = {
+    title: 'TM Case Booking',
+    body: 'You have a new notification',
     icon: '/logo192.png',
     badge: '/logo192.png',
-    vibrate: [100, 50, 100],
+    tag: 'tm-notification',
+    renotify: true,
+    requireInteraction: false,
+    vibrate: [200, 100, 200, 100, 200], // Enhanced vibration pattern
     data: {
-      dateOfArrival: Date.now(),
-      primaryKey: '1'
-    },
-    actions: [
-      {
-        action: 'explore',
-        title: 'View Cases',
-        icon: '/logo192.png'
-      },
-      {
-        action: 'close',
-        title: 'Close',
-        icon: '/logo192.png'
-      }
-    ]
+      timestamp: Date.now(),
+      url: '/'
+    }
   };
 
+  // Parse structured push data if available
+  if (event.data) {
+    try {
+      const pushPayload = event.data.json();
+      console.log('📱 Push payload:', pushPayload);
+      
+      notificationData = {
+        title: pushPayload.title || notificationData.title,
+        body: pushPayload.body || pushPayload.message || notificationData.body,
+        icon: pushPayload.icon || notificationData.icon,
+        badge: pushPayload.badge || notificationData.badge,
+        tag: pushPayload.tag || notificationData.tag,
+        renotify: pushPayload.renotify !== false,
+        requireInteraction: pushPayload.requireInteraction || false,
+        vibrate: pushPayload.vibrate || notificationData.vibrate,
+        data: {
+          ...notificationData.data,
+          ...pushPayload.data,
+          caseId: pushPayload.caseId,
+          type: pushPayload.type || 'general',
+          url: pushPayload.url || notificationData.data.url
+        }
+      };
+      
+      // Add contextual actions based on notification type
+      const actions = [];
+      if (pushPayload.type === 'case-status') {
+        actions.push({
+          action: 'view-case',
+          title: 'View Case',
+          icon: '/logo192.png'
+        });
+      }
+      actions.push({
+        action: 'open-app',
+        title: 'Open App',
+        icon: '/logo192.png'
+      });
+      
+      notificationData.actions = actions;
+      
+    } catch (error) {
+      console.error('📱 Failed to parse push data:', error);
+      // Fallback to text content
+      notificationData.body = event.data.text();
+    }
+  }
+
   event.waitUntil(
-    self.registration.showNotification('TM Case Booking', options)
+    self.registration.showNotification(notificationData.title, {
+      body: notificationData.body,
+      icon: notificationData.icon,
+      badge: notificationData.badge,
+      tag: notificationData.tag,
+      renotify: notificationData.renotify,
+      requireInteraction: notificationData.requireInteraction,
+      vibrate: notificationData.vibrate,
+      data: notificationData.data,
+      actions: notificationData.actions || [],
+      timestamp: Date.now(),
+      silent: false
+    }).then(() => {
+      console.log('📱 Notification shown successfully');
+    }).catch(error => {
+      console.error('📱 Failed to show notification:', error);
+    })
   );
 });
 
-// Handle notification clicks
+// Handle notification clicks - Enhanced with better navigation
 self.addEventListener('notificationclick', (event) => {
-  console.log('Notification click received:', event);
+  console.log('📱 Notification clicked:', event.notification.tag, 'Action:', event.action);
   
+  // Close the notification
   event.notification.close();
-
-  if (event.action === 'explore') {
-    event.waitUntil(
-      clients.openWindow('/')
-    );
+  
+  // Get notification data
+  const notificationData = event.notification.data || {};
+  let urlToOpen = notificationData.url || '/';
+  
+  // Handle different actions
+  if (event.action === 'view-case' && notificationData.caseId) {
+    // Navigate to specific case (future enhancement - when case detail view is implemented)
+    urlToOpen = `/?highlight=${notificationData.caseId}`;
+  } else if (event.action === 'open-app' || !event.action) {
+    // Default action - open the app
+    urlToOpen = notificationData.url || '/';
   }
+  
+  // Focus existing app window or open new one
+  event.waitUntil(
+    clients.matchAll({ 
+      type: 'window',
+      includeUncontrolled: true 
+    }).then((clientList) => {
+      console.log(`📱 Found ${clientList.length} existing windows`);
+      
+      // Try to focus an existing window
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin)) {
+          console.log('📱 Focusing existing window');
+          return client.focus().then(() => {
+            // Send message to focused window with notification data
+            return client.postMessage({
+              type: 'NOTIFICATION_CLICK',
+              data: notificationData,
+              action: event.action
+            });
+          });
+        }
+      }
+      
+      // No existing window found, open a new one
+      if (clients.openWindow) {
+        console.log('📱 Opening new window:', urlToOpen);
+        return clients.openWindow(urlToOpen);
+      }
+      
+      console.warn('📱 Cannot open window - no clients.openWindow support');
+    }).catch(error => {
+      console.error('📱 Error handling notification click:', error);
+    })
+  );
 });
 
 // Handle background sync (for offline functionality)

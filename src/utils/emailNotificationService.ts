@@ -81,6 +81,7 @@ export const getEmailConfig = async (country: string) => {
 };
 
 // Default notification matrix used when none is configured
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getDefaultNotificationMatrix = (country: string): EmailNotificationMatrix => {
   return {
     country,
@@ -169,8 +170,8 @@ export const getNotificationMatrix = async (country: string): Promise<EmailNotif
   console.log(`📋 Raw localStorage data:`, stored ? 'Found' : 'Not found');
   
   if (!stored) {
-    console.warn(`❌ No stored notification matrix found in localStorage, using default matrix`);
-    return getDefaultNotificationMatrix(country);
+    console.warn(`❌ No stored notification matrix found in localStorage, returning empty configuration`);
+    return { country, rules: [] };
   }
   
   try {
@@ -179,16 +180,16 @@ export const getNotificationMatrix = async (country: string): Promise<EmailNotif
     const result = matrixConfigs[country];
     
     if (!result) {
-      console.warn(`❌ No matrix found for "${country}", using default matrix`);
-      return getDefaultNotificationMatrix(country);
+      console.warn(`❌ No matrix found for "${country}", returning empty configuration`);
+      return { country, rules: [] };
     }
     
     console.log(`🎯 Matrix for "${country}":`, result ? `Found with ${result.rules?.length} rules` : 'Not found');
     return result;
   } catch (error) {
     console.error('Failed to parse notification matrix configs:', error);
-    console.warn(`Using default notification matrix for "${country}" due to parse error`);
-    return getDefaultNotificationMatrix(country);
+    console.warn(`Returning empty notification matrix for "${country}" due to parse error`);
+    return { country, rules: [] };
   }
 };
 

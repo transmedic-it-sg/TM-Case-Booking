@@ -40,7 +40,9 @@
     "claude-clean": "rm -rf .claude-optimized",
     "claude-report": "cat .claude-optimized/size-report.md 2>/dev/null || echo 'Run npm run claude-optimize first'",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "deploy": "gh-pages -d build",
+    "test:concurrent": "npx ts-node src/scripts/runConcurrentTests.ts",
+    "test:concurrent:quick": "npx ts-node -e \"import('./src/utils/concurrentUserTester').then(m => m.runQuickConcurrentTest())\""
   },
   "eslintConfig": {
     "extends": [

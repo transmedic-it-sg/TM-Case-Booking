@@ -7,6 +7,7 @@ import { CaseBooking } from '../types';
 import SearchableDropdown from './SearchableDropdown';
 import { getMonthYearDisplay } from '../utils/dateFormat';
 import { getStatusColor } from './CasesList/utils';
+import { CASE_STATUSES } from '../constants/statuses';
 import '../assets/components/BookingCalendar.css';
 
 interface BookingCalendarProps {
@@ -209,7 +210,21 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
       const matchesDate = caseItem.dateOfSurgery === dateStr;
       const isNotCancelled = caseItem.status !== 'Case Cancelled';
       
-      // If no department is selected, show all non-cancelled cases for that date
+      // Driver role filtering - only show delivery-related statuses
+      if (currentUser?.role === 'driver') {
+        const isDeliveryRelated = [
+          CASE_STATUSES.PENDING_DELIVERY_HOSPITAL,
+          CASE_STATUSES.DELIVERED_HOSPITAL,
+          CASE_STATUSES.PENDING_DELIVERY_OFFICE,
+          CASE_STATUSES.DELIVERED_OFFICE
+        ].includes(caseItem.status);
+        
+        if (!isDeliveryRelated) {
+          return false;
+        }
+      }
+      
+      // If no department is selected, show all (filtered) non-cancelled cases for that date
       if (!selectedDepartment) {
         return matchesDate && isNotCancelled;
       }
