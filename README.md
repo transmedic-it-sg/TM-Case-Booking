@@ -1,6 +1,6 @@
 # Transmedic Case Booking System
 
-## Version 1.2.8 - Production Ready with Critical Bug Fixes
+## Version 1.2.8 - Production Ready with Database Architecture Fixes
 
 A comprehensive React-based case booking application for medical procedures with advanced role-based access control, workflow management, and professional mobile experience.
 
@@ -29,12 +29,13 @@ A comprehensive React-based case booking application for medical procedures with
 - **✅ Dual-Channel Notifications**: Unified system sends both email and push notifications based on user preferences
 - **✅ Real-Time Case Updates**: Users receive instant notifications when cases are updated by other users
 
-#### 🔧 **CRITICAL FIXES IMPLEMENTED**
-- **✅ Department Filtering Consistency**: Fixed BookingCalendar and EditSets to use the same department service as New Case Booking
-- **✅ Database Connectivity Panel**: Redesigned to match proper design with "Connected to: Production DB" clickable panel
-- **✅ Permission System Security**: Fixed Edit Countries permission to only hide countries field, not departments
-- **✅ Permission Cache Management**: Resolved caching issues causing incorrect permissions after login/refresh/logout
-- **✅ Data Cleanup Service**: New comprehensive service to handle orphaned data when departments/countries are modified
+#### 🔧 **CRITICAL DATABASE ARCHITECTURE FIXES**
+- **✅ User Table Consolidation**: Removed duplicate `users` table - all authentication now uses `profiles` table consistently
+- **✅ Foreign Key Integrity**: Fixed `user_sessions` to properly reference `profiles` table instead of non-existent `users` table
+- **✅ Database Cleanup**: Removed backup tables (`users_backup`, `profiles_backup`) - production database now clean
+- **✅ Hardcoded Data Elimination**: Replaced hardcoded country arrays with database-driven `getCountries()` function
+- **✅ localStorage Optimization**: Reduced localStorage usage to essential functions only (login credentials, system cache)
+- **✅ Empty Data Handling**: All database functions now return empty arrays `[]` when data unavailable instead of hardcoded fallbacks
 
 #### 🛡️ **SECURITY & DATA INTEGRITY**
 - **Fail-Secure Permission System**: Permissions now properly deny access when cache is invalid

@@ -84,13 +84,9 @@ class UserService {
    * Get all users
    */
   getAllUsers(): User[] {
-    try {
-      const usersData = localStorage.getItem('users');
-      return usersData ? JSON.parse(usersData) : [];
-    } catch (error) {
-      console.error('Error loading users:', error);
-      return [];
-    }
+    // This method is deprecated - use supabaseUserService.getAllUsers() instead
+    console.warn('getAllUsers() is deprecated - use Supabase service instead');
+    return [];
   }
 
   /**
@@ -107,7 +103,7 @@ class UserService {
         users.push(user);
       }
       
-      localStorage.setItem('users', JSON.stringify(users));
+      // localStorage usage removed - use Supabase instead
       this.userCache.set(user.id, user);
       
       // Update current user if it's the same user

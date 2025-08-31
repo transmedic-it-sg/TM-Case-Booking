@@ -57,7 +57,7 @@ export const authenticateSupabaseUser = async (username: string, password: strin
         // STEP 3: Fallback to users table for legacy support
         // Make username case-insensitive using ilike
         const { data: users, error: userError } = await supabase
-          .from('users')
+          .from('profiles')
           .select('*')
           .ilike('username', username)
           .eq('enabled', true);

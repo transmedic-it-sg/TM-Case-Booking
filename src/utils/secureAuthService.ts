@@ -62,60 +62,7 @@ export const authenticateUser = async (username: string, password: string): Prom
       }
     }
 
-    // Fallback to users table for legacy support
-    const { data: users, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('username', username)
-      .eq('enabled', true);
-
-    if (userError) {
-      console.error('Error fetching users:', userError);
-      throw userError;
-    }
-
-    if (users && users.length > 0) {
-      const user = users[0];
-      
-      // For legacy users table, password might be plain text (SECURITY ISSUE!)
-      // We should migrate these to hashed passwords
-      let isValidPassword = false;
-      
-      if (user.password_hash) {
-        // User has hashed password
-        isValidPassword = await verifyPassword(password, user.password_hash);
-      } else if (user.password === password) {
-        // Legacy plain text password (INSECURE!)
-        isValidPassword = true;
-        
-        // Immediately update to hashed password
-        const hashedPassword = await hashPassword(password);
-        await supabase
-          .from('users')
-          .update({ 
-            password_hash: hashedPassword,
-            password: null // Remove plain text password
-          })
-          .eq('id', user.id);
-        
-        console.warn(`Migrated plain text password to hash for user: ${username}`);
-      }
-      
-      if (isValidPassword) {
-        return {
-          id: user.id,
-          username: user.username,
-          password: '', // Never expose password
-          role: user.role,
-          name: user.name || user.username,
-          departments: user.departments || [],
-          countries: user.countries || [],
-          selectedCountry: user.selected_country || user.selectedCountry,
-          enabled: user.enabled,
-          email: user.email || ''
-        };
-      }
-    }
+    // All authentication now handled by profiles table only
 
     return null; // Authentication failed
     

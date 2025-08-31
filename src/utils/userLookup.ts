@@ -87,28 +87,7 @@ export const getUserNamesByIds = async (userIds: string[]): Promise<Record<strin
         }
       }
       
-      // Try users table for any remaining missing users
-      const stillMissingIds = missingIds.filter(id => result[id] === id);
-      if (stillMissingIds.length > 0) {
-        console.log('🔍 Attempting users table lookup for remaining UUIDs:', stillMissingIds);
-        
-        const { data: users, error: usersError } = await supabase
-          .from('users')
-          .select('id, name')
-          .in('id', stillMissingIds);
-        
-        if (usersError) {
-          console.error('❌ Users lookup error:', usersError);
-        } else {
-          console.log('📋 Direct Supabase users lookup results:', users);
-          if (users) {
-            users.forEach(user => {
-              result[user.id] = user.name;
-              console.log(`✅ Mapped from users: ${user.id} → ${user.name}`);
-            });
-          }
-        }
-      }
+      // Users table removed - all users are now in profiles table only
     } catch (error) {
       console.error('💥 Error in direct Supabase user lookup:', error);
     }

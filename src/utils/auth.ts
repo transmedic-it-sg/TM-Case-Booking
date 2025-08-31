@@ -63,16 +63,7 @@ export const createSession = async (userId: string): Promise<void> => {
     if (!profileError && profileExists) {
       userExists = true;
     } else {
-      // Fallback to users table
-      const { data: userExistsData, error: userCheckError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('id', userId)
-        .single();
-      
-      if (!userCheckError && userExistsData) {
-        userExists = true;
-      }
+      // No fallback needed - all users are in profiles table
     }
     
     if (!userExists) {

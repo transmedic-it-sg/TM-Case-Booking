@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { authenticate } from '../utils/auth';
 import { User } from '../types';
-import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
+import { getCountries } from '../services/constantsService';
 import SearchableDropdown from './SearchableDropdown';
 
 interface LoginProps {
@@ -21,7 +21,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   // Load countries on component mount
   useEffect(() => {
-    setAvailableCountries([...SUPPORTED_COUNTRIES]);
+    const loadCountries = async () => {
+      try {
+        const countries = await getCountries();
+        setAvailableCountries(countries);
+      } catch (error) {
+        console.error('Error loading countries:', error);
+        setAvailableCountries([]); // Show empty instead of hardcoded fallback
+      }
+    };
+    loadCountries();
     
     // Load remembered credentials
     const savedCredentials = localStorage.getItem('rememberMe');

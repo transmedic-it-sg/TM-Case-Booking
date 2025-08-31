@@ -17,7 +17,7 @@ import CustomModal from './CustomModal';
 import PasswordInput from './PasswordInput';
 import { validatePassword, getPasswordRequirementsSync } from '../utils/passwordValidation';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
-import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
+import { getCountries } from '../services/constantsService';
 import { getAllRoles } from '../data/permissionMatrixData';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import SearchableDropdown from './SearchableDropdown';
@@ -120,8 +120,17 @@ const UserManagement: React.FC = () => {
   useEffect(() => {
     loadUsers();
     
-    // Load countries from centralized country utils
-    setAvailableCountries([...SUPPORTED_COUNTRIES]);
+    // Load countries from database
+    const loadCountries = async () => {
+      try {
+        const countries = await getCountries();
+        setAvailableCountries(countries);
+      } catch (error) {
+        console.error('Error loading countries:', error);
+        setAvailableCountries([]); // Show empty instead of hardcoded fallback
+      }
+    };
+    loadCountries();
     
     // Load available roles
     loadAvailableRoles();

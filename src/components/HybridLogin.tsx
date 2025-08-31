@@ -55,7 +55,7 @@ const HybridLogin: React.FC<HybridLoginProps> = ({ onLogin }) => {
                 name: 'Admin User',
                 role: 'admin',
                 departments: [],
-                countries: ['Singapore', 'Malaysia', 'Philippines'],
+                countries: [], // Will be populated from database
                 enabled: true
               });
 

@@ -35,32 +35,9 @@ export const getAllSupabaseUsers = async (): Promise<User[]> => {
         }));
       }
 
-      // Get users from users table as fallback/additional
-      const { data: usersData, error: usersError } = await supabase
-        .from('users')
-        .select('*')
-        .order('username');
-
-      if (!usersError && usersData) {
-        const additionalUsers = usersData
-          .filter((user: any) => !allUsers.some(u => u.username.toLowerCase() === user.username.toLowerCase())) // Avoid duplicates by username
-          .map((user: any) => ({
-            id: user.id,
-            username: user.username,
-            password: '', // Never expose password
-            role: user.role,
-            name: user.name,
-            departments: user.departments || [],
-            countries: user.countries || [],
-            selectedCountry: user.selected_country,
-            enabled: user.enabled
-          }));
-        
-        allUsers = [...allUsers, ...additionalUsers];
-      }
-
-      if (profilesError && usersError) {
-        throw profilesError || usersError;
+      // Users table removed - all users are now in profiles table only
+      if (profilesError) {
+        throw profilesError;
       }
 
       return allUsers;
@@ -106,7 +83,7 @@ export const getUserById = async (userId: string): Promise<User | null> => {
 
       // If not found in profiles, try users table as fallback
       const { data: userData, error: userError } = await supabase
-        .from('users')
+        .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
@@ -234,7 +211,7 @@ export const updateSupabaseUser = async (userId: string, userData: Partial<User>
         usersUpdateData.updated_at = updateData.updated_at;
 
         const { error: userError } = await supabase
-          .from('users')
+          .from('profiles')
           .update(usersUpdateData)
           .eq('id', userId);
 
@@ -299,7 +276,7 @@ export const resetSupabaseUserPassword = async (userId: string, newPassword: str
       if (profileError) {
         // Try users table as fallback
         const { error: userError } = await supabase
-          .from('users')
+          .from('profiles')
           .update({ 
             password: newPassword, // users table uses 'password' column, not 'password_hash'
             updated_at: new Date().toISOString()
