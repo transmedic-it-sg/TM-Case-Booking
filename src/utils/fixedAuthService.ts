@@ -15,10 +15,11 @@ export const authenticateSupabaseUser = async (username: string, password: strin
     async () => {
       try {
         // STEP 1: Get user data without password filtering (prevents 406 errors)
+        // Make username case-insensitive using ilike
         const { data: profiles, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('username', username)
+          .ilike('username', username)
           .eq('enabled', true);
 
         if (profileError) {
@@ -54,10 +55,11 @@ export const authenticateSupabaseUser = async (username: string, password: strin
         }
 
         // STEP 3: Fallback to users table for legacy support
+        // Make username case-insensitive using ilike
         const { data: users, error: userError } = await supabase
           .from('users')
           .select('*')
-          .eq('username', username)
+          .ilike('username', username)
           .eq('enabled', true);
 
         if (userError) {

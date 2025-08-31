@@ -214,12 +214,33 @@ export const updateSupabaseUser = async (userId: string, userData: Partial<User>
 
       updateData.updated_at = new Date().toISOString();
 
-      const { error } = await supabase
+      // Try profiles table first
+      const { error: profileError } = await supabase
         .from('profiles')
         .update(updateData)
         .eq('id', userId);
 
-      if (error) throw error;
+      if (profileError) {
+        // Try users table as fallback with correct column mapping
+        const usersUpdateData: any = {};
+        if (updateData.username) usersUpdateData.username = updateData.username;
+        if (updateData.password_hash) usersUpdateData.password = updateData.password_hash; // Map to 'password' column
+        if (updateData.role) usersUpdateData.role = updateData.role;
+        if (updateData.name) usersUpdateData.name = updateData.name;
+        if (updateData.departments) usersUpdateData.departments = updateData.departments;
+        if (updateData.countries) usersUpdateData.countries = updateData.countries;
+        if (updateData.selected_country) usersUpdateData.selected_country = updateData.selected_country;
+        if (updateData.enabled !== undefined) usersUpdateData.enabled = updateData.enabled;
+        usersUpdateData.updated_at = updateData.updated_at;
+
+        const { error: userError } = await supabase
+          .from('users')
+          .update(usersUpdateData)
+          .eq('id', userId);
+
+        if (userError) throw userError;
+      }
+      
       return true;
     },
     {
@@ -280,8 +301,7 @@ export const resetSupabaseUserPassword = async (userId: string, newPassword: str
         const { error: userError } = await supabase
           .from('users')
           .update({ 
-            password_hash: newPassword, // Should be hashed in production
-            password: null, // Remove plain text password
+            password: newPassword, // users table uses 'password' column, not 'password_hash'
             updated_at: new Date().toISOString()
           })
           .eq('id', userId);
