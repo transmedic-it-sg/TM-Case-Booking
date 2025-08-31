@@ -518,9 +518,13 @@
 
 /* Mobile Status Legend in Menu */
 .status-legend-item {
-  padding: 0 !important;
-  background: none !important;
-  cursor: default !important;
+  padding: 16px !important;
+  background: var(--background-light) !important;
+  cursor: pointer !important;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  border: 2px solid var(--primary-light);
+  transition: all 0.3s ease;
 }
 
 .status-legend-item .status-legend-button {

@@ -125,6 +125,59 @@ export const deleteSession = async (sessionToken?: string): Promise<void> => {
   }
 };
 
+export const validateSession = async (sessionToken?: string): Promise<boolean> => {
+  try {
+    const token = sessionToken || sessionStorage.getItem('session-token');
+    if (!token) return false;
+
+    const { supabase } = await import('../lib/supabase');
+    
+    // Check if session exists and is not expired
+    const { data, error } = await supabase
+      .from('user_sessions')
+      .select('expires_at, user_id')
+      .eq('session_token', token)
+      .single();
+    
+    if (error || !data) {
+      // Session not found in database, remove from browser
+      sessionStorage.removeItem('session-token');
+      return false;
+    }
+    
+    // Check if session is expired
+    const expiresAt = new Date(data.expires_at);
+    if (expiresAt <= new Date()) {
+      // Session expired, clean up
+      await deleteSession(token);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error validating session:', error);
+    return false;
+  }
+};
+
+export const deleteAllUserSessions = async (userId: string): Promise<void> => {
+  try {
+    const { supabase } = await import('../lib/supabase');
+    
+    // Delete all sessions for this user
+    const { error } = await supabase
+      .from('user_sessions')
+      .delete()
+      .eq('user_id', userId);
+    
+    if (error) {
+      console.error('Failed to delete user sessions:', error);
+    }
+  } catch (error) {
+    console.error('Error deleting user sessions:', error);
+  }
+};
+
 export const getCurrentUserFromStorage = (): User | null => {
   try {
     const stored = localStorage.getItem(CURRENT_USER_KEY);
@@ -277,7 +330,14 @@ export const authenticate = async (username: string, password: string, country: 
     if (user.role === 'admin' || (user.countries && user.countries.includes(country))) {
       const userWithCountry = { ...user, selectedCountry: country };
       
-      // Try to create session in Supabase (optional, fallback to localStorage if fails)
+      // Implement single session enforcement - delete all existing sessions for this user
+      try {
+        await deleteAllUserSessions(user.id);
+      } catch (sessionError) {
+        console.warn('Failed to delete existing user sessions:', sessionError);
+      }
+      
+      // Try to create new session in Supabase (optional, fallback to localStorage if fails)
       try {
         await createSession(user.id);
       } catch (sessionError) {

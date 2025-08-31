@@ -328,9 +328,12 @@ export const getRecipientEmails = async (
     if (hasMatchingRole) {
       console.log(`   ✅ Role match: ${user.role}`);
       
-      // Check if user has access to the case's country
+      let userAdded = false;
+      
+      // Standard country and department validation
       if (user.countries && user.countries.includes(caseData.country)) {
         console.log(`   ✅ Country access: ${caseData.country}`);
+        
         // Check department filter if specified
         if (recipients.departmentFilter.length > 0) {
           if (!userHasAnyDepartmentAccess(user.departments, recipients.departmentFilter)) {
@@ -354,35 +357,49 @@ export const getRecipientEmails = async (
         if (user.email) {
           console.log(`   ✅ ADDED TO RECIPIENTS: ${user.email}`);
           recipientEmails.push(user.email);
+          userAdded = true;
         } else {
           console.warn(`   ⚠️ User ${user.name} (${user.role}) has no email address configured`);
         }
       } else {
         console.log(`   ❌ Country access denied: user doesn't have access to "${caseData.country}"`);
-      }
-      
-      // Check if admin override is enabled for this notification rule
-      // Admin override allows admin users to receive notifications regardless of country restrictions
-      const adminOverrideEnabled = recipients.adminOverride !== false; // Default to true if not specified
-      
-      if (user.role === 'admin' && user.email && adminOverrideEnabled) {
-        // Admin users can bypass country restrictions but still respect department filters
-        const bypassCountryRestriction = !user.countries || user.countries.includes(caseData.country) || recipients.adminGlobalAccess !== false;
         
-        if (bypassCountryRestriction) {
-          // Still check department filters if specified
-          if (recipients.departmentFilter.length === 0 || 
-              userHasAnyDepartmentAccess(user.departments, recipients.departmentFilter)) {
-            if (!recipientEmails.includes(user.email)) {
-              console.log(`   👑 ADMIN OVERRIDE: Added ${user.email} (admin bypass enabled)`);
-              recipientEmails.push(user.email);
+        // Check if admin override is enabled for this notification rule
+        // Admin override allows admin users to receive notifications regardless of country restrictions
+        const adminOverrideEnabled = recipients.adminOverride !== false; // Default to true if not specified
+        
+        if (user.role === 'admin' && user.email && adminOverrideEnabled) {
+          // Admin users can bypass country restrictions if adminGlobalAccess is enabled
+          const adminGlobalAccessEnabled = recipients.adminGlobalAccess !== false; // Default to true if not specified
+          
+          if (adminGlobalAccessEnabled) {
+            console.log(`   👑 Admin global access enabled, checking department filters...`);
+            
+            // Still check department filters if specified
+            if (recipients.departmentFilter.length === 0 || 
+                userHasAnyDepartmentAccess(user.departments, recipients.departmentFilter)) {
+              
+              // Check same department requirement for admin override
+              if (!recipients.requireSameDepartment || 
+                  userHasDepartmentAccess(user.departments, caseData.department)) {
+                
+                console.log(`   👑 ADMIN OVERRIDE: Added ${user.email} (admin global access)`);
+                recipientEmails.push(user.email);
+                userAdded = true;
+              } else {
+                console.log(`   👑 Admin override blocked by same department requirement`);
+              }
+            } else {
+              console.log(`   👑 Admin override blocked by department filter`);
             }
           } else {
-            console.log(`   👑 Admin override available but blocked by department filter`);
+            console.log(`   👑 Admin global access disabled for this rule`);
           }
-        } else {
-          console.log(`   👑 Admin override disabled or country restricted`);
         }
+      }
+      
+      if (!userAdded) {
+        console.log(`   ❌ User not added to recipients due to country/department restrictions`);
       }
     } else {
       console.log(`   ❌ Role mismatch: "${user.role}" not in [${recipients.roles.join(', ')}]`);
@@ -395,14 +412,27 @@ export const getRecipientEmails = async (
     recipientEmails.push(...recipients.specificEmails);
   }
   
-  // Add submitter if requested
+  // Add submitter if requested (with country validation)
   if (recipients.includeSubmitter && caseData.submittedBy) {
     console.log(`\n👤 Checking submitter: ${caseData.submittedBy}`);
     // Find submitter's email
     const submitter = users.find(user => user.name === caseData.submittedBy);
     if (submitter && submitter.email) {
-      console.log(`   ✅ ADDED SUBMITTER: ${submitter.email}`);
-      recipientEmails.push(submitter.email);
+      // Validate submitter has access to the case's country (or is admin with global access)
+      const hasCountryAccess = submitter.countries && submitter.countries.includes(caseData.country);
+      const isAdminWithGlobalAccess = submitter.role === 'admin' && recipients.adminGlobalAccess !== false;
+      
+      if (hasCountryAccess || isAdminWithGlobalAccess) {
+        if (!recipientEmails.includes(submitter.email)) {
+          console.log(`   ✅ ADDED SUBMITTER: ${submitter.email} (country access validated)`);
+          recipientEmails.push(submitter.email);
+        } else {
+          console.log(`   ℹ️ Submitter already in recipient list: ${submitter.email}`);
+        }
+      } else {
+        console.log(`   ❌ Submitter doesn't have access to case country: ${caseData.country}`);
+        console.log(`   🔍 Submitter countries: [${submitter.countries?.join(', ') || 'none'}]`);
+      }
     } else {
       console.log(`   ❌ Submitter not found or has no email`);
     }
@@ -765,4 +795,83 @@ export const sendStatusChangeNotification = async (
     changedBy: userWhoChanged,
     changedAt: new Date().toLocaleString()
   });
+};
+
+// Enhanced notification system that handles both email and push notifications
+export const sendUnifiedNotification = async (
+  caseData: CaseBooking,
+  status: string,
+  additionalInfo: Record<string, string> = {}
+): Promise<{ email: boolean; push: boolean }> => {
+  const results = { email: false, push: false };
+  
+  try {
+    // Send email notification
+    results.email = await sendCaseStatusNotification(caseData, status, additionalInfo);
+    
+    // Send push notification to current user if they are the case submitter or have access
+    const { getCurrentUser } = await import('./auth');
+    const currentUser = getCurrentUser();
+    
+    if (currentUser) {
+      // Check if user should receive push notification based on email configuration rules
+      const shouldReceivePush = await shouldUserReceivePushNotification(currentUser, caseData, status);
+      
+      if (shouldReceivePush) {
+        const { pushNotificationService } = await import('../services/pushNotificationService');
+        
+        const title = `Case ${status}`;
+        const body = `${caseData.caseReferenceNumber} - ${caseData.hospital}`;
+        
+        await pushNotificationService.sendCaseNotification(title, body, {
+          caseId: caseData.id || '',
+          caseReferenceNumber: caseData.caseReferenceNumber,
+          status: status,
+          type: status === 'Case Booked' ? 'new-case' : 'status-change'
+        });
+        
+        results.push = true;
+      }
+    }
+    
+    return results;
+  } catch (error) {
+    console.error('Error sending unified notification:', error);
+    return results;
+  }
+};
+
+// Check if user should receive push notification based on email configuration
+const shouldUserReceivePushNotification = async (
+  user: any,
+  caseData: CaseBooking,
+  status: string
+): Promise<boolean> => {
+  try {
+    // Get notification matrix for the case's country
+    const { normalizeCountry } = await import('./countryUtils');
+    const fullCountryName = normalizeCountry(caseData.country);
+    const notificationMatrix = await getNotificationMatrix(fullCountryName);
+    
+    if (!notificationMatrix) return false;
+    
+    // Find the notification rule for this status
+    const statusRule = notificationMatrix.rules.find(rule => rule.status === status);
+    if (!statusRule || !statusRule.enabled) return false;
+    
+    // Check if current user would be a recipient based on email rules (includes country validation)
+    const recipientEmails = await getRecipientEmails(statusRule.recipients, caseData);
+    
+    // Check if user's email is in the recipient list (this already includes submitter validation with country access)
+    if (user.email && recipientEmails.includes(user.email)) {
+      console.log(`   ✅ User eligible for push notification: ${user.email}`);
+      return true;
+    }
+    
+    console.log(`   ❌ User not eligible for push notification: ${user.email || 'NO EMAIL'}`);
+    return false;
+  } catch (error) {
+    console.error('Error checking push notification eligibility:', error);
+    return false;
+  }
 };

@@ -351,6 +351,67 @@ class PushNotificationService {
   }
 
   /**
+   * Send case notification based on Email Configuration settings
+   */
+  async sendCaseNotification(
+    title: string,
+    body: string,
+    caseData: {
+      caseId: string;
+      caseReferenceNumber: string;
+      status: string;
+      type: 'new-case' | 'status-change' | 'general';
+    }
+  ): Promise<void> {
+    const permission = await this.requestPermission();
+    if (permission !== 'granted') {
+      console.log('📱 Push notification permission not granted');
+      return;
+    }
+
+    if (!this.registration) {
+      console.warn('📱 Service Worker not registered');
+      return;
+    }
+
+    try {
+      await this.registration.showNotification(title, {
+        body: body,
+        icon: '/logo192.png',
+        badge: '/logo192.png',
+        vibrate: [200, 100, 200, 100, 200],
+        tag: `case-${caseData.caseId}`,
+        renotify: true,
+        requireInteraction: caseData.type === 'new-case',
+        data: {
+          type: caseData.type,
+          caseId: caseData.caseId,
+          caseRef: caseData.caseReferenceNumber,
+          status: caseData.status,
+          timestamp: Date.now(),
+          url: `/?highlight=${caseData.caseId}`
+        },
+        actions: [
+          {
+            action: 'view-case',
+            title: 'View Case',
+            icon: '/logo192.png'
+          },
+          {
+            action: 'open-app',
+            title: 'Open App',
+            icon: '/logo192.png'
+          }
+        ]
+      });
+
+      console.log('📱 Case notification sent:', title);
+    } catch (error) {
+      console.error('📱 Failed to send case notification:', error);
+    }
+  }
+
+  /**
    * Convert VAPID key from base64 to Uint8Array
    */
   private urlBase64ToUint8Array(base64String: string): Uint8Array {

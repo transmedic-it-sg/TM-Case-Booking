@@ -13,7 +13,21 @@ A comprehensive React-based case booking application for medical procedures with
 - **Role-Based Access**: Granular permissions for different user roles
 - **Multi-Country Support**: Singapore, Malaysia, Philippines, Indonesia, Vietnam, Hong Kong, Thailand
 
-### Latest Features (v1.2.8) - Critical Bug Fixes & Production Enhancements
+### Latest Features (v1.2.8) - Real-time Updates & Enhanced Security
+
+#### 🔄 **REAL-TIME EXPERIENCE IMPROVEMENTS**
+- **✅ Auto-Refresh System**: View All Cases and Booking Calendar now auto-update every 30 seconds without manual refresh
+- **✅ Supabase Real-Time Subscriptions**: Instant updates via WebSocket connections for immediate data synchronization
+- **✅ Concurrent Session Management**: Single session enforcement - each account can only hold one active session
+- **✅ Mobile Styling Consistency**: Fixed Status Colors mobile view to match unified mobile menu styling
+- **✅ Enhanced Push Notifications**: Background notifications work when app is closed via Progressive Web App service worker
+
+#### 🔔 **UNIFIED NOTIFICATION SYSTEM**
+- **✅ Email Configuration Integration**: Push notifications now follow Email Configuration settings (departments, roles, specific emails)
+- **✅ Submitter Notifications**: Case creators receive notifications for all status updates regardless of other settings  
+- **✅ Country-Based Validation**: All notifications respect country access permissions and department filtering
+- **✅ Dual-Channel Notifications**: Unified system sends both email and push notifications based on user preferences
+- **✅ Real-Time Case Updates**: Users receive instant notifications when cases are updated by other users
 
 #### 🔧 **CRITICAL FIXES IMPLEMENTED**
 - **✅ Department Filtering Consistency**: Fixed BookingCalendar and EditSets to use the same department service as New Case Booking
@@ -426,6 +440,6 @@ All components include fallback mechanisms and will not crash when referenced da
 ---
 
 **Version**: 1.2.8  
-**Last Updated**: 2025-08-27  
-**Deployment**: Production Ready with Critical Bug Fixes & Data Consistency Tools  
+**Last Updated**: 2025-08-31  
+**Deployment**: Production Ready with Real-time Updates & Unified Notifications  
 **License**: Proprietary

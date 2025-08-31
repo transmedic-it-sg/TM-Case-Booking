@@ -6,14 +6,16 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { CaseBooking, CaseStatus, FilterOptions } from '../types';
 import { caseService } from '../services';
+import { subscriptions } from '../services/supabaseServiceFixed';
 
 interface UseCasesOptions {
   autoRefresh?: boolean;
   refreshInterval?: number;
+  enableRealTime?: boolean;
 }
 
 export const useCases = (options: UseCasesOptions = {}) => {
-  const { autoRefresh = false, refreshInterval = 30000 } = options;
+  const { autoRefresh = false, refreshInterval = 30000, enableRealTime = true } = options;
   
   const [cases, setCases] = useState<CaseBooking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,26 @@ export const useCases = (options: UseCasesOptions = {}) => {
     return success;
   }, [refreshCases]);
 
-  // Auto-refresh setup
+  // Real-time subscription setup
+  useEffect(() => {
+    if (enableRealTime) {
+      console.log('🔔 Setting up real-time case updates subscription');
+      const subscription = subscriptions.subscribeToCaseUpdates((payload) => {
+        console.log('📡 Real-time case update received:', payload);
+        // Refresh cases when any change is detected
+        refreshCases();
+      });
+
+      return () => {
+        console.log('🔌 Unsubscribing from real-time case updates');
+        if (subscription && typeof subscription.unsubscribe === 'function') {
+          subscription.unsubscribe();
+        }
+      };
+    }
+  }, [enableRealTime, refreshCases]);
+
+  // Auto-refresh setup (fallback for when real-time doesn't work)
   useEffect(() => {
     if (autoRefresh && refreshInterval > 0) {
       const interval = setInterval(refreshCases, refreshInterval);

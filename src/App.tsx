@@ -20,7 +20,7 @@ import SystemSettings from './components/SystemSettings';
 import LogoutConfirmation from './components/LogoutConfirmation';
 import SSOCallback from './components/SSOCallback';
 import { User, CaseBooking } from './types';
-import { getCurrentUser, logout } from './utils/auth';
+import { getCurrentUser, logout, validateSession } from './utils/auth';
 import { hasPermission, PERMISSION_ACTIONS, initializePermissions } from './utils/permissions';
 import { getSupabaseCodeTables } from './utils/supabaseCodeTableService';
 import { auditLogout } from './utils/auditService';
@@ -119,7 +119,26 @@ const AppContent: React.FC = () => {
     // Set up periodic check for maintenance mode changes
     const maintenanceCheckInterval = setInterval(checkMaintenanceMode, 30000); // Check every 30 seconds
 
-    return () => clearInterval(maintenanceCheckInterval);
+    // Set up periodic session validation to prevent concurrent sessions
+    const sessionValidationInterval = setInterval(async () => {
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        const isValidSession = await validateSession();
+        if (!isValidSession) {
+          console.warn('🚫 Session invalidated during periodic check, logging out user');
+          await logout();
+          setUser(null);
+          if (isMobileDevice()) {
+            setShowMobileEntry(true);
+          }
+        }
+      }
+    }, 60000); // Check every minute
+
+    return () => {
+      clearInterval(maintenanceCheckInterval);
+      clearInterval(sessionValidationInterval);
+    };
   }, []);
 
   // Set up global error handling listeners
@@ -182,8 +201,20 @@ const AppContent: React.FC = () => {
         
         const currentUser = getCurrentUser();
         if (currentUser) {
-          setUser(currentUser);
-          // User is already logged in, no need to show mobile entry
+          // Validate session to prevent concurrent logins
+          const isValidSession = await validateSession();
+          if (isValidSession) {
+            setUser(currentUser);
+            // User is already logged in with valid session, no need to show mobile entry
+          } else {
+            // Invalid session, force logout
+            console.warn('🚫 Invalid session detected, logging out user');
+            await logout();
+            setUser(null);
+            if (isMobileDevice()) {
+              setShowMobileEntry(true);
+            }
+          }
         } else if (isMobileDevice()) {
           setShowMobileEntry(true); // Only show mobile entry if no user and on mobile
 

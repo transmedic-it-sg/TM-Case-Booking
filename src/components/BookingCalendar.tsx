@@ -17,7 +17,11 @@ interface BookingCalendarProps {
 
 const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateClick }) => {
   const initialCurrentUser = getCurrentUser();
-  const { cases } = useCases();
+  const { cases } = useCases({
+    autoRefresh: true,
+    refreshInterval: 30000, // Auto-refresh every 30 seconds as fallback
+    enableRealTime: true // Enable real-time Supabase subscriptions for instant updates
+  });
   
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [departments, setDepartments] = useState<string[]>([]);

@@ -21,7 +21,11 @@ import { amendCase, processCaseOrder } from '../../utils/storage'; // Keep these
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
   const { modal, closeModal, showConfirm, showConfirmWithCustomButtons } = useModal();
-  const { cases, refreshCases, updateCaseStatus: updateCaseStatusHook, deleteCase } = useCases();
+  const { cases, refreshCases, updateCaseStatus: updateCaseStatusHook, deleteCase } = useCases({
+    autoRefresh: true,
+    refreshInterval: 30000, // Auto-refresh every 30 seconds as fallback
+    enableRealTime: true // Enable real-time Supabase subscriptions for instant updates
+  });
   const [filteredCases, setFilteredCases] = useState<CaseBooking[]>([]);
   const [availableSubmitters, setAvailableSubmitters] = useState<string[]>([]);
   const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);

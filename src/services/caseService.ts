@@ -18,12 +18,6 @@ import {
   checkCasesExist,
   migrateCasesFromLocalStorage
 } from '../utils/supabaseCaseService';
-import { 
-  sendCaseStatusNotification,
-  sendNewCaseNotification,
-  shouldReceiveNotification,
-  getNotificationPreferences
-} from '../utils/pushNotificationHelper';
 
 class CaseService {
   private static instance: CaseService;
@@ -154,15 +148,15 @@ class CaseService {
         caseReferenceNumber: newCase.caseReferenceNumber
       });
 
-      // Send push notification for new case if enabled
-      const preferences = getNotificationPreferences();
-      if (preferences.newCases && shouldReceiveNotification(newCase, 'new-case')) {
-        try {
-          await sendNewCaseNotification(newCase);
-          console.log('📱 Push notification sent for new case');
-        } catch (error) {
-          console.error('📱 Failed to send new case push notification:', error);
-        }
+      // Send unified notifications for new case (both email and push based on Email Configuration settings)
+      try {
+        const { sendUnifiedNotification } = await import('../utils/emailNotificationService');
+        const notificationResults = await sendUnifiedNotification(newCase, 'Case Booked', {
+          eventType: 'New Case Created'
+        });
+        console.log('📧📱 Unified notifications sent for new case:', notificationResults);
+      } catch (error) {
+        console.error('📧📱 Failed to send unified notifications for new case:', error);
       }
       
       return true;
@@ -341,7 +335,7 @@ class CaseService {
       // Get updated case for notification
       const updatedCase = await this.getCaseById(caseId);
       if (updatedCase) {
-        // Send notification
+        // Send in-app notification
         notificationService.addNotification({
           title: `Case Status Updated: ${newStatus}`,
           message: `Case ${updatedCase.caseReferenceNumber} has been updated to ${newStatus} by ${currentUser.name}`,
@@ -351,15 +345,18 @@ class CaseService {
           caseReferenceNumber: updatedCase.caseReferenceNumber
         });
 
-        // Send push notification if enabled and user should receive it
-        const preferences = getNotificationPreferences();
-        if (preferences.caseStatus && shouldReceiveNotification(updatedCase, 'case-status')) {
-          try {
-            await sendCaseStatusNotification(updatedCase, newStatus, oldStatus);
-            console.log('📱 Push notification sent for case status update');
-          } catch (error) {
-            console.error('📱 Failed to send push notification:', error);
-          }
+        // Send unified notifications (both email and push based on Email Configuration settings)
+        try {
+          const { sendUnifiedNotification } = await import('../utils/emailNotificationService');
+          const notificationResults = await sendUnifiedNotification(updatedCase, newStatus, {
+            eventType: 'Status Change',
+            previousStatus: oldStatus || 'Unknown',
+            changedBy: currentUser.name,
+            changedAt: new Date().toLocaleString()
+          });
+          console.log('📧📱 Unified notifications sent:', notificationResults);
+        } catch (error) {
+          console.error('📧📱 Failed to send unified notifications:', error);
         }
       }
 
