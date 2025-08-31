@@ -50,15 +50,33 @@ export const createSession = async (userId: string): Promise<void> => {
     // Import supabase dynamically to avoid circular dependencies
     const { supabase } = await import('../lib/supabase');
     
-    // First verify that the user exists in the users table
-    const { data: userExists, error: userCheckError } = await supabase
-      .from('users')
+    // First verify that the user exists in profiles table (primary) or users table (fallback)
+    let userExists = false;
+    
+    // Check profiles table first
+    const { data: profileExists, error: profileError } = await supabase
+      .from('profiles')
       .select('id')
       .eq('id', userId)
       .single();
     
-    if (userCheckError || !userExists) {
-      console.warn('User not found in users table, skipping session creation:', userId);
+    if (!profileError && profileExists) {
+      userExists = true;
+    } else {
+      // Fallback to users table
+      const { data: userExistsData, error: userCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', userId)
+        .single();
+      
+      if (!userCheckError && userExistsData) {
+        userExists = true;
+      }
+    }
+    
+    if (!userExists) {
+      console.warn('User not found in either profiles or users table, skipping session creation:', userId);
       // Use sessionStorage as fallback
       sessionStorage.setItem('session-token', `session-${userId}-${Date.now()}`);
       return;
