@@ -82,20 +82,38 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
           }
         } catch (error) {
           console.error('Error loading departments from Supabase code tables:', error);
-          // Use fallback departments
-          setDepartments(['Cardiology', 'Orthopedics', 'Neurosurgery', 'Oncology'].sort());
-          setSelectedDepartment('Cardiology');
+          // Try alternative service - no hardcoded data
+          try {
+            const { getDepartments } = await import('../services/constantsService');
+            const fallbackDepartments = await getDepartments(selectedCountry);
+            setDepartments(fallbackDepartments.sort());
+            if (fallbackDepartments.length > 0) {
+              setSelectedDepartment(fallbackDepartments[0]);
+            }
+          } catch (fallbackError) {
+            console.error('All department loading failed:', fallbackError);
+            setDepartments([]);
+          }
         }
       };
       
       loadDepartments();
     } else {
-      // Use default departments as fallback
-      const defaultDepartments = ['Cardiology', 'Orthopedics', 'Neurosurgery', 'Oncology', 'Emergency', 'Radiology', 'Anesthesiology', 'Gastroenterology'];
-      setDepartments(defaultDepartments.sort());
-      if (defaultDepartments.length > 0) {
-        setSelectedDepartment(defaultDepartments[0]);
-      }
+      // Try to load departments from alternative service
+      const loadFallbackDepartments = async () => {
+        try {
+          const { getDepartments } = await import('../services/constantsService');
+          const departments = await getDepartments(selectedCountry);
+          setDepartments(departments.sort());
+          if (departments.length > 0) {
+            setSelectedDepartment(departments[0]);
+          }
+        } catch (error) {
+          console.error('Error loading departments:', error);
+          setDepartments([]);
+        }
+      };
+      loadFallbackDepartments();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCountry]); // isAdmin is derived from currentUser which is already handled

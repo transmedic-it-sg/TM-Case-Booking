@@ -291,12 +291,26 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           }
         } catch (error) {
           console.error('Error loading departments from Supabase:', error);
-          // Use default departments as fallback
-          setAvailableDepartments(['Cardiology', 'Orthopedics', 'Neurosurgery', 'Oncology', 'Emergency', 'Radiology', 'Anesthesiology', 'Gastroenterology'].sort());
+          // Try alternative service as fallback - no hardcoded data
+          try {
+            const { getDepartments } = await import('../services/constantsService');
+            const fallbackDepartments = await getDepartments(userCountry);
+            setAvailableDepartments(fallbackDepartments.sort());
+          } catch (fallbackError) {
+            console.error('All department loading methods failed:', fallbackError);
+            setAvailableDepartments([]); // Empty array if all fails - forces user to contact support
+          }
         }
       } else {
-        // Use default departments as fallback
-        setAvailableDepartments(['Cardiology', 'Orthopedics', 'Neurosurgery', 'Oncology', 'Emergency', 'Radiology', 'Anesthesiology', 'Gastroenterology'].sort());
+        // Try to get departments for the country using alternative service
+        try {
+          const { getDepartments } = await import('../services/constantsService');
+          const departments = await getDepartments(userCountry);
+          setAvailableDepartments(departments.sort());
+        } catch (error) {
+          console.error('Error loading departments for country:', error);
+          setAvailableDepartments([]);
+        }
       }
     };
 

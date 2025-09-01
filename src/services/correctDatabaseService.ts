@@ -45,14 +45,15 @@ export const getHospitals = async (country?: string): Promise<any[]> => {
 };
 
 /**
- * Get departments from actual departments table (correct)
+ * Get departments from code_tables (centralized source of truth)
  */
 export const getDepartments = async (country?: string): Promise<any[]> => {
   let query = supabase
-    .from('departments')
-    .select('*')
+    .from('code_tables')
+    .select('id, display_name, country, created_at, updated_at, is_active')
+    .eq('table_type', 'departments')
     .eq('is_active', true)
-    .order('name');
+    .order('display_name');
 
   if (country) {
     query = query.eq('country', country);
@@ -60,7 +61,12 @@ export const getDepartments = async (country?: string): Promise<any[]> => {
 
   const { data, error } = await query;
   if (error) throw error;
-  return data || [];
+  // Map display_name to name for compatibility
+  const mappedData = data?.map(item => ({
+    ...item,
+    name: item.display_name
+  })) || [];
+  return mappedData;
 };
 
 /**

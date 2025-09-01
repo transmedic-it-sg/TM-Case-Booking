@@ -20,7 +20,8 @@
       "WebSearch",
       "Bash(git commit:*)",
       "Bash(git log:*)",
-      "mcp__supabase__get_logs"
+      "mcp__supabase__get_logs",
+      "mcp__supabase__apply_migration"
     ],
     "deny": [],
     "ask": []

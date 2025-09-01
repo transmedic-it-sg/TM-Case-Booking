@@ -139,11 +139,17 @@ const EditSets: React.FC<EditSetsProps> = () => {
         }
       } catch (error) {
         console.error('Error loading departments for EditSets:', error);
-        // Use fallback departments
-        const fallbackDepartments = ['Cardiology', 'Orthopedics', 'Neurosurgery', 'Oncology'];
-        setAvailableDepartments(fallbackDepartments);
-        if (!selectedDepartment) {
-          setSelectedDepartment(fallbackDepartments[0]);
+        // Try alternative service - no hardcoded data
+        try {
+          const { getDepartments } = await import('../../services/constantsService');
+          const fallbackDepartments = await getDepartments(activeCountryName);
+          setAvailableDepartments(fallbackDepartments);
+          if (!selectedDepartment && fallbackDepartments.length > 0) {
+            setSelectedDepartment(fallbackDepartments[0]);
+          }
+        } catch (fallbackError) {
+          console.error('All department loading failed in EditSets:', fallbackError);
+          setAvailableDepartments([]);
         }
       }
     };
