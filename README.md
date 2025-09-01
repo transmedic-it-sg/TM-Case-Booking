@@ -1,6 +1,6 @@
 # Transmedic Case Booking System
 
-## Version 1.2.8 - Production Ready with Database Architecture Fixes
+## Version 1.2.9 - Complete Reference Data Standardization & Architecture Consolidation
 
 A comprehensive React-based case booking application for medical procedures with advanced role-based access control, workflow management, and professional mobile experience.
 
@@ -13,9 +13,30 @@ A comprehensive React-based case booking application for medical procedures with
 - **Role-Based Access**: Granular permissions for different user roles
 - **Multi-Country Support**: Singapore, Malaysia, Philippines, Indonesia, Vietnam, Hong Kong, Thailand
 
-### Latest Features (v1.2.8) - Real-time Updates & Enhanced Security
+### Latest Features (v1.2.9) - Complete Reference Data Standardization
 
-#### 🔄 **REAL-TIME EXPERIENCE IMPROVEMENTS**
+#### 🏗️ **ARCHITECTURE CONSOLIDATION - SINGLE SOURCE OF TRUTH**
+- **✅ Code Tables Central Management**: Established `code_tables` as the definitive single source of truth for ALL reference data
+- **✅ UI-Driven Reference Data**: All departments, countries, hospitals, and procedure types now managed through CodeTableSetup UI
+- **✅ Data Source Unification**: Eliminated duplicate `departments` table - all components now use `code_tables` consistently
+- **✅ Zero Hardcoded Data**: Completely removed all hardcoded fallback arrays throughout the entire application
+- **✅ Real-Time Consistency**: Any changes in Code Table Setup instantly reflect across all components system-wide
+
+#### 🔧 **CRITICAL SYSTEM FIXES**
+- **✅ Edit Sets Data Loss Prevention**: Fixed CASCADE DELETE issues causing Surgery Sets and Implant Boxes to disappear
+- **✅ Amend Case Functionality**: Fixed critical missing country parameter preventing Surgery Set/Implant Box loading in amendments
+- **✅ User Management Countries**: Fixed empty countries dropdown issue preventing user creation
+- **✅ Performance Optimization**: Replaced 30-second auto-refresh polling with efficient real-time event-driven updates
+- **✅ Service Consolidation**: Unified multiple competing reference data services into single standardized approach
+
+#### 📊 **COMPREHENSIVE REFERENCE DATA STANDARDIZATION**
+- **✅ Department Management**: Single centralized department source through `code_tables` with proper country filtering
+- **✅ Hospital Management**: All hospital data sourced from `code_tables` with country-specific organization
+- **✅ Country Management**: Standardized country handling with proper Global vs country-specific data separation
+- **✅ Procedure Types**: Unified procedure type management linking departments to available procedures
+- **✅ Surgery Sets & Implant Boxes**: Integrated equipment management with proper department/procedure relationships
+
+#### 🔄 **PREVIOUS FEATURES (v1.2.8) - Real-time Updates & Enhanced Security**
 - **✅ Auto-Refresh System**: View All Cases and Booking Calendar now auto-update every 30 seconds without manual refresh
 - **✅ Supabase Real-Time Subscriptions**: Instant updates via WebSocket connections for immediate data synchronization
 - **✅ Concurrent Session Management**: Single session enforcement - each account can only hold one active session
@@ -197,7 +218,44 @@ The application is deployed on Vercel:
 
 ## 📝 Changelog
 
-### Version 1.2.8 (Latest) - Enterprise Data Integrity & Production Hardening
+### Version 1.2.9 (Latest) - Complete Reference Data Standardization & Architecture Consolidation
+
+#### 🏗️ **ARCHITECTURE REVOLUTION - SINGLE SOURCE OF TRUTH**
+- **Code Tables Centralization**: Established `code_tables` as the definitive single source for ALL reference data (departments, countries, hospitals, procedure types)
+- **Data Source Elimination**: Removed duplicate `departments` table usage - all services now query `code_tables` consistently
+- **UI-Driven Management**: All reference data now managed through CodeTableSetup UI with real-time propagation to entire application
+- **Service Unification**: Consolidated multiple competing services (constantsService, dynamicConstantsService, supabaseCodeTableService) into unified approach
+- **Zero Data Duplication**: Eliminated ALL reference data duplication across database tables and hardcoded arrays
+
+#### 🚨 **CRITICAL SYSTEM FIXES**
+- **Edit Sets Data Loss**: Fixed CASCADE DELETE pattern causing Surgery Sets and Implant Boxes to disappear - replaced with proper UPSERT operations
+- **Amend Case Surgery Sets**: Fixed critical missing country parameter preventing Surgery Set/Implant Box options from loading during case amendments  
+- **User Management Creation**: Fixed empty countries dropdown blocking user creation - now uses proper code table data with fallbacks
+- **Auto-Refresh Optimization**: Replaced inefficient 30-second polling with real-time Supabase subscriptions for instant updates
+- **Component Standardization**: Fixed inconsistent data sources where some components used different tables for same data type
+
+#### 🔄 **DATA ARCHITECTURE STANDARDIZATION**
+- **Department Standardization**: ALL components now use `code_tables` for departments instead of mix of `departments` table and hardcoded arrays
+- **Country Data Consistency**: Standardized country handling across all services with proper Global vs country-specific separation
+- **Hospital Management**: Unified hospital data sourcing from `code_tables` with country-specific filtering
+- **Hardcoded Array Elimination**: Removed ALL hardcoded reference data arrays from CaseBookingForm, BookingCalendar, EditSets components
+- **Service Layer Consistency**: Updated supabaseDepartmentService and correctDatabaseService to use `code_tables` consistently
+
+#### 🛠️ **TECHNICAL IMPROVEMENTS**
+- **Database Relationships**: Added foreign key linking `departments` table to `code_tables` via `code_table_id`
+- **Type Safety**: Enhanced TypeScript interfaces with proper display_name to name field mapping for compatibility
+- **Error Handling**: Implemented proper fallback chains using alternative services instead of hardcoded data
+- **Build Optimization**: Achieved zero TypeScript compilation errors and warnings
+- **Performance**: Reduced bundle size and improved query efficiency through service consolidation
+
+#### ✅ **ENTERPRISE BENEFITS**
+- **Data Consistency**: Any change in Code Table Setup now instantly reflects across ALL components system-wide
+- **Maintenance Simplification**: Single point of reference data management instead of scattered hardcoded arrays
+- **Scalability**: Proper architecture supports future expansion without data source conflicts
+- **User Experience**: Consistent data across all forms, filters, and dropdowns throughout the application
+- **Administrative Control**: Complete control over reference data through UI without code changes
+
+### Version 1.2.8 - Enterprise Data Integrity & Production Hardening
 
 #### 🔥 **CRITICAL DATA CORRUPTION FIXES**
 - **Database Query Failures**: Fixed ALL code table queries using wrong `enabled` column instead of `is_active` - was causing complete query failures
@@ -440,7 +498,7 @@ All components include fallback mechanisms and will not crash when referenced da
 
 ---
 
-**Version**: 1.2.8  
-**Last Updated**: 2025-08-31  
-**Deployment**: Production Ready with Real-time Updates & Unified Notifications  
+**Version**: 1.2.9  
+**Last Updated**: 2025-09-01  
+**Deployment**: Production Ready with Complete Reference Data Standardization  
 **License**: Proprietary
