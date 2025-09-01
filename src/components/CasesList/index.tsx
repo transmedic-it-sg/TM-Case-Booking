@@ -22,9 +22,9 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   const { addNotification } = useNotifications();
   const { modal, closeModal, showConfirm, showConfirmWithCustomButtons } = useModal();
   const { cases, refreshCases, updateCaseStatus: updateCaseStatusHook, deleteCase } = useCases({
-    autoRefresh: true,
-    refreshInterval: 30000, // Auto-refresh every 30 seconds as fallback
-    enableRealTime: true // Enable real-time Supabase subscriptions for instant updates
+    autoRefresh: false, // Disabled - using real-time subscriptions only
+    refreshInterval: 0, // No polling needed
+    enableRealTime: true // Real-time Supabase subscriptions for instant updates
   });
   const [filteredCases, setFilteredCases] = useState<CaseBooking[]>([]);
   const [availableSubmitters, setAvailableSubmitters] = useState<string[]>([]);

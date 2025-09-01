@@ -127,14 +127,16 @@ const UserManagement: React.FC = () => {
         if (countries && countries.length > 0) {
           setAvailableCountries(countries);
         } else {
-          // Fallback to basic countries if database is empty
+          // Fallback to proper countries from code table if database is empty
           console.warn('No countries found in database, using fallback list');
-          setAvailableCountries(['Global', 'Singapore', 'Malaysia', 'Thailand', 'Indonesia']);
+          const { LEGACY_CONSTANTS } = await import('../services/constantsService');
+          setAvailableCountries(LEGACY_CONSTANTS.COUNTRIES);
         }
       } catch (error) {
         console.error('Error loading countries:', error);
-        // Provide fallback countries so user creation isn't blocked
-        setAvailableCountries(['Global', 'Singapore', 'Malaysia', 'Thailand', 'Indonesia']);
+        // Provide fallback countries so user creation isn't blocked (no Global)
+        const { LEGACY_CONSTANTS } = await import('../services/constantsService');
+        setAvailableCountries(LEGACY_CONSTANTS.COUNTRIES);
       }
     };
     loadCountries();

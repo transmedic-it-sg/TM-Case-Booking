@@ -18,7 +18,9 @@
       "Bash(git commit:*)",
       "Bash(git checkout:*)",
       "WebSearch",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git log:*)",
+      "mcp__supabase__get_logs"
     ],
     "deny": [],
     "ask": []

@@ -43,7 +43,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     const loadCategorizedSets = async () => {
       if (formData.department && formData.procedureType) {
         try {
-          const categorizedSets = await getCategorizedSetsForDepartment(formData.department);
+          const categorizedSets = await getCategorizedSetsForDepartment(formData.department, caseItem.country);
           const procedureSets = categorizedSets[formData.procedureType];
           
           if (procedureSets) {
@@ -62,7 +62,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     };
     
     loadCategorizedSets();
-  }, [formData.department, formData.procedureType]);
+  }, [formData.department, formData.procedureType, caseItem.country]);
 
   useEffect(() => {
     if (amendmentData) {
