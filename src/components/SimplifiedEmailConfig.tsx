@@ -104,7 +104,9 @@ const SimplifiedEmailConfig: React.FC = () => {
       }
       
       try {
-        const departments = await dynamicConstantsService.getDepartments(selectedCountry);
+        // Use standardized country-based code table departments
+        const { getDepartmentsForCountry } = await import('../utils/supabaseCodeTableService');
+        const departments = await getDepartmentsForCountry(selectedCountry);
         setAvailableDepartments(departments);
       } catch (error) {
         console.error('Error loading departments for email config:', error);

@@ -78,13 +78,28 @@ const Reports: React.FC = () => {
   useEffect(() => {
     const loadConstants = async () => {
       try {
-        const [countries, departments, statuses] = await Promise.all([
+        // Load countries and case statuses normally, but use standardized departments
+        const [countries, statuses] = await Promise.all([
           dynamicConstantsService.getCountries(),
-          dynamicConstantsService.getDepartments(),
           dynamicConstantsService.getCaseStatuses()
         ]);
+        
+        // Get departments from all countries using standardized code table
+        const { getDepartmentsForCountry } = await import('../utils/supabaseCodeTableService');
+        const allDepartments = new Set<string>();
+        
+        // Collect departments from all countries
+        for (const country of countries) {
+          try {
+            const countryDepartments = await getDepartmentsForCountry(country);
+            countryDepartments.forEach(dept => allDepartments.add(dept));
+          } catch (error) {
+            console.warn(`Failed to load departments for ${country}:`, error);
+          }
+        }
+        
         setGlobalCountries(countries);
-        setGlobalDepartments(departments);
+        setGlobalDepartments(Array.from(allDepartments).sort());
         setCaseStatuses(statuses);
       } catch (error) {
         console.error('Error loading constants:', error);

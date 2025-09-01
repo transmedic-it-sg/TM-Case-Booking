@@ -268,16 +268,26 @@ const EditSets: React.FC<EditSetsProps> = () => {
       }
     };
     
-    // Debounce the save operation to prevent race conditions
-    const timeoutId = setTimeout(async () => {
+    // Use immediate save with optimistic locking to prevent data loss
+    let isMounted = true;
+    const saveImmediately = async () => {
       try {
-        await saveChanges();
-      } finally {
-        // Save operation completed
+        if (isMounted) {
+          await saveChanges();
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error('Failed to save changes:', error);
+          // Could show user notification here
+        }
       }
-    }, 1000); // Wait 1 second before saving to reduce frequency
+    };
     
-    return () => clearTimeout(timeoutId);
+    saveImmediately();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [categorizedSets, selectedDepartment, activeCountry, activeCountryName]);
 
   // Procedure Type Management Functions

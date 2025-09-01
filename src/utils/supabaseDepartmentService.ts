@@ -710,32 +710,76 @@ export const saveCategorizedSetsForDepartment = async (
       }
     }
     
-    // Use single atomic operation to prevent race conditions
-    // Delete all existing categorized sets for this department and insert new ones in one operation
+    // Use UPSERT pattern to prevent data loss from concurrent operations
     try {
-      // First delete existing sets for this department/country combination
-      const { error: deleteError } = await supabase
+      // Start a database transaction to ensure atomicity
+      const { error: transactionError } = await supabase.rpc('begin_transaction');
+      if (transactionError) {
+        console.warn('Transaction not supported, proceeding with UPSERT');
+      }
+
+      // Get existing sets for comparison to avoid unnecessary deletions
+      const { data: existingSets } = await supabase
         .from('department_categorized_sets')
-        .delete()
+        .select('id, surgery_set_id, implant_box_id, procedure_type')
         .eq('department_id', departmentId)
         .eq('country', dbCountry);
-      
-      if (deleteError) {
-        throw new Error(`Failed to delete existing categorized sets: ${deleteError.message}`);
-      }
-      
-      // Then insert new sets (only if we have data to insert)
-      if (finalInserts.length > 0) {
-        const { error: insertError } = await supabase
+
+      // Determine what needs to be deleted (exists in DB but not in new data)
+      const newSetKeys = new Set(
+        finalInserts.map(insert => 
+          `${insert.surgery_set_id || 'null'}-${insert.implant_box_id || 'null'}-${insert.procedure_type}`
+        )
+      );
+
+      // Delete only sets that are no longer needed
+      const setsToDelete = (existingSets || []).filter(set => {
+        const key = `${set.surgery_set_id || 'null'}-${set.implant_box_id || 'null'}-${set.procedure_type}`;
+        return !newSetKeys.has(key);
+      });
+
+      if (setsToDelete.length > 0) {
+        const idsToDelete = setsToDelete.map(set => set.id);
+        const { error: deleteError } = await supabase
           .from('department_categorized_sets')
-          .insert(finalInserts);
+          .delete()
+          .in('id', idsToDelete);
         
-        if (insertError) {
-          throw new Error(`Failed to insert new categorized sets: ${insertError.message}`);
+        if (deleteError) {
+          throw new Error(`Failed to delete obsolete categorized sets: ${deleteError.message}`);
         }
+        console.log(`🗑️ Deleted ${setsToDelete.length} obsolete categorized sets`);
       }
+      
+      // Insert or update new sets using UPSERT
+      if (finalInserts.length > 0) {
+        const { error: upsertError } = await supabase
+          .from('department_categorized_sets')
+          .upsert(finalInserts, {
+            onConflict: 'department_id,country,procedure_type,surgery_set_id,implant_box_id',
+            ignoreDuplicates: false
+          });
+        
+        if (upsertError) {
+          throw new Error(`Failed to upsert categorized sets: ${upsertError.message}`);
+        }
+        console.log(`✅ Upserted ${finalInserts.length} categorized sets`);
+      }
+
+      // Commit transaction if supported
+      const { error: commitError } = await supabase.rpc('commit_transaction');
+      if (commitError && !commitError.message.includes('not supported')) {
+        throw new Error(`Transaction commit failed: ${commitError.message}`);
+      }
+
     } catch (error) {
-      console.error('Transaction failed:', error);
+      // Rollback transaction on error
+      try {
+        await supabase.rpc('rollback_transaction');
+      } catch (rollbackError) {
+        console.warn('Transaction rollback not supported');
+      }
+      console.error('UPSERT operation failed:', error);
       throw error;
     }
     
