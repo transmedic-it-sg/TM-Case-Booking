@@ -162,7 +162,10 @@ const getCachedOrFetch = async <T>(
 export const getCountries = async (): Promise<string[]> => {
   return getCachedOrFetch(
     'countries',
-    () => lookupOperations.getCountries(),
+    async () => {
+      const result = await lookupOperations.getCountries();
+      return result; // Return the CaseOperationsResult as-is
+    },
     (data: any[]) => data.map(c => c.name),
     true // Countries are Global
   )

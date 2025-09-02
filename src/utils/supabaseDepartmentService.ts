@@ -198,6 +198,61 @@ export const getProcedureTypesForDepartment = async (departmentName: string, cou
 };
 
 /**
+ * Get procedure types for department including inactive departments (for amendments)
+ * This version allows inactive departments to support case amendments
+ */
+export const getProcedureTypesForDepartmentIncludingInactive = async (departmentName: string, country: string): Promise<string[]> => {
+  try {
+    const countryVariations = getCountryVariations(country);
+    console.log('🔍 Getting procedure types (including inactive) for:', { departmentName, country, countryVariations });
+    
+    // First, get the department ID - ALLOW INACTIVE departments for amendments
+    const { data: departments } = await supabase
+      .from('departments')
+      .select('id')
+      .eq('name', departmentName)
+      .in('country', countryVariations);
+      // NOTE: Removed .eq('is_active', true) to allow inactive departments
+    
+    if (!departments || departments.length === 0) {
+      console.warn('Department not found in database:', { departmentName, country });
+      return [];
+    }
+    
+    const departmentId = departments[0].id;
+    
+    // Get procedure types from database - use flexible country matching
+    const { data, error } = await supabase
+      .from('department_procedure_types')
+      .select('procedure_type')
+      .eq('department_id', departmentId)
+      .in('country', countryVariations)
+      .eq('is_active', true) // Keep procedure types filtering active
+      .eq('is_hidden', false)
+      .order('procedure_type');
+    
+    if (error) {
+      console.error('Error fetching procedure types:', error);
+      return [];
+    }
+    
+    const dbProcedureTypes = data?.map(item => item.procedure_type) || [];
+    
+    // If no procedure types in database, return empty array
+    if (dbProcedureTypes.length === 0) {
+      console.log('No procedure types configured for department:', { departmentName, country });
+      return [];
+    }
+    
+    console.log('✅ Found procedure types (including inactive dept) in Supabase:', dbProcedureTypes.length);
+    return dbProcedureTypes;
+  } catch (error) {
+    console.error('Error in getProcedureTypesForDepartmentIncludingInactive:', error);
+    return [];
+  }
+};
+
+/**
  * Get default procedure types based on department name
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -509,6 +564,91 @@ export const getCategorizedSetsForDepartment = async (
 };
 
 /**
+ * Get categorized sets for department including inactive departments (for amendments)
+ * This version allows inactive departments to support case amendments
+ */
+export const getCategorizedSetsForDepartmentIncludingInactive = async (
+  departmentName: string, 
+  country: string
+): Promise<CategorizedSetsResult> => {
+  try {
+    const dbCountry = getCountryForDatabase(country);
+    const cacheKey = `${departmentName}-${dbCountry}-inactive`;
+    
+    // Check cache first (separate cache key for inactive version)
+    const cached = categorizedSetsCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log('🎯 Using cached categorized sets (including inactive) for:', { departmentName, country: dbCountry });
+      return cached.data;
+    }
+    
+    const countryVariations = getCountryVariations(country);
+    console.log('🔍 Getting categorized sets (including inactive) from Supabase:', { departmentName, country, dbCountry, countryVariations });
+    
+    // First, get the department ID - ALLOW INACTIVE departments for amendments
+    const { data: departments } = await supabase
+      .from('departments')
+      .select('id')
+      .eq('name', departmentName)
+      .eq('country', dbCountry);
+      // NOTE: Removed .eq('is_active', true) to allow inactive departments
+    
+    if (!departments || departments.length === 0) {
+      console.warn('Department not found for categorized sets (including inactive)');
+      return {};
+    }
+    
+    const departmentId = departments[0].id;
+    
+    // Get categorized sets from database - use normalized country
+    const { data, error } = await supabase
+      .from('department_categorized_sets')
+      .select(`
+        procedure_type,
+        surgery_set:surgery_sets(name),
+        implant_box:implant_boxes(name)
+      `)
+      .eq('department_id', departmentId)
+      .eq('country', dbCountry);
+    
+    if (error) {
+      console.error('Error fetching categorized sets (including inactive):', error);
+      return {};
+    }
+    
+    // Transform the data into the expected format
+    const result: CategorizedSetsResult = {};
+    
+    for (const item of data || []) {
+      if (!result[item.procedure_type]) {
+        result[item.procedure_type] = {
+          surgerySets: [],
+          implantBoxes: []
+        };
+      }
+      
+      if (item.surgery_set && (item.surgery_set as any).name) {
+        result[item.procedure_type].surgerySets.push((item.surgery_set as any).name);
+      }
+      
+      if (item.implant_box && (item.implant_box as any).name) {
+        result[item.procedure_type].implantBoxes.push((item.implant_box as any).name);
+      }
+    }
+    
+    console.log('✅ Found categorized sets (including inactive dept) in Supabase:', Object.keys(result).length, 'procedure types');
+    
+    // Cache the result (separate cache key for inactive version)
+    categorizedSetsCache.set(cacheKey, { data: result, timestamp: Date.now() });
+    
+    return result;
+  } catch (error) {
+    console.error('Error reading categorized sets from Supabase (including inactive):', error);
+    return {};
+  }
+};
+
+/**
  * Save categorized sets for a department to the database
  */
 export const saveCategorizedSetsForDepartment = async (
@@ -718,12 +858,6 @@ export const saveCategorizedSetsForDepartment = async (
     
     // Use UPSERT pattern to prevent data loss from concurrent operations
     try {
-      // Start a database transaction to ensure atomicity
-      const { error: transactionError } = await supabase.rpc('begin_transaction');
-      if (transactionError) {
-        console.warn('Transaction not supported, proceeding with UPSERT');
-      }
-
       // Get existing sets for comparison to avoid unnecessary deletions
       const { data: existingSets } = await supabase
         .from('department_categorized_sets')
@@ -757,35 +891,35 @@ export const saveCategorizedSetsForDepartment = async (
         console.log(`🗑️ Deleted ${setsToDelete.length} obsolete categorized sets`);
       }
       
-      // Insert or update new sets using UPSERT
+      // Insert new sets - check for existence first to prevent duplicates
       if (finalInserts.length > 0) {
-        const { error: upsertError } = await supabase
-          .from('department_categorized_sets')
-          .upsert(finalInserts, {
-            onConflict: 'department_id,country,procedure_type,surgery_set_id,implant_box_id',
-            ignoreDuplicates: false
-          });
-        
-        if (upsertError) {
-          throw new Error(`Failed to upsert categorized sets: ${upsertError.message}`);
+        for (const insert of finalInserts) {
+          const { data: existing } = await supabase
+            .from('department_categorized_sets')
+            .select('id')
+            .eq('department_id', insert.department_id)
+            .eq('country', insert.country)
+            .eq('procedure_type', insert.procedure_type)
+            .eq('surgery_set_id', insert.surgery_set_id)
+            .eq('implant_box_id', insert.implant_box_id)
+            .maybeSingle();
+            
+          if (!existing) {
+            // Only insert if doesn't exist
+            const { error: insertError } = await supabase
+              .from('department_categorized_sets')
+              .insert(insert);
+              
+            if (insertError) {
+              throw new Error(`Failed to insert categorized set: ${insertError.message}`);
+            }
+          }
         }
-        console.log(`✅ Upserted ${finalInserts.length} categorized sets`);
-      }
-
-      // Commit transaction if supported
-      const { error: commitError } = await supabase.rpc('commit_transaction');
-      if (commitError && !commitError.message.includes('not supported')) {
-        throw new Error(`Transaction commit failed: ${commitError.message}`);
+        console.log(`✅ Processed ${finalInserts.length} categorized sets`);
       }
 
     } catch (error) {
-      // Rollback transaction on error
-      try {
-        await supabase.rpc('rollback_transaction');
-      } catch (rollbackError) {
-        console.warn('Transaction rollback not supported');
-      }
-      console.error('UPSERT operation failed:', error);
+      console.error('Save operation failed:', error);
       throw error;
     }
     
@@ -805,9 +939,11 @@ export const saveCategorizedSetsForDepartment = async (
       console.error('Failed to update cache version:', cacheError);
     }
     
-    // Invalidate cache for this department/country
+    // Invalidate cache for this department/country (both regular and inactive versions)
     const cacheKey = `${departmentName}-${dbCountry}`;
+    const cacheKeyInactive = `${departmentName}-${dbCountry}-inactive`;
     categorizedSetsCache.delete(cacheKey);
+    categorizedSetsCache.delete(cacheKeyInactive);
     
     // Log what was saved for debugging
     for (const [procedureType, sets] of Object.entries(categorizedSets)) {

@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { AmendmentFormProps } from './types';
-import { getCategorizedSetsForDepartment } from '../../utils/storage';
 import TimePicker from '../common/TimePicker';
 import FilterDatePicker from '../FilterDatePicker';
 import MultiSelectDropdown from '../MultiSelectDropdown';
@@ -31,19 +30,37 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     amendmentReason: ''
   });
 
-  // Removed unused state variables - departments and procedureTypes not needed since fields are read-only
+  // State variables for dropdowns
+  const [availableProcedureTypes, setAvailableProcedureTypes] = useState<string[]>([]);
   const [surgerySetOptions, setSurgerySetOptions] = useState<string[]>([]);
   const [implantBoxOptions, setImplantBoxOptions] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Removed loading of departments and procedure types - no longer needed since fields are read-only
+  // Load procedure types based on department from Edit Sets
+  useEffect(() => {
+    const loadProcedureTypes = async () => {
+      if (formData.department && caseItem.country) {
+        try {
+          const { getProcedureTypesForDepartmentIncludingInactive } = await import('../../utils/supabaseDepartmentService');
+          const procedureTypes = await getProcedureTypesForDepartmentIncludingInactive(formData.department, caseItem.country);
+          setAvailableProcedureTypes(procedureTypes);
+        } catch (error) {
+          console.error('Error loading procedure types:', error);
+          setAvailableProcedureTypes([]);
+        }
+      }
+    };
+
+    loadProcedureTypes();
+  }, [formData.department, caseItem.country]);
 
   // Load categorized sets when department and procedure type are available
   useEffect(() => {
     const loadCategorizedSets = async () => {
       if (formData.department && formData.procedureType) {
         try {
-          const categorizedSets = await getCategorizedSetsForDepartment(formData.department, caseItem.country);
+          const { getCategorizedSetsForDepartmentIncludingInactive } = await import('../../utils/supabaseDepartmentService');
+          const categorizedSets = await getCategorizedSetsForDepartmentIncludingInactive(formData.department, caseItem.country);
           const procedureSets = categorizedSets[formData.procedureType];
           
           if (procedureSets) {
@@ -182,18 +199,23 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
               />
             </div>
 
-            {/* Procedure Type - Read Only */}
+            {/* Procedure Type - Linked to Edit Sets */}
             <div className="form-group">
-              <label>Procedure Type</label>
-              <input
-                type="text"
+              <label className="required">Procedure Type</label>
+              <select
                 value={formData.procedureType}
-                className="readonly-field"
-                readOnly
-                disabled
-                style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-              />
-              <small className="field-note">Procedure type cannot be changed during amendment</small>
+                onChange={(e) => handleInputChange('procedureType', e.target.value)}
+                className={errors.procedureType ? 'error' : ''}
+                required
+              >
+                <option value="">Select Procedure Type</option>
+                {availableProcedureTypes.map(type => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+              {errors.procedureType && <span className="error-text">{errors.procedureType}</span>}
             </div>
 
             {/* Procedure Name */}

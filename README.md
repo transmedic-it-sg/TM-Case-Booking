@@ -218,7 +218,7 @@ The application is deployed on Vercel:
 
 ## 📝 Changelog
 
-### Version 1.2.9 (Latest) - Complete Reference Data Standardization & Architecture Consolidation
+### Version 1.2.9 (Latest) - Complete Reference Data Standardization & Critical Bug Fixes
 
 #### 🏗️ **ARCHITECTURE REVOLUTION - SINGLE SOURCE OF TRUTH**
 - **Code Tables Centralization**: Established `code_tables` as the definitive single source for ALL reference data (departments, countries, hospitals, procedure types)
@@ -227,12 +227,15 @@ The application is deployed on Vercel:
 - **Service Unification**: Consolidated multiple competing services (constantsService, dynamicConstantsService, supabaseCodeTableService) into unified approach
 - **Zero Data Duplication**: Eliminated ALL reference data duplication across database tables and hardcoded arrays
 
-#### 🚨 **CRITICAL SYSTEM FIXES**
-- **Edit Sets Data Loss**: Fixed CASCADE DELETE pattern causing Surgery Sets and Implant Boxes to disappear - replaced with proper UPSERT operations
-- **Amend Case Surgery Sets**: Fixed critical missing country parameter preventing Surgery Set/Implant Box options from loading during case amendments  
-- **User Management Creation**: Fixed empty countries dropdown blocking user creation - now uses proper code table data with fallbacks
-- **Auto-Refresh Optimization**: Replaced inefficient 30-second polling with real-time Supabase subscriptions for instant updates
-- **Component Standardization**: Fixed inconsistent data sources where some components used different tables for same data type
+#### 🚨 **CRITICAL SYSTEM FIXES (Final Update)**
+- **✅ Edit Sets Data Loss**: Fixed CASCADE DELETE and UPSERT constraint issues causing Surgery Sets and Implant Boxes to disappear after creation
+- **✅ Amend Case Button**: Fixed missing Amend Case button by resolving modal form conflicts - disabled conflicting inline form to use proper modal AmendmentForm
+- **✅ Amend Case Department**: Fixed Department field to be properly read-only during amendments as requested
+- **✅ Amend Case Procedure Types**: Fixed Procedure Type dropdown to load from Edit Sets based on selected Department with proper country filtering
+- **✅ Amend Case Surgery Sets**: Fixed Surgery Sets and Implant Box selection to load from Edit Sets based on selected Procedure Type
+- **✅ User Management Countries**: Fixed empty countries dropdown by bypassing fake data detection and loading directly from code_tables
+- **✅ Cancel Case Button**: Fixed button visibility to show only for specific statuses: Case Booked, Order Preparation, Order Prepared, Pending Delivery (Hospital), Delivered (Hospital)
+- **✅ Console Errors**: Resolved fake data detection errors and unused import warnings for clean production build
 
 #### 🔄 **DATA ARCHITECTURE STANDARDIZATION**
 - **Department Standardization**: ALL components now use `code_tables` for departments instead of mix of `departments` table and hardcoded arrays
@@ -499,6 +502,6 @@ All components include fallback mechanisms and will not crash when referenced da
 ---
 
 **Version**: 1.2.9  
-**Last Updated**: 2025-09-01  
-**Deployment**: Production Ready with Complete Reference Data Standardization  
+**Last Updated**: 2025-09-02  
+**Deployment**: Production Ready with Complete Reference Data Standardization & Critical Bug Fixes  
 **License**: Proprietary

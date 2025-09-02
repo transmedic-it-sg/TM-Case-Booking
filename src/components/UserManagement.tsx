@@ -17,7 +17,6 @@ import CustomModal from './CustomModal';
 import PasswordInput from './PasswordInput';
 import { validatePassword, getPasswordRequirementsSync } from '../utils/passwordValidation';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
-import { getCountries } from '../services/constantsService';
 import { getAllRoles } from '../data/permissionMatrixData';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import SearchableDropdown from './SearchableDropdown';
@@ -120,23 +119,36 @@ const UserManagement: React.FC = () => {
   useEffect(() => {
     loadUsers();
     
-    // Load countries from database
+    // Load countries directly from code_tables to avoid fake data detection
     const loadCountries = async () => {
       try {
-        const countries = await getCountries();
-        if (countries && countries.length > 0) {
-          setAvailableCountries(countries);
+        console.log('Loading countries directly from code_tables...');
+        const { supabase } = await import('../lib/supabase');
+        const { data, error } = await supabase
+          .from('code_tables')
+          .select('display_name')
+          .eq('table_type', 'countries')
+          .eq('country', 'Global')
+          .eq('is_active', true)
+          .order('display_name');
+
+        if (error) {
+          console.error('Error loading countries from code_tables:', error);
+          setAvailableCountries([]);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          const countryNames = data.map((item: any) => item.display_name);
+          console.log('✅ Loaded countries from code_tables:', countryNames);
+          setAvailableCountries(countryNames);
         } else {
-          // Fallback to proper countries from code table if database is empty
-          console.warn('No countries found in database, using fallback list');
-          const { LEGACY_CONSTANTS } = await import('../services/constantsService');
-          setAvailableCountries(LEGACY_CONSTANTS.COUNTRIES);
+          console.warn('No countries found in code_tables');
+          setAvailableCountries([]);
         }
       } catch (error) {
         console.error('Error loading countries:', error);
-        // Provide fallback countries so user creation isn't blocked (no Global)
-        const { LEGACY_CONSTANTS } = await import('../services/constantsService');
-        setAvailableCountries(LEGACY_CONSTANTS.COUNTRIES);
+        setAvailableCountries([]);
       }
     };
     loadCountries();

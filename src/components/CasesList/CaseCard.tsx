@@ -1485,8 +1485,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
             )}
           </div>
 
-          {/* Amendment Form */}
-          {amendingCase === caseItem.id && (
+          {/* Amendment Form - DISABLED: Use modal AmendmentForm instead */}
+          {false && amendingCase === caseItem.id && (
             <div className="amendment-form">
               <h4>Amend Case Details</h4>
               <div className="form-grid">
