@@ -848,6 +848,11 @@ export const removeProcedureTypeFromDepartment = async (department: string, proc
   }
 };
 
+/**
+ * Get procedure types for a specific department from the database
+ * DATA SOURCE: department_procedure_types table (migrated from legacy categorized_sets)
+ * ARCHITECTURE: Uses department_id foreign key to departments table, which links to code_tables
+ */
 export const getProcedureTypesForDepartment = async (department: string, country?: string): Promise<string[]> => {
   const operation = async (): Promise<string[]> => {
     if (country) {
@@ -858,17 +863,13 @@ export const getProcedureTypesForDepartment = async (department: string, country
   };
 
   const fallback = async (): Promise<string[]> => {
-    console.log('Using localStorage fallback for procedure types');
+    console.warn('⚠️  Database connection failed after 3 attempts, using localStorage fallback for procedure types');
     const departmentTypes = await getDepartmentProcedureTypes(country);
     return departmentTypes[department] || [];
   };
 
-  try {
-    return await withConnectionRetry(operation, fallback);
-  } catch (error) {
-    console.error('Error getting procedure types for department:', error);
-    return await fallback();
-  }
+  // Only use withConnectionRetry - it handles 3 attempts internally
+  return await withConnectionRetry(operation, fallback);
 };
 
 export const getAllDepartmentProcedureTypes = async (country?: string): Promise<string[]> => {
@@ -945,6 +946,12 @@ export const saveDepartmentCategorizedSets = async (departmentSets: DepartmentCa
   }
 };
 
+/**
+ * Get categorized sets (surgery sets & implant boxes) for a specific department and its procedure types
+ * DATA SOURCE: department_categorized_sets bridge table (migrated from legacy categorized_sets)
+ * ARCHITECTURE: Joins department_id -> surgery_sets & implant_boxes via foreign keys
+ * RETURN FORMAT: { [procedureType]: { surgerySets: string[], implantBoxes: string[] } }
+ */
 export const getCategorizedSetsForDepartment = async (department: string, country?: string): Promise<CategorizedSets> => {
   const operation = async (): Promise<CategorizedSets> => {
     if (country) {
@@ -955,17 +962,13 @@ export const getCategorizedSetsForDepartment = async (department: string, countr
   };
 
   const fallback = async (): Promise<CategorizedSets> => {
-    console.log('Using localStorage fallback for categorized sets');
+    console.warn('⚠️  Database connection failed after 3 attempts, using localStorage fallback for categorized sets');
     const departmentSets = await getDepartmentCategorizedSets(country);
     return departmentSets[department] || {};
   };
 
-  try {
-    return await withConnectionRetry(operation, fallback);
-  } catch (error) {
-    console.error('Error getting categorized sets for department:', error);
-    return await fallback();
-  }
+  // Only use withConnectionRetry - it handles 3 attempts internally
+  return await withConnectionRetry(operation, fallback);
 };
 
 export const saveCategorizedSetsForDepartment = async (

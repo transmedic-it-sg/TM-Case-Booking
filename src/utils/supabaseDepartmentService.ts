@@ -6,6 +6,45 @@
 import { supabase } from '../lib/supabase';
 import { getCountryForDatabase, getCountryVariations } from './countryDatabaseCompatibility';
 
+/**
+ * SUPABASE DEPARTMENT SERVICE - DATA ARCHITECTURE DOCUMENTATION
+ * 
+ * This service manages the department-procedure-sets relationships using a normalized database structure.
+ * 
+ * DATABASE TABLES & RELATIONSHIPS:
+ * 
+ * 1. code_tables (master data):
+ *    - table_type='departments': Master list of departments by country
+ *    - table_type='hospitals': Master list of hospitals by country
+ *    - SINGLE SOURCE OF TRUTH for master reference data
+ * 
+ * 2. departments (operational data):
+ *    - Links to code_tables via code_table_id foreign key
+ *    - Contains department operational info per country
+ * 
+ * 3. department_procedure_types (procedure mapping):
+ *    - Maps department_id -> procedure_type per country
+ *    - Replaces legacy categorized_sets direct procedure mapping
+ * 
+ * 4. department_categorized_sets (bridge table):
+ *    - Maps department_id + procedure_type -> surgery_sets + implant_boxes
+ *    - Many-to-many relationships with proper foreign keys
+ * 
+ * 5. surgery_sets / implant_boxes (reference data):
+ *    - Master lists of available sets per country
+ *    - Referenced by department_categorized_sets bridge table
+ * 
+ * MIGRATION FROM LEGACY:
+ * - Legacy: categorized_sets table with direct country->procedure_type->arrays
+ * - New: Normalized structure with proper foreign key relationships
+ * - Benefits: Data integrity, no duplication, proper relationships
+ * 
+ * COUNTRY NORMALIZATION:
+ * - All functions use getCountryForDatabase() for consistent normalization
+ * - "SG" -> "Singapore", etc. handled consistently
+ * - Exact country matching (no more country variations fallbacks)
+ */
+
 // Types
 export interface Department {
   id: string;
@@ -148,30 +187,30 @@ export const addDepartment = async (name: string, country: string, description?:
  */
 export const getProcedureTypesForDepartment = async (departmentName: string, country: string): Promise<string[]> => {
   try {
-    const countryVariations = getCountryVariations(country);
-    // console.log('🔍 Getting procedure types for:', { departmentName, country, countryVariations });
+    const normalizedCountry = getCountryForDatabase(country);
+    console.log('🔍 Getting procedure types from department_procedure_types for:', { departmentName, country: normalizedCountry });
     
-    // First, get the department ID - use flexible country matching
+    // Get the department ID using normalized country for exact match
     const { data: departments } = await supabase
       .from('departments')
       .select('id')
       .eq('name', departmentName)
-      .in('country', countryVariations)
+      .eq('country', normalizedCountry)
       .eq('is_active', true);
     
     if (!departments || departments.length === 0) {
-      console.warn('Department not found in database:', { departmentName, country });
+      console.warn('Department not found in database:', { departmentName, country: normalizedCountry });
       return [];
     }
     
     const departmentId = departments[0].id;
     
-    // Get procedure types from database - use flexible country matching
+    // Get procedure types from database using exact country match
     const { data, error } = await supabase
       .from('department_procedure_types')
       .select('procedure_type')
       .eq('department_id', departmentId)
-      .in('country', countryVariations)
+      .eq('country', normalizedCountry)
       .eq('is_active', true)
       .eq('is_hidden', false)
       .order('procedure_type');
@@ -183,13 +222,8 @@ export const getProcedureTypesForDepartment = async (departmentName: string, cou
     
     const dbProcedureTypes = data?.map(item => item.procedure_type) || [];
     
-    // If no procedure types in database, return empty array
-    if (dbProcedureTypes.length === 0) {
-      console.log('No procedure types configured for department:', { departmentName, country });
-      return [];
-    }
+    console.log('✅ Found procedure types in department_procedure_types:', dbProcedureTypes.length, 'types:', dbProcedureTypes);
     
-    console.log('✅ Found procedure types in Supabase:', dbProcedureTypes.length);
     return dbProcedureTypes;
   } catch (error) {
     console.error('Error in getProcedureTypesForDepartment:', error);
@@ -515,7 +549,9 @@ export const getCategorizedSetsForDepartment = async (
     
     const departmentId = departments[0].id;
     
-    // Get categorized sets from database - use normalized country
+    // Get categorized sets from the new bridge table - use normalized country
+    console.log('🔍 Querying department_categorized_sets for department_id:', departmentId, 'country:', dbCountry);
+    
     const { data, error } = await supabase
       .from('department_categorized_sets')
       .select(`
@@ -527,9 +563,11 @@ export const getCategorizedSetsForDepartment = async (
       .eq('country', dbCountry);
     
     if (error) {
-      console.error('Error fetching categorized sets:', error);
+      console.error('Error fetching categorized sets from department_categorized_sets:', error);
       return {};
     }
+    
+    console.log('🔍 Raw department_categorized_sets data:', data?.length, 'rows');
     
     // Transform the data into the expected format
     const result: CategorizedSetsResult = {};
@@ -543,15 +581,27 @@ export const getCategorizedSetsForDepartment = async (
       }
       
       if (item.surgery_set && (item.surgery_set as any).name) {
-        result[item.procedure_type].surgerySets.push((item.surgery_set as any).name);
+        const surgerySetName = (item.surgery_set as any).name;
+        if (!result[item.procedure_type].surgerySets.includes(surgerySetName)) {
+          result[item.procedure_type].surgerySets.push(surgerySetName);
+        }
       }
       
       if (item.implant_box && (item.implant_box as any).name) {
-        result[item.procedure_type].implantBoxes.push((item.implant_box as any).name);
+        const implantBoxName = (item.implant_box as any).name;
+        if (!result[item.procedure_type].implantBoxes.includes(implantBoxName)) {
+          result[item.procedure_type].implantBoxes.push(implantBoxName);
+        }
       }
     }
     
-    console.log('✅ Found categorized sets in Supabase:', Object.keys(result).length, 'procedure types');
+    // Sort the arrays for consistency
+    Object.values(result).forEach(sets => {
+      sets.surgerySets.sort();
+      sets.implantBoxes.sort();
+    });
+    
+    console.log('✅ Transformed categorized sets from department_categorized_sets:', Object.keys(result).length, 'procedure types:', Object.keys(result));
     
     // Cache the result
     categorizedSetsCache.set(cacheKey, { data: result, timestamp: Date.now() });

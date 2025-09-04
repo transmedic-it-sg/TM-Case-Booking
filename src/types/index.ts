@@ -116,6 +116,7 @@ export interface User {
   selectedCountry?: string;
   enabled?: boolean;
   passwordResetRequired?: boolean;
+  isTemporaryPassword?: boolean;
 }
 
 export interface CaseBooking {

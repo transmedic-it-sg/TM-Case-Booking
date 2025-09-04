@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CaseBooking } from '../types';
-import { CategorizedSets, getProcedureTypesForDepartment, getCategorizedSetsForDepartment } from '../utils/storage';
+import { getProcedureTypesForDepartment } from '../utils/storage';
 import { getCurrentUser } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { useCases } from '../hooks/useCases';
@@ -13,6 +13,7 @@ import FilterDatePicker from './FilterDatePicker';
 import { addDaysForInput, getTodayForInput } from '../utils/dateFormat';
 import { sendNewCaseNotificationEnhanced } from '../utils/enhancedEmailService';
 import { normalizeCountry } from '../utils/countryUtils';
+import { supabase } from '../lib/supabase';
 
 interface CaseBookingFormProps {
   onCaseSubmitted: () => void;
@@ -43,7 +44,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [availableProcedureTypes, setAvailableProcedureTypes] = useState<string[]>([]);
   const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);
-  const [categorizedSets, setCategorizedSets] = useState<CategorizedSets>({});
+  // Removed categorizedSets - Surgery Sets and Implant Boxes are now independent
 
   // Check for calendar pre-fill data on component mount
   useEffect(() => {
@@ -119,6 +120,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           }
           
           const hospitals = hospitalTable?.items || [];
+          console.log('🏥 Loading hospitals for country:', normalizedCountry, 'Found hospitals:', hospitals);
           setAvailableHospitals(hospitals.sort());
         } else {
           // Fallback to empty list if no country selected
@@ -131,8 +133,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         setAvailableHospitals([]);
       }
       
-      // Initialize with empty categorized sets - will be loaded when department is selected
-      setCategorizedSets({});
+      // Surgery Sets and Implant Boxes are now loaded independently in separate useEffect
     };
     
     loadData();
@@ -165,38 +166,29 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
                 setAvailableProcedureTypes(departmentProcedureTypes.sort());
               }
               
-              // Load categorized sets for this department
-              const departmentSets = await getCategorizedSetsForDepartment(formData.department, normalizedCountry);
-              
-              if (isActive) {
-                setCategorizedSets(departmentSets);
-              }
+              // Surgery Sets and Implant Boxes are now loaded independently
               
             } catch (error) {
               console.error('Error loading department data:', error);
               // Fallback to empty data
               if (isActive) {
                 setAvailableProcedureTypes([]);
-                setCategorizedSets({});
               }
             }
           } else {
             if (isActive) {
               setAvailableProcedureTypes([]);
-              setCategorizedSets({});
             }
           }
         } else {
           if (isActive) {
             setAvailableProcedureTypes([]);
-            setCategorizedSets({});
           }
         }
       } else {
         // Clear data when no department selected
         if (isActive) {
           setAvailableProcedureTypes([]);
-          setCategorizedSets({});
         }
       }
     };
@@ -227,33 +219,67 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     }
   }, [formData.department, formData.procedureType, filteredProcedureTypes]);
 
-  const surgerySetOptions = useMemo(() => {
-    if (!formData.procedureType) {
-      return [];
-    }
-    
-    // Try to get from categorized sets first (loaded from Supabase)
-    if (categorizedSets[formData.procedureType]?.surgerySets?.length > 0) {
-      return categorizedSets[formData.procedureType].surgerySets.sort();
-    }
-    
-    // Return empty array if no categorized sets found - indicates no sets configured for this procedure type
-    return [];
-  }, [formData.procedureType, categorizedSets]);
+  const [availableSurgerySets, setAvailableSurgerySets] = useState<string[]>([]);
+  const [availableImplantBoxes, setAvailableImplantBoxes] = useState<string[]>([]);
 
-  const implantBoxOptions = useMemo(() => {
-    if (!formData.procedureType) {
-      return [];
-    }
-    
-    // Try to get from categorized sets first (loaded from Supabase)
-    if (categorizedSets[formData.procedureType]?.implantBoxes?.length > 0) {
-      return categorizedSets[formData.procedureType].implantBoxes.sort();
-    }
-    
-    // Return empty array if no categorized sets found - indicates no sets configured for this procedure type
-    return [];
-  }, [formData.procedureType, categorizedSets]);
+  // Load Surgery Sets and Implant Boxes independently (not linked to procedure type)
+  useEffect(() => {
+    const loadIndependentSetsAndBoxes = async () => {
+      if (!currentUser) {
+        setAvailableSurgerySets([]);
+        setAvailableImplantBoxes([]);
+        return;
+      }
+
+      const userCountry = currentUser.selectedCountry || currentUser.countries?.[0];
+      if (userCountry) {
+        try {
+          const normalizedCountry = normalizeCountry(userCountry);
+          
+          // Load all surgery sets for this country
+          const { data: surgerySets, error: surgerySetsError } = await supabase
+            .from('surgery_sets')
+            .select('name')
+            .eq('country', normalizedCountry)
+            .eq('is_active', true);
+
+          if (surgerySetsError) {
+            console.error('Error loading surgery sets:', surgerySetsError);
+            setAvailableSurgerySets([]);
+          } else {
+            setAvailableSurgerySets((surgerySets || []).map((s: any) => s.name).sort());
+          }
+
+          // Load all implant boxes for this country
+          const { data: implantBoxes, error: implantBoxesError } = await supabase
+            .from('implant_boxes')
+            .select('name')
+            .eq('country', normalizedCountry)
+            .eq('is_active', true);
+
+          if (implantBoxesError) {
+            console.error('Error loading implant boxes:', implantBoxesError);
+            setAvailableImplantBoxes([]);
+          } else {
+            setAvailableImplantBoxes((implantBoxes || []).map((i: any) => i.name).sort());
+          }
+
+        } catch (error) {
+          console.error('Error loading surgery sets and implant boxes:', error);
+          setAvailableSurgerySets([]);
+          setAvailableImplantBoxes([]);
+        }
+      } else {
+        setAvailableSurgerySets([]);
+        setAvailableImplantBoxes([]);
+      }
+    };
+
+    loadIndependentSetsAndBoxes();
+  }, [currentUser?.selectedCountry, currentUser?.id]);
+
+  const surgerySetOptions = availableSurgerySets;
+  const implantBoxOptions = availableImplantBoxes;
 
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
 
@@ -356,19 +382,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       newErrors.procedureName = 'Procedure Name is required';
     }
 
-    // Surgery sets are mandatory - require selection even if no options are available
-    if (formData.surgerySetSelection.length === 0) {
-      newErrors.surgerySetSelection = surgerySetOptions.length > 0 
-        ? 'Surgery Set Selection is required - please select at least one set'
-        : 'Surgery Set Selection is required - no sets available for this procedure/department combination';
-    }
-
-    // Implant boxes are mandatory - require selection even if no options are available  
-    if (formData.implantBox.length === 0) {
-      newErrors.implantBox = implantBoxOptions.length > 0
-        ? 'Implant Box selection is required - please select at least one box'
-        : 'Implant Box selection is required - no boxes available for this procedure/department combination';
-    }
+    // Surgery sets and implant boxes are now optional
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -615,13 +629,11 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             value={formData.surgerySetSelection}
             onChange={(values) => setFormData(prev => ({ ...prev, surgerySetSelection: values }))}
             placeholder={
-              !formData.procedureType 
-                ? "Please select a procedure type first" 
-                : surgerySetOptions.length === 0 
-                  ? "No surgery sets configured for this procedure type - Contact admin to add sets" 
-                  : "Select Surgery Sets..."
+              surgerySetOptions.length === 0 
+                ? "No surgery sets available" 
+                : "Select Surgery Sets (Optional)"
             }
-            required={true}
+            required={false}
             className={errors.surgerySetSelection ? 'error' : ''}
           />
           {errors.surgerySetSelection && <span className="error-text">{errors.surgerySetSelection}</span>}
@@ -635,13 +647,11 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             value={formData.implantBox}
             onChange={(values) => setFormData(prev => ({ ...prev, implantBox: values }))}
             placeholder={
-              !formData.procedureType 
-                ? "Please select a procedure type first" 
-                : implantBoxOptions.length === 0 
-                  ? "No implant boxes configured for this procedure type - Contact admin to add boxes" 
-                  : "Select Implant Boxes..."
+              implantBoxOptions.length === 0 
+                ? "No implant boxes available" 
+                : "Select Implant Boxes (Optional)"
             }
-            required={true}
+            required={false}
             className={errors.implantBox ? 'error' : ''}
           />
           {errors.implantBox && <span className="error-text">{errors.implantBox}</span>}

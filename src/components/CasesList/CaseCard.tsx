@@ -966,6 +966,46 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                 })()}
                               </div>
                             )}
+                            {historyItem.attachments && historyItem.attachments.length > 0 && (
+                              <div>
+                                <strong>Attachments ({historyItem.attachments.length}):</strong>
+                                <div className="attachment-preview-grid">
+                                  {historyItem.attachments.map((attachment: string, idx: number) => {
+                                    try {
+                                      const fileData = JSON.parse(attachment);
+                                      const isImage = fileData.type?.startsWith('image/');
+                                      
+                                      return (
+                                        <div key={idx} className="attachment-preview-item">
+                                          {isImage ? (
+                                            <div className="image-attachment">
+                                              <img 
+                                                src={fileData.data} 
+                                                alt={fileData.name}
+                                                className="attachment-thumbnail"
+                                                style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd' }}
+                                              />
+                                              <div className="attachment-info">
+                                                <div className="file-name" title={fileData.name}>{fileData.name}</div>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <div className="file-attachment">
+                                              <div className="file-icon">📄</div>
+                                              <div className="attachment-info">
+                                                <div className="file-name" title={fileData.name}>{fileData.name}</div>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    } catch {
+                                      return null;
+                                    }
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))

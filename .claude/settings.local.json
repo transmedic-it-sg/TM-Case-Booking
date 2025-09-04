@@ -25,7 +25,11 @@
       "Bash(git checkout:*)",
       "Bash(npm start)",
       "Bash(PORT=3001 npm start)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(git restore:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm test:*)",
+      "mcp__supabase__list_migrations"
     ],
     "deny": [],
     "ask": []

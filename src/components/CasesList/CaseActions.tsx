@@ -189,7 +189,10 @@ const CaseActions: React.FC<CaseActionsProps> = ({
           disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.AMEND_CASE)}
         >
           <button
-            onClick={() => onAmendCase(caseItem)}
+            onClick={() => {
+              console.log('🔍 Amend Case button clicked for case:', caseItem.id);
+              onAmendCase(caseItem);
+            }}
             className="case-action-button amend-button"
           >
             Amend Case

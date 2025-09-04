@@ -8,6 +8,9 @@ import { AmendmentFormProps } from './types';
 import TimePicker from '../common/TimePicker';
 import FilterDatePicker from '../FilterDatePicker';
 import MultiSelectDropdown from '../MultiSelectDropdown';
+import SearchableDropdown from '../SearchableDropdown';
+import { supabase } from '../../lib/supabase';
+import { normalizeCountry } from '../../utils/countryUtils';
 
 const AmendmentForm: React.FC<AmendmentFormProps> = ({
   caseItem,
@@ -32,6 +35,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
 
   // State variables for dropdowns
   const [availableProcedureTypes, setAvailableProcedureTypes] = useState<string[]>([]);
+  const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);
   const [surgerySetOptions, setSurgerySetOptions] = useState<string[]>([]);
   const [implantBoxOptions, setImplantBoxOptions] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -54,32 +58,63 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     loadProcedureTypes();
   }, [formData.department, caseItem.country]);
 
-  // Load categorized sets when department and procedure type are available
+  // Load hospitals, surgery sets and implant boxes independently  
   useEffect(() => {
-    const loadCategorizedSets = async () => {
-      if (formData.department && formData.procedureType) {
+    const loadAllOptions = async () => {
+      if (caseItem.country) {
         try {
-          const { getCategorizedSetsForDepartmentIncludingInactive } = await import('../../utils/supabaseDepartmentService');
-          const categorizedSets = await getCategorizedSetsForDepartmentIncludingInactive(formData.department, caseItem.country);
-          const procedureSets = categorizedSets[formData.procedureType];
+          const normalizedCountry = normalizeCountry(caseItem.country);
           
-          if (procedureSets) {
-            setSurgerySetOptions(procedureSets.surgerySets || []);
-            setImplantBoxOptions(procedureSets.implantBoxes || []);
-          } else {
+          // Load hospitals from code_tables
+          const { getSupabaseCodeTables } = await import('../../utils/supabaseCodeTableService');
+          const countryTables = await getSupabaseCodeTables(normalizedCountry);
+          const hospitalTable = countryTables.find(table => table.id === 'hospitals');
+          const hospitals = hospitalTable?.items || [];
+          setAvailableHospitals(hospitals.sort());
+          
+          // Load all surgery sets for this country
+          const { data: surgerySets, error: surgerySetsError } = await supabase
+            .from('surgery_sets')
+            .select('name')
+            .eq('country', normalizedCountry)
+            .eq('is_active', true);
+
+          if (surgerySetsError) {
+            console.error('Error loading surgery sets:', surgerySetsError);
             setSurgerySetOptions([]);
-            setImplantBoxOptions([]);
+          } else {
+            setSurgerySetOptions((surgerySets || []).map((s: any) => s.name).sort());
           }
+
+          // Load all implant boxes for this country
+          const { data: implantBoxes, error: implantBoxesError } = await supabase
+            .from('implant_boxes')
+            .select('name')
+            .eq('country', normalizedCountry)
+            .eq('is_active', true);
+
+          if (implantBoxesError) {
+            console.error('Error loading implant boxes:', implantBoxesError);
+            setImplantBoxOptions([]);
+          } else {
+            setImplantBoxOptions((implantBoxes || []).map((i: any) => i.name).sort());
+          }
+
         } catch (error) {
-          console.error('Error loading categorized sets:', error);
+          console.error('Error loading options:', error);
+          setAvailableHospitals([]);
           setSurgerySetOptions([]);
           setImplantBoxOptions([]);
         }
+      } else {
+        setAvailableHospitals([]);
+        setSurgerySetOptions([]);
+        setImplantBoxOptions([]);
       }
     };
     
-    loadCategorizedSets();
-  }, [formData.department, formData.procedureType, caseItem.country]);
+    loadAllOptions();
+  }, [caseItem.country]);
 
   useEffect(() => {
     if (amendmentData) {
@@ -134,6 +169,9 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     }
   };
 
+  // Debug logging to track modal rendering
+  console.log('🔍 AmendmentForm rendering for case:', caseItem?.caseReferenceNumber);
+  
   return (
     <div className="amendment-form-overlay">
       <div className="amendment-form-modal">
@@ -153,12 +191,14 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
             {/* Hospital */}
             <div className="form-group">
               <label className="required">Hospital</label>
-              <input
-                type="text"
+              <SearchableDropdown
+                id="amendment-hospital"
                 value={formData.hospital}
-                onChange={(e) => handleInputChange('hospital', e.target.value)}
+                onChange={(value) => handleInputChange('hospital', value)}
+                options={availableHospitals}
+                placeholder="Search and select hospital"
                 className={errors.hospital ? 'error' : ''}
-                placeholder="Enter hospital name"
+                required
               />
               {errors.hospital && <span className="error-text">{errors.hospital}</span>}
             </div>
@@ -288,13 +328,13 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
           )}
 
           {/* Amendment Reason */}
-          <div className="amendment-reason">
+          <div className="form-group full-width">
             <label className="required">Reason for Amendment</label>
             <textarea
               value={formData.amendmentReason}
               onChange={(e) => handleInputChange('amendmentReason', e.target.value)}
               placeholder="Please provide a reason for this amendment"
-              rows={2}
+              rows={3}
               className={errors.amendmentReason ? 'error' : ''}
               required
             />

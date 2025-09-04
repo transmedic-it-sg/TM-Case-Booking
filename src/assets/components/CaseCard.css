@@ -546,7 +546,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 100000;
   padding: 1rem;
 }
 
@@ -561,11 +561,14 @@
 }
 
 .amendment-form-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--border-light);
+  padding: 1.5rem 1.5rem 0 1.5rem;
+  margin-bottom: 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: var(--white);
+  border-radius: var(--border-radius-medium);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .amendment-form-header h3 {
@@ -590,7 +593,8 @@
 }
 
 .amendment-form {
-  padding: 1.5rem;
+  padding: 0;
+  background: #f8fafc;
 }
 
 .form-grid {
@@ -600,20 +604,44 @@
   margin-bottom: 1.5rem;
 }
 
+.amendment-form .form-grid {
+  padding: 1.5rem;
+  background: var(--white);
+  border-radius: var(--border-radius-medium);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
 .form-group.full-width {
   grid-column: 1 / -1;
 }
 
-.amendment-reason {
+.sets-section {
   margin-bottom: 1.5rem;
+}
+
+.amendment-form .sets-section {
+  padding: 1.5rem;
+  background: var(--white);
+  border-radius: var(--border-radius-medium);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.sets-section h4 {
+  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
 .amendment-form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-light);
+  padding: 1.5rem;
+  background: var(--white);
+  border-radius: var(--border-radius-medium);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-top: 0;
 }
 
 /* Amendment History Styles */
@@ -723,6 +751,36 @@
 
   .case-header-main {
     margin-bottom: 1rem;
+  }
+
+  /* Amendment form mobile styles */
+  .amendment-form-header {
+    padding: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .amendment-form-header h3 {
+    font-size: 1.1rem !important;
+  }
+
+  .amendment-form .form-grid {
+    padding: 1rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .amendment-form .sets-section {
+    padding: 1rem !important;
+    margin-top: 0.75rem !important;
+  }
+
+  .amendment-form .form-actions {
+    padding: 1rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .amendment-form .form-actions .btn {
+    padding: 0.75rem 1rem !important;
+    font-size: 0.9rem !important;
   }
 
   .case-meta-section {

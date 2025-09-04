@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { testConnectionWithTimeout } from '../utils/databaseConnectivity';
 import '../assets/components/DatabaseConnection.css';
 
@@ -9,6 +9,20 @@ const DatabaseConnectionStatus: React.FC = () => {
   const [isTesting, setIsTesting] = useState(false);
   const [responseTime, setResponseTime] = useState<number | undefined>();
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
+        setShowPanel(false);
+      }
+    };
+
+    if (showPanel) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showPanel]);
 
   const checkConnection = async () => {
     setIsTesting(true);
@@ -58,7 +72,7 @@ const DatabaseConnectionStatus: React.FC = () => {
 
   // Detailed panel
   const detailPanel = showPanel ? (
-    <div className="db-connection-detail-panel">
+    <div className="db-connection-detail-panel" ref={panelRef}>
       <div className="db-panel-header">
         <div className="db-panel-title">
           <span className="db-icon">{isConnected ? '🟢' : '🔴'}</span>

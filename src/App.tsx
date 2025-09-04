@@ -64,6 +64,13 @@ const AppContent: React.FC = () => {
   const [activePage, setActivePage] = useState<ActivePage>('booking');
   const [processingCase, setProcessingCase] = useState<CaseBooking | null>(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
+  const [passwordChangeData, setPasswordChangeData] = useState({
+    newPassword: '',
+    confirmPassword: '',
+    isChanging: false,
+    error: ''
+  });
   const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
   const [showVersionUpdatePopup, setShowVersionUpdatePopup] = useState(false);
   const [versionUpdateInfo, setVersionUpdateInfo] = useState<{currentVersion: string; previousVersion: string}>({currentVersion: '', previousVersion: ''});
@@ -263,6 +270,13 @@ const AppContent: React.FC = () => {
   }
 
   const handleLogin = async (loggedInUser: User) => {
+    // Check if user has temporary password and needs to change it
+    if (loggedInUser.isTemporaryPassword) {
+      setUser(loggedInUser);
+      setShowPasswordChangeModal(true);
+      return;
+    }
+    
     setUser(loggedInUser);
     setShowWelcomePopup(true);
     setShowMobileEntry(false);
@@ -289,6 +303,98 @@ const AppContent: React.FC = () => {
   const handleProceedToLogin = () => {
     setShowMobileEntry(false);
     playSound.click();
+  };
+
+  const validatePassword = (password: string): string[] => {
+    const errors: string[] = [];
+    if (password.length < 8) {
+      errors.push('Password must be at least 8 characters long');
+    }
+    if (!/[A-Z]/.test(password)) {
+      errors.push('Password must contain at least one uppercase letter');
+    }
+    if (!/[a-z]/.test(password)) {
+      errors.push('Password must contain at least one lowercase letter');
+    }
+    if (!/[0-9]/.test(password)) {
+      errors.push('Password must contain at least one number');
+    }
+    return errors;
+  };
+
+  const handlePasswordChangeSubmit = async () => {
+    if (!user) return;
+
+    const { newPassword, confirmPassword } = passwordChangeData;
+    
+    // Validation
+    const errors: string[] = [];
+    
+    if (!newPassword.trim()) {
+      errors.push('New password is required');
+    }
+    
+    if (!confirmPassword.trim()) {
+      errors.push('Password confirmation is required');
+    }
+    
+    if (newPassword !== confirmPassword) {
+      errors.push('Passwords do not match');
+    }
+    
+    const passwordErrors = validatePassword(newPassword);
+    errors.push(...passwordErrors);
+    
+    if (errors.length > 0) {
+      setPasswordChangeData(prev => ({ 
+        ...prev, 
+        error: errors.join('. ')
+      }));
+      return;
+    }
+
+    // Change password
+    setPasswordChangeData(prev => ({ ...prev, isChanging: true, error: '' }));
+    
+    try {
+      const { updateSupabaseUserPassword } = await import('./utils/supabaseUserService');
+      const success = await updateSupabaseUserPassword(user.id, newPassword);
+      
+      if (!success) {
+        throw new Error('Failed to update password');
+      }
+      
+      // Update user state to remove temporary password flag
+      setUser(prev => prev ? { ...prev, isTemporaryPassword: false } : null);
+      setShowPasswordChangeModal(false);
+      setPasswordChangeData({
+        newPassword: '',
+        confirmPassword: '',
+        isChanging: false,
+        error: ''
+      });
+      setShowWelcomePopup(true);
+      showSuccess('Password changed successfully!', 'Your password has been updated and you can now access the application.');
+      
+    } catch (error) {
+      console.error('Password change failed:', error);
+      setPasswordChangeData(prev => ({ 
+        ...prev, 
+        isChanging: false, 
+        error: 'Failed to change password. Please try again or contact support.' 
+      }));
+    }
+  };
+
+  const handlePasswordChangeCancel = () => {
+    setUser(null);
+    setShowPasswordChangeModal(false);
+    setPasswordChangeData({
+      newPassword: '',
+      confirmPassword: '',
+      isChanging: false,
+      error: ''
+    });
   };
 
   const handleLogout = () => {
@@ -789,6 +895,71 @@ const AppContent: React.FC = () => {
           user={user}
           onClose={() => setShowWelcomePopup(false)}
         />
+      )}
+
+      {showPasswordChangeModal && user && (
+        <div className="modal-overlay" onClick={() => {}}>
+          <div className="modal-content password-change-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Password Change Required</h3>
+            </div>
+            <div className="modal-body">
+              <p>Your password is temporary and must be changed before you can continue.</p>
+              <p><strong>User:</strong> {user.name} ({user.username})</p>
+              
+              {passwordChangeData.error && (
+                <div className="alert alert-danger">
+                  {passwordChangeData.error}
+                </div>
+              )}
+              
+              <div className="form-group">
+                <label htmlFor="newPassword">New Password</label>
+                <input
+                  type="password"
+                  id="newPassword"
+                  value={passwordChangeData.newPassword}
+                  onChange={(e) => setPasswordChangeData(prev => ({ ...prev, newPassword: e.target.value, error: '' }))}
+                  placeholder="Enter your new password (min 8 characters)"
+                  className="form-control"
+                  disabled={passwordChangeData.isChanging}
+                  minLength={8}
+                />
+                <small className="form-text text-muted">
+                  Password must be at least 8 characters long
+                </small>
+              </div>
+              <div className="form-group">
+                <label htmlFor="confirmPassword">Confirm Password</label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  value={passwordChangeData.confirmPassword}
+                  onChange={(e) => setPasswordChangeData(prev => ({ ...prev, confirmPassword: e.target.value, error: '' }))}
+                  placeholder="Confirm your new password"
+                  className="form-control"
+                  disabled={passwordChangeData.isChanging}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn btn-secondary"
+                onClick={handlePasswordChangeCancel}
+                disabled={passwordChangeData.isChanging}
+              >
+                Logout
+              </button>
+              <button 
+                className="btn btn-primary"
+                onClick={handlePasswordChangeSubmit}
+                disabled={passwordChangeData.isChanging || !passwordChangeData.newPassword || !passwordChangeData.confirmPassword}
+              >
+                {passwordChangeData.isChanging ? 'Changing Password...' : 'Change Password'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <LogoutConfirmation

@@ -40,13 +40,31 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       : option
   );
 
-  // Filter options based on search term (fuzzy search)
-  const filteredOptions = normalizedOptions.filter(option =>
-    option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    searchTerm.toLowerCase().split('').every(char => 
-      option.label.toLowerCase().includes(char)
-    )
-  );
+  // Filter options based on search term (improved fuzzy search)
+  const filteredOptions = normalizedOptions.filter(option => {
+    const optionLower = option.label.toLowerCase();
+    const termLower = searchTerm.toLowerCase();
+    
+    // Exact substring match (highest priority)
+    if (optionLower.includes(termLower)) {
+      return true;
+    }
+    
+    // Sequential character matching (fuzzy search)
+    let optionIndex = 0;
+    for (let termIndex = 0; termIndex < termLower.length; termIndex++) {
+      const char = termLower[termIndex];
+      const foundIndex = optionLower.indexOf(char, optionIndex);
+      
+      if (foundIndex === -1) {
+        return false; // Character not found in remaining string
+      }
+      
+      optionIndex = foundIndex + 1;
+    }
+    
+    return true;
+  });
 
   // Close dropdown when clicking outside
   useEffect(() => {

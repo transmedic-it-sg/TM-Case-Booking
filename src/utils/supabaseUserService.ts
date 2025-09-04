@@ -31,7 +31,8 @@ export const getAllSupabaseUsers = async (): Promise<User[]> => {
           departments: profile.departments || [],
           countries: profile.countries || [],
           selectedCountry: profile.selected_country,
-          enabled: profile.enabled
+          enabled: profile.enabled,
+          email: profile.email
         }));
       }
 
@@ -77,7 +78,8 @@ export const getUserById = async (userId: string): Promise<User | null> => {
           departments: profileData.departments || [],
           countries: profileData.countries || [],
           selectedCountry: profileData.selected_country,
-          enabled: profileData.enabled
+          enabled: profileData.enabled,
+          email: profileData.email
         };
       }
 
@@ -98,7 +100,8 @@ export const getUserById = async (userId: string): Promise<User | null> => {
           departments: userData.departments || [],
           countries: userData.countries || [],
           selectedCountry: userData.selected_country,
-          enabled: userData.enabled
+          enabled: userData.enabled,
+          email: userData.email
         };
       }
 
@@ -137,7 +140,8 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
           departments: userData.departments,
           countries: userData.countries,
           selected_country: userData.selectedCountry,
-          enabled: userData.enabled
+          enabled: userData.enabled,
+          email: userData.email
         }])
         .select()
         .single();
@@ -153,7 +157,8 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
         departments: data.departments || [],
         countries: data.countries || [],
         selectedCountry: data.selected_country,
-        enabled: data.enabled
+        enabled: data.enabled,
+        email: data.email
       };
     },
     {
@@ -188,6 +193,7 @@ export const updateSupabaseUser = async (userId: string, userData: Partial<User>
       if (userData.countries) updateData.countries = userData.countries;
       if (userData.selectedCountry) updateData.selected_country = userData.selectedCountry;
       if (userData.enabled !== undefined) updateData.enabled = userData.enabled;
+      if (userData.email !== undefined) updateData.email = userData.email;
 
       updateData.updated_at = new Date().toISOString();
 
@@ -264,11 +270,12 @@ export const deleteSupabaseUser = async (userId: string): Promise<boolean> => {
 export const resetSupabaseUserPassword = async (userId: string, newPassword: string): Promise<boolean> => {
   const result = await ErrorHandler.executeWithRetry(
     async () => {
-      // Update profiles table
+      // Update profiles table with temporary password flag
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
           password_hash: newPassword, // Should be hashed in production
+          is_temporary_password: true, // Mark as temporary - user must change on next login
           updated_at: new Date().toISOString()
         })
         .eq('id', userId);
@@ -291,6 +298,41 @@ export const resetSupabaseUserPassword = async (userId: string, newPassword: str
     {
       operation: 'Reset User Password',
       userMessage: 'Failed to reset password',
+      showToast: true,
+      showNotification: true,
+      includeDetails: true,
+      autoRetry: true,
+      maxRetries: 3
+    }
+  );
+
+  return result.success;
+};
+
+export const updateSupabaseUserPassword = async (userId: string, newPassword: string): Promise<boolean> => {
+  const result = await ErrorHandler.executeWithRetry(
+    async () => {
+      // Update profiles table - clear temporary password flag and update password
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ 
+          password_hash: newPassword, // Should be hashed in production
+          is_temporary_password: false, // Clear temporary flag
+          password_changed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+
+      if (profileError) {
+        console.error('Error updating password in profiles table:', profileError);
+        throw profileError;
+      }
+
+      return true;
+    },
+    {
+      operation: 'Update User Password',
+      userMessage: 'Failed to update password',
       showToast: true,
       showNotification: true,
       includeDetails: true,

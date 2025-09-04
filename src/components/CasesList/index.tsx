@@ -365,6 +365,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   const handleAmendCase = (caseItem: CaseBooking) => {
+    console.log('🔍 handleAmendCase called with case:', caseItem.id, caseItem.caseReferenceNumber);
     setAmendingCase(caseItem.id);
     setAmendmentData({
       hospital: caseItem.hospital,
@@ -377,6 +378,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       specialInstruction: caseItem.specialInstruction,
       amendmentReason: ''
     });
+    console.log('🔍 Amendment data set, amendingCase state:', caseItem.id);
   };
 
   const handleSaveAmendment = async (amendmentFormData: any) => {
@@ -475,8 +477,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
     try {
       const caseItem = cases.find(c => c.id === caseId);
-      // Use the specific processCaseOrder function for order processing
-      await processCaseOrder(caseId, currentUser.id, processDetails);
+      // Use the specific processCaseOrder function for order processing - include attachments
+      await processCaseOrder(caseId, currentUser.id, processDetails, processAttachments);
       setProcessingCase(null);
       setProcessDetails('');
       setProcessAttachments([]);

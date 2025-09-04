@@ -49,7 +49,8 @@ export const authenticateSupabaseUser = async (username: string, password: strin
               countries: profile.countries || [],
               selectedCountry: profile.selected_country,
               enabled: profile.enabled,
-              email: profile.email || ''
+              email: profile.email || '',
+              isTemporaryPassword: profile.is_temporary_password || false // Include temporary password flag
             };
           }
         }

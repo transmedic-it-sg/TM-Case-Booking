@@ -8,6 +8,7 @@ interface MultiSelectDropdownProps {
   onChange: (selectedValues: string[]) => void;
   placeholder?: string;
   required?: boolean;
+  disabled?: boolean;
   className?: string;
 }
 
@@ -19,6 +20,7 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
   onChange,
   placeholder = "Select options...",
   required = false,
+  disabled = false,
   className = ""
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -112,11 +114,11 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
         className={`custom-multi-select ${className}`}
       >
         <div
-          className="multi-select-trigger"
-          onClick={() => setIsOpen(!isOpen)}
-          tabIndex={0}
+          className={`multi-select-trigger ${disabled ? 'disabled' : ''}`}
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          tabIndex={disabled ? -1 : 0}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
+            if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
               e.preventDefault();
               setIsOpen(!isOpen);
             }
@@ -128,7 +130,7 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
           <span className={`dropdown-arrow ${isOpen ? 'open' : ''}`}>▼</span>
         </div>
         
-        {isOpen && (
+        {isOpen && !disabled && (
           <div className="multi-select-dropdown-content">
             <div className="dropdown-header">
               <input

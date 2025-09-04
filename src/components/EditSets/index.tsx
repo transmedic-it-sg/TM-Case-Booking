@@ -18,6 +18,7 @@ import {
   getCategorizedSetsForDepartment,
   saveCategorizedSetsForDepartment
 } from '../../utils/storage';
+import { supabase } from '../../lib/supabase';
 import { getLegacyCountryCode } from '../../utils/countryUtils';
 // Removed cache versioning - was causing UX disruptions
 // import { forceCacheVersionUpdate } from '../../utils/cacheVersionService';
@@ -417,7 +418,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
   };
 
 
-  const handleAddSurgerySet = () => {
+  const handleAddSurgerySet = async () => {
     const validation = validateItemName(
       newSurgerySetName,
       'surgery',
@@ -434,6 +435,27 @@ const EditSets: React.FC<EditSetsProps> = () => {
     }
 
     const trimmedName = newSurgerySetName.trim();
+    
+    try {
+      // Add to independent surgery_sets table
+      const normalizedCountry = getLegacyCountryCode(activeCountryName || 'Singapore') === 'SG' ? 'Singapore' : activeCountryName;
+      const { error } = await supabase
+        .from('surgery_sets')
+        .insert([{
+          name: trimmedName,
+          country: normalizedCountry,
+          is_active: true
+        }]);
+
+      if (error && !error.message.includes('duplicate')) {
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error adding surgery set to independent table:', error);
+      // Continue with local storage for backward compatibility
+    }
+    
+    // Update local categorized sets for UI consistency
     setCategorizedSets(prev => ({
       ...prev,
       [selectedProcedureType]: {
@@ -448,7 +470,7 @@ const EditSets: React.FC<EditSetsProps> = () => {
     showSuccess('Surgery Set Added', `"${trimmedName}" has been added to ${selectedProcedureType}`);
   };
 
-  const handleAddImplantBox = () => {
+  const handleAddImplantBox = async () => {
     const validation = validateItemName(
       newImplantBoxName,
       'implant',
@@ -465,6 +487,27 @@ const EditSets: React.FC<EditSetsProps> = () => {
     }
 
     const trimmedName = newImplantBoxName.trim();
+    
+    try {
+      // Add to independent implant_boxes table
+      const normalizedCountry = getLegacyCountryCode(activeCountryName || 'Singapore') === 'SG' ? 'Singapore' : activeCountryName;
+      const { error } = await supabase
+        .from('implant_boxes')
+        .insert([{
+          name: trimmedName,
+          country: normalizedCountry,
+          is_active: true
+        }]);
+
+      if (error && !error.message.includes('duplicate')) {
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error adding implant box to independent table:', error);
+      // Continue with local storage for backward compatibility
+    }
+    
+    // Update local categorized sets for UI consistency
     setCategorizedSets(prev => ({
       ...prev,
       [selectedProcedureType]: {
