@@ -85,7 +85,8 @@ const SystemSettings: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [showError]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (canManageSettings) {

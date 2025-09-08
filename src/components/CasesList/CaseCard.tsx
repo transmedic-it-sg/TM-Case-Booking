@@ -1642,6 +1642,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
           {processingCase === caseItem.id && (
             <div className="processing-form">
               <h4>Order Processing Details</h4>
+              <p className="delivery-note">
+                📎 Use the attachment manager above to add processing photos or documents.
+              </p>
               <div className="form-group">
                 <label>Enter processing details:</label>
                 <textarea
@@ -1651,73 +1654,6 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   rows={4}
                   className="process-details-input"
                 />
-              </div>
-              <div className="form-group">
-                <label>Attachments (Optional):</label>
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt"
-                  onChange={(e) => {
-                    const files = e.target.files;
-                    if (files) {
-                      const newAttachments: string[] = [];
-                      Array.from(files).forEach(file => {
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                          const fileData = {
-                            name: file.name,
-                            type: file.type,
-                            size: file.size,
-                            data: reader.result as string
-                          };
-                          newAttachments.push(JSON.stringify(fileData));
-                          if (newAttachments.length === files.length) {
-                            onProcessAttachmentsChange([...processAttachments, ...newAttachments]);
-                          }
-                        };
-                        reader.readAsDataURL(file);
-                      });
-                    }
-                  }}
-                  className="file-upload-input"
-                />
-                {processAttachments.length > 0 && (
-                  <div className="attachment-list">
-                    <p>Uploaded files ({processAttachments.length}):</p>
-                    {processAttachments.map((attachment, index) => {
-                      try {
-                        const fileData = JSON.parse(attachment);
-                        return (
-                          <div key={index} className="attachment-item">
-                            <span className="file-name">{fileData.name}</span>
-                            <span className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</span>
-                            <button
-                              onClick={() => onProcessAttachmentsChange(processAttachments.filter((_, i) => i !== index))}
-                              className="remove-attachment"
-                              type="button"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      } catch {
-                        return (
-                          <div key={index} className="attachment-item">
-                            <span className="file-name">Invalid file data</span>
-                            <button
-                              onClick={() => onProcessAttachmentsChange(processAttachments.filter((_, i) => i !== index))}
-                              className="remove-attachment"
-                              type="button"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      }
-                    })}
-                  </div>
-                )}
               </div>
               <div className="processing-actions">
                 <button 
@@ -1741,69 +1677,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
           {hospitalDeliveryCase === caseItem.id && (
             <div className="hospital-delivery-form">
               <h4>Pending Delivery to Hospital</h4>
-              <div className="form-group">
-                <label>Attachments (Optional):</label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*,.pdf,.doc,.docx,.txt"
-                  onChange={(e) => {
-                    const files = e.target.files;
-                    if (files) {
-                      Array.from(files).forEach(file => {
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                          const fileData = {
-                            name: file.name,
-                            type: file.type,
-                            size: file.size,
-                            data: reader.result as string
-                          };
-                          onHospitalDeliveryAttachmentsChange([...hospitalDeliveryAttachments, JSON.stringify(fileData)]);
-                        };
-                        reader.readAsDataURL(file);
-                      });
-                    }
-                  }}
-                  className="file-upload-input"
-                />
-                {hospitalDeliveryAttachments.length > 0 && (
-                  <div className="attachment-list">
-                    <p>Uploaded files ({hospitalDeliveryAttachments.length}):</p>
-                    {hospitalDeliveryAttachments.map((attachment, index) => {
-                      try {
-                        const fileData = JSON.parse(attachment);
-                        return (
-                          <div key={index} className="attachment-item">
-                            <span className="file-name">{fileData.name}</span>
-                            <span className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</span>
-                            <button
-                              onClick={() => onHospitalDeliveryAttachmentsChange(hospitalDeliveryAttachments.filter((_, i) => i !== index))}
-                              className="remove-attachment"
-                              type="button"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      } catch {
-                        return (
-                          <div key={index} className="attachment-item">
-                            <span className="file-name">Invalid file data</span>
-                            <button
-                              onClick={() => onHospitalDeliveryAttachmentsChange(hospitalDeliveryAttachments.filter((_, i) => i !== index))}
-                              className="remove-attachment"
-                              type="button"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      }
-                    })}
-                  </div>
-                )}
-              </div>
+              <p className="delivery-note">
+                📎 Use the attachment manager above to add delivery photos or documents.
+              </p>
               <div className="form-group">
                 <label>Comments (Optional):</label>
                 <textarea
@@ -2074,73 +1950,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
           {officeDeliveryCase === caseItem.id && (
             <div className="office-delivery-form">
               <h4>Delivery to Office</h4>
-              <div className="form-group">
-                <label>Attachments (Optional):</label>
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt"
-                  onChange={(e) => {
-                    const files = e.target.files;
-                    if (files) {
-                      const newAttachments: string[] = [];
-                      Array.from(files).forEach(file => {
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                          const fileData = {
-                            name: file.name,
-                            type: file.type,
-                            size: file.size,
-                            data: reader.result as string
-                          };
-                          newAttachments.push(JSON.stringify(fileData));
-                          if (newAttachments.length === files.length) {
-                            onOfficeDeliveryAttachmentsChange([...officeDeliveryAttachments, ...newAttachments]);
-                          }
-                        };
-                        reader.readAsDataURL(file);
-                      });
-                    }
-                  }}
-                  className="file-upload-input"
-                />
-                {officeDeliveryAttachments.length > 0 && (
-                  <div className="attachment-list">
-                    <p>Uploaded files ({officeDeliveryAttachments.length}):</p>
-                    {officeDeliveryAttachments.map((attachment, index) => {
-                      try {
-                        const fileData = JSON.parse(attachment);
-                        return (
-                          <div key={index} className="attachment-item">
-                            <span className="file-name">{fileData.name}</span>
-                            <span className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</span>
-                            <button
-                              onClick={() => onOfficeDeliveryAttachmentsChange(officeDeliveryAttachments.filter((_, i) => i !== index))}
-                              className="remove-attachment"
-                              type="button"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      } catch {
-                        return (
-                          <div key={index} className="attachment-item">
-                            <span className="file-name">Invalid file data</span>
-                            <button
-                              onClick={() => onOfficeDeliveryAttachmentsChange(officeDeliveryAttachments.filter((_, i) => i !== index))}
-                              className="remove-attachment"
-                              type="button"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      }
-                    })}
-                  </div>
-                )}
-              </div>
+              <p className="delivery-note">
+                📎 Use the attachment manager above to add return delivery photos or documents.
+              </p>
               <div className="form-group">
                 <label>Comments (Optional):</label>
                 <textarea

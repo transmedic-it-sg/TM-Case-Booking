@@ -13,7 +13,7 @@ import { useUserNames } from '../../hooks/useUserNames';
 import CaseHeader from './CaseHeader';
 import CaseDetails from './CaseDetails';
 import StatusWorkflow from './StatusWorkflow';
-import AttachmentManager from './AttachmentManager';
+import EnhancedAttachmentManager from './EnhancedAttachmentManager';
 import AmendmentForm from './AmendmentForm';
 import CaseActions from '../CasesList/CaseActions'; // Reuse existing component
 
@@ -230,10 +230,14 @@ const CaseCard: React.FC<CaseCardProps> = ({
            caseItem.status === 'Pending Delivery (Hospital)' ||
            caseItem.status === 'Delivered (Hospital)' ||
            caseItem.status === 'Case Completed') && (
-            <AttachmentManager
+            <EnhancedAttachmentManager
               caseId={caseItem.id}
-              attachments={localAttachments}
-              onAttachmentsChange={handleAttachmentsChange}
+              caseSubmittedBy={caseItem.submittedBy}
+              existingAttachments={caseItem.attachments || []} // Pass case attachments
+              onAttachmentsChange={(attachments, changes) => {
+                // Convert enhanced attachment format to simple format if needed
+                handleAttachmentsChange(attachments.map(att => att.file).filter((f): f is File => f !== null));
+              }}
               maxFiles={5}
             />
           )}

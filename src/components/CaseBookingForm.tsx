@@ -346,6 +346,30 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
   // Check if user has permission to create cases
   const canCreateCase = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CREATE_CASE) : false;
+  
+  // Comprehensive debug logging for permission issues
+  console.log('🔍 CaseBookingForm Permission Debug:', {
+    currentUser: currentUser,
+    userRole: currentUser?.role,
+    userRoleType: typeof currentUser?.role,
+    userId: currentUser?.id,
+    userName: currentUser?.name,
+    canCreateCase,
+    permissionAction: PERMISSION_ACTIONS.CREATE_CASE,
+    permissionActionValue: 'create-case',
+    hasCurrentUser: !!currentUser
+  });
+  
+  // Test admin check specifically
+  if (currentUser?.role) {
+    console.log('🔍 Admin Role Check:', {
+      role: currentUser.role,
+      isExactlyAdmin: currentUser.role === 'admin',
+      adminComparison: `"${currentUser.role}" === "admin"`,
+      roleLength: currentUser.role.length,
+      adminLength: 'admin'.length
+    });
+  }
 
   if (!canCreateCase) {
     return (

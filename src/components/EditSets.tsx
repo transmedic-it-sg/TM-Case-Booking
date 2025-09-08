@@ -1,2 +1,2 @@
-// Re-export the modular EditSets component
-export { default } from './EditSets/index';
+// Re-export the standalone EditSets component (Surgery Sets & Implant Boxes independent of Procedure Types)
+export { default } from './EditSets/StandaloneEditSets';

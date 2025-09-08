@@ -56,37 +56,48 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
 
   // Initialize with existing attachments
   const initializeAttachments = useCallback((existingAttachments: string[] = []) => {
-    const initialized: AttachmentFile[] = existingAttachments.map((attachment, index) => {
+    const initialized = existingAttachments.map((attachment, index): AttachmentFile | null => {
       let attachmentData;
       try {
         attachmentData = typeof attachment === 'string' ? JSON.parse(attachment) : attachment;
-      } catch {
-        // Fallback for simple string attachments
-        attachmentData = {
-          name: attachment,
-          type: 'unknown',
-          size: 0,
-          uploadedBy: 'unknown',
-          uploadedAt: new Date().toISOString()
-        };
+      } catch (error) {
+        // Log parsing error for debugging
+        console.error('Failed to parse attachment data:', {
+          attachment,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          caseId: caseId || 'no-case-id'
+        });
+        
+        // Skip malformed attachments instead of using false data
+        return null;
+      }
+
+      // Validate required attachment data
+      if (!attachmentData.name || !attachmentData.type) {
+        console.error('Attachment missing required data:', {
+          attachment,
+          attachmentData,
+          caseId: caseId || 'no-case-id'
+        });
+        return null;
       }
 
       return {
-        id: `existing-${index}`,
-        name: attachmentData.name || `file-${index}`,
-        type: attachmentData.type || 'unknown',
-        size: attachmentData.size || 0,
-        uploadedBy: attachmentData.uploadedBy || 'unknown',
+        id: `existing-${caseId || 'unknown'}-${index}-${Date.now()}`,
+        name: attachmentData.name,
+        type: attachmentData.type,
+        size: typeof attachmentData.size === 'number' ? attachmentData.size : 0,
+        uploadedBy: attachmentData.uploadedBy || 'System',
         uploadedAt: attachmentData.uploadedAt || new Date().toISOString(),
-        isNew: false,
-        isDeleted: false,
-        isReplaced: false
+        isNew: false as const,
+        isDeleted: false as const,
+        isReplaced: false as const
       };
-    });
+    }).filter((item): item is AttachmentFile => item !== null);
 
     setAttachments(initialized);
     setAttachmentChanges([]);
-  }, []);
+  }, [caseId]); // Include caseId to prevent stale closures
 
   const validateFile = useCallback((file: File): boolean => {
     // Check file size
@@ -151,7 +162,7 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
     const newChanges: AttachmentChange[] = [];
 
     for (const file of validFiles) {
-      const attachmentId = `new-${Date.now()}-${Math.random()}`;
+      const attachmentId = `new-${caseId || 'temp'}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const preview = await createPreview(file);
       
       if (preview) {
@@ -163,7 +174,10 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
         name: file.name,
         type: file.type,
         size: file.size,
-        uploadedBy: currentUser?.name || 'unknown',
+        uploadedBy: currentUser?.name || (() => {
+          console.error('No current user available for attachment upload:', { caseId });
+          throw new Error('User authentication required for file upload');
+        })(),
         uploadedAt: new Date().toISOString(),
         isNew: true,
         file,
@@ -176,7 +190,10 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
       newChanges.push({
         type: 'add',
         fileName: file.name,
-        user: currentUser?.name || 'unknown',
+        user: currentUser?.name || (() => {
+          console.error('No current user available for attachment tracking:', { caseId });
+          throw new Error('User authentication required for file operations');
+        })(),
         timestamp: new Date().toISOString()
       });
 
@@ -231,7 +248,10 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
       const deleteChange: AttachmentChange = {
         type: 'delete',
         fileName: attachment.name,
-        user: currentUser?.name || 'unknown',
+        user: currentUser?.name || (() => {
+          console.error('No current user available for attachment tracking:', { caseId });
+          throw new Error('User authentication required for file operations');
+        })(),
         timestamp: new Date().toISOString()
       };
 
@@ -267,7 +287,7 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
     if (!existingAttachment) return;
 
     const preview = await createPreview(newFile);
-    const newAttachmentId = `replace-${Date.now()}-${Math.random()}`;
+    const newAttachmentId = `replace-${caseId || 'temp'}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     if (preview) {
       setPreviews(prev => new Map(prev).set(newAttachmentId, preview));
@@ -279,7 +299,10 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
       name: newFile.name,
       type: newFile.type,
       size: newFile.size,
-      uploadedBy: currentUser?.name || 'unknown',
+      uploadedBy: currentUser?.name || (() => {
+        console.error('No current user available for attachment operation:', { caseId });
+        throw new Error('User authentication required for file operations');
+      })(),
       uploadedAt: new Date().toISOString(),
       isNew: true,
       isReplaced: true,
@@ -300,7 +323,10 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
       type: 'replace',
       fileName: newFile.name,
       oldFileName: existingAttachment.name,
-      user: currentUser?.name || 'unknown',
+      user: currentUser?.name || (() => {
+        console.error('No current user available for attachment tracking:', { caseId });
+        throw new Error('User authentication required for file operations');
+      })(),
       timestamp: new Date().toISOString()
     };
 
@@ -339,7 +365,10 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
     const deleteChanges: AttachmentChange[] = activeAttachments.map(attachment => ({
       type: 'delete' as const,
       fileName: attachment.name,
-      user: currentUser?.name || 'unknown',
+      user: currentUser?.name || (() => {
+        console.error('No current user available for attachment tracking:', { caseId });
+        throw new Error('User authentication required for file operations');
+      })(),
       timestamp: new Date().toISOString()
     }));
 

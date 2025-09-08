@@ -10,6 +10,7 @@ import { formatDateTime } from '../../utils/dateFormat';
 
 interface EnhancedAttachmentManagerProps {
   caseId: string;
+  caseSubmittedBy?: string; // Case creator for permission checks
   existingAttachments?: string[];
   onAttachmentsChange: (attachments: AttachmentFile[], changes: AttachmentChange[]) => void;
   maxFiles?: number;
@@ -19,6 +20,7 @@ interface EnhancedAttachmentManagerProps {
 
 const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
   caseId,
+  caseSubmittedBy,
   existingAttachments = [],
   onAttachmentsChange,
   maxFiles = 5,
@@ -26,8 +28,30 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
   readOnly = false
 }) => {
   const { checkPermission } = usePermissions();
-  const canUploadFiles = checkPermission('upload-files') && !readOnly;
-  const canDeleteFiles = checkPermission('delete-files') && !readOnly;
+  
+  // Import the new permission functions
+  const { canManageAttachments, canViewAttachments } = React.useMemo(() => {
+    return require('../../utils/permissions');
+  }, []);
+  
+  // Get current user info
+  const { getCurrentUser } = React.useMemo(() => {
+    return require('../../utils/auth');
+  }, []);
+  
+  const currentUser = getCurrentUser();
+  
+  // Enhanced permission checks
+  const canManageFiles = currentUser && caseSubmittedBy ? 
+    canManageAttachments(currentUser.id, currentUser.role, caseSubmittedBy) && !readOnly : 
+    checkPermission('upload-files') && !readOnly;
+  
+  const canViewFiles = currentUser ? 
+    canViewAttachments(currentUser.id, currentUser.role) : 
+    checkPermission('download-files');
+  
+  const canUploadFiles = canManageFiles;
+  const canDeleteFiles = canManageFiles;
   
   const [showAttachmentHistory, setShowAttachmentHistory] = useState(false);
   const [replaceFileId, setReplaceFileId] = useState<string | null>(null);
@@ -55,12 +79,13 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
     onAttachmentsChange
   });
 
-  // Initialize with existing attachments on first render
+  // Initialize with existing attachments when case or attachments change
   React.useEffect(() => {
     if (existingAttachments.length > 0) {
       initializeAttachments(existingAttachments);
     }
-  }, [existingAttachments.length, initializeAttachments]); // Only run when length changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseId, existingAttachments.length]); // Exclude initializeAttachments to prevent loops
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -86,6 +111,51 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
     const fileInput = document.getElementById('file-input') as HTMLInputElement;
     if (fileInput) {
       fileInput.click();
+    }
+  };
+
+  const handleViewAttachment = (attachment: AttachmentFile) => {
+    const fileInfo = getFileInfo(attachment);
+    
+    if (!canViewFiles) {
+      console.warn('User does not have permission to view attachments');
+      return;
+    }
+
+    // For images with preview, show in modal/popup
+    if (fileInfo.isImage && fileInfo.preview) {
+      const modalDiv = document.createElement('div');
+      modalDiv.className = 'attachment-modal-overlay';
+      modalDiv.innerHTML = `
+        <div class="attachment-modal">
+          <div class="attachment-modal-header">
+            <h4>${fileInfo.name}</h4>
+            <button class="attachment-modal-close">✕</button>
+          </div>
+          <div class="attachment-modal-body">
+            <img src="${fileInfo.preview}" alt="${fileInfo.name}" style="max-width: 100%; max-height: 80vh;" />
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modalDiv);
+      
+      const closeModal = () => {
+        document.body.removeChild(modalDiv);
+      };
+      
+      modalDiv.querySelector('.attachment-modal-close')?.addEventListener('click', closeModal);
+      modalDiv.addEventListener('click', (e) => {
+        if (e.target === modalDiv) closeModal();
+      });
+    } else {
+      // For other file types, trigger download
+      if (fileInfo.preview && fileInfo.preview.startsWith('data:')) {
+        const link = document.createElement('a');
+        link.href = fileInfo.preview;
+        link.download = fileInfo.name;
+        link.click();
+      }
     }
   };
 
@@ -172,7 +242,11 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
             const fileInfo = getFileInfo(attachment);
             return (
               <div key={attachment.id} className={`attachment-item ${fileInfo.isNew ? 'new-attachment' : ''}`}>
-                <div className="attachment-preview">
+                <div 
+                  className={`attachment-preview ${canViewFiles ? 'clickable' : ''}`}
+                  onClick={canViewFiles ? () => handleViewAttachment(attachment) : undefined}
+                  title={canViewFiles ? `Click to ${fileInfo.isImage ? 'view' : 'download'} ${fileInfo.name}` : undefined}
+                >
                   {fileInfo.isImage && fileInfo.preview ? (
                     <img
                       src={fileInfo.preview}
@@ -184,10 +258,19 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
                       {getFileIcon(fileInfo.type)}
                     </div>
                   )}
+                  {canViewFiles && (
+                    <div className="view-overlay">
+                      <span className="view-icon">{fileInfo.isImage ? '👁️' : '⬇️'}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="attachment-info">
-                  <div className="file-name" title={fileInfo.name}>
+                  <div 
+                    className={`file-name ${canViewFiles ? 'clickable' : ''}`}
+                    title={canViewFiles ? `Click to ${fileInfo.isImage ? 'view' : 'download'} ${fileInfo.name}` : fileInfo.name}
+                    onClick={canViewFiles ? () => handleViewAttachment(attachment) : undefined}
+                  >
                     {fileInfo.name}
                     {fileInfo.isNew && <span className="new-badge">NEW</span>}
                     {fileInfo.isReplaced && <span className="replaced-badge">REPLACED</span>}

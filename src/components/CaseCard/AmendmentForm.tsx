@@ -175,18 +175,17 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
   return (
     <div className="amendment-form-overlay">
       <div className="amendment-form-modal">
-        <div className="amendment-form-header">
-          <h3>Amend Case: {caseItem.caseReferenceNumber}</h3>
-          <button
-            type="button"
-            className="close-button"
-            onClick={onCancel}
-          >
-            ✕
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit} className="amendment-form">
+          <div className="amendment-form-header">
+            <h3>Amend Case: {caseItem.caseReferenceNumber}</h3>
+            <button
+              type="button"
+              className="close-button"
+              onClick={onCancel}
+            >
+              ✕
+            </button>
+          </div>
           <div className="form-grid">
             {/* Hospital */}
             <div className="form-group">
@@ -292,40 +291,35 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
                 rows={3}
               />
             </div>
+
+            {/* Surgery Sets */}
+            {surgerySetOptions.length > 0 && (
+              <div className="form-group">
+                <MultiSelectDropdown
+                  id="amendment-surgery-sets"
+                  label="Surgery Set"
+                  options={surgerySetOptions}
+                  value={formData.surgerySetSelection}
+                  onChange={(values) => handleInputChange('surgerySetSelection', values)}
+                  placeholder="Select Surgery Sets..."
+                />
+              </div>
+            )}
+
+            {/* Implant Boxes */}
+            {implantBoxOptions.length > 0 && (
+              <div className="form-group">
+                <MultiSelectDropdown
+                  id="amendment-implant-boxes"
+                  label="Implant Box"
+                  options={implantBoxOptions}
+                  value={formData.implantBox}
+                  onChange={(values) => handleInputChange('implantBox', values)}
+                  placeholder="Select Implant Boxes..."
+                />
+              </div>
+            )}
           </div>
-
-          {/* Surgery Sets and Implant Boxes */}
-          {(surgerySetOptions.length > 0 || implantBoxOptions.length > 0) && (
-            <div className="sets-section">
-              <h4>Surgery Sets & Implant Boxes</h4>
-              
-              {surgerySetOptions.length > 0 && (
-                <div className="form-group full-width">
-                  <MultiSelectDropdown
-                    id="amendment-surgery-sets"
-                    label="Surgery Set"
-                    options={surgerySetOptions}
-                    value={formData.surgerySetSelection}
-                    onChange={(values) => handleInputChange('surgerySetSelection', values)}
-                    placeholder="Select Surgery Sets..."
-                  />
-                </div>
-              )}
-
-              {implantBoxOptions.length > 0 && (
-                <div className="form-group full-width">
-                  <MultiSelectDropdown
-                    id="amendment-implant-boxes"
-                    label="Implant Box"
-                    options={implantBoxOptions}
-                    value={formData.implantBox}
-                    onChange={(values) => handleInputChange('implantBox', values)}
-                    placeholder="Select Implant Boxes..."
-                  />
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Amendment Reason */}
           <div className="form-group full-width">

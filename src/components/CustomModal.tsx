@@ -5,6 +5,7 @@ interface ModalAction {
   label: string;
   onClick: () => void;
   style?: 'primary' | 'secondary' | 'danger' | 'success';
+  disabled?: boolean;
 }
 
 interface CustomModalProps {
@@ -134,6 +135,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
               key={index}
               className={`custom-modal-btn custom-modal-btn-${action.style || 'primary'}`}
               onClick={action.onClick}
+              disabled={action.disabled}
             >
               {action.label}
             </button>

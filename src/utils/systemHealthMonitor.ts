@@ -369,8 +369,8 @@ export class SystemHealthMonitor {
       }
     });
 
-    // Periodic checks
-    setInterval(async () => {
+    // Periodic checks with cleanup
+    const healthCheckInterval = setInterval(async () => {
       const result = await this.performHealthCheck();
       
       if (result.status === 'critical') {
@@ -378,6 +378,9 @@ export class SystemHealthMonitor {
         // Could trigger notifications or auto-fix here
       }
     }, intervalMinutes * 60 * 1000);
+    
+    // Store interval for cleanup
+    (this as any).healthCheckInterval = healthCheckInterval;
   }
 
   /**
@@ -415,5 +418,16 @@ ${healthCheck.recommendations.length === 0 ? 'None' : healthCheck.recommendation
 `;
 
     return report;
+  }
+
+  /**
+   * Cleanup method to stop monitoring intervals
+   */
+  static cleanup(): void {
+    if ((this as any).healthCheckInterval) {
+      clearInterval((this as any).healthCheckInterval);
+      (this as any).healthCheckInterval = null;
+      console.log("🧹 System health monitor cleanup completed");
+    }
   }
 }

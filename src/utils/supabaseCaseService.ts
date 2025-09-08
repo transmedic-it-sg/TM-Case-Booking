@@ -310,11 +310,8 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
         };
         caseAmendments.push(existingAmendment);
       }
-      
-      // Merge changes arrays if needed
-      if (history.changes && Array.isArray(history.changes)) {
-        existingAmendment.changes = [...existingAmendment.changes, ...history.changes];
-      }
+      // Note: Don't merge changes arrays here to prevent duplicates
+      // Each amendment_history record should have its complete changes array
     });
 
     // Transform Supabase data to CaseBooking interface

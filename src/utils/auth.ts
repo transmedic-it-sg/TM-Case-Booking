@@ -367,7 +367,8 @@ export const authenticate = async (username: string, password: string, country: 
 };
 
 export const getCurrentUser = (): User | null => {
-  return getCurrentUserFromStorage();
+  const user = getCurrentUserFromStorage();
+  return user;
 };
 
 export const logout = async (): Promise<void> => {

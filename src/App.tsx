@@ -791,7 +791,10 @@ const AppContent: React.FC = () => {
       </nav>
 
       <main className="app-main">
-        {activePage === 'booking' && hasPermission(user.role, PERMISSION_ACTIONS.CREATE_CASE) && (
+        {activePage === 'booking' && (() => {
+          const canCreate = hasPermission(user.role, PERMISSION_ACTIONS.CREATE_CASE);
+          return canCreate;
+        })() && (
           <CaseBookingForm onCaseSubmitted={handleCaseSubmitted} />
         )}
         

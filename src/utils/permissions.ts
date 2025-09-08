@@ -43,8 +43,10 @@ export const saveRuntimePermissions = async (permissions: Permission[]): Promise
 
 // Check if a role has permission for a specific action
 export const hasPermission = (roleId: string, actionId: string): boolean => {
+  
   // Admin has all permissions (hardcoded as root user)
   if (roleId === 'admin') {
+    console.log('✅ Admin access granted for:', actionId);
     return true;
   }
   
@@ -52,18 +54,6 @@ export const hasPermission = (roleId: string, actionId: string): boolean => {
   // If permissions are not loaded or cache is expired, DENY access
   if (!permissionsCache || (Date.now() - permissionsCacheTime >= CACHE_DURATION)) {
     console.warn(`🔒 Permission DENIED for ${roleId} - ${actionId}: No valid permissions cache available`);
-    console.log('🚨 SECURITY: Failing secure - permissions must be explicitly loaded from database');
-    
-    // Enhanced debugging for permission issues
-    console.log('🔍 Permission system state:', {
-      roleId,
-      actionId,
-      hasCachedPermissions: !!permissionsCache,
-      cacheAge: permissionsCache ? Date.now() - permissionsCacheTime : 'N/A',
-      cacheDuration: CACHE_DURATION,
-      cacheExpired: permissionsCache ? (Date.now() - permissionsCacheTime >= CACHE_DURATION) : 'N/A'
-    });
-    
     // FAIL SECURE: Deny access when permissions cannot be verified
     return false;
   }
@@ -72,20 +62,16 @@ export const hasPermission = (roleId: string, actionId: string): boolean => {
   const permission = permissionsCache.find(p => p.roleId === roleId && p.actionId === actionId);
   const result = permission?.allowed || false;
   
-  // Enhanced debug logging for troubleshooting
-  if (!result && roleId !== 'admin') {
-    console.log(`🚫 Permission DENIED for ${roleId} - ${actionId}:`, {
-      roleId,
-      actionId,
-      permissionFound: !!permission,
-      permissionValue: permission?.allowed,
-      totalPermissionsInCache: permissionsCache.length,
-      permissionsForRole: permissionsCache.filter(p => p.roleId === roleId).length,
-      cacheAge: Date.now() - permissionsCacheTime
-    });
-  } else if (result && roleId !== 'admin') {
-    console.log(`✅ Permission GRANTED for ${roleId} - ${actionId}`);
-  }
+  console.log('🔍 Permission lookup result:', {
+    roleId,
+    actionId,
+    permissionFound: !!permission,
+    permissionData: permission,
+    result,
+    allPermissionsForRole: permissionsCache.filter(p => p.roleId === roleId),
+    allActionsInCache: Array.from(new Set(permissionsCache.map(p => p.actionId))).sort()
+  });
+  
   
   return result;
 };
@@ -215,5 +201,41 @@ export const PERMISSION_ACTIONS = {
   // File Operations
   UPLOAD_FILES: 'upload-files',
   DOWNLOAD_FILES: 'download-files',
-  DELETE_FILES: 'delete-files'
+  DELETE_FILES: 'delete-files',
+  MANAGE_ATTACHMENTS: 'manage-attachments'
 } as const;
+
+// Check if user can manage attachments for a specific case
+export const canManageAttachments = (userId: string, userRole: string, caseSubmittedBy: string): boolean => {
+  // Admin can manage all attachments
+  if (userRole === 'admin') {
+    return true;
+  }
+  
+  // Case creator can manage attachments
+  if (userId === caseSubmittedBy) {
+    return true;
+  }
+  
+  // Managers can manage attachments (manager role or users with MANAGE_ATTACHMENTS permission)
+  if (userRole === 'manager' || hasPermission(userRole, PERMISSION_ACTIONS.MANAGE_ATTACHMENTS)) {
+    return true;
+  }
+  
+  return false;
+};
+
+// Check if user can view/download attachments (more permissive)
+export const canViewAttachments = (userId: string, userRole: string): boolean => {
+  // Admin can view all attachments
+  if (userRole === 'admin') {
+    return true;
+  }
+  
+  // Users with download permission can view attachments
+  if (hasPermission(userRole, PERMISSION_ACTIONS.DOWNLOAD_FILES)) {
+    return true;
+  }
+  
+  return false;
+};

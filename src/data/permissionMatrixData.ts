@@ -291,6 +291,12 @@ export const permissionActions: PermissionAction[] = [
     description: 'Remove uploaded files and attachments',
     category: 'File Operations'
   },
+  {
+    id: 'manage-attachments',
+    name: 'Manage Attachments',
+    description: 'Modify, replace, and manage case attachments beyond basic upload/download',
+    category: 'File Operations'
+  },
   
   // Notification Management - REMOVED: Notification settings should be freely accessible to all users
 ];
@@ -325,6 +331,7 @@ export const permissions: Permission[] = [
   { actionId: 'pending-delivery-hospital', roleId: 'operations-manager', allowed: true },
   { actionId: 'upload-files', roleId: 'operations-manager', allowed: true },
   { actionId: 'download-files', roleId: 'operations-manager', allowed: true },
+  { actionId: 'manage-attachments', roleId: 'operations-manager', allowed: true },
   { actionId: 'view-reports', roleId: 'operations-manager', allowed: true },
   { actionId: 'export-data', roleId: 'operations-manager', allowed: true },
   { actionId: 'cancel-case', roleId: 'operations-manager', allowed: true },
@@ -357,6 +364,7 @@ export const permissions: Permission[] = [
   { actionId: 'case-closed', roleId: 'sales-manager', allowed: true },
   { actionId: 'upload-files', roleId: 'sales-manager', allowed: true },
   { actionId: 'download-files', roleId: 'sales-manager', allowed: true },
+  { actionId: 'manage-attachments', roleId: 'sales-manager', allowed: true },
   { actionId: 'view-reports', roleId: 'sales-manager', allowed: true },
   { actionId: 'export-data', roleId: 'sales-manager', allowed: true },
   

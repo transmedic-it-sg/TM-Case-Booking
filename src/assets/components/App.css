@@ -213,14 +213,14 @@ html {
 }
 
 .btn-info {
-  background: linear-gradient(135deg, #2196f3, #1976d2);
+  background: linear-gradient(135deg, #20b2aa, #008b8b);
   color: var(--white);
 }
 
 .btn-info:hover:not(:disabled) {
-  background: linear-gradient(135deg, #1976d2, #1565c0);
+  background: linear-gradient(135deg, #008b8b, #155724);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+  box-shadow: 0 4px 12px rgba(32, 178, 170, 0.3);
 }
 
 .btn-outline-secondary {
@@ -3730,7 +3730,7 @@ textarea:focus {
 }
 
 .received-button {
-  background: linear-gradient(135deg, #2196f3, #1976d2);
+  background: linear-gradient(135deg, #20b2aa, #008b8b);
 }
 
 .received-button:hover:not(:disabled) {
@@ -3832,7 +3832,7 @@ textarea:focus {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--primary-color), #2196f3, var(--primary-color));
+  background: linear-gradient(90deg, var(--primary-color), #20b2aa, var(--primary-color));
   background-size: 200% 100%;
   animation: gradientSlide 3s ease infinite;
 }
@@ -4505,15 +4505,15 @@ textarea:focus {
 }
 
 .procedure-tab:hover {
-  border-color: #007bff;
-  color: #007bff;
+  border-color: #20b2aa;
+  color: #20b2aa;
 }
 
 .procedure-tab.active {
-  background-color: #007bff;
-  border-color: #007bff;
+  background-color: #20b2aa;
+  border-color: #20b2aa;
   color: white;
-  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
+  box-shadow: 0 2px 4px rgba(32, 178, 170, 0.2);
   text-align: center;
 }
 
@@ -4537,14 +4537,14 @@ textarea:focus {
 }
 
 .mute-button:hover {
-  border-color: #007bff;
-  color: #007bff;
+  border-color: #20b2aa;
+  color: #20b2aa;
   transform: scale(1.05);
 }
 
 .mute-button.sound-on {
-  background: #28a745;
-  border-color: #28a745;
+  background: #20b2aa;
+  border-color: #20b2aa;
   color: white;
 }
 
@@ -4589,8 +4589,8 @@ textarea:focus {
 }
 
 .notification-bell:hover {
-  border-color: #007bff;
-  color: #007bff;
+  border-color: #20b2aa;
+  color: #20b2aa;
   transform: scale(1.05);
 }
 
@@ -4657,7 +4657,7 @@ textarea:focus {
 .mark-all-read-button {
   background: none;
   border: none;
-  color: #007bff;
+  color: #20b2aa;
   cursor: pointer;
   font-size: 12px;
   padding: 4px 8px;
@@ -4666,7 +4666,7 @@ textarea:focus {
 }
 
 .mark-all-read-button:hover {
-  background: rgba(0, 123, 255, 0.1);
+  background: rgba(32, 178, 170, 0.1);
 }
 
 .notification-list {
@@ -4687,8 +4687,8 @@ textarea:focus {
 }
 
 .notification-item.unread {
-  background: rgba(0, 123, 255, 0.05);
-  border-left: 4px solid #007bff;
+  background: rgba(32, 178, 170, 0.05);
+  border-left: 4px solid #20b2aa;
 }
 
 .notification-item.urgent {
@@ -4755,7 +4755,7 @@ textarea:focus {
   transform: translateY(-50%);
   width: 8px;
   height: 8px;
-  background: #007bff;
+  background: #20b2aa;
   border-radius: 50%;
 }
 
@@ -4863,8 +4863,8 @@ textarea:focus {
 
 .toast-action {
   background: none;
-  border: 1px solid #007bff;
-  color: #007bff;
+  border: 1px solid #20b2aa;
+  color: #20b2aa;
   padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
@@ -4876,7 +4876,7 @@ textarea:focus {
 }
 
 .toast-action:hover {
-  background: #007bff;
+  background: #20b2aa;
   color: white;
 }
 
@@ -4903,7 +4903,7 @@ textarea:focus {
   bottom: 0;
   left: 0;
   height: 3px;
-  background: #007bff;
+  background: #20b2aa;
   animation: toastProgress linear forwards;
   transform-origin: left;
 }
@@ -4927,7 +4927,7 @@ textarea:focus {
 
 .toast-case-hint {
   font-size: 11px;
-  color: #007bff;
+  color: #20b2aa;
   margin-top: 4px;
   font-style: italic;
 }
@@ -4972,18 +4972,18 @@ textarea:focus {
     transform: scale(1);
   }
   50% { 
-    background-color: rgba(0, 123, 255, 0.1); 
+    background-color: rgba(32, 178, 170, 0.1); 
     transform: scale(1.02);
   }
 }
 
 /* Toast type specific styles */
 .toast-success {
-  border-left: 4px solid #28a745;
+  border-left: 4px solid #20b2aa;
 }
 
 .toast-success .toast-icon {
-  color: #28a745;
+  color: #20b2aa;
 }
 
 .toast-error {
@@ -5061,8 +5061,8 @@ textarea:focus {
 }
 
 .settings-button:hover {
-  border-color: #007bff;
-  color: #007bff;
+  border-color: #20b2aa;
+  color: #20b2aa;
   transform: scale(1.05);
 }
 
@@ -5177,7 +5177,7 @@ textarea:focus {
 }
 
 .toggle-switch.enabled {
-  background: #28a745;
+  background: #20b2aa;
 }
 
 .toggle-switch.disabled {
@@ -5224,7 +5224,7 @@ textarea:focus {
   appearance: none;
   width: 16px;
   height: 16px;
-  background: #007bff;
+  background: #20b2aa;
   border-radius: 50%;
   cursor: pointer;
 }
@@ -5232,7 +5232,7 @@ textarea:focus {
 .volume-slider::-moz-range-thumb {
   width: 16px;
   height: 16px;
-  background: #007bff;
+  background: #20b2aa;
   border-radius: 50%;
   cursor: pointer;
   border: none;
@@ -5249,7 +5249,7 @@ textarea:focus {
 .test-sound-button,
 .notification-permission-button,
 .reset-settings-button {
-  background: #007bff;
+  background: #20b2aa;
   color: white;
   border: none;
   padding: 8px 16px;
@@ -5388,8 +5388,8 @@ textarea:focus {
 }
 
 .set-display:hover {
-  border-color: #007bff;
-  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
+  border-color: #20b2aa;
+  box-shadow: 0 2px 4px rgba(32, 178, 170, 0.1);
 }
 
 .drag-handle {
@@ -5455,8 +5455,8 @@ textarea:focus {
 
 .arrow-button {
   background: #e3f2fd;
-  border: 1px solid #2196f3;
-  color: #1976d2;
+  border: 1px solid #20b2aa;
+  color: #008b8b;
   padding: 6px 8px;
   border-radius: 6px;
   cursor: pointer;
@@ -5473,8 +5473,8 @@ textarea:focus {
 }
 
 .arrow-button:hover:not(:disabled) {
-  background: #2196f3;
-  border-color: #2196f3;
+  background: #20b2aa;
+  border-color: #20b2aa;
   color: white;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
@@ -5526,14 +5526,14 @@ textarea:focus {
 }
 
 .edit-button-small:hover {
-  background: #007bff;
-  border-color: #007bff;
+  background: #20b2aa;
+  border-color: #20b2aa;
   color: white;
 }
 
 /* Drag over effect */
 .set-item[data-dragover="true"] {
-  border-top: 2px solid #007bff;
+  border-top: 2px solid #20b2aa;
 }
 
 /* Empty state styling */
@@ -5592,8 +5592,8 @@ textarea:focus {
 .add-input:focus,
 .edit-input:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  border-color: #20b2aa;
+  box-shadow: 0 0 0 0.2rem rgba(32, 178, 170, 0.25);
 }
 
 .add-actions,
@@ -5616,7 +5616,7 @@ textarea:focus {
 }
 
 .save-button {
-  background: #28a745;
+  background: #20b2aa;
   color: white;
 }
 
@@ -5650,7 +5650,7 @@ textarea:focus {
 }
 
 .save-button-small {
-  background: #28a745;
+  background: #20b2aa;
   color: white;
 }
 
@@ -5684,9 +5684,9 @@ textarea:focus {
   color: #666;
   margin-top: 8px;
   padding: 8px;
-  background: rgba(0, 123, 255, 0.05);
+  background: rgba(32, 178, 170, 0.05);
   border-radius: 4px;
-  border-left: 3px solid #007bff;
+  border-left: 3px solid #20b2aa;
 }
 
 .add-form .validation-rules ul {
@@ -5744,7 +5744,7 @@ textarea:focus {
 }
 
 .active-filters-count {
-  background: #007bff;
+  background: #20b2aa;
   color: white;
   padding: 2px 8px;
   border-radius: 10px;
@@ -5753,7 +5753,7 @@ textarea:focus {
 }
 
 .filters-toggle {
-  background: #007bff;
+  background: #20b2aa;
   color: white;
   border: none;
   padding: 8px 12px;
@@ -5770,7 +5770,7 @@ textarea:focus {
 }
 
 .filters-toggle.expanded {
-  background: #28a745;
+  background: #20b2aa;
 }
 
 .filters-content {
@@ -5789,7 +5789,7 @@ textarea:focus {
   background: #f8f9fa;
   border-radius: var(--border-radius);
   padding: 16px;
-  border-left: 4px solid #007bff;
+  border-left: 4px solid #20b2aa;
 }
 
 .filter-category h4 {
@@ -5849,8 +5849,8 @@ textarea:focus {
 
 .modern-filter-input:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  border-color: #20b2aa;
+  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
 }
 
 .modern-filter-input::placeholder {
@@ -5885,8 +5885,8 @@ textarea:focus {
 
 .modern-filter-select:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  border-color: #20b2aa;
+  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
 }
 
 .select-arrow {
@@ -5950,9 +5950,9 @@ textarea:focus {
 }
 
 .modern-apply-button {
-  background: linear-gradient(135deg, #007bff, #0056b3);
+  background: linear-gradient(135deg, #20b2aa, #0056b3);
   color: white;
-  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
+  box-shadow: 0 2px 4px rgba(32, 178, 170, 0.2);
 }
 
 .modern-apply-button:hover {
@@ -5974,14 +5974,14 @@ textarea:focus {
 .quick-filters-label {
   font-size: 13px;
   font-weight: 600;
-  color: #1976d2;
+  color: #008b8b;
   margin-right: 8px;
 }
 
 .quick-filter-button {
   background: white;
-  color: #1976d2;
-  border: 1px solid #1976d2;
+  color: #008b8b;
+  border: 1px solid #008b8b;
   padding: 6px 12px;
   border-radius: 20px;
   cursor: pointer;
@@ -5994,7 +5994,7 @@ textarea:focus {
 }
 
 .quick-filter-button:hover {
-  background: #1976d2;
+  background: #008b8b;
   color: white;
   transform: scale(1.05);
 }
@@ -6322,7 +6322,7 @@ textarea:focus {
 }
 
 .case-action-button.process-order-button {
-  background-color: #2196f3;
+  background-color: #20b2aa;
   color: white;
 }
 
@@ -6362,7 +6362,7 @@ textarea:focus {
 }
 
 .case-action-button.amend-button {
-  background-color: #2196f3;
+  background-color: #20b2aa;
   color: white;
 }
 
@@ -6419,12 +6419,12 @@ textarea:focus {
 }
 
 .amend-button {
-  background-color: #2196f3;
+  background-color: #20b2aa;
   color: white;
 }
 
 .amend-button:hover {
-  background-color: #1976d2;
+  background-color: #008b8b;
 }
 
 .delete-button {
@@ -7895,7 +7895,7 @@ textarea:focus {
 }
 
 .change-to {
-  color: #28a745;
+  color: #20b2aa;
   font-family: monospace;
   background: #f5fff5;
   padding: 2px 4px;

@@ -106,14 +106,14 @@
 }
 
 .custom-modal-btn-primary {
-  background: #3b82f6;
+  background: #20b2aa;
   color: white;
-  border-color: #3b82f6;
+  border-color: #20b2aa;
 }
 
 .custom-modal-btn-primary:hover {
-  background: #2563eb;
-  border-color: #2563eb;
+  background: #008b8b;
+  border-color: #008b8b;
 }
 
 .custom-modal-btn-secondary {
@@ -232,6 +232,6 @@
 }
 
 .custom-modal-btn:focus {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid #20b2aa;
   outline-offset: 2px;
 }

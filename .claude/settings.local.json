@@ -29,7 +29,10 @@
       "Bash(git restore:*)",
       "Bash(npx tsc:*)",
       "Bash(npm test:*)",
-      "mcp__supabase__list_migrations"
+      "mcp__supabase__list_migrations",
+      "Bash(grep:*)",
+      "Bash(psql:*)",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "ask": []
