@@ -493,6 +493,7 @@
   padding: 24px;
   max-height: 60vh;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .modal-footer {
@@ -576,15 +577,11 @@
 }
 
 /* New 2-Column Users Table Layout */
-.users-table-container {
-  width: 100%;
-  overflow: hidden;
-}
 
 .users-table {
   width: 100%;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   background: white;
 }
@@ -610,8 +607,8 @@
 }
 
 .table-body {
-  max-height: 400px;
-  overflow-y: auto;
+  max-height: none;
+  overflow: visible;
 }
 
 .table-row {

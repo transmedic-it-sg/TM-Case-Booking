@@ -110,9 +110,15 @@ export const permissionActions: PermissionAction[] = [
     category: 'Status Transitions'
   },
   {
+    id: 'sales-approval',
+    name: 'Sales Approval',
+    description: 'Order Prepared → Sales Approval',
+    category: 'Status Transitions'
+  },
+  {
     id: 'pending-delivery-hospital',
     name: 'Pending Delivery (Hospital)',
-    description: 'Order Prepared → Pending Delivery (Hospital)',
+    description: 'Sales Approval → Pending Delivery (Hospital)',
     category: 'Status Transitions'
   },
   {
@@ -342,6 +348,7 @@ export const permissions: Permission[] = [
   { actionId: 'amend-case', roleId: 'sales', allowed: true },
   { actionId: 'update-case-status', roleId: 'sales', allowed: true },
   { actionId: 'booking-calendar', roleId: 'sales', allowed: true },
+  { actionId: 'sales-approval', roleId: 'sales', allowed: true },
   { actionId: 'case-completed', roleId: 'sales', allowed: true },
   { actionId: 'pending-delivery-office', roleId: 'sales', allowed: true },
   { actionId: 'delivered-office', roleId: 'sales', allowed: true },
@@ -357,6 +364,7 @@ export const permissions: Permission[] = [
   { actionId: 'amend-case', roleId: 'sales-manager', allowed: true },
   { actionId: 'update-case-status', roleId: 'sales-manager', allowed: true },
   { actionId: 'booking-calendar', roleId: 'sales-manager', allowed: true },
+  { actionId: 'sales-approval', roleId: 'sales-manager', allowed: true },
   { actionId: 'case-completed', roleId: 'sales-manager', allowed: true },
   { actionId: 'pending-delivery-office', roleId: 'sales-manager', allowed: true },
   { actionId: 'delivered-office', roleId: 'sales-manager', allowed: true },

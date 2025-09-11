@@ -50,6 +50,7 @@ export const usePermissions = () => {
       
       // Workflow permissions
       canProcessOrder: hasPermission(userRole, PERMISSION_ACTIONS.PROCESS_ORDER),
+      canSalesApproval: hasPermission(userRole, PERMISSION_ACTIONS.SALES_APPROVAL),
       canMarkDelivered: hasPermission(userRole, PERMISSION_ACTIONS.DELIVERED_HOSPITAL),
       canReceiveOrder: hasPermission(userRole, PERMISSION_ACTIONS.DELIVERED_HOSPITAL),
       canCompleteCase: hasPermission(userRole, PERMISSION_ACTIONS.CASE_COMPLETED),

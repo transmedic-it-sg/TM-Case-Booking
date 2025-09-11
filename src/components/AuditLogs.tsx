@@ -270,8 +270,26 @@ const AuditLogs: React.FC = () => {
   };
 
   const openActiveUsersModal = () => {
-    const userIds = Array.from(new Set(filteredLogs.map(log => log.userId)));
-    const usersWithStatus = userIds.map(userId => {
+    // Get unique user IDs from all audit logs, filtering out null/undefined values
+    const userIds = Array.from(new Set(
+      auditLogs
+        .map(log => log.userId)
+        .filter(userId => userId && userId.trim() !== '') // Remove null, undefined, and empty strings
+    ));
+    
+    // Create a Map to store unique users by both userId and username to avoid duplicates
+    const userStatusMap = new Map<string, {
+      username: string;
+      userId: string;
+      lastActivity?: string;
+      isActive: boolean;
+      status: string;
+    }>();
+    
+    // Also create a set to track processed usernames to avoid username duplicates
+    const processedUsernames = new Set<string>();
+    
+    userIds.forEach(userId => {
       const user = userMap.get(userId);
       
       // Find the most recent login and logout for this user
@@ -281,27 +299,45 @@ const AuditLogs: React.FC = () => {
         (log.action === 'User Login' || log.action === 'User Logout')
       ).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       
+      // Get username with fallback logic
+      const username = user ? user.name : (auditLogs.find(log => log.userId === userId)?.user || 'Unknown User');
+      
+      // Skip if we've already processed this username to avoid duplicates
+      if (processedUsernames.has(username)) {
+        return;
+      }
+      
       // Check if user is currently active (last action was login, not logout)
       const isActive = userAuthLogs.length > 0 && userAuthLogs[0].action === 'User Login';
       const lastActivity = userAuthLogs.length > 0 ? userAuthLogs[0].timestamp : undefined;
       
-      return {
-        username: user ? user.name : (filteredLogs.find(log => log.userId === userId)?.user || 'Unknown User'),
-        userId,
-        lastActivity,
-        isActive,
-        status: isActive ? 'Active' : 'Inactive'
-      };
+      // Only add users who have some authentication activity
+      if (userAuthLogs.length > 0) {
+        const uniqueKey = `${userId}_${username}`;
+        userStatusMap.set(uniqueKey, {
+          username,
+          userId,
+          lastActivity,
+          isActive,
+          status: isActive ? 'Active' : 'Inactive'
+        });
+        processedUsernames.add(username);
+      }
     });
     
-    // Sort by active status first, then by last activity
-    const sortedUsers = usersWithStatus.sort((a, b) => {
+    // Convert Map to array and sort by active status first, then by last activity
+    const sortedUsers = Array.from(userStatusMap.values()).sort((a, b) => {
+      // First, sort by active status (active users first)
       if (a.isActive && !b.isActive) return -1;
       if (!a.isActive && b.isActive) return 1;
+      
+      // Then sort by last activity (most recent first)
       if (a.lastActivity && b.lastActivity) {
         return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
       }
-      return 0;
+      
+      // Finally, sort by username alphabetically
+      return a.username.localeCompare(b.username);
     });
     
     setActiveUsers(sortedUsers);
@@ -751,40 +787,38 @@ const AuditLogs: React.FC = () => {
               <button className="modal-close-btn" onClick={closeActiveUsersModal}>×</button>
             </div>
             <div className="modal-body">
-              <div className="users-table-container">
-                {activeUsers.length > 0 ? (
-                  <div className="users-table">
-                    <div className="table-header">
-                      <div className="table-column-header">User Name</div>
-                      <div className="table-column-header">Last Activity</div>
-                    </div>
-                    <div className="table-body">
-                      {activeUsers.map((user, index) => (
-                        <div key={index} className={`table-row ${user.isActive ? 'active-user' : 'inactive-user'}`}>
-                          <div className="table-cell user-name-cell">
-                            <span className={`status-indicator ${user.isActive ? 'online' : 'offline'}`}></span>
-                            <span className="user-name">{user.username}</span>
-                            <span className={`status-badge ${user.isActive ? 'active' : 'inactive'}`}>
-                              {user.status}
-                            </span>
-                          </div>
-                          <div className="table-cell last-activity-cell">
-                            {user.lastActivity ? (
-                              <span className="last-activity-time">
-                                {new Date(user.lastActivity).toLocaleString()}
-                              </span>
-                            ) : (
-                              <span className="no-activity">No recent activity</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+              {activeUsers.length > 0 ? (
+                <div className="users-table">
+                  <div className="table-header">
+                    <div className="table-column-header">User Name</div>
+                    <div className="table-column-header">Last Activity</div>
                   </div>
-                ) : (
-                  <p className="no-users-message">No users found in current log entries.</p>
-                )}
-              </div>
+                  <div className="table-body">
+                    {activeUsers.map((user, index) => (
+                      <div key={index} className={`table-row ${user.isActive ? 'active-user' : 'inactive-user'}`}>
+                        <div className="table-cell user-name-cell">
+                          <span className={`status-indicator ${user.isActive ? 'online' : 'offline'}`}></span>
+                          <span className="user-name">{user.username}</span>
+                          <span className={`status-badge ${user.isActive ? 'active' : 'inactive'}`}>
+                            {user.status}
+                          </span>
+                        </div>
+                        <div className="table-cell last-activity-cell">
+                          {user.lastActivity ? (
+                            <span className="last-activity-time">
+                              {new Date(user.lastActivity).toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="no-activity">No recent activity</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="no-users-message">No users found in current log entries.</p>
+              )}
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={closeActiveUsersModal}>

@@ -13,6 +13,13 @@ export const getAppVersion = (): string => {
 };
 
 /**
+ * Get the current cache version from package.json
+ */
+export const getCacheVersion = (): string => {
+  return (packageJson as any).cacheVersion || '1.0.0';
+};
+
+/**
  * Get app name from package.json
  */
 export const getAppName = (): string => {

@@ -41,7 +41,14 @@ if echo "$MCP_STATUS" | grep -q "✓ Connected"; then
 else
     echo "🔄 Reconnecting MCP server..."
     claude mcp remove supabase -s local > /dev/null 2>&1
-    claude mcp add-json supabase '{"command": "npx", "args": ["-y", "@supabase/mcp-server-supabase@latest", "--project-ref=aqzjzjygflmxkcbfnjbe"], "env": {"SUPABASE_ACCESS_TOKEN": "sbp_5ccd2b2a4710ef9c0d1d5cb5262be9bf06380f26"}}' -s local
+    # Check for required environment variable
+    if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+        echo "❌ Error: SUPABASE_ACCESS_TOKEN environment variable is required"
+        echo "💡 Set it with: export SUPABASE_ACCESS_TOKEN=your_token_here"
+        exit 1
+    fi
+    
+    claude mcp add-json supabase '{"command": "npx", "args": ["-y", "@supabase/mcp-server-supabase@latest", "--project-ref=aqzjzjygflmxkcbfnjbe"], "env": {"SUPABASE_ACCESS_TOKEN": "'$SUPABASE_ACCESS_TOKEN'"}}' -s local
     sleep 2
     echo "✅ MCP server reconnected"
 fi

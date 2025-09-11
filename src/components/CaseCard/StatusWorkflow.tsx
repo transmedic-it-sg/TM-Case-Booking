@@ -55,6 +55,18 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
         break;
 
       case CASE_STATUSES.ORDER_PREPARED:
+        if (permissions.canSalesApproval) {
+          actions.push({
+            key: 'sales-approval',
+            label: 'Sales Approval',
+            action: () => onStatusChange?.(CASE_STATUSES.SALES_APPROVAL),
+            className: 'btn btn-success btn-sm',
+            icon: '👨‍💼'
+          });
+        }
+        break;
+
+      case CASE_STATUSES.SALES_APPROVAL:
         if (permissions.canMarkDelivered) {
           actions.push({
             key: 'deliver',

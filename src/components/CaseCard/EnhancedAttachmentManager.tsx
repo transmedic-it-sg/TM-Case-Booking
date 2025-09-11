@@ -135,6 +135,10 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
           <div class="attachment-modal-body">
             <img src="${fileInfo.preview}" alt="${fileInfo.name}" style="max-width: 100%; max-height: 80vh;" />
           </div>
+          <div class="attachment-modal-footer">
+            <button class="btn btn-outline-primary attachment-modal-download">Download</button>
+            ${canUploadFiles ? `<button class="btn btn-outline-warning attachment-modal-replace">Replace</button>` : ''}
+          </div>
         </div>
       `;
       
@@ -144,7 +148,26 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
         document.body.removeChild(modalDiv);
       };
       
+      const downloadFile = () => {
+        if (fileInfo.preview && fileInfo.preview.startsWith('data:')) {
+          const link = document.createElement('a');
+          link.href = fileInfo.preview;
+          link.download = fileInfo.name;
+          link.click();
+        }
+        closeModal();
+      };
+      
+      const replaceFromModal = () => {
+        closeModal();
+        handleReplaceFile(attachment.id);
+      };
+      
       modalDiv.querySelector('.attachment-modal-close')?.addEventListener('click', closeModal);
+      modalDiv.querySelector('.attachment-modal-download')?.addEventListener('click', downloadFile);
+      if (canUploadFiles) {
+        modalDiv.querySelector('.attachment-modal-replace')?.addEventListener('click', replaceFromModal);
+      }
       modalDiv.addEventListener('click', (e) => {
         if (e.target === modalDiv) closeModal();
       });

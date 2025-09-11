@@ -53,6 +53,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   // State for new comment and attachment fields for status transitions
   const [processAttachments, setProcessAttachments] = useState<string[]>([]);
   const [processComments, setProcessComments] = useState('');
+  const [salesApprovalCase, setSalesApprovalCase] = useState<string | null>(null);
+  const [salesApprovalAttachments, setSalesApprovalAttachments] = useState<string[]>([]);
+  const [salesApprovalComments, setSalesApprovalComments] = useState('');
+  
   
   // Filter cases locally
   const filterCases = useCallback((casesToFilter: CaseBooking[], filterOptions: FilterOptions) => {
@@ -365,20 +369,55 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   const handleAmendCase = (caseItem: CaseBooking) => {
+    // Prevent multiple clicks from opening multiple amendment forms
+    if (amendingCase) {
+      console.log('🔍 Amendment form already open for case:', amendingCase, '- ignoring click for case:', caseItem.id);
+      return;
+    }
+    
     console.log('🔍 handleAmendCase called with case:', caseItem.id, caseItem.caseReferenceNumber);
-    setAmendingCase(caseItem.id);
-    setAmendmentData({
-      hospital: caseItem.hospital,
-      department: caseItem.department,
-      dateOfSurgery: caseItem.dateOfSurgery,
-      procedureType: caseItem.procedureType,
-      procedureName: caseItem.procedureName,
-      doctorName: caseItem.doctorName,
-      timeOfProcedure: caseItem.timeOfProcedure,
-      specialInstruction: caseItem.specialInstruction,
-      amendmentReason: ''
-    });
-    console.log('🔍 Amendment data set, amendingCase state:', caseItem.id);
+    
+    // First, smoothly scroll to the case card
+    const caseElement = document.querySelector(`[data-case-id="${caseItem.id}"]`);
+    if (caseElement) {
+      caseElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center',
+        inline: 'nearest'
+      });
+      
+      // Add a slight delay before opening the modal to allow scroll to complete
+      setTimeout(() => {
+        setAmendingCase(caseItem.id);
+        setAmendmentData({
+          hospital: caseItem.hospital,
+          department: caseItem.department,
+          dateOfSurgery: caseItem.dateOfSurgery,
+          procedureType: caseItem.procedureType,
+          procedureName: caseItem.procedureName,
+          doctorName: caseItem.doctorName,
+          timeOfProcedure: caseItem.timeOfProcedure,
+          specialInstruction: caseItem.specialInstruction,
+          amendmentReason: ''
+        });
+        console.log('🔍 Amendment data set, amendingCase state:', caseItem.id);
+      }, 300);
+    } else {
+      // If element not found, proceed without scrolling
+      setAmendingCase(caseItem.id);
+      setAmendmentData({
+        hospital: caseItem.hospital,
+        department: caseItem.department,
+        dateOfSurgery: caseItem.dateOfSurgery,
+        procedureType: caseItem.procedureType,
+        procedureName: caseItem.procedureName,
+        doctorName: caseItem.doctorName,
+        timeOfProcedure: caseItem.timeOfProcedure,
+        specialInstruction: caseItem.specialInstruction,
+        amendmentReason: ''
+      });
+      console.log('🔍 Amendment data set, amendingCase state:', caseItem.id);
+    }
   };
 
   const handleSaveAmendment = async (amendmentFormData: any) => {
@@ -511,6 +550,73 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setProcessDetails('');
     setProcessAttachments([]);
   };
+
+  // Sales Approval workflow
+  const handleSalesApproval = (caseId: string) => {
+    const currentUser = getCurrentUser();
+    if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.SALES_APPROVAL)) {
+      return;
+    }
+    // Show the Sales Approval form
+    setSalesApprovalCase(caseId);
+    setSalesApprovalComments('');
+    setSalesApprovalAttachments([]);
+  };
+  
+  const handleSaveSalesApproval = async (caseId: string) => {
+    const currentUser = getCurrentUser();
+    if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.SALES_APPROVAL)) {
+      return;
+    }
+    
+    try {
+      // Prepare status update details
+      const updateDetails = {
+        salesApprovalComments: salesApprovalComments.trim(),
+        attachments: salesApprovalAttachments,
+        processedBy: currentUser.name,
+        processedAt: new Date().toISOString()
+      };
+      
+      await updateCaseStatusHook(caseId, CASE_STATUSES.SALES_APPROVAL, JSON.stringify(updateDetails));
+      
+      // Reset form state
+      setSalesApprovalCase(null);
+      setSalesApprovalComments('');
+      setSalesApprovalAttachments([]);
+      
+      // Reset to page 1 and expand the updated case
+      setCurrentPage(1);
+      setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
+      
+      // Show success popup
+      setSuccessMessage('Case successfully submitted for Sales Approval');
+      setShowSuccessPopup(true);
+      
+      // Add notification for status change
+      addNotification({
+        title: 'Sales Approval',
+        message: `Case submitted for sales approval`,
+        type: 'success'
+      });
+
+      // Email notifications are handled automatically by the Email Notification Rules system
+    } catch (error) {
+      console.error('Failed to update case status to Sales Approval:', error);
+      addNotification({
+        title: 'Error',
+        message: 'Failed to submit case for sales approval',
+        type: 'error'
+      });
+    }
+  };
+  
+  const handleCancelSalesApproval = () => {
+    setSalesApprovalCase(null);
+    setSalesApprovalComments('');
+    setSalesApprovalAttachments([]);
+  };
+
 
   // Pending Delivery (Hospital) workflow
   const handleOpenHospitalDeliveryModal = (caseId: string) => {
@@ -1008,6 +1114,12 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
                     onOrderProcessed={handleOrderProcessed}
                     onSaveProcessDetails={handleSaveProcessDetails}
                     onCancelProcessing={handleCancelProcessing}
+                    salesApprovalCase={salesApprovalCase}
+                    salesApprovalAttachments={salesApprovalAttachments}
+                    salesApprovalComments={salesApprovalComments}
+                    onSalesApproval={handleSalesApproval}
+                    onSaveSalesApproval={handleSaveSalesApproval}
+                    onCancelSalesApproval={handleCancelSalesApproval}
                     onOrderDelivered={handleOpenHospitalDeliveryModal}
                     onOrderReceived={handleOrderReceived}
                     onSaveOrderReceived={handleSaveOrderReceived}
@@ -1031,6 +1143,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
                     onProcessDetailsChange={setProcessDetails}
                     onProcessAttachmentsChange={setProcessAttachments}
                     onProcessCommentsChange={setProcessComments}
+                    onSalesApprovalAttachmentsChange={setSalesApprovalAttachments}
+                    onSalesApprovalCommentsChange={setSalesApprovalComments}
                     onSaveHospitalDelivery={handleOrderDelivered}
                     onCancelHospitalDelivery={handleCancelHospitalDelivery}
                     onHospitalDeliveryAttachmentsChange={setHospitalDeliveryAttachments}

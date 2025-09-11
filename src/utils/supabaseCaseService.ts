@@ -837,19 +837,55 @@ export const amendSupabaseCase = async (
     }
     if (amendments.surgerySetSelection !== undefined && JSON.stringify(amendments.surgerySetSelection) !== JSON.stringify(currentCase.surgery_set_selection)) {
       updateData.surgery_set_selection = amendments.surgerySetSelection;
-      changes.push({
-        field: 'Surgery Set Selection',
-        oldValue: (currentCase.surgery_set_selection || []).join(', '),
-        newValue: (amendments.surgerySetSelection || []).join(', ')
-      });
+      
+      // Calculate actual changes (additions and removals)
+      const oldSets = currentCase.surgery_set_selection || [];
+      const newSets = amendments.surgerySetSelection || [];
+      const added = newSets.filter((item: string) => !oldSets.includes(item));
+      const removed = oldSets.filter((item: string) => !newSets.includes(item));
+      
+      let changeDescription = '';
+      if (added.length > 0) {
+        changeDescription += `Added: ${added.join(', ')}`;
+      }
+      if (removed.length > 0) {
+        if (changeDescription) changeDescription += '; ';
+        changeDescription += `Removed: ${removed.join(', ')}`;
+      }
+      
+      if (changeDescription) {
+        changes.push({
+          field: 'Surgery Set Selection',
+          oldValue: '',
+          newValue: changeDescription
+        });
+      }
     }
     if (amendments.implantBox !== undefined && JSON.stringify(amendments.implantBox) !== JSON.stringify(currentCase.implant_box)) {
       updateData.implant_box = amendments.implantBox;
-      changes.push({
-        field: 'Implant Box',
-        oldValue: (currentCase.implant_box || []).join(', '),
-        newValue: (amendments.implantBox || []).join(', ')
-      });
+      
+      // Calculate actual changes (additions and removals)
+      const oldBoxes = currentCase.implant_box || [];
+      const newBoxes = amendments.implantBox || [];
+      const added = newBoxes.filter((item: string) => !oldBoxes.includes(item));
+      const removed = oldBoxes.filter((item: string) => !newBoxes.includes(item));
+      
+      let changeDescription = '';
+      if (added.length > 0) {
+        changeDescription += `Added: ${added.join(', ')}`;
+      }
+      if (removed.length > 0) {
+        if (changeDescription) changeDescription += '; ';
+        changeDescription += `Removed: ${removed.join(', ')}`;
+      }
+      
+      if (changeDescription) {
+        changes.push({
+          field: 'Implant Box',
+          oldValue: '',
+          newValue: changeDescription
+        });
+      }
     }
     if (amendments.specialInstruction !== undefined && amendments.specialInstruction !== currentCase.special_instruction) {
       updateData.special_instruction = amendments.specialInstruction;

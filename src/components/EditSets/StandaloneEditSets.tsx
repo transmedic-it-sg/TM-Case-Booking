@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getCurrentUser } from '../../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
-import { getDepartments, getProcedureTypesForDepartment, getCategorizedSetsForDepartment, addProcedureTypeToDepartment, removeProcedureTypeFromDepartment, getSurgerySets, getImplantBoxes, addSurgerySet, addImplantBox } from '../../utils/supabaseDepartmentService';
+import { getDepartments, getProcedureTypesForDepartment, addProcedureTypeToDepartment, removeProcedureTypeFromDepartment, getSurgerySets, getImplantBoxes, addSurgerySet, addImplantBox } from '../../utils/supabaseDepartmentService';
 import { useToast } from '../ToastContainer';
 import { useSound } from '../../contexts/SoundContext';
 import { useModal } from '../../hooks/useModal';
@@ -29,12 +29,12 @@ interface Department {
   is_active: boolean;
 }
 
-interface CategorizedSets {
-  [procedureType: string]: {
-    surgerySets: string[];
-    implantBoxes: string[];
-  };
-}
+// interface CategorizedSets { // Removed - no longer used after simplification
+//   [procedureType: string]: {
+//     surgerySets: string[];
+//     implantBoxes: string[];
+//   };
+// }
 
 const TABS = {
   PROCEDURE_TYPES: 'procedure_types',
@@ -52,7 +52,7 @@ const DepartmentEditSets: React.FC = () => {
   const [procedureTypes, setProcedureTypes] = useState<string[]>([]);
   const [surgerySets, setSurgerySets] = useState<string[]>([]);
   const [implantBoxes, setImplantBoxes] = useState<string[]>([]);
-  const [categorizedSets, setCategorizedSets] = useState<CategorizedSets>({});
+  // const [categorizedSets, setCategorizedSets] = useState<CategorizedSets>({}); // Removed - no longer used after simplification
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(getCurrentUser());
@@ -130,15 +130,15 @@ const DepartmentEditSets: React.FC = () => {
           setSurgerySets(sets);
           
           // Load categorized sets for this department to show which are assigned
-          const catSets = await getCategorizedSetsForDepartment(selectedDepartment, userCountry);
-          setCategorizedSets(catSets);
+          // const catSets = await getCategorizedSetsForDepartment(selectedDepartment, userCountry);
+          // setCategorizedSets(catSets); // Removed - no longer used after removing assignment indicators
         } else if (activeTab === TABS.IMPLANT_BOXES) {
           const boxes = await getImplantBoxes(userCountry);
           setImplantBoxes(boxes);
           
           // Load categorized sets for this department to show which are assigned
-          const catSets = await getCategorizedSetsForDepartment(selectedDepartment, userCountry);
-          setCategorizedSets(catSets);
+          // const catSets = await getCategorizedSetsForDepartment(selectedDepartment, userCountry);
+          // setCategorizedSets(catSets); // Removed - no longer used after removing assignment indicators
         }
       } catch (error) {
         console.error('Error loading tab data:', error);
@@ -255,12 +255,6 @@ const DepartmentEditSets: React.FC = () => {
     );
   }, [activeTab, userCountry, selectedDepartment, isSubmitting, canEditSets, showConfirm, showSuccess, showError, playSound]);
 
-  // Check if an item is assigned to any procedure type in this department
-  const isItemAssigned = useCallback((itemName: string, itemType: 'surgerySets' | 'implantBoxes') => {
-    return Object.values(categorizedSets).some(sets => 
-      sets[itemType]?.includes(itemName)
-    );
-  }, [categorizedSets]);
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, item: string) => {
@@ -476,14 +470,6 @@ const DepartmentEditSets: React.FC = () => {
                 </span>
               )}
               <span className="item-name">{item}</span>
-              {(activeTab === TABS.SURGERY_SETS || activeTab === TABS.IMPLANT_BOXES) && (
-                <span className="item-status">
-                  {isItemAssigned(item, activeTab === TABS.SURGERY_SETS ? 'surgerySets' : 'implantBoxes') ? 
-                    <span className="assigned">✓ Assigned</span> : 
-                    <span className="unassigned">Not assigned</span>
-                  }
-                </span>
-              )}
               <button
                 className="remove-button"
                 onClick={() => handleRemoveItem(item)}

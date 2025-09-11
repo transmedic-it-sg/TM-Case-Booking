@@ -49,12 +49,13 @@
   border-color: var(--primary-color, #20b2aa);
 }
 
-.edit-sets-container .tab-button.active {
+.edit-sets-container .tab-navigation .tab-button.active,
+.edit-sets-container .tabs .tab-button.active {
   background: var(--primary-color, #20b2aa) !important;
   color: var(--white, #ffffff) !important;
   border-color: var(--primary-color, #20b2aa) !important;
   font-weight: 600 !important;
-  box-shadow: var(--shadow-medium, 0 6px 16px rgba(0,0,0,0.12));
+  box-shadow: var(--shadow-medium, 0 6px 16px rgba(0,0,0,0.12)) !important;
   z-index: 1;
   position: relative;
   text-shadow: none !important;
@@ -697,15 +698,6 @@
   border-radius: var(--border-radius, 8px);
 }
 
-.item-status .assigned {
-  color: var(--success-color, #27ae60);
-  background: rgba(39, 174, 96, 0.1);
-}
-
-.item-status .unassigned {
-  color: var(--text-secondary, #717171);
-  background: var(--bg-light, #f8f9fa);
-}
 
 .remove-button {
   padding: 0.5rem 1rem;
@@ -810,7 +802,8 @@
   position: relative;
 }
 
-.edit-sets-container .tab-button.active {
+.edit-sets-container .tab-navigation .tab-button.active,
+.edit-sets-container .tabs .tab-button.active {
   background: var(--primary-color, #20b2aa) !important;
   border-color: var(--primary-color, #20b2aa) !important;
   color: var(--white, #ffffff) !important;
@@ -818,6 +811,7 @@
   position: relative;
   font-weight: 600 !important;
   text-shadow: none !important;
+  box-shadow: var(--shadow-medium, 0 6px 16px rgba(0,0,0,0.12)) !important;
 }
 
 .edit-sets-container .tab-button:hover:not(.active) {

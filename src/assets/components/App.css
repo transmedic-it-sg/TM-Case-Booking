@@ -6366,6 +6366,21 @@ textarea:focus {
   color: white;
 }
 
+.case-action-button.sales-approval-button {
+  background-color: #ff8c00;
+  color: white;
+  border: 2px solid #ff7700;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(255, 140, 0, 0.3);
+}
+
+.case-action-button.sales-approval-button:hover:not(.disabled) {
+  background-color: #ff7700;
+  border-color: #ff6600;
+  box-shadow: 0 4px 8px rgba(255, 140, 0, 0.4);
+  transform: translateY(-2px);
+}
+
 .case-action-button.delete-button {
   background-color: #f44336;
   color: white;
@@ -7716,6 +7731,69 @@ textarea:focus {
   background-color: #0288d1 !important;
 }
 
+/* Sales Approval Form Standardization */
+.sales-approval-form {
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 16px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sales-approval-form h4 {
+  color: #ff8c00;
+  margin-bottom: 16px;
+  font-weight: 600;
+  font-size: 18px;
+  border-bottom: 2px solid #ff8c00;
+  padding-bottom: 8px;
+}
+
+.sales-approval-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+}
+
+.sales-approval-actions .primary-button {
+  background-color: #ff8c00;
+  color: white;
+  border: 2px solid #ff7700;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 8px;
+  min-width: 180px;
+  transition: all 0.2s ease;
+}
+
+.sales-approval-actions .primary-button:hover {
+  background-color: #ff7700;
+  border-color: #ff6600;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 140, 0, 0.3);
+}
+
+.sales-approval-actions .cancel-button {
+  background-color: #6c757d;
+  color: white;
+  border: 2px solid #5a6268;
+  padding: 12px 24px;
+  border-radius: 8px;
+  min-width: 120px;
+  transition: all 0.2s ease;
+}
+
+.sales-approval-actions .cancel-button:hover {
+  background-color: #5a6268;
+  border-color: #495057;
+  transform: translateY(-1px);
+}
+
 /* Amendment History Header */
 .amendment-header-container {
   display: flex;
@@ -8131,9 +8209,7 @@ textarea:focus {
 }
 
 .tab-button.active {
-  background: var(--white);
   color: #ffffff;
-  border-bottom-color: var(--primary-color);
   font-weight: 600;
 }
 

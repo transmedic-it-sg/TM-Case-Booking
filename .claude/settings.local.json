@@ -32,7 +32,9 @@
       "mcp__supabase__list_migrations",
       "Bash(grep:*)",
       "Bash(psql:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(git tag:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

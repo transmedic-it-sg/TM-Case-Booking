@@ -167,6 +167,7 @@ export const PERMISSION_ACTIONS = {
   // Status Transitions
   PROCESS_ORDER: 'process-order',
   ORDER_PROCESSED: 'order-processed',
+  SALES_APPROVAL: 'sales-approval',
   PENDING_DELIVERY_HOSPITAL: 'pending-delivery-hospital',
   DELIVERED_HOSPITAL: 'delivered-hospital',
   CASE_COMPLETED: 'case-completed',

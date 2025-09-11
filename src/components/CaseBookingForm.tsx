@@ -222,10 +222,10 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
   const [availableSurgerySets, setAvailableSurgerySets] = useState<string[]>([]);
   const [availableImplantBoxes, setAvailableImplantBoxes] = useState<string[]>([]);
 
-  // Load Surgery Sets and Implant Boxes independently (not linked to procedure type)
+  // Load Surgery Sets and Implant Boxes based on selected department
   useEffect(() => {
-    const loadIndependentSetsAndBoxes = async () => {
-      if (!currentUser) {
+    const loadDepartmentSetsAndBoxes = async () => {
+      if (!currentUser || !formData.department) {
         setAvailableSurgerySets([]);
         setAvailableImplantBoxes([]);
         return;
@@ -236,36 +236,81 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         try {
           const normalizedCountry = normalizeCountry(userCountry);
           
-          // Load all surgery sets for this country
-          const { data: surgerySets, error: surgerySetsError } = await supabase
-            .from('surgery_sets')
-            .select('name')
+          // Get department ID first
+          const { data: departments, error: deptError } = await supabase
+            .from('departments')
+            .select('id')
+            .eq('name', formData.department)
             .eq('country', normalizedCountry)
-            .eq('is_active', true);
+            .eq('is_active', true)
+            .single();
 
-          if (surgerySetsError) {
-            console.error('Error loading surgery sets:', surgerySetsError);
-            setAvailableSurgerySets([]);
-          } else {
-            setAvailableSurgerySets((surgerySets || []).map((s: any) => s.name).sort());
+          if (deptError || !departments) {
+            console.warn('Department not found or error:', deptError);
+            // Fallback to load all surgery sets for country if department not found
+            const { data: allSurgerySets } = await supabase
+              .from('surgery_sets')
+              .select('name')
+              .eq('country', normalizedCountry)
+              .eq('is_active', true);
+            
+            const { data: allImplantBoxes } = await supabase
+              .from('implant_boxes')
+              .select('name')
+              .eq('country', normalizedCountry)
+              .eq('is_active', true);
+              
+            setAvailableSurgerySets((allSurgerySets || []).map((s: any) => s.name).sort());
+            setAvailableImplantBoxes((allImplantBoxes || []).map((i: any) => i.name).sort());
+            return;
           }
 
-          // Load all implant boxes for this country
-          const { data: implantBoxes, error: implantBoxesError } = await supabase
-            .from('implant_boxes')
-            .select('name')
+          const departmentId = departments.id;
+
+          // Load surgery sets for this department
+          const { data: departmentSurgerySets, error: surgerySetsError } = await supabase
+            .from('department_categorized_sets')
+            .select(`
+              surgery_sets!inner(name)
+            `)
+            .eq('department_id', departmentId)
             .eq('country', normalizedCountry)
-            .eq('is_active', true);
+            .not('surgery_set_id', 'is', null);
+
+          if (surgerySetsError) {
+            console.error('Error loading department surgery sets:', surgerySetsError);
+            setAvailableSurgerySets([]);
+          } else {
+            const surgerySetNames = (departmentSurgerySets || [])
+              .map((item: any) => item.surgery_sets?.name)
+              .filter(name => name) // Remove null/undefined values
+              .sort();
+            setAvailableSurgerySets(Array.from(new Set(surgerySetNames))); // Remove duplicates
+          }
+
+          // Load implant boxes for this department
+          const { data: departmentImplantBoxes, error: implantBoxesError } = await supabase
+            .from('department_categorized_sets')
+            .select(`
+              implant_boxes!inner(name)
+            `)
+            .eq('department_id', departmentId)
+            .eq('country', normalizedCountry)
+            .not('implant_box_id', 'is', null);
 
           if (implantBoxesError) {
-            console.error('Error loading implant boxes:', implantBoxesError);
+            console.error('Error loading department implant boxes:', implantBoxesError);
             setAvailableImplantBoxes([]);
           } else {
-            setAvailableImplantBoxes((implantBoxes || []).map((i: any) => i.name).sort());
+            const implantBoxNames = (departmentImplantBoxes || [])
+              .map((item: any) => item.implant_boxes?.name)
+              .filter(name => name) // Remove null/undefined values
+              .sort();
+            setAvailableImplantBoxes(Array.from(new Set(implantBoxNames))); // Remove duplicates
           }
 
         } catch (error) {
-          console.error('Error loading surgery sets and implant boxes:', error);
+          console.error('Error loading department surgery sets and implant boxes:', error);
           setAvailableSurgerySets([]);
           setAvailableImplantBoxes([]);
         }
@@ -275,8 +320,9 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       }
     };
 
-    loadIndependentSetsAndBoxes();
-  }, [currentUser?.selectedCountry, currentUser?.id]);
+    loadDepartmentSetsAndBoxes();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.selectedCountry, currentUser?.id, formData.department]);
 
   const surgerySetOptions = availableSurgerySets;
   const implantBoxOptions = availableImplantBoxes;
@@ -341,35 +387,11 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     };
 
     loadDepartments();
-    // Include currentUser in dependencies but add proper null check to prevent infinite loops
-  }, [currentUser?.id, currentUser?.selectedCountry, currentUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id, currentUser?.selectedCountry]);
 
   // Check if user has permission to create cases
   const canCreateCase = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CREATE_CASE) : false;
-  
-  // Comprehensive debug logging for permission issues
-  console.log('🔍 CaseBookingForm Permission Debug:', {
-    currentUser: currentUser,
-    userRole: currentUser?.role,
-    userRoleType: typeof currentUser?.role,
-    userId: currentUser?.id,
-    userName: currentUser?.name,
-    canCreateCase,
-    permissionAction: PERMISSION_ACTIONS.CREATE_CASE,
-    permissionActionValue: 'create-case',
-    hasCurrentUser: !!currentUser
-  });
-  
-  // Test admin check specifically
-  if (currentUser?.role) {
-    console.log('🔍 Admin Role Check:', {
-      role: currentUser.role,
-      isExactlyAdmin: currentUser.role === 'admin',
-      adminComparison: `"${currentUser.role}" === "admin"`,
-      roleLength: currentUser.role.length,
-      adminLength: 'admin'.length
-    });
-  }
 
   if (!canCreateCase) {
     return (

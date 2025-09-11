@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useSound } from '../contexts/SoundContext';
 import { useToast } from './ToastContainer';
 import packageJson from '../../package.json';
+import { getCacheVersion } from '../utils/version';
 
 const Settings: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -335,6 +336,10 @@ const Settings: React.FC = () => {
                   <div className="info-row">
                     <span>Version:</span>
                     <span>{packageJson.version}</span>
+                  </div>
+                  <div className="info-row">
+                    <span>Cache Version:</span>
+                    <span>{getCacheVersion()}</span>
                   </div>
                   <div className="info-row">
                     <span>Last Updated:</span>

@@ -317,8 +317,8 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
                 </div>
               ))}
               
-              {/* Add click-to-book button for empty days */}
-              {dayCases.length === 0 && onDateClick && (
+              {/* Add click-to-book button for all days when onDateClick is available */}
+              {onDateClick && (
                 <div 
                   className="mobile-calendar-book-new"
                   onClick={() => {
@@ -331,7 +331,9 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
                     <div className="mobile-book-new-icon">📅</div>
                     <div className="mobile-book-new-text">
                       <div className="mobile-book-new-title">Book New Case</div>
-                      <div className="mobile-book-new-subtitle">Tap to create a booking</div>
+                      <div className="mobile-book-new-subtitle">
+                        {dayCases.length === 0 ? 'Tap to create a booking' : 'Tap to add another booking'}
+                      </div>
                     </div>
                   </div>
                 </div>

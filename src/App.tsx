@@ -91,22 +91,77 @@ const AppContent: React.FC = () => {
     // manualVersionCheck - removed unused variable
   } = useCacheVersionManager();
 
-  // App version management with logout on version change
+  // App version management with logout on version change - UPDATED FOR CACHE VERSION 1.0.4
   useEffect(() => {
+    console.log('🚀 CACHE VERSION CHECK STARTING - v1.0.4');
+    
     const versionCheck = initializeVersionManager();
     
-    // If version changed and user is logged in, show update popup
-    if (versionCheck.versionChanged && versionCheck.userLoggedIn) {
-      console.log(`🔄 Version updated from ${versionCheck.storedVersion} to ${versionCheck.currentVersion} - user will be logged out`);
+    // Debug logging with prominent display
+    console.log('%c🔍 VERSION CHECK DEBUG - v1.0.4 FIXED', 'color: green; font-weight: bold; font-size: 14px;');
+    console.log('🔍 Version Check Result:', {
+      currentVersion: versionCheck.currentVersion,
+      currentCacheVersion: versionCheck.currentCacheVersion,
+      storedVersion: versionCheck.storedVersion,
+      storedCacheVersion: versionCheck.storedCacheVersion,
+      versionChanged: versionCheck.versionChanged,
+      cacheVersionChanged: versionCheck.cacheVersionChanged,
+      userLoggedIn: versionCheck.userLoggedIn
+    });
+    
+    // If app version or cache version changed, handle it
+    const anyVersionChanged = versionCheck.versionChanged || versionCheck.cacheVersionChanged;
+    
+    if (anyVersionChanged) {
+      let updateMessage = '🔄 ';
+      const changes = [];
       
-      setVersionUpdateInfo({
-        currentVersion: versionCheck.currentVersion,
-        previousVersion: versionCheck.storedVersion || 'Unknown'
-      });
-      setShowVersionUpdatePopup(true);
+      if (versionCheck.versionChanged) {
+        changes.push(`App version: ${versionCheck.storedVersion} → ${versionCheck.currentVersion}`);
+      }
+      if (versionCheck.cacheVersionChanged) {
+        changes.push(`Cache version: ${versionCheck.storedCacheVersion} → ${versionCheck.currentCacheVersion}`);
+      }
+      
+      updateMessage += changes.join(', ') + ' - clearing cache';
+      console.log(updateMessage);
+      
+      if (versionCheck.userLoggedIn) {
+        // Show popup for logged users
+        setVersionUpdateInfo({
+          currentVersion: `${versionCheck.currentVersion} (Cache: ${versionCheck.currentCacheVersion})`,
+          previousVersion: `${versionCheck.storedVersion || 'Unknown'} (Cache: ${versionCheck.storedCacheVersion || 'Unknown'})`
+        });
+        setShowVersionUpdatePopup(true);
+      } else {
+        // For non-logged users, just clear cache and reload immediately
+        console.log('🧹 No user logged in - clearing cache immediately');
+        
+        // Clear localStorage and sessionStorage
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Clear browser cache if possible
+        if ('caches' in window) {
+          caches.keys().then(names => {
+            return Promise.all(names.map(name => caches.delete(name)));
+          }).then(() => {
+            console.log('🧹 Browser cache cleared');
+            // Force reload to get fresh content
+            setTimeout(() => window.location.reload(), 500);
+          }).catch(err => {
+            console.error('Error clearing cache:', err);
+            // Force reload anyway
+            setTimeout(() => window.location.reload(), 500);
+          });
+        } else {
+          // No cache API support, just reload
+          setTimeout(() => window.location.reload(), 500);
+        }
+      }
     } else {
       // Normal version logging
-      console.log(`📱 TM Case Booking v${versionCheck.currentVersion} loaded`);
+      console.log(`📱 TM Case Booking v${versionCheck.currentVersion} (Cache: ${versionCheck.currentCacheVersion}) loaded`);
     }
   }, []);
 
@@ -432,7 +487,7 @@ const AppContent: React.FC = () => {
 
   const handleVersionUpdateConfirm = async () => {
     setShowVersionUpdatePopup(false);
-    await handleVersionUpdate();
+    await handleVersionUpdate('App or cache version updated');
   };
 
   const handleCaseSubmitted = () => {

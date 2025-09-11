@@ -20,6 +20,9 @@ export interface CaseCardProps {
   processDetails: string;
   processAttachments: string[];
   processComments: string;
+  salesApprovalCase: string | null;
+  salesApprovalAttachments: string[];
+  salesApprovalComments: string;
   deliveryCase: string | null;
   deliveryDetails: string;
   hospitalDeliveryCase: string | null;
@@ -48,6 +51,9 @@ export interface CaseCardProps {
   onOrderProcessed: (caseId: string) => void;
   onSaveProcessDetails: (caseId: string) => void;
   onCancelProcessing: () => void;
+  onSalesApproval: (caseId: string) => void;
+  onSaveSalesApproval: (caseId: string) => void;
+  onCancelSalesApproval: () => void;
   onOrderDelivered: (caseId: string) => void;
   onSaveHospitalDelivery: (caseId: string) => void;
   onCancelHospitalDelivery: () => void;
@@ -73,6 +79,8 @@ export interface CaseCardProps {
   onProcessDetailsChange: (details: string) => void;
   onProcessAttachmentsChange: (attachments: string[]) => void;
   onProcessCommentsChange: (comments: string) => void;
+  onSalesApprovalAttachmentsChange: (attachments: string[]) => void;
+  onSalesApprovalCommentsChange: (comments: string) => void;
   onHospitalDeliveryAttachmentsChange: (attachments: string[]) => void;
   onHospitalDeliveryCommentsChange: (comments: string) => void;
   onReceivedDetailsChange: (details: string) => void;
@@ -93,6 +101,7 @@ export interface CaseActionsProps {
   onAmendCase: (caseItem: CaseBooking) => void;
   onDeleteCase: (caseId: string, caseItem: CaseBooking) => void;
   onOrderProcessed: (caseId: string) => void;
+  onSalesApproval: (caseId: string) => void;
   onOrderDelivered: (caseId: string) => void;
   onOrderReceived: (caseId: string) => void;
   onCaseCompleted: (caseId: string) => void;

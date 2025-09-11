@@ -8,6 +8,7 @@ export type CaseStatus =
   | 'Pending Delivery (Hospital)'
   | 'Delivered (Hospital)'
   | 'Case Completed'
+  | 'Sales Approval'
   | 'Pending Delivery (Office)'
   | 'Delivered (Office)'
   | 'To be billed'

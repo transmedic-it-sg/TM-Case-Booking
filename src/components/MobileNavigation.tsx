@@ -212,7 +212,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
 
                 <div className="mobile-menu-section">
                   <h3>Status Colors</h3>
-                  <div className="mobile-menu-item status-legend-item">
+                  <div className="mobile-menu-section">
                     <StatusLegend />
                   </div>
                 </div>

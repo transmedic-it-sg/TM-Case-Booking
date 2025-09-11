@@ -1,6 +1,7 @@
 {
   "name": "case-booking-app",
   "version": "1.2.9",
+  "cacheVersion": "1.0.4",
   "homepage": "/",
   "private": true,
   "dependencies": {
@@ -41,6 +42,7 @@
     "claude-report": "cat .claude-optimized/size-report.md 2>/dev/null || echo 'Run npm run claude-optimize first'",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
+    "cache-version": "node -e \"const fs=require('fs'); const pkg=JSON.parse(fs.readFileSync('package.json')); const [major,minor,patch]=pkg.cacheVersion.split('.').map(Number); pkg.cacheVersion=major+'.'+minor+'.'+(patch+1); fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\\n'); console.log('Cache version updated to:',pkg.cacheVersion)\"",
     "test:concurrent": "npx ts-node src/scripts/runConcurrentTests.ts",
     "test:concurrent:quick": "npx ts-node -e \"import('./src/utils/concurrentUserTester').then(m => m.runQuickConcurrentTest())\""
   },
