@@ -245,7 +245,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
             }`}
             disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE)}
           >
-            ⚠️ Cancel Case
+            🚫 Cancel Case
           </button>
         </Tooltip>
       )}

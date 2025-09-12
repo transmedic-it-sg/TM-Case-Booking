@@ -6,7 +6,7 @@ import {
   shouldCheckVersions,
   CacheVersion
 } from '../utils/cacheVersionService';
-import { getCurrentUser } from '../utils/auth';
+import { getCurrentUser } from '../utils/authCompat';
 
 export interface CacheVersionState {
   isCheckingVersions: boolean;

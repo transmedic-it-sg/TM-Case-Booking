@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getCurrentUser } from '../utils/auth';
+import { getCurrentUserSync } from '../utils/authCompat';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getAuditLogs, getFilteredAuditLogs, clearOldAuditLogs, exportAuditLogs, AuditLogEntry } from '../utils/auditService';
 import { getSupabaseUsers } from '../utils/supabaseUserService';
@@ -9,7 +9,7 @@ import FilterDatePicker from './FilterDatePicker';
 import '../assets/components/AuditLogs.css';
 
 const AuditLogs: React.FC = () => {
-  const currentUser = getCurrentUser();
+  const currentUser = getCurrentUserSync();
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<AuditLogEntry[]>([]);
   const [currentPage, setCurrentPage] = useState(1);

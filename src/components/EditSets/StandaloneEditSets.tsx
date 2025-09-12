@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { getCurrentUser } from '../../utils/auth';
+import { getCurrentUser } from '../../utils/authCompat';
 import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
 import { getDepartments, getProcedureTypesForDepartment, addProcedureTypeToDepartment, removeProcedureTypeFromDepartment, getSurgerySets, getImplantBoxes, addSurgerySet, addImplantBox } from '../../utils/supabaseDepartmentService';
 import { useToast } from '../ToastContainer';

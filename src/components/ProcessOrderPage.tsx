@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { CaseBooking } from '../types';
 import { useCases } from '../hooks/useCases';
-import { getCurrentUser } from '../utils/auth';
+import { getCurrentUser } from '../utils/authCompat';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { formatDateTime } from '../utils/dateFormat';
 import { useUserNames } from '../hooks/useUserNames';

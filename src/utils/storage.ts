@@ -13,6 +13,7 @@ import offlineSyncService from '../services/offlineSyncService';
 import { normalizeCountry } from './countryUtils';
 import { withConnectionRetry } from './databaseConnectionMonitor';
 import { ErrorHandler } from './errorHandler';
+import { SafeStorage } from './secureDataManager';
 
 const CASES_KEY = 'case-booking-cases';
 const CASE_COUNTER_KEY = 'case-booking-counter';
@@ -52,11 +53,14 @@ export const generateCaseReferenceNumber = async (country: string = 'Singapore')
     }
   );
 
-  const currentCounter = localStorage.getItem(CASE_COUNTER_KEY);
-  const counter = currentCounter ? parseInt(currentCounter) + 1 : 1;
+  const currentCounter = await SafeStorage.getItem(CASE_COUNTER_KEY);
+  const counter = currentCounter ? parseInt(currentCounter.toString()) + 1 : 1;
   const paddedCounter = counter.toString().padStart(6, '0');
   const referenceNumber = `TMC${paddedCounter}`;
-  localStorage.setItem(CASE_COUNTER_KEY, counter.toString());
+  await SafeStorage.setItem(CASE_COUNTER_KEY, counter.toString(), {
+    tags: ['counter', 'reference-number'],
+    ttl: 365 * 24 * 60 * 60 * 1000 // 1 year
+  });
   return referenceNumber;
 };
 
@@ -109,23 +113,23 @@ export const getCases = async (country?: string): Promise<CaseBooking[]> => {
       return cleanedCases;
     }
     
-    // If no cases in Supabase, check localStorage and migrate if needed (one time only)
-    const stored = localStorage.getItem(CASES_KEY);
+    // If no cases in Supabase, check secure storage and migrate if needed (one time only)
+    const stored = await SafeStorage.getItem(CASES_KEY);
     if (stored) {
-      console.log('No cases in Supabase, migrating from localStorage...');
+      console.log('No cases in Supabase, migrating from secure storage...');
       try {
         await migrateCasesFromLocalStorage();
         const migratedCases = await getSupabaseCases(country);
         console.log(`Migrated ${migratedCases.length} cases to Supabase`);
         
-        // Clear localStorage after successful migration
-        localStorage.removeItem(CASES_KEY);
-        console.log('Cleared localStorage after successful migration');
+        // Clear secure storage after successful migration
+        await SafeStorage.removeItem(CASES_KEY);
+        console.log('Cleared secure storage after successful migration');
         
         return migratedCases;
       } catch (migrationError) {
         console.error('Migration failed:', migrationError);
-        throw migrationError; // Don't fall back to localStorage
+        throw migrationError; // Don't fall back to insecure storage
       }
     }
     
@@ -200,17 +204,21 @@ export const saveCase = async (caseData: CaseBooking): Promise<CaseBooking> => {
       }]
     };
 
-    // Save to localStorage
-    const localCases = JSON.parse(localStorage.getItem('case-bookings') || '[]');
-    const existingIndex = localCases.findIndex((c: CaseBooking) => c.id === offlineCaseData.id);
+    // Save to secure storage
+    const localCases = await SafeStorage.getItem('case-bookings') || [];
+    const caseArray = Array.isArray(localCases) ? localCases : JSON.parse(localCases.toString());
+    const existingIndex = caseArray.findIndex((c: CaseBooking) => c.id === offlineCaseData.id);
     
     if (existingIndex >= 0) {
-      localCases[existingIndex] = offlineCaseData;
+      caseArray[existingIndex] = offlineCaseData;
     } else {
-      localCases.push(offlineCaseData);
+      caseArray.push(offlineCaseData);
     }
     
-    localStorage.setItem('case-bookings', JSON.stringify(localCases));
+    await SafeStorage.setItem('case-bookings', caseArray, {
+      tags: ['cases', 'offline'],
+      ttl: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
 
     // Add to sync queue
     const syncType = caseData.id && caseData.id !== '' && !caseData.id.startsWith('offline_') ? 'case_update' : 'case_create';
@@ -346,23 +354,24 @@ export const updateCaseStatus = async (caseId: string, status: CaseBooking['stat
   } catch (error) {
     console.log('💾 Database unavailable for status update, using offline mode');
     
-    // Update case in localStorage
-    const localCases = JSON.parse(localStorage.getItem('case-bookings') || '[]');
-    const caseIndex = localCases.findIndex((c: CaseBooking) => c.id === caseId);
+    // Update case in secure storage
+    const localCases = await SafeStorage.getItem('case-bookings') || [];
+    const caseArray = Array.isArray(localCases) ? localCases : JSON.parse(localCases.toString());
+    const caseIndex = caseArray.findIndex((c: CaseBooking) => c.id === caseId);
     
     if (caseIndex >= 0) {
-      localCases[caseIndex].status = status;
+      caseArray[caseIndex].status = status;
       if (processedBy) {
-        localCases[caseIndex].processedBy = processedBy;
-        localCases[caseIndex].processedAt = new Date().toISOString();
+        caseArray[caseIndex].processedBy = processedBy;
+        caseArray[caseIndex].processedAt = new Date().toISOString();
       }
       
       // Add status history entry
-      if (!localCases[caseIndex].statusHistory) {
-        localCases[caseIndex].statusHistory = [];
+      if (!caseArray[caseIndex].statusHistory) {
+        caseArray[caseIndex].statusHistory = [];
       }
       
-      localCases[caseIndex].statusHistory.push({
+      caseArray[caseIndex].statusHistory.push({
         status,
         timestamp: new Date().toISOString(),
         processedBy: processedBy || 'unknown',
@@ -371,7 +380,10 @@ export const updateCaseStatus = async (caseId: string, status: CaseBooking['stat
         attachments: attachments || []
       });
       
-      localStorage.setItem('case-bookings', JSON.stringify(localCases));
+      await SafeStorage.setItem('case-bookings', caseArray, {
+        tags: ['cases', 'offline', 'status-update'],
+        ttl: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
     }
 
     // Add to sync queue
@@ -516,21 +528,30 @@ export const saveCategorizedSets = async (categorizedSets: CategorizedSets, coun
       return;
     } catch (error) {
       console.error('Error saving categorized sets to Supabase:', error);
-      // Fallback to localStorage
-      saveCategorizedSetsToLocalStorage(categorizedSets, country);
+      // Fallback to secure storage
+      await saveCategorizedSetsToSecureStorage(categorizedSets, country);
     }
   } else {
     // Legacy support - save global sets
-    localStorage.setItem('categorized-sets', JSON.stringify(categorizedSets));
+    await SafeStorage.setItem('categorized-sets', categorizedSets, {
+      tags: ['categorized-sets', 'global'],
+      ttl: 30 * 24 * 60 * 60 * 1000 // 30 days
+    });
   }
 };
 
-// Helper function for localStorage fallback
-const saveCategorizedSetsToLocalStorage = (categorizedSets: CategorizedSets, country?: string): void => {
+// Helper function for secure storage fallback
+const saveCategorizedSetsToSecureStorage = async (categorizedSets: CategorizedSets, country?: string): Promise<void> => {
   if (country) {
-    localStorage.setItem(`categorized-sets-${country}`, JSON.stringify(categorizedSets));
+    await SafeStorage.setItem(`categorized-sets-${country}`, categorizedSets, {
+      tags: ['categorized-sets', `country:${country}`],
+      ttl: 30 * 24 * 60 * 60 * 1000 // 30 days
+    });
   } else {
-    localStorage.setItem('categorized-sets', JSON.stringify(categorizedSets));
+    await SafeStorage.setItem('categorized-sets', categorizedSets, {
+      tags: ['categorized-sets', 'global'],
+      ttl: 30 * 24 * 60 * 60 * 1000 // 30 days
+    });
   }
 };
 
@@ -555,17 +576,17 @@ export const getCategorizedSets = async (country?: string): Promise<CategorizedS
       console.error('Error getting categorized sets from Supabase:', error);
     }
     
-    // Fallback to localStorage
-    const countryStored = localStorage.getItem(`categorized-sets-${country}`);
+    // Fallback to secure storage
+    const countryStored = await SafeStorage.getItem(`categorized-sets-${country}`);
     if (countryStored) {
-      return JSON.parse(countryStored);
+      return typeof countryStored === 'string' ? JSON.parse(countryStored) : countryStored;
     }
   }
   
   // Fallback to legacy global sets for migration
-  const globalStored = localStorage.getItem('categorized-sets');
+  const globalStored = await SafeStorage.getItem('categorized-sets');
   if (globalStored) {
-    const globalSets = JSON.parse(globalStored);
+    const globalSets = typeof globalStored === 'string' ? JSON.parse(globalStored) : globalStored;
     
     // If we have a country and global sets exist, migrate them to country-specific
     if (country && Object.keys(globalSets).length > 0) {
@@ -582,8 +603,8 @@ export const getCategorizedSets = async (country?: string): Promise<CategorizedS
         await saveSupabaseCategorizedSets(transformedSets, country);
       } catch (error) {
         console.error('Error saving categorized sets to Supabase:', error);
-        // Fallback to localStorage
-        saveCategorizedSetsToLocalStorage(globalSets, country);
+        // Fallback to secure storage
+        await saveCategorizedSetsToSecureStorage(globalSets, country);
       }
       return globalSets;
     }
@@ -603,18 +624,20 @@ const DEPARTMENT_PROCEDURE_TYPES_KEY = 'department_procedure_types';
 export const getCustomProcedureTypes = (country?: string): string[] => {
   try {
     const key = country ? `${CUSTOM_PROCEDURE_TYPES_KEY}_${country}` : CUSTOM_PROCEDURE_TYPES_KEY;
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      return JSON.parse(stored);
+    
+    // Try localStorage first for immediate sync access
+    const localStored = localStorage.getItem(key);
+    if (localStored) {
+      return JSON.parse(localStored);
     }
     
-    // Fallback to global custom types for migration
+    // Fallback to global custom types for migration  
     if (country) {
       const globalStored = localStorage.getItem(CUSTOM_PROCEDURE_TYPES_KEY);
       if (globalStored) {
         const globalTypes = JSON.parse(globalStored);
         // Migrate to country-specific
-        saveCustomProcedureTypes(globalTypes, country);
+        localStorage.setItem(key, JSON.stringify(globalTypes));
         return globalTypes;
       }
     }
@@ -630,6 +653,12 @@ export const saveCustomProcedureTypes = (types: string[], country?: string): voi
   try {
     const key = country ? `${CUSTOM_PROCEDURE_TYPES_KEY}_${country}` : CUSTOM_PROCEDURE_TYPES_KEY;
     localStorage.setItem(key, JSON.stringify(types));
+    
+    // Also store in secure storage in background (non-blocking)
+    SafeStorage.setItem(key, types, {
+      encrypt: false,
+      ttl: 365 * 24 * 60 * 60 * 1000
+    }).catch(error => console.warn('Failed to backup to secure storage:', error));
   } catch (error) {
     console.error('Error saving custom procedure types:', error);
   }
@@ -665,6 +694,12 @@ export const saveHiddenProcedureTypes = (types: string[], country?: string): voi
   try {
     const key = country ? `${HIDDEN_PROCEDURE_TYPES_KEY}_${country}` : HIDDEN_PROCEDURE_TYPES_KEY;
     localStorage.setItem(key, JSON.stringify(types));
+    
+    // Also store in secure storage in background (non-blocking)
+    SafeStorage.setItem(key, types, {
+      encrypt: false,
+      ttl: 365 * 24 * 60 * 60 * 1000
+    }).catch(error => console.warn('Failed to backup to secure storage:', error));
   } catch (error) {
     console.error('Error saving hidden procedure types:', error);
   }
@@ -772,6 +807,12 @@ export const saveDepartmentProcedureTypes = (departmentTypes: DepartmentProcedur
   try {
     const key = country ? `${DEPARTMENT_PROCEDURE_TYPES_KEY}_${country}` : DEPARTMENT_PROCEDURE_TYPES_KEY;
     localStorage.setItem(key, JSON.stringify(departmentTypes));
+    
+    // Also backup to secure storage (non-blocking)
+    SafeStorage.setItem(key, departmentTypes, {
+      encrypt: false,
+      ttl: 365 * 24 * 60 * 60 * 1000
+    }).catch(error => console.warn('Failed to backup to secure storage:', error));
   } catch (error) {
     console.error('Error saving department procedure types:', error);
   }
@@ -940,6 +981,12 @@ export const saveDepartmentCategorizedSets = async (departmentSets: DepartmentCa
     // Fallback to localStorage
     const key = country ? `${DEPARTMENT_CATEGORIZED_SETS_KEY}_${country}` : DEPARTMENT_CATEGORIZED_SETS_KEY;
     localStorage.setItem(key, JSON.stringify(departmentSets));
+    
+    // Also backup to secure storage (non-blocking)
+    SafeStorage.setItem(key, departmentSets, {
+      encrypt: false,
+      ttl: 365 * 24 * 60 * 60 * 1000
+    }).catch(error => console.warn('Failed to backup to secure storage:', error));
   } catch (error) {
     console.error('Error saving department categorized sets:', error);
     throw error;

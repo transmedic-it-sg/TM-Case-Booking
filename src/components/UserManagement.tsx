@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { User } from '../types';
-import { getCurrentUser } from '../utils/auth';
+import { getCurrentUser } from '../utils/authCompat';
 import { 
   getSupabaseUsers, 
   addSupabaseUser, 

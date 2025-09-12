@@ -74,65 +74,124 @@ export const updateStoredAppVersion = (): void => {
 };
 
 /**
- * Handle version update - log out user and clear session data
+ * Handle version update - log out user and clear session data with improved timing
  */
 export const handleVersionUpdate = async (reason: string = 'App version updated'): Promise<void> => {
   try {
-    console.log(`🔄 ${reason} - logging out user`);
+    console.log(`🔄 ${reason} - starting cleanup sequence`);
     
-    // Clear all session data
-    localStorage.removeItem(USER_SESSION_KEY);
-    sessionStorage.removeItem(USER_SESSION_KEY);
+    // Step 1: Update stored versions FIRST to prevent loops
+    updateStoredAppVersion();
+    console.log('✅ Version tracking updated');
     
-    // Clear other session-related data
-    localStorage.removeItem('tm-cache-versions');
-    localStorage.removeItem('tm-last-version-check');
-    sessionStorage.removeItem('session-token');
-    sessionStorage.removeItem('logging-session-id');
-    sessionStorage.removeItem('error-tracker-session-id');
+    // Step 2: Perform logout through auth service with timeout protection
+    try {
+      await Promise.race([
+        logout(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Logout timeout')), 3000))
+      ]);
+      console.log('✅ User logged out successfully');
+    } catch (logoutError) {
+      console.warn('⚠️ Logout operation timed out or failed:', logoutError);
+      // Continue with cleanup even if logout fails
+    }
     
-    // Clear browser cache programmatically
+    // Step 3: Clear session data after logout
+    const sessionKeys = [
+      USER_SESSION_KEY,
+      'tm-cache-versions',
+      'tm-last-version-check',
+      'session-token',
+      'logging-session-id', 
+      'error-tracker-session-id'
+    ];
+    
+    sessionKeys.forEach(key => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
+    console.log('✅ Session data cleared');
+    
+    // Step 4: Clear browser cache with timeout protection
     if ('caches' in window) {
       try {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
-        console.log('🧹 Browser cache cleared');
+        const cachePromise = caches.keys().then(cacheNames => {
+          return Promise.all(cacheNames.map(name => caches.delete(name)));
+        });
+        
+        await Promise.race([
+          cachePromise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Cache clear timeout')), 2000))
+        ]);
+        
+        console.log('✅ Browser cache cleared successfully');
       } catch (cacheError) {
-        console.error('Error clearing browser cache:', cacheError);
+        console.warn('⚠️ Cache clearing timed out or failed:', cacheError);
+        // Continue with reload even if cache clearing fails
       }
     }
     
-    // Update the stored versions
-    updateStoredAppVersion();
+    // Step 5: Force page reload with user feedback
+    console.log('🔄 Reloading application...');
     
-    // Perform logout through auth service
-    await logout();
-    
-    // Force page reload to ensure clean state
-    setTimeout(() => {
+    // Use immediate reload with fallback
+    try {
+      window.location.replace(window.location.href);
+    } catch (replaceError) {
+      console.warn('⚠️ location.replace failed, using reload:', replaceError);
       window.location.reload();
-    }, 1000);
+    }
     
   } catch (error) {
-    console.error('Error handling version update:', error);
-    // Force reload even if logout fails
-    window.location.reload();
+    console.error('❌ Critical error in version update handler:', error);
+    
+    // Emergency fallback: immediate reload
+    try {
+      window.location.replace(window.location.href);
+    } catch {
+      window.location.reload();
+    }
   }
 };
 
 /**
- * Initialize version management - call this on app startup
+ * Initialize version management - call this on app startup with improved stability
  */
 export const initializeVersionManager = (): VersionCheckResult => {
-  const versionCheck = checkAppVersionUpdate();
-  
-  // If this is the first time or no stored version, just update it
-  if (versionCheck.storedVersion === null && versionCheck.storedCacheVersion === null) {
-    updateStoredAppVersion();
-    return { ...versionCheck, versionChanged: false, cacheVersionChanged: false };
+  try {
+    const versionCheck = checkAppVersionUpdate();
+    
+    // If this is the first time or no stored version, just update it
+    if (versionCheck.storedVersion === null && versionCheck.storedCacheVersion === null) {
+      updateStoredAppVersion();
+      console.log('📝 First-time version tracking initialized');
+      return { ...versionCheck, versionChanged: false, cacheVersionChanged: false };
+    }
+    
+    return versionCheck;
+  } catch (error) {
+    console.error('❌ Error initializing version manager:', error);
+    
+    // Fallback: return safe defaults
+    const fallbackResult: VersionCheckResult = {
+      versionChanged: false,
+      cacheVersionChanged: false,
+      currentVersion: '1.2.9',
+      currentCacheVersion: '1.0.4',
+      storedVersion: null,
+      storedCacheVersion: null,
+      userLoggedIn: false
+    };
+    
+    // Try to update versions for next time
+    try {
+      updateStoredAppVersion();
+    } catch (updateError) {
+      console.error('❌ Failed to update stored versions:', updateError);
+    }
+    
+    return fallbackResult;
   }
-  
-  return versionCheck;
 };
 
 /**

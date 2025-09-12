@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { getCurrentUser } from '../utils/auth';
+import { getCurrentUser } from '../utils/authCompat';
 import { NotificationPreferences } from '../components/NotificationSettings';
 
 export interface Notification {

@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { FilterOptions } from '../../types';
 import FilterDatePicker from '../FilterDatePicker';
 import { statusOptions } from './utils';
-import { getCurrentUser } from '../../utils/auth';
+import { getCurrentUserSync } from '../../utils/auth';
 // import { getCountries } from '../../utils/codeTable'; // Unused
 import SearchableDropdown from '../SearchableDropdown';
 
@@ -35,7 +35,7 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
   onToggleFilters,
   onQuickFilter
 }) => {
-  const currentUser = getCurrentUser();
+  const currentUser = getCurrentUserSync();
   // const [availableCountries, setAvailableCountries] = useState<string[]>([]); // Unused
 
   // Load countries from Global-Table - memoized to prevent infinite loops

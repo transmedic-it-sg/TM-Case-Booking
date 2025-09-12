@@ -1,12 +1,13 @@
 import { Permission } from '../components/PermissionMatrix';
 import { permissions as defaultPermissions } from '../data/permissionMatrixData';
 import { getSupabasePermissions } from './supabasePermissionService';
+import { logger, permissionLog } from './logger';
 
 // Cache for permissions to avoid repeated async calls
 let permissionsCache: Permission[] | null = null;
 let permissionsCacheTime = 0;
 let initializationPromise: Promise<void> | null = null;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes - Extended for stability
 
 // Get current runtime permissions (from Supabase or default)
 export const getRuntimePermissions = async (): Promise<Permission[]> => {
@@ -44,17 +45,30 @@ export const saveRuntimePermissions = async (permissions: Permission[]): Promise
 // Check if a role has permission for a specific action
 export const hasPermission = (roleId: string, actionId: string): boolean => {
   
-  // Admin has all permissions (hardcoded as root user)
+  // Admin has all permissions (hardcoded as root user) - ALWAYS ALLOW
   if (roleId === 'admin') {
-    console.log('✅ Admin access granted for:', actionId);
+    permissionLog('Admin access granted', { role: roleId, action: actionId });
     return true;
   }
   
-  // For all other roles, use database permissions only - FAIL SECURE
-  // If permissions are not loaded or cache is expired, DENY access
+  // For all other roles, use database permissions with improved fallback
   if (!permissionsCache || (Date.now() - permissionsCacheTime >= CACHE_DURATION)) {
-    console.warn(`🔒 Permission DENIED for ${roleId} - ${actionId}: No valid permissions cache available`);
-    // FAIL SECURE: Deny access when permissions cannot be verified
+    console.warn(`🔄 Permission cache expired for ${roleId} - ${actionId}: Attempting refresh...`);
+    
+    // Trigger async re-initialization without blocking
+    initializePermissions(false).catch(error => {
+      console.error('❌ Failed to refresh permissions cache:', error);
+    });
+    
+    // Allow access for critical actions during cache refresh to prevent lockouts
+    const criticalActions = ['view-cases', 'create-case', 'booking-calendar'];
+    if (criticalActions.includes(actionId)) {
+      console.warn(`⚠️ Allowing critical action ${actionId} during cache refresh`);
+      return true;
+    }
+    
+    // FAIL SECURE: Deny access for non-critical actions when permissions cannot be verified
+    console.warn(`🔒 Permission DENIED for ${roleId} - ${actionId}: Cache unavailable and not a critical action`);
     return false;
   }
   
@@ -105,6 +119,10 @@ export const initializePermissions = async (forceRefresh: boolean = false): Prom
           return acc;
         }, {} as Record<string, number>)
       );
+      
+      // Set up automatic cache refresh to prevent expiry issues
+      schedulePermissionCacheRefresh();
+      
     } catch (error) {
       console.error('❌ Error initializing permissions system:', error);
       console.error('🚨 SECURITY WARNING: Permission system failed to initialize - access will be denied to all non-admin users');
@@ -120,11 +138,44 @@ export const initializePermissions = async (forceRefresh: boolean = false): Prom
   return initializationPromise;
 };
 
+// Auto-refresh permissions cache before expiry
+let refreshTimer: NodeJS.Timeout | null = null;
+
+const schedulePermissionCacheRefresh = () => {
+  // Clear existing timer
+  if (refreshTimer) {
+    clearTimeout(refreshTimer);
+  }
+  
+  // Schedule refresh 5 minutes before expiry
+  const refreshDelay = CACHE_DURATION - (5 * 60 * 1000);
+  refreshTimer = setTimeout(async () => {
+    console.log('🔄 Auto-refreshing permissions cache to prevent expiry...');
+    try {
+      await getRuntimePermissions();
+      console.log('✅ Permissions cache auto-refreshed successfully');
+      // Schedule next refresh
+      schedulePermissionCacheRefresh();
+    } catch (error) {
+      console.error('❌ Failed to auto-refresh permissions cache:', error);
+      // Retry in 1 minute
+      refreshTimer = setTimeout(() => schedulePermissionCacheRefresh(), 60 * 1000);
+    }
+  }, refreshDelay);
+};
+
 // Clear permissions cache to force reload
 export const clearPermissionsCache = (): void => {
   permissionsCache = null;
   permissionsCacheTime = 0;
-  console.log('Permissions cache cleared');
+  
+  // Clear auto-refresh timer
+  if (refreshTimer) {
+    clearTimeout(refreshTimer);
+    refreshTimer = null;
+  }
+  
+  logger.debug('Permissions cache cleared');
 };
 
 // Get all permissions for a specific role

@@ -4,6 +4,7 @@
  */
 
 import { User } from '../types';
+import { SafeStorage } from '../utils/secureDataManager';
 
 class UserService {
   private static instance: UserService;
@@ -18,45 +19,81 @@ class UserService {
   }
 
   /**
-   * Get current authenticated user with caching
+   * Get current authenticated user with caching (async version)
    */
-  getCurrentUser(): User | null {
+  async getCurrentUser(): Promise<User | null> {
     if (this.currentUser) {
       return this.currentUser;
     }
 
     try {
-      const userData = localStorage.getItem('currentUser');
+      const userData = await SafeStorage.getItem('currentUser');
       if (userData) {
-        this.currentUser = JSON.parse(userData);
+        this.currentUser = typeof userData === 'string' ? JSON.parse(userData) : userData;
         return this.currentUser;
       }
     } catch (error) {
       console.error('Error loading current user:', error);
-      localStorage.removeItem('currentUser');
+      await SafeStorage.removeItem('currentUser');
     }
     
     return null;
   }
 
   /**
+   * Get current authenticated user synchronously (backward compatibility)
+   * Returns cached user or attempts to load from localStorage fallback
+   */
+  getCurrentUserSync(): User | null {
+    if (this.currentUser) {
+      return this.currentUser;
+    }
+
+    // Fallback to localStorage for immediate sync access during transition
+    try {
+      const userData = localStorage.getItem('currentUser');
+      if (userData) {
+        const user = JSON.parse(userData);
+        this.currentUser = user; // Cache it
+        return user;
+      }
+      
+      // Also check session storage
+      const sessionData = sessionStorage.getItem('currentUser');
+      if (sessionData) {
+        const user = JSON.parse(sessionData);
+        this.currentUser = user; // Cache it
+        return user;
+      }
+    } catch (error) {
+      console.warn('Error loading user from sync storage:', error);
+    }
+
+    return null;
+  }
+
+  /**
    * Set current user and update cache
    */
-  setCurrentUser(user: User | null): void {
+  async setCurrentUser(user: User | null): Promise<void> {
     this.currentUser = user;
     if (user) {
-      localStorage.setItem('currentUser', JSON.stringify(user));
+      await SafeStorage.setItem('currentUser', user, {
+        tags: ['user-data', 'session'],
+        ttl: 24 * 60 * 60 * 1000 // 24 hours
+      });
       this.userCache.set(user.id, user);
     } else {
-      localStorage.removeItem('currentUser');
+      await SafeStorage.removeItem('currentUser');
     }
   }
 
   /**
    * Check if user is authenticated
    */
-  isAuthenticated(): boolean {
-    return this.getCurrentUser() !== null;
+  async isAuthenticated(): Promise<boolean> {
+    const user = await this.getCurrentUser();
+    return user !== null;
   }
 
   /**
@@ -83,7 +120,7 @@ class UserService {
   /**
    * Get all users
    */
-  getAllUsers(): User[] {
+  async getAllUsers(): Promise<User[]> {
     // This method is deprecated - use supabaseUserService.getAllUsers() instead
     console.warn('getAllUsers() is deprecated - use Supabase service instead');
     return [];
@@ -92,9 +129,9 @@ class UserService {
   /**
    * Save user
    */
-  saveUser(user: User): boolean {
+  async saveUser(user: User): Promise<boolean> {
     try {
-      const users = this.getAllUsers();
+      const users = await this.getAllUsers();
       const existingIndex = users.findIndex(u => u.id === user.id);
       
       if (existingIndex >= 0) {
@@ -108,7 +145,7 @@ class UserService {
       
       // Update current user if it's the same user
       if (this.currentUser?.id === user.id) {
-        this.setCurrentUser(user);
+        await this.setCurrentUser(user);
       }
       
       return true;
@@ -121,12 +158,15 @@ class UserService {
   /**
    * Delete user
    */
-  deleteUser(userId: string): boolean {
+  async deleteUser(userId: string): Promise<boolean> {
     try {
-      const users = this.getAllUsers();
+      const users = await this.getAllUsers();
       const filteredUsers = users.filter(u => u.id !== userId);
       
-      localStorage.setItem('users', JSON.stringify(filteredUsers));
+      await SafeStorage.setItem('users', filteredUsers, {
+        tags: ['user-data'],
+        ttl: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
       this.userCache.delete(userId);
       
       return true;
@@ -150,8 +190,8 @@ class UserService {
   /**
    * Check if user has access to country
    */
-  hasCountryAccess(country: string): boolean {
-    const user = this.getCurrentUser();
+  async hasCountryAccess(country: string): Promise<boolean> {
+    const user = await this.getCurrentUser();
     if (!user) return false;
     
     return user.role === 'admin' || user.countries.includes(country);
@@ -168,10 +208,24 @@ class UserService {
   /**
    * Logout user
    */
-  logout(): void {
+  async logout(): Promise<void> {
     this.clearCache();
-    localStorage.removeItem('currentUser');
+    await SafeStorage.removeItem('currentUser');
   }
 }
 
-export default UserService.getInstance();
+// Create singleton instance
+const userServiceInstance = UserService.getInstance();
+
+// Export both the class and instance for different usage patterns
+export { UserService };
+export default userServiceInstance;
+
+// Export compatibility functions for components still using auth.ts patterns
+export const getCurrentUserSync = () => userServiceInstance.getCurrentUserSync();
+export const isAuthenticatedSync = () => userServiceInstance.getCurrentUserSync() !== null;
+export const hasCountryAccessSync = (country: string) => {
+  const user = userServiceInstance.getCurrentUserSync();
+  if (!user) return false;
+  return user.role === 'admin' || user.countries.includes(country);
+};

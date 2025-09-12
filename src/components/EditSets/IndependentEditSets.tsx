@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../ToastContainer';
 import { useSound } from '../../contexts/SoundContext';
-import { getCurrentUser } from '../../utils/auth';
+import { getCurrentUserSync } from '../../utils/authCompat';
 import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
 import { supabase } from '../../lib/supabase';
 import { normalizeCountry } from '../../utils/countryUtils';
@@ -27,7 +27,7 @@ const IndependentEditSets: React.FC = () => {
   const { showError, showSuccess } = useToast();
   const { playSound } = useSound();
   
-  const currentUser = getCurrentUser();
+  const currentUser = getCurrentUserSync();
   const canManageSets = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_SETS) : false;
   const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
   const isAdmin = currentUser?.role === 'admin';

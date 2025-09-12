@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getCurrentUser } from '../utils/auth';
+import { getCurrentUserSync } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { useToast } from './ToastContainer';
 import { useSound } from '../contexts/SoundContext';
@@ -48,7 +48,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
   const { playSound } = useSound();
   const { checkCacheForDataType } = useCacheVersionManager();
   
-  const currentUser = getCurrentUser();
+  const currentUser = getCurrentUserSync();
   const canManageCodeTables = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) : false;
   const canManageGlobalTables = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.GLOBAL_TABLES) : false;
 

@@ -20,7 +20,8 @@ import SystemSettings from './components/SystemSettings';
 import LogoutConfirmation from './components/LogoutConfirmation';
 import SSOCallback from './components/SSOCallback';
 import { User, CaseBooking } from './types';
-import { getCurrentUser, logout, validateSession } from './utils/auth';
+import { logout, validateSession } from './utils/auth';
+import UserService from './services/userService';
 import { hasPermission, PERMISSION_ACTIONS, initializePermissions } from './utils/permissions';
 import { getSupabaseCodeTables } from './utils/supabaseCodeTableService';
 import { auditLogout } from './utils/auditService';
@@ -29,11 +30,12 @@ import { NotificationProvider, useNotifications } from './contexts/NotificationC
 import { ToastProvider, useToast } from './components/ToastContainer';
 import { getSystemConfig } from './utils/systemSettingsService';
 import { useCacheVersionManager } from './hooks/useCacheVersionManager';
+import { SafeStorage } from './utils/secureDataManager';
 // import { getCases } from './utils/storage'; // Removed unused import
 import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
 // Removed unused import: getAppVersion
-import { initializeVersionManager, handleVersionUpdate } from './utils/appVersionManager';
+import { initializeVersionManager, handleVersionUpdate, updateStoredAppVersion } from './utils/appVersionManager';
 import VersionUpdatePopup from './components/VersionUpdatePopup';
 import StatusLegend from './components/StatusLegend';
 import MobileNavigation from './components/MobileNavigation';
@@ -91,14 +93,21 @@ const AppContent: React.FC = () => {
     // manualVersionCheck - removed unused variable
   } = useCacheVersionManager();
 
-  // App version management with logout on version change - UPDATED FOR CACHE VERSION 1.0.4
+  // App version management with logout on version change - DYNAMIC VERSION TRACKING
   useEffect(() => {
-    console.log('🚀 CACHE VERSION CHECK STARTING - v1.0.4');
+    // Prevent double initialization in React Strict Mode
+    if (window.versionCheckInProgress) {
+      console.log('🔄 Version check already in progress, skipping duplicate');
+      return;
+    }
+    
+    window.versionCheckInProgress = true;
     
     const versionCheck = initializeVersionManager();
+    console.log(`🚀 CACHE VERSION CHECK STARTING - v${versionCheck.currentCacheVersion}`);
     
-    // Debug logging with prominent display
-    console.log('%c🔍 VERSION CHECK DEBUG - v1.0.4 FIXED', 'color: green; font-weight: bold; font-size: 14px;');
+    // Debug logging with current version
+    console.log(`%c🔍 VERSION CHECK DEBUG - v${versionCheck.currentCacheVersion} ACTIVE`, 'color: green; font-weight: bold; font-size: 14px;');
     console.log('🔍 Version Check Result:', {
       currentVersion: versionCheck.currentVersion,
       currentCacheVersion: versionCheck.currentCacheVersion,
@@ -126,6 +135,10 @@ const AppContent: React.FC = () => {
       updateMessage += changes.join(', ') + ' - clearing cache';
       console.log(updateMessage);
       
+      // CRITICAL FIX: Update stored versions FIRST to prevent infinite loop
+      updateStoredAppVersion();
+      console.log('✅ Version tracking updated to prevent loops');
+      
       if (versionCheck.userLoggedIn) {
         // Show popup for logged users
         setVersionUpdateInfo({
@@ -134,19 +147,32 @@ const AppContent: React.FC = () => {
         });
         setShowVersionUpdatePopup(true);
       } else {
-        // For non-logged users, just clear cache and reload immediately
+        // For non-logged users, clear cache and reload immediately
         console.log('🧹 No user logged in - clearing cache immediately');
+        
+        // Preserve version tracking keys when clearing
+        const versionKeys = ['tm-app-version', 'tm-cache-version'];
+        const preservedData: Record<string, string> = {};
+        versionKeys.forEach(key => {
+          const value = localStorage.getItem(key);
+          if (value) preservedData[key] = value;
+        });
         
         // Clear localStorage and sessionStorage
         localStorage.clear();
         sessionStorage.clear();
+        
+        // Restore version tracking to prevent loops
+        Object.entries(preservedData).forEach(([key, value]) => {
+          localStorage.setItem(key, value);
+        });
         
         // Clear browser cache if possible
         if ('caches' in window) {
           caches.keys().then(names => {
             return Promise.all(names.map(name => caches.delete(name)));
           }).then(() => {
-            console.log('🧹 Browser cache cleared');
+            console.log('🧹 Browser cache cleared, version tracking preserved');
             // Force reload to get fresh content
             setTimeout(() => window.location.reload(), 500);
           }).catch(err => {
@@ -160,9 +186,30 @@ const AppContent: React.FC = () => {
         }
       }
     } else {
-      // Normal version logging
+      // Normal version logging - ensure versions are stored
+      updateStoredAppVersion();
       console.log(`📱 TM Case Booking v${versionCheck.currentVersion} (Cache: ${versionCheck.currentCacheVersion}) loaded`);
     }
+    
+    // Initialize UserService with existing user session if available
+    const initializeUserService = async () => {
+      try {
+        const existingUser = await UserService.getCurrentUser();
+        if (existingUser && !user) {
+          setUser(existingUser);
+          console.log('✅ User session restored from secure storage:', existingUser.name);
+        }
+      } catch (error) {
+        console.log('No existing user session found');
+      }
+    };
+    
+    initializeUserService();
+    
+    // Cleanup flag after initialization
+    return () => {
+      window.versionCheckInProgress = false;
+    };
   }, []);
 
   // Check maintenance mode status
@@ -183,7 +230,7 @@ const AppContent: React.FC = () => {
 
     // Set up periodic session validation to prevent concurrent sessions
     const sessionValidationInterval = setInterval(async () => {
-      const currentUser = getCurrentUser();
+      const currentUser = UserService.getCurrentUserSync();
       if (currentUser) {
         const isValidSession = await validateSession();
         if (!isValidSession) {
@@ -261,7 +308,7 @@ const AppContent: React.FC = () => {
         // Force refresh permissions on app startup to handle browser refresh scenarios
         await initializePermissions(true);
         
-        const currentUser = getCurrentUser();
+        const currentUser = UserService.getCurrentUserSync();
         if (currentUser) {
           // Validate session to prevent concurrent logins
           const isValidSession = await validateSession();
@@ -287,7 +334,7 @@ const AppContent: React.FC = () => {
       } catch (error) {
         console.error('Error during initialization:', error);
         // Still try to get current user even if initialization fails
-        const currentUser = getCurrentUser();
+        const currentUser = UserService.getCurrentUserSync();
         if (currentUser) {
           setUser(currentUser);
           // User is already logged in, no need to show mobile entry
@@ -325,6 +372,9 @@ const AppContent: React.FC = () => {
   }
 
   const handleLogin = async (loggedInUser: User) => {
+    // Synchronize UserService with authenticated user
+    await UserService.setCurrentUser(loggedInUser);
+    
     // Check if user has temporary password and needs to change it
     if (loggedInUser.isTemporaryPassword) {
       setUser(loggedInUser);
@@ -464,6 +514,9 @@ const AppContent: React.FC = () => {
     
     await logout();
     
+    // Clear UserService cache
+    await UserService.logout();
+    
     // Clear permissions cache on logout to prevent stale permissions for next user
     console.log('🗑️ Clearing permissions cache on user logout');
     const { clearPermissionsCache } = await import('./utils/permissions');
@@ -531,8 +584,8 @@ const AppContent: React.FC = () => {
   const handleCalendarCaseClick = async (caseId: string) => {
     try {
       // Clear any previous pre-fill data that might interfere with case viewing
-      localStorage.removeItem('calendar_prefill_date');
-      localStorage.removeItem('calendar_prefill_department');
+      await SafeStorage.removeItem('calendar_prefill_date');
+      await SafeStorage.removeItem('calendar_prefill_department');
       
       // Navigate to cases view and highlight the specific case
       setHighlightedCaseId(caseId);
@@ -548,10 +601,10 @@ const AppContent: React.FC = () => {
     playSound.click();
   };
 
-  const handleCalendarDateClick = (date: Date, department: string) => {
+  const handleCalendarDateClick = async (date: Date, department: string) => {
     // Store the selected date and department for pre-filling the booking form
-    localStorage.setItem('calendar_prefill_date', date.toISOString());
-    localStorage.setItem('calendar_prefill_department', department);
+    await SafeStorage.setItem('calendar_prefill_date', date.toISOString(), { ttl: 24 * 60 * 60 * 1000 }); // 24 hours
+    await SafeStorage.setItem('calendar_prefill_department', department, { ttl: 24 * 60 * 60 * 1000 }); // 24 hours
     
     // Switch to booking page
     setActivePage('booking');

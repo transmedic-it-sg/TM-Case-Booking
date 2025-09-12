@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getCurrentUser } from '../utils/auth';
+import { getCurrentUser } from '../utils/authCompat';
 import { supabase } from '../lib/supabase';
 
 interface ImageAmendmentModalProps {

@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { getCurrentUser } from '../utils/auth';
+import { getCurrentUserSync } from '../utils/authCompat';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { useToast } from './ToastContainer';
 import { useModal } from '../hooks/useModal';
@@ -20,7 +20,7 @@ interface BackupInfo {
 }
 
 const BackupRestore: React.FC = () => {
-  const currentUser = getCurrentUser();
+  const currentUser = getCurrentUserSync();
   const { showSuccess, showError } = useToast();
   const { modal, closeModal, showConfirm } = useModal();
   const [isBackingUp, setIsBackingUp] = useState(false);

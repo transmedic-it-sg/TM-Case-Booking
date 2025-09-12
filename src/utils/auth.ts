@@ -5,6 +5,7 @@ import {
   addSupabaseUser,
   authenticateSupabaseUser
 } from './supabaseUserService';
+import { SafeStorage, StorageMigration } from './secureDataManager';
 
 const STORAGE_KEY = 'case-booking-users';
 const CURRENT_USER_KEY = 'current-user';
@@ -20,10 +21,13 @@ export const checkUsersExist = async (): Promise<boolean> => {
 };
 
 export const migrateUsersFromLocalStorage = async (): Promise<void> => {
-  const stored = localStorage.getItem(STORAGE_KEY);
+  // Migrate localStorage data to secure storage first
+  await StorageMigration.migrateFromLocalStorage([STORAGE_KEY]);
+  
+  const stored = await SafeStorage.getItem(STORAGE_KEY);
   if (stored) {
     try {
-      const users: User[] = JSON.parse(stored);
+      const users: User[] = Array.isArray(stored) ? stored : JSON.parse(stored);
       for (const user of users) {
         await addSupabaseUser(user);
       }
@@ -187,21 +191,24 @@ export const deleteAllUserSessions = async (userId: string): Promise<void> => {
   }
 };
 
-export const getCurrentUserFromStorage = (): User | null => {
+export const getCurrentUserFromStorage = async (): Promise<User | null> => {
   try {
-    const stored = localStorage.getItem(CURRENT_USER_KEY);
-    return stored ? JSON.parse(stored) : null;
+    const stored = await SafeStorage.getItem(CURRENT_USER_KEY);
+    return stored ? (typeof stored === 'string' ? JSON.parse(stored) : stored) : null;
   } catch (error) {
     return null;
   }
 };
 
-export const saveCurrentUserToStorage = (user: User): void => {
-  localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+export const saveCurrentUserToStorage = async (user: User): Promise<void> => {
+  await SafeStorage.setItem(CURRENT_USER_KEY, user, {
+    tags: ['user-data', 'session'],
+    ttl: 24 * 60 * 60 * 1000 // 24 hours
+  });
 };
 
-export const clearCurrentUserFromStorage = (): void => {
-  localStorage.removeItem(CURRENT_USER_KEY);
+export const clearCurrentUserFromStorage = async (): Promise<void> => {
+  await SafeStorage.removeItem(CURRENT_USER_KEY);
   sessionStorage.removeItem('session-token');
 };
 
@@ -214,10 +221,10 @@ export const getUsers = async (): Promise<User[]> => {
       // Get users from Supabase
       return await getSupabaseUsers();
     } else {
-      // If no users in Supabase, check localStorage and migrate
-      const stored = localStorage.getItem(STORAGE_KEY);
+      // If no users in Supabase, check secure storage and migrate
+      const stored = await SafeStorage.getItem(STORAGE_KEY);
       if (stored) {
-        console.log('Migrating users from localStorage to Supabase...');
+        console.log('Migrating users from secure storage to Supabase...');
         await migrateUsersFromLocalStorage();
         return await getSupabaseUsers();
       }
@@ -237,19 +244,19 @@ export const getUsers = async (): Promise<User[]> => {
       return createdUser ? [createdUser] : [];
     }
   } catch (error) {
-    console.error('Error getting users, falling back to localStorage:', error);
-    // Ensure localStorage has default users
-    const localUsers = getUsersFromLocalStorage();
-    console.log('Fallback: created/loaded localStorage users:', localUsers.length);
+    console.error('Error getting users, falling back to secure storage:', error);
+    // Ensure secure storage has default users
+    const localUsers = await getUsersFromSecureStorage();
+    console.log('Fallback: created/loaded secure storage users:', localUsers.length);
     return localUsers;
   }
 };
 
-// Backup function to get users from localStorage
-const getUsersFromLocalStorage = (): User[] => {
-  const stored = localStorage.getItem(STORAGE_KEY);
+// Backup function to get users from secure storage
+const getUsersFromSecureStorage = async (): Promise<User[]> => {
+  const stored = await SafeStorage.getItem(STORAGE_KEY);
   if (stored) {
-    const users = JSON.parse(stored);
+    const users = Array.isArray(stored) ? stored : JSON.parse(stored);
     return users.map((user: any) => ({
       ...user,
       countries: user.countries || [],
@@ -258,20 +265,25 @@ const getUsersFromLocalStorage = (): User[] => {
     }));
   }
   
+  // SECURITY: Default admin with temporary password - must be changed on first login
   const defaultUsers: User[] = [
     {
       id: '97a7414a-0edc-4623-96de-7a93004eb7a7',
-      username: 'Admin',
-      password: 'Admin',
+      username: 'admin',
+      password: 'TempAdmin123!',  // Temporary strong password
       role: 'admin',
       name: 'System Administrator',
       departments: [],
       countries: [...SUPPORTED_COUNTRIES],
-      enabled: true
+      enabled: true,
+      isTemporaryPassword: true  // Force password change on first login
     }
   ];
   
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultUsers));
+  await SafeStorage.setItem(STORAGE_KEY, defaultUsers, {
+    tags: ['user-data', 'admin'],
+    ttl: 7 * 24 * 60 * 60 * 1000 // 7 days
+  });
   return defaultUsers;
 };
 
@@ -283,16 +295,19 @@ export const addUser = async (user: Omit<User, 'id'>): Promise<User> => {
     }
     throw new Error('Failed to create user in Supabase');
   } catch (error) {
-    console.error('Error adding user to Supabase, falling back to localStorage:', error);
-    // Fallback to localStorage
-    const users = getUsersFromLocalStorage();
+    console.error('Error adding user to Supabase, falling back to secure storage:', error);
+    // Fallback to secure storage
+    const users = await getUsersFromSecureStorage();
     const newUser: User = {
       ...user,
       id: Date.now().toString()
     };
     
     users.push(newUser);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+    await SafeStorage.setItem(STORAGE_KEY, users, {
+      tags: ['user-data'],
+      ttl: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
     return newUser;
   }
 };
@@ -301,15 +316,15 @@ export const authenticate = async (username: string, password: string, country: 
   try {
     let user = await authenticateUser(username, password);
     
-    // If Supabase authentication fails, try localStorage fallback
+    // If Supabase authentication fails, try secure storage fallback
     if (!user) {
-      console.log('Supabase authentication failed, trying localStorage fallback...');
+      console.log('Supabase authentication failed, trying secure storage fallback...');
       
-      // Ensure localStorage has users by calling getUsers (which creates defaults if needed)
+      // Ensure secure storage has users by calling getUsers (which creates defaults if needed)
       await getUsers();
       
-      const localUsers = getUsersFromLocalStorage();
-      console.log('Available local users:', localUsers.map(u => ({ username: u.username, enabled: u.enabled })));
+      const localUsers = await getUsersFromSecureStorage();
+      console.log('Available local users:', localUsers.map((u: any) => ({ username: u.username, enabled: u.enabled })));
       console.log('Looking for username:', username, 'password:', password);
       
       const matchedUser = localUsers.find(u => 
@@ -353,8 +368,8 @@ export const authenticate = async (username: string, password: string, country: 
         console.warn('Failed to create Supabase session, continuing with localStorage:', sessionError);
       }
       
-      // Save to localStorage for backward compatibility
-      saveCurrentUserToStorage(userWithCountry);
+      // Save to secure storage for session management
+      await saveCurrentUserToStorage(userWithCountry);
       
       return { user: userWithCountry };
     } else {
@@ -366,22 +381,31 @@ export const authenticate = async (username: string, password: string, country: 
   }
 };
 
-export const getCurrentUser = (): User | null => {
-  const user = getCurrentUserFromStorage();
+export const getCurrentUser = async (): Promise<User | null> => {
+  const user = await getCurrentUserFromStorage();
   return user;
+};
+
+/**
+ * Synchronous version for backward compatibility with existing components
+ * Returns cached user from UserService or null
+ */
+export const getCurrentUserSync = (): User | null => {
+  const { getCurrentUserSync } = require('../services/userService');
+  return getCurrentUserSync();
 };
 
 export const logout = async (): Promise<void> => {
   try {
     // Get current session token if exists
-    const sessionToken = localStorage.getItem('session-token');
+    const sessionToken = await SafeStorage.getItem('session-token');
     if (sessionToken) {
       await deleteSession(sessionToken);
-      localStorage.removeItem('session-token');
+      await SafeStorage.removeItem('session-token');
     }
     
-    // Clear localStorage session
-    clearCurrentUserFromStorage();
+    // Clear secure storage session
+    await clearCurrentUserFromStorage();
   } catch (error) {
     console.error('Error during logout:', error);
     // Still clear localStorage even if Supabase logout fails
@@ -413,11 +437,16 @@ export const getUserEmail = async (identifier: string): Promise<string | null> =
 };
 
 // Synchronous version for backward compatibility
-export const getUserEmailSync = (identifier: string): string | null => {
-  const users = getUsersFromLocalStorage();
-  const user = users.find(u => 
-    u.username.toLowerCase() === identifier.toLowerCase() || 
-    u.name.toLowerCase() === identifier.toLowerCase()
-  );
-  return user?.email || null;
+export const getUserEmailSync = async (identifier: string): Promise<string | null> => {
+  try {
+    const users = await getUsers();
+    const user = users.find(u => 
+      u.username.toLowerCase() === identifier.toLowerCase() || 
+      u.name.toLowerCase() === identifier.toLowerCase()
+    );
+    return user?.email || null;
+  } catch (error) {
+    console.error('Error getting user email:', error);
+    return null;
+  }
 };

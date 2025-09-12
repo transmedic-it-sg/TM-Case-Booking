@@ -1,11 +1,13 @@
 {
   "name": "case-booking-app",
   "version": "1.2.9",
-  "cacheVersion": "1.0.4",
+  "cacheVersion": "1.0.6",
   "homepage": "/",
   "private": true,
   "dependencies": {
     "@supabase/supabase-js": "^2.50.5",
+    "@tanstack/react-query": "^5.87.4",
+    "@tanstack/react-query-devtools": "^5.87.4",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^13.5.0",
@@ -27,6 +29,8 @@
   "scripts": {
     "start": "NODE_OPTIONS='--max-old-space-size=8192' react-scripts start",
     "build": "react-scripts build",
+    "build:enterprise": "node scripts/build-enterprise.js",
+    "build:production": "npm run build:enterprise && npm run build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "typecheck": "npx tsc --noEmit",

@@ -34,7 +34,10 @@
       "Bash(psql:*)",
       "Bash(sed:*)",
       "Bash(git tag:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Read(//mnt/c/Users/anrong.low/Downloads/**)",
+      "Bash(npm install:*)",
+      "Bash(SKIP_PREFLIGHT_CHECK=true npm run build)"
     ],
     "deny": [],
     "ask": []

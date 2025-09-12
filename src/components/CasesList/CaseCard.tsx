@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CaseCardProps } from './types';
 import { getStatusColor, getNextResponsibleRole, formatDateTime } from './utils';
 import CaseActions from './CaseActions';
-import { getCurrentUser } from '../../utils/auth';
+import { getCurrentUserSync } from '../../utils/auth';
 import { getAllProcedureTypes } from '../../utils/storage';
 import { getDepartments, getDepartmentNamesForUser } from '../../utils/codeTable';
 import { useUserNames } from '../../hooks/useUserNames';
@@ -124,7 +124,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   useEffect(() => {
     const loadDepartments = async () => {
       try {
-        const currentUser = getCurrentUser();
+        const currentUser = getCurrentUserSync();
         if (!currentUser) {
           setAvailableDepartments(getDepartments());
           return;
@@ -205,7 +205,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   // Find the most recent attachments for statuses without active forms
   const currentAttachments = useMemo(() => {
     // Only show for specific statuses that don't have their own forms
-    const statusesWithoutForms = ['Order Prepared', 'Sales Approval'];
+    const statusesWithoutForms = ['Order Prepared', 'Order Processed', 'Sales Approval'];
     
     if (!statusesWithoutForms.includes(caseItem.status)) {
       return [];
@@ -286,7 +286,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   }, [attachments]);
 
   const canAmendCase = (caseItem: any): boolean => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (!currentUser) return false;
     
     // Admin can amend any case unlimited times

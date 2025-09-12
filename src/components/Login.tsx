@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { authenticate } from '../utils/auth';
 import { User } from '../types';
 import { getCountries } from '../services/constantsService';
+import { SafeStorage } from '../utils/secureDataManager';
 import SearchableDropdown from './SearchableDropdown';
 
 interface LoginProps {
@@ -88,13 +89,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (result.user) {
         // Save credentials if remember me is checked
         if (rememberMe) {
-          localStorage.setItem('rememberMe', JSON.stringify({
+          await SafeStorage.setItem('rememberMe', {
             username,
             password,
             country
-          }));
+          }, { encrypt: true, ttl: 30 * 24 * 60 * 60 * 1000 }); // 30 days
         } else {
-          localStorage.removeItem('rememberMe');
+          await SafeStorage.removeItem('rememberMe');
         }
         onLogin(result.user);
       } else {

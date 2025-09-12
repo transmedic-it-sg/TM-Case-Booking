@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { SafeStorage } from './secureDataManager';
 
 export interface CacheVersion {
   country: string;
@@ -49,12 +50,13 @@ export const getCurrentCacheVersions = async (country: string): Promise<CacheVer
 };
 
 /**
- * Get stored cache versions from localStorage
+ * Get stored cache versions from secure storage
  */
-export const getStoredCacheVersions = (): StoredCacheVersions => {
+export const getStoredCacheVersions = async (): Promise<StoredCacheVersions> => {
   try {
-    const stored = localStorage.getItem(CACHE_VERSION_KEY);
-    return stored ? JSON.parse(stored) : {};
+    const stored = await SafeStorage.getItem(CACHE_VERSION_KEY);
+    if (!stored) return {};
+    return typeof stored === 'string' ? JSON.parse(stored) : stored;
   } catch (error) {
     console.error('Error parsing stored cache versions:', error);
     return {};
@@ -62,12 +64,18 @@ export const getStoredCacheVersions = (): StoredCacheVersions => {
 };
 
 /**
- * Store cache versions in localStorage
+ * Store cache versions in secure storage
  */
-export const storeCacheVersions = (versions: StoredCacheVersions): void => {
+export const storeCacheVersions = async (versions: StoredCacheVersions): Promise<void> => {
   try {
-    localStorage.setItem(CACHE_VERSION_KEY, JSON.stringify(versions));
-    localStorage.setItem(LAST_CHECK_KEY, Date.now().toString());
+    await SafeStorage.setItem(CACHE_VERSION_KEY, versions, {
+      tags: ['cache-versions', 'system'],
+      ttl: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+    await SafeStorage.setItem(LAST_CHECK_KEY, Date.now().toString(), {
+      tags: ['cache-check', 'system'],
+      ttl: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
   } catch (error) {
     console.error('Error storing cache versions:', error);
   }
@@ -84,7 +92,7 @@ export const isCacheOutdated = async (userCountry: string): Promise<{
 }> => {
   try {
     const currentVersions = await getCurrentCacheVersions(userCountry);
-    const storedVersions = getStoredCacheVersions();
+    const storedVersions = await getStoredCacheVersions();
     
     const outdatedTypes: string[] = [];
     const changedVersions: CacheVersion[] = [];
@@ -122,7 +130,7 @@ export const isCacheOutdated = async (userCountry: string): Promise<{
 export const updateStoredCacheVersions = async (userCountry: string): Promise<void> => {
   try {
     const currentVersions = await getCurrentCacheVersions(userCountry);
-    const storedVersions = getStoredCacheVersions();
+    const storedVersions = await getStoredCacheVersions();
 
     // Update versions for user's country and global
     for (const version of currentVersions) {
@@ -135,7 +143,7 @@ export const updateStoredCacheVersions = async (userCountry: string): Promise<vo
       storedVersions[country][version_type] = version_number;
     }
 
-    storeCacheVersions(storedVersions);
+    await storeCacheVersions(storedVersions);
   } catch (error) {
     console.error('Error updating stored cache versions:', error);
   }
@@ -182,10 +190,10 @@ export const forceCacheVersionUpdate = async (
 /**
  * Clear all cached versions (for logout/reset)
  */
-export const clearCacheVersions = (): void => {
+export const clearCacheVersions = async (): Promise<void> => {
   try {
-    localStorage.removeItem(CACHE_VERSION_KEY);
-    localStorage.removeItem(LAST_CHECK_KEY);
+    await SafeStorage.removeItem(CACHE_VERSION_KEY);
+    await SafeStorage.removeItem(LAST_CHECK_KEY);
   } catch (error) {
     console.error('Error clearing cache versions:', error);
   }
@@ -194,12 +202,13 @@ export const clearCacheVersions = (): void => {
 /**
  * Get time since last version check
  */
-export const getTimeSinceLastCheck = (): number => {
+export const getTimeSinceLastCheck = async (): Promise<number> => {
   try {
-    const lastCheck = localStorage.getItem(LAST_CHECK_KEY);
+    const lastCheck = await SafeStorage.getItem(LAST_CHECK_KEY);
     if (!lastCheck) return Infinity;
     
-    return Date.now() - parseInt(lastCheck);
+    const checkTime = typeof lastCheck === 'string' ? parseInt(lastCheck) : lastCheck;
+    return Date.now() - checkTime;
   } catch {
     return Infinity;
   }
@@ -208,8 +217,8 @@ export const getTimeSinceLastCheck = (): number => {
 /**
  * Check if we should perform a version check (avoid too frequent checks)
  */
-export const shouldCheckVersions = (): boolean => {
-  const timeSinceLastCheck = getTimeSinceLastCheck();
+export const shouldCheckVersions = async (): Promise<boolean> => {
+  const timeSinceLastCheck = await getTimeSinceLastCheck();
   const checkInterval = 60000; // 1 minute
   
   return timeSinceLastCheck > checkInterval;

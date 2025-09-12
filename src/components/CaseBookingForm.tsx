@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CaseBooking } from '../types';
 import { getProcedureTypesForDepartment } from '../utils/storage';
-import { getCurrentUser } from '../utils/auth';
+import { getCurrentUserSync } from '../utils/authCompat';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { useCases } from '../hooks/useCases';
 import MultiSelectDropdown from './MultiSelectDropdown';
@@ -20,7 +20,7 @@ interface CaseBookingFormProps {
 }
 
 const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) => {
-  const currentUser = getCurrentUser();
+  const currentUser = getCurrentUserSync();
   const { modal, closeModal, showConfirm, showSuccess, showError } = useModal();
   const { saveCase, generateCaseReferenceNumber } = useCases();
 
@@ -151,7 +151,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     
     const loadDepartmentData = async () => {
       if (formData.department && formData.department.trim()) {
-        const user = getCurrentUser(); // Get current user inside the effect to avoid dependency issues
+        const user = getCurrentUserSync(); // Get current user inside the effect to avoid dependency issues
         if (user && isActive) {
           const userCountry = user.selectedCountry || user.countries?.[0];
           

@@ -6,7 +6,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNotifications } from '../../../hooks';
 import { AmendmentHistory } from '../../../types';
-import { getCurrentUser } from '../../../utils/auth';
+import { getCurrentUserSync } from '../../../utils/auth';
 import { auditAttachmentChange } from '../../../utils/auditService';
 
 export interface AttachmentFile {
@@ -139,7 +139,7 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
   const addFiles = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     const validFiles: File[] = [];
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
 
     // Check total file count (excluding deleted files)
     const activeAttachments = attachments.filter(a => !a.isDeleted);
@@ -221,7 +221,7 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
   }, [attachments, maxFiles, validateFile, error, success, caseId, createPreview]);
 
   const removeFile = useCallback(async (attachmentId: string) => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     const attachment = attachments.find(a => a.id === attachmentId);
     
     if (!attachment) return;
@@ -281,7 +281,7 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
   const replaceFile = useCallback(async (attachmentId: string, newFile: File) => {
     if (!validateFile(newFile)) return;
 
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     const existingAttachment = attachments.find(a => a.id === attachmentId);
     
     if (!existingAttachment) return;
@@ -353,7 +353,7 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
   }, [attachments, validateFile, caseId, success, createPreview]);
 
   const clearAll = useCallback(async () => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     const activeAttachments = attachments.filter(a => !a.isDeleted);
     
     if (activeAttachments.length === 0) return;

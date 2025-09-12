@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
-import { getCurrentUser } from '../utils/auth';
+import { getCurrentUserSync } from '../utils/authCompat';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { useCases } from '../hooks/useCases';
 import { CaseBooking } from '../types';
@@ -16,7 +16,7 @@ interface BookingCalendarProps {
 }
 
 const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateClick }) => {
-  const initialCurrentUser = getCurrentUser();
+  const initialCurrentUser = getCurrentUserSync();
   const { cases } = useCases({
     autoRefresh: true,
     refreshInterval: 30000, // Auto-refresh every 30 seconds as fallback
@@ -45,7 +45,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
   const activeCountry = isAdmin && selectedCountry ? selectedCountry : userCountry;
 
   useEffect(() => {
-    const user = getCurrentUser();
+    const user = getCurrentUserSync();
     setCurrentUser(user);
     
     // Load countries from centralized country utils

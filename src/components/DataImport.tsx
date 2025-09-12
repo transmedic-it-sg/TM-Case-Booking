@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { getCurrentUser } from '../utils/auth';
+import { getCurrentUserSync } from '../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { useToast } from './ToastContainer';
 import { useModal } from '../hooks/useModal';
@@ -27,7 +27,7 @@ interface ImportTemplate {
 }
 
 const DataImport: React.FC = () => {
-  const currentUser = getCurrentUser();
+  const currentUser = getCurrentUserSync();
   const { showSuccess, showError } = useToast();
   const { modal, closeModal, showConfirm } = useModal();
   const [isImporting, setIsImporting] = useState(false);

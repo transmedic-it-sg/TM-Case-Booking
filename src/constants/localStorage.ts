@@ -1,7 +1,10 @@
 /**
- * LocalStorage Constants - Centralized storage key definitions
+ * LocalStorage Constants - DEPRECATED - Use secureStorage.ts instead
+ * Maintained for backward compatibility during migration
  * Prevents scattered localStorage key strings throughout the app
  */
+
+import { SecureStorageManager } from './secureStorage';
 
 // Main storage keys
 export const STORAGE_KEYS = {
@@ -85,9 +88,11 @@ export const DATA_VERSION = {
   SETTINGS: '1.0.0'
 } as const;
 
-// Helper functions for localStorage operations
+// DEPRECATED: Helper functions for localStorage operations
+// Use SecureStorageManager from secureStorage.ts instead
 export class StorageManager {
   static get<T>(key: string, defaultValue?: T): T | null {
+    console.warn(`DEPRECATED: StorageManager.get("${key}") - Use SecureStorageManager instead`);
     try {
       const item = localStorage.getItem(key);
       if (item === null) return defaultValue || null;
@@ -99,6 +104,7 @@ export class StorageManager {
   }
 
   static set<T>(key: string, value: T): boolean {
+    console.warn(`DEPRECATED: StorageManager.set("${key}") - Use SecureStorageManager instead`);
     try {
       localStorage.setItem(key, JSON.stringify(value));
       return true;
@@ -109,6 +115,7 @@ export class StorageManager {
   }
 
   static remove(key: string): boolean {
+    console.warn(`DEPRECATED: StorageManager.remove("${key}") - Use SecureStorageManager instead`);
     try {
       localStorage.removeItem(key);
       return true;
@@ -119,6 +126,7 @@ export class StorageManager {
   }
 
   static clear(): boolean {
+    console.warn('DEPRECATED: StorageManager.clear() - Use SecureStorageManager instead');
     try {
       localStorage.clear();
       return true;
@@ -129,6 +137,7 @@ export class StorageManager {
   }
 
   static exists(key: string): boolean {
+    console.warn(`DEPRECATED: StorageManager.exists("${key}") - Use SecureStorageManager instead`);
     return localStorage.getItem(key) !== null;
   }
 

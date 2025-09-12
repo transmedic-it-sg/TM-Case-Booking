@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CaseBooking, FilterOptions, CaseStatus } from '../../types';
 import { CASE_STATUSES } from '../../constants/statuses';
-import { getCurrentUser } from '../../utils/auth';
+import { getCurrentUserSync } from '../../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useCases } from '../../hooks/useCases';
@@ -63,7 +63,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     let filtered = casesToFilter;
     
     // Driver role filtering - only show delivery-related cases
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (currentUser?.role === 'driver') {
       const deliveryStatuses = [
         CASE_STATUSES.PENDING_DELIVERY_HOSPITAL,
@@ -177,7 +177,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
   // Auto-apply filters for Driver role
   useEffect(() => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (currentUser?.role === 'driver' && Object.keys(filters).length === 0) {
       // Auto-apply delivery status filters for drivers
       // Set the first delivery status as default filter to show driver-relevant cases
@@ -193,7 +193,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   }, [cases, filters]); // Re-run when cases change or filters are cleared
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     let filteredResults = filterCases(cases, filters);
     
     // Admin users see ALL cases without country/department restrictions
@@ -345,7 +345,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   const handleStatusChange = async (caseId: string, newStatus: CaseStatus) => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (!currentUser) return;
 
     const caseItem = cases.find(c => c.id === caseId);
@@ -421,7 +421,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   const handleSaveAmendment = async (amendmentFormData: any) => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (!currentUser || !amendingCase) return;
 
     try {
@@ -509,7 +509,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       return;
     }
 
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (!currentUser) {
       return;
     }
@@ -553,7 +553,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
   // Sales Approval workflow
   const handleSalesApproval = (caseId: string) => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.SALES_APPROVAL)) {
       return;
     }
@@ -564,7 +564,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
   
   const handleSaveSalesApproval = async (caseId: string) => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.SALES_APPROVAL)) {
       return;
     }
@@ -630,7 +630,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   const handleOrderDelivered = async (caseId: string) => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.PENDING_DELIVERY_HOSPITAL)) {
       return;
     }
@@ -673,7 +673,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   const handleSaveOrderReceived = async (caseId: string) => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.DELIVERED_HOSPITAL)) {
       return;
     }
@@ -734,7 +734,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   const handleSaveCaseCompleted = async (caseId: string) => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.CASE_COMPLETED)) {
       return;
     }
@@ -776,7 +776,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
   // Delivered (Office) workflow
   const handleOrderDeliveredOffice = async (caseId: string) => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.DELIVERED_OFFICE)) {
       return;
     }
@@ -806,7 +806,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
   // To be billed workflow
   const handleToBeBilled = async (caseId: string) => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (!currentUser) {
       return;
     }
@@ -842,7 +842,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   const handleSavePendingOffice = async (caseId: string) => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.PENDING_DELIVERY_OFFICE)) {
       return;
     }
@@ -891,7 +891,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   const handleSaveOfficeDelivery = async (caseId: string) => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.DELIVERED_OFFICE)) {
       return;
     }
@@ -934,7 +934,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
   // Cancel case workflow
   const handleCancelCase = (caseId: string) => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (!currentUser) {
       return;
     }
@@ -981,7 +981,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   const handleDeleteCase = (caseId: string, caseItem: CaseBooking) => {
-    const currentUser = getCurrentUser();
+    const currentUser = getCurrentUserSync();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.DELETE_CASE)) {
       return;
     }
