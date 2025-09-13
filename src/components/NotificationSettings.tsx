@@ -41,18 +41,24 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
   const [currentUser] = useState(getCurrentUser());
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Load saved preferences
+  // Load saved preferences using secure storage
   useEffect(() => {
     if (currentUser) {
-      const savedPreferences = localStorage.getItem(`notificationPreferences_${currentUser.id}`);
-      if (savedPreferences) {
+      const loadPreferences = async () => {
         try {
-          const parsed = JSON.parse(savedPreferences);
-          setPreferences({ ...defaultPreferences, ...parsed });
+          const { SafeStorage } = await import('../utils/secureDataManager');
+          const { STORAGE_KEYS } = await import('../constants/secureStorage');
+          
+          const savedPreferences = await SafeStorage.getItem(`${STORAGE_KEYS.USER_PREFERENCES}_notifications_${currentUser.id}`);
+          if (savedPreferences) {
+            setPreferences({ ...defaultPreferences, ...savedPreferences });
+          }
         } catch (error) {
-          console.error('Error parsing notification preferences:', error);
+          console.error('Error loading notification preferences:', error);
         }
-      }
+      };
+      
+      loadPreferences();
     }
   }, [currentUser]);
 
@@ -81,11 +87,18 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
     };
   }, [isOpen, onClose]);
 
-  // Save preferences
-  const savePreferences = (newPreferences: NotificationPreferences) => {
+  // Save preferences using secure storage
+  const savePreferences = async (newPreferences: NotificationPreferences) => {
     if (currentUser) {
-      localStorage.setItem(`notificationPreferences_${currentUser.id}`, JSON.stringify(newPreferences));
-      setPreferences(newPreferences);
+      try {
+        const { SafeStorage } = await import('../utils/secureDataManager');
+        const { STORAGE_KEYS } = await import('../constants/secureStorage');
+        
+        await SafeStorage.setItem(`${STORAGE_KEYS.USER_PREFERENCES}_notifications_${currentUser.id}`, newPreferences);
+        setPreferences(newPreferences);
+      } catch (error) {
+        console.error('Error saving notification preferences:', error);
+      }
     }
   };
 

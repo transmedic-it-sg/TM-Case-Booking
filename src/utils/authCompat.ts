@@ -18,6 +18,8 @@ export const getCurrentUser = (): any => {
   }
 };
 
-export default {
+const authCompat = {
   getCurrentUser
 };
+
+export default authCompat;

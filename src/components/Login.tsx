@@ -33,20 +33,28 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     };
     loadCountries();
     
-    // Load remembered credentials
-    const savedCredentials = localStorage.getItem('rememberMe');
-    if (savedCredentials) {
+    // Load remembered credentials from secure storage
+    const loadSavedCredentials = async () => {
       try {
-        const { username: savedUsername, password: savedPassword, country: savedCountry } = JSON.parse(savedCredentials);
-        setUsername(savedUsername || '');
-        setPassword(savedPassword || '');
-        setCountry(savedCountry || '');
-        setRememberMe(true);
+        const savedCredentials = await SafeStorage.getItem('rememberMe');
+        if (savedCredentials) {
+          setUsername(savedCredentials.username || '');
+          setPassword(savedCredentials.password || '');
+          setCountry(savedCredentials.country || '');
+          setRememberMe(true);
+        }
       } catch (error) {
-        console.warn('Failed to load saved credentials:', error);
-        localStorage.removeItem('rememberMe');
+        console.warn('Failed to load saved credentials from secure storage:', error);
+        // Clean up any old localStorage entry
+        try {
+          localStorage.removeItem('rememberMe');
+        } catch (cleanupError) {
+          console.warn('Failed to clean up old localStorage credentials:', cleanupError);
+        }
       }
-    }
+    };
+    
+    loadSavedCredentials();
   }, []);
 
   // Set custom validation message for country select

@@ -3,24 +3,71 @@ import { permissions as defaultPermissions } from '../data/permissionMatrixData'
 import { getSupabasePermissions } from './supabasePermissionService';
 import { logger, permissionLog } from './logger';
 
-// Cache for permissions to avoid repeated async calls
-let permissionsCache: Permission[] | null = null;
-let permissionsCacheTime = 0;
+// User-scoped permission cache to prevent conflicts between concurrent users
+interface UserPermissionCache {
+  permissions: Permission[];
+  timestamp: number;
+  userId?: string;
+}
+
+// Map of user-specific permission caches
+const userPermissionCaches = new Map<string, UserPermissionCache>();
+let globalPermissionsCache: Permission[] | null = null;
+let globalPermissionsCacheTime = 0;
 let initializationPromise: Promise<void> | null = null;
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes - Extended for stability
+const CACHE_DURATION = 10 * 60 * 1000; // Reduced to 10 minutes for better security
+const USER_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes for user-specific cache
 
 // Get current runtime permissions (from Supabase or default)
 export const getRuntimePermissions = async (): Promise<Permission[]> => {
   try {
     const permissions = await getSupabasePermissions();
-    // Update cache
-    permissionsCache = permissions;
-    permissionsCacheTime = Date.now();
+    // Update global cache with atomic operation
+    globalPermissionsCache = permissions;
+    globalPermissionsCacheTime = Date.now();
     return permissions;
   } catch (error) {
     console.error('Error loading runtime permissions, using defaults:', error);
     // Clear cache on error to prevent stale data
     clearPermissionsCache();
+    return defaultPermissions;
+  }
+};
+
+// Get user-specific permissions with caching
+export const getUserPermissions = async (userId: string): Promise<Permission[]> => {
+  if (!userId) {
+    console.warn('No userId provided, using global permissions');
+    return getRuntimePermissions();
+  }
+
+  // Check user-specific cache first
+  const userCache = userPermissionCaches.get(userId);
+  if (userCache && (Date.now() - userCache.timestamp) < USER_CACHE_DURATION) {
+    return userCache.permissions;
+  }
+
+  // Load permissions and cache for this user
+  try {
+    const permissions = await getRuntimePermissions();
+    userPermissionCaches.set(userId, {
+      permissions,
+      timestamp: Date.now(),
+      userId
+    });
+    
+    // Clean up old user caches to prevent memory leaks
+    const cutoffTime = Date.now() - (USER_CACHE_DURATION * 2);
+    const cacheEntries = Array.from(userPermissionCaches.entries());
+    for (const [cacheUserId, cache] of cacheEntries) {
+      if (cache.timestamp < cutoffTime) {
+        userPermissionCaches.delete(cacheUserId);
+      }
+    }
+    
+    return permissions;
+  } catch (error) {
+    console.error('Error loading user permissions:', error);
     return defaultPermissions;
   }
 };
@@ -32,8 +79,8 @@ export const saveRuntimePermissions = async (permissions: Permission[]): Promise
     await saveSupabasePermissions(permissions);
     // Clear cache first, then update with new permissions
     clearPermissionsCache();
-    permissionsCache = permissions;
-    permissionsCacheTime = Date.now();
+    globalPermissionsCache = permissions;
+    globalPermissionsCacheTime = Date.now();
     console.log('Permissions saved and cache updated');
   } catch (error) {
     console.error('Error saving runtime permissions:', error);
@@ -42,50 +89,59 @@ export const saveRuntimePermissions = async (permissions: Permission[]): Promise
   }
 };
 
-// Check if a role has permission for a specific action
+// Check if a role has permission for a specific action (backward compatibility)
 export const hasPermission = (roleId: string, actionId: string): boolean => {
-  
+  return hasPermissionForUser(roleId, actionId, 'system');
+};
+
+// Check if a role has permission for a specific action with user context
+export const hasPermissionForUser = (roleId: string, actionId: string, userId: string = 'system'): boolean => {
   // Admin has all permissions (hardcoded as root user) - ALWAYS ALLOW
   if (roleId === 'admin') {
-    permissionLog('Admin access granted', { role: roleId, action: actionId });
+    permissionLog('Admin access granted', { role: roleId, action: actionId, userId });
     return true;
   }
   
-  // For all other roles, use database permissions with improved fallback
-  if (!permissionsCache || (Date.now() - permissionsCacheTime >= CACHE_DURATION)) {
-    console.warn(`🔄 Permission cache expired for ${roleId} - ${actionId}: Attempting refresh...`);
+  // Use global cache for non-user-specific permissions
+  const cacheToUse = globalPermissionsCache;
+  const cacheTimeToUse = globalPermissionsCacheTime;
+  
+  // Check cache validity with improved race condition handling
+  if (!cacheToUse || (Date.now() - cacheTimeToUse >= CACHE_DURATION)) {
+    console.warn(`🔄 Permission cache expired for ${roleId} - ${actionId} (user: ${userId}): Attempting refresh...`);
     
-    // Trigger async re-initialization without blocking
-    initializePermissions(false).catch(error => {
-      console.error('❌ Failed to refresh permissions cache:', error);
-    });
-    
-    // Allow access for critical actions during cache refresh to prevent lockouts
-    const criticalActions = ['view-cases', 'create-case', 'booking-calendar'];
+    // For critical actions, allow access during cache refresh to prevent lockouts
+    const criticalActions = ['view-cases', 'create-case', 'booking-calendar', 'logout'];
     if (criticalActions.includes(actionId)) {
-      console.warn(`⚠️ Allowing critical action ${actionId} during cache refresh`);
+      console.warn(`⚠️ Allowing critical action ${actionId} during cache refresh for user ${userId}`);
+      
+      // Trigger async refresh but don't wait for it
+      initializePermissions(false).catch(error => {
+        console.error('❌ Failed to refresh permissions cache:', error);
+      });
+      
       return true;
     }
     
     // FAIL SECURE: Deny access for non-critical actions when permissions cannot be verified
-    console.warn(`🔒 Permission DENIED for ${roleId} - ${actionId}: Cache unavailable and not a critical action`);
+    console.warn(`🔒 Permission DENIED for ${roleId} - ${actionId} (user: ${userId}): Cache unavailable and not a critical action`);
     return false;
   }
   
   // Use cached database permissions for authorization
-  const permission = permissionsCache.find(p => p.roleId === roleId && p.actionId === actionId);
+  const permission = cacheToUse.find(p => p.roleId === roleId && p.actionId === actionId);
   const result = permission?.allowed || false;
   
   console.log('🔍 Permission lookup result:', {
     roleId,
     actionId,
+    userId,
     permissionFound: !!permission,
     permissionData: permission,
     result,
-    allPermissionsForRole: permissionsCache.filter(p => p.roleId === roleId),
-    allActionsInCache: Array.from(new Set(permissionsCache.map(p => p.actionId))).sort()
+    cacheAge: Date.now() - cacheTimeToUse,
+    allPermissionsForRole: cacheToUse.filter(p => p.roleId === roleId).length
   });
-  
   
   return result;
 };
@@ -127,8 +183,8 @@ export const initializePermissions = async (forceRefresh: boolean = false): Prom
       console.error('❌ Error initializing permissions system:', error);
       console.error('🚨 SECURITY WARNING: Permission system failed to initialize - access will be denied to all non-admin users');
       // Clear cache to ensure fail-secure behavior
-      permissionsCache = null;
-      permissionsCacheTime = 0;
+      globalPermissionsCache = null;
+      globalPermissionsCacheTime = 0;
     } finally {
       // Clear the promise when done
       initializationPromise = null;
@@ -165,17 +221,24 @@ const schedulePermissionCacheRefresh = () => {
 };
 
 // Clear permissions cache to force reload
-export const clearPermissionsCache = (): void => {
-  permissionsCache = null;
-  permissionsCacheTime = 0;
+export const clearPermissionsCache = (userId?: string): void => {
+  if (userId) {
+    // Clear specific user cache
+    userPermissionCaches.delete(userId);
+    logger.debug(`User permission cache cleared for ${userId}`);
+  } else {
+    // Clear global cache and all user caches
+    globalPermissionsCache = null;
+    globalPermissionsCacheTime = 0;
+    userPermissionCaches.clear();
+    logger.debug('All permission caches cleared');
+  }
   
   // Clear auto-refresh timer
   if (refreshTimer) {
     clearTimeout(refreshTimer);
     refreshTimer = null;
   }
-  
-  logger.debug('Permissions cache cleared');
 };
 
 // Get all permissions for a specific role

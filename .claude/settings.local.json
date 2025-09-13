@@ -37,7 +37,10 @@
       "Bash(node:*)",
       "Read(//mnt/c/Users/anrong.low/Downloads/**)",
       "Bash(npm install:*)",
-      "Bash(SKIP_PREFLIGHT_CHECK=true npm run build)"
+      "Bash(SKIP_PREFLIGHT_CHECK=true npm run build)",
+      "Bash(pkill:*)",
+      "Bash(ss:*)",
+      "Bash(npx eslint:*)"
     ],
     "deny": [],
     "ask": []

@@ -485,6 +485,7 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
         procedure_type: caseData.procedureType,
         procedure_name: caseData.procedureName,
         doctor_name: caseData.doctorName,
+        doctor_id: caseData.doctorId,
         time_of_procedure: caseData.timeOfProcedure,
         surgery_set_selection: caseData.surgerySetSelection || [],
         implant_box: caseData.implantBox || [],
@@ -667,12 +668,13 @@ export const updateSupabaseCaseStatus = async (
         try {
           const { auditCaseStatusChange } = await import('./auditService');
           
-          // Get current user info for audit (simplified approach)
-          const currentUserData = JSON.parse(localStorage.getItem('currentUser') || '{}');
+          // Get current user info for audit using secure method
+          const { getCurrentUser } = await import('./authCompat');
+          const currentUserData = getCurrentUser();
           await auditCaseStatusChange(
-            currentUserData.name || changedBy,
-            currentUserData.id || 'unknown',
-            currentUserData.role || 'unknown',
+            currentUserData?.name || changedBy,
+            currentUserData?.id || 'unknown',
+            currentUserData?.role || 'unknown',
             caseRef,
             oldStatus || 'unknown',
             newStatus,

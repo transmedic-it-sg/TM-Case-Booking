@@ -4,7 +4,7 @@
  * Ensures data integrity and prevents false data issues
  */
 
-import { getCacheInstance, getSafeCacheInstance } from './cacheManager';
+import { /* getCacheInstance, */ getSafeCacheInstance } from './cacheManager';
 import { logger } from './logger';
 
 interface DataManagerConfig {

@@ -157,9 +157,9 @@ class EnhancedEmailService {
       }
       this.addDebugLog('recipients-check', 'success', `Found ${recipientEmails.length} recipients`, recipientEmails);
 
-      // Step 7: Prepare email content
-      const subject = applyTemplateVariables(statusRule.template.subject, caseData, { eventType: 'New Case Created' });
-      const body = applyTemplateVariables(statusRule.template.body, caseData, { eventType: 'New Case Created' });
+      // Step 7: Prepare email content with quantity information
+      const subject = await applyTemplateVariables(statusRule.template.subject, caseData, { eventType: 'New Case Created' });
+      const body = await applyTemplateVariables(statusRule.template.body, caseData, { eventType: 'New Case Created' });
       
       this.addDebugLog('template-processing', 'success', 'Email template processed', {
         subjectLength: subject.length,

@@ -42,34 +42,11 @@ class UserService {
 
   /**
    * Get current authenticated user synchronously (backward compatibility)
-   * Returns cached user or attempts to load from localStorage fallback
+   * PRODUCTION SAFE: Returns only cached user, no localStorage fallbacks
    */
   getCurrentUserSync(): User | null {
-    if (this.currentUser) {
-      return this.currentUser;
-    }
-
-    // Fallback to localStorage for immediate sync access during transition
-    try {
-      const userData = localStorage.getItem('currentUser');
-      if (userData) {
-        const user = JSON.parse(userData);
-        this.currentUser = user; // Cache it
-        return user;
-      }
-      
-      // Also check session storage
-      const sessionData = sessionStorage.getItem('currentUser');
-      if (sessionData) {
-        const user = JSON.parse(sessionData);
-        this.currentUser = user; // Cache it
-        return user;
-      }
-    } catch (error) {
-      console.warn('Error loading user from sync storage:', error);
-    }
-
-    return null;
+    // ONLY return cached user - no localStorage fallbacks to prevent stale data
+    return this.currentUser;
   }
 
   /**
@@ -99,13 +76,13 @@ class UserService {
   /**
    * Get user by ID with caching
    */
-  getUserById(id: string): User | null {
+  async getUserById(id: string): Promise<User | null> {
     if (this.userCache.has(id)) {
       return this.userCache.get(id)!;
     }
 
     try {
-      const users = this.getAllUsers();
+      const users = await this.getAllUsers();
       const user = users.find(u => u.id === id) || null;
       if (user) {
         this.userCache.set(id, user);
@@ -180,11 +157,12 @@ class UserService {
    * Update user's selected country
    */
   updateUserCountry(country: string): boolean {
-    const user = this.getCurrentUser();
+    const user = this.getCurrentUserSync();
     if (!user) return false;
 
     const updatedUser = { ...user, selectedCountry: country };
-    return this.saveUser(updatedUser);
+    this.setCurrentUser(updatedUser);
+    return true;
   }
 
   /**

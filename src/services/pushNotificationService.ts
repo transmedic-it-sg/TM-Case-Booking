@@ -3,7 +3,8 @@
  * Handles web push notifications for mobile devices
  */
 
-import { getCurrentUser } from '../utils/auth';
+// import { getCurrentUser } from '../utils/auth'; // Replaced with userService
+import userService from './userService';
 
 export interface PushSubscriptionData {
   endpoint: string;
@@ -233,7 +234,7 @@ class PushNotificationService {
    * Send subscription to server
    */
   private async syncSubscriptionWithServer(subscription: PushSubscription): Promise<void> {
-    const currentUser = getCurrentUser();
+    const currentUser = await userService.getCurrentUser();
     if (!currentUser) {
       console.warn('📱 No current user - cannot sync subscription');
       return;
@@ -288,7 +289,7 @@ class PushNotificationService {
    * Remove subscription from server
    */
   private async removeSubscriptionFromServer(): Promise<void> {
-    const currentUser = getCurrentUser();
+    const currentUser = await userService.getCurrentUser();
     if (!currentUser) return;
 
     try {

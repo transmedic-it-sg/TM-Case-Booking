@@ -14,7 +14,7 @@ const IndependentEditSets: React.FC = () => {
   const [surgerySets, setSurgerySets] = useState<string[]>([]);
   const [implantBoxes, setImplantBoxes] = useState<string[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string>('');
-  const [availableCountries] = useState<string[]>(['Singapore', 'Malaysia', 'Thailand']);
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   
   // Add forms state
   const [showAddSurgerySet, setShowAddSurgerySet] = useState(false);
@@ -32,6 +32,24 @@ const IndependentEditSets: React.FC = () => {
   const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
   const isAdmin = currentUser?.role === 'admin';
   
+  // Load available countries for admin users
+  useEffect(() => {
+    const loadCountries = async () => {
+      if (!isAdmin) return; // Only admin needs country selection
+      
+      try {
+        const { getCountries } = await import('../../services/constantsService');
+        const countries = await getCountries();
+        setAvailableCountries(countries);
+      } catch (error) {
+        console.error('Error loading countries:', error);
+        setAvailableCountries([]);
+      }
+    };
+    
+    loadCountries();
+  }, [isAdmin]);
+
   // Use selected country for Admin, otherwise use user's country
   const activeCountryName = isAdmin && selectedCountry ? selectedCountry : userCountry;
 

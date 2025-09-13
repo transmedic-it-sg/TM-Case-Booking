@@ -457,8 +457,10 @@ class ErrorTracker {
 
   private getCurrentUserId(): string | undefined {
     try {
-      const user = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || '{}');
-      return user.id || user.username;
+      // Use userService instead of localStorage
+      const { getCurrentUserSync } = require('../services/userService');
+      const user = getCurrentUserSync();
+      return user?.id || user?.username;
     } catch {
       return undefined;
     }
@@ -466,8 +468,10 @@ class ErrorTracker {
 
   private getCurrentUserName(): string | undefined {
     try {
-      const user = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || '{}');
-      return user.name || user.username;
+      // Use userService instead of localStorage
+      const { getCurrentUserSync } = require('../services/userService');
+      const user = getCurrentUserSync();
+      return user?.name || user?.username;
     } catch {
       return undefined;
     }

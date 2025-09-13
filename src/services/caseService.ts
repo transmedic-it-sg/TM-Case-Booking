@@ -5,7 +5,8 @@
 
 import { CaseBooking, CaseStatus, StatusHistory } from '../types';
 import { auditCaseAmended } from '../utils/auditService';
-import { getCurrentUser } from '../utils/auth';
+// import { getCurrentUser } from '../utils/auth'; // Replaced with userService
+import userService from './userService';
 import notificationService from './notificationService';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { 
@@ -53,7 +54,7 @@ class CaseService {
       }
       
       // Get current user to filter by country if not admin
-      const currentUser = getCurrentUser();
+      const currentUser = await userService.getCurrentUser();
       const country = currentUser?.role === 'admin' ? undefined : currentUser?.selectedCountry;
       
       const cases = await getSupabaseCases(country);
@@ -103,13 +104,13 @@ class CaseService {
   /**
    * Save case
    */
-  async saveCase(caseData: CaseBooking): Promise<boolean> {
+  async saveCase(caseData: CaseBooking): Promise<CaseBooking | null> {
     try {
       if (caseData.id && caseData.id !== 'new') {
         // Update existing case - this should not happen often for new cases
         console.warn('saveCase called with existing case ID, this may cause issues');
         // For existing cases, use amendment process instead
-        return false;
+        return null;
       }
       
       // Create new case
@@ -120,6 +121,7 @@ class CaseService {
         procedureType: caseData.procedureType,
         procedureName: caseData.procedureName,
         doctorName: caseData.doctorName,
+        doctorId: caseData.doctorId,
         timeOfProcedure: caseData.timeOfProcedure,
         surgerySetSelection: caseData.surgerySetSelection,
         implantBox: caseData.implantBox,
@@ -159,7 +161,7 @@ class CaseService {
         console.error('📧📱 Failed to send unified notifications for new case:', error);
       }
       
-      return true;
+      return newCase;
     } catch (error) {
       console.error('Error saving case to database:', error);
       
@@ -177,10 +179,10 @@ class CaseService {
         localStorage.setItem('cases', JSON.stringify(cases));
         this.casesCache.set(caseData.id, caseData);
         
-        return true;
+        return caseData;
       } catch (fallbackError) {
         console.error('Fallback to localStorage also failed:', fallbackError);
-        return false;
+        return null;
       }
     }
   }
@@ -196,7 +198,7 @@ class CaseService {
         return false;
       }
 
-      const currentUser = getCurrentUser();
+      const currentUser = await userService.getCurrentUser();
       if (!currentUser) {
         console.error('No current user found');
         return false;
@@ -304,7 +306,7 @@ class CaseService {
     attachments?: string[]
   ): Promise<boolean> {
     try {
-      const currentUser = getCurrentUser();
+      const currentUser = await userService.getCurrentUser();
       if (!currentUser) {
         console.error('No current user found');
         return false;
@@ -372,7 +374,7 @@ class CaseService {
           return false;
         }
 
-        const currentUser = getCurrentUser();
+        const currentUser = await userService.getCurrentUser();
         if (!currentUser) {
           console.error('No current user found');
           return false;
@@ -435,7 +437,7 @@ class CaseService {
    * Get cases filtered by user permissions
    */
   async getCasesForUser(): Promise<CaseBooking[]> {
-    const currentUser = getCurrentUser();
+    const currentUser = await userService.getCurrentUser();
     if (!currentUser) return [];
 
     const allCases = await this.getAllCases();
@@ -498,7 +500,7 @@ class CaseService {
    */
   async deleteCase(caseId: string): Promise<boolean> {
     try {
-      const currentUser = getCurrentUser();
+      const currentUser = await userService.getCurrentUser();
       if (!currentUser) {
         console.error('No current user found');
         return false;
@@ -540,7 +542,7 @@ class CaseService {
    */
   async generateCaseReferenceNumber(): Promise<string> {
     try {
-      const currentUser = getCurrentUser();
+      const currentUser = await userService.getCurrentUser();
       const country = currentUser?.selectedCountry || currentUser?.countries?.[0] || 'SG';
       
       // Use database-based reference number generation

@@ -12,9 +12,19 @@ export const useCurrentUser = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const currentUser = userService.getCurrentUser();
-    setUser(currentUser);
-    setLoading(false);
+    const loadUser = async () => {
+      try {
+        const currentUser = await userService.getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        console.error('Error loading user:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadUser();
   }, []);
 
   const updateUser = (updatedUser: User | null) => {
@@ -27,10 +37,10 @@ export const useCurrentUser = () => {
     setUser(null);
   };
 
-  const updateUserCountry = (country: string) => {
+  const updateUserCountry = async (country: string) => {
     const success = userService.updateUserCountry(country);
     if (success) {
-      const updatedUser = userService.getCurrentUser();
+      const updatedUser = await userService.getCurrentUser();
       setUser(updatedUser);
     }
     return success;

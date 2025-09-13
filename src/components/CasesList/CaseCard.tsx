@@ -8,6 +8,7 @@ import { getDepartments, getDepartmentNamesForUser } from '../../utils/codeTable
 import { useUserNames } from '../../hooks/useUserNames';
 import TimePicker from '../common/TimePicker';
 import { formatDate, getTodayForInput } from '../../utils/dateFormat';
+import { supabase } from '../../lib/supabase';
 
 const CaseCard: React.FC<CaseCardProps> = ({
   caseItem,
@@ -119,6 +120,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
   }, [currentUser?.selectedCountry, currentUser?.countries]);
 
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
+  
+  // State for case quantities
+  const [caseQuantities, setCaseQuantities] = useState<Record<string, number>>({});
 
   // Load departments using Supabase service
   useEffect(() => {
@@ -163,6 +167,42 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
     loadDepartments();
   }, []);
+
+  // Load case quantities when case is expanded
+  useEffect(() => {
+    const loadCaseQuantities = async () => {
+      if (!expandedCases.has(caseItem.id)) {
+        return; // Don't load quantities unless case is expanded
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('case_booking_quantities')
+          .select('item_name, quantity')
+          .eq('case_booking_id', caseItem.id);
+
+        if (error) {
+          console.error('Error loading case quantities:', error);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          const quantities: Record<string, number> = {};
+          data.forEach(item => {
+            quantities[item.item_name] = item.quantity;
+          });
+          setCaseQuantities(quantities);
+        } else {
+          setCaseQuantities({});
+        }
+      } catch (error) {
+        console.error('Error loading case quantities:', error);
+        setCaseQuantities({});
+      }
+    };
+
+    loadCaseQuantities();
+  }, [expandedCases, caseItem.id]);
 
   // Initialize code tables only once when component mounts
   // Code tables are now initialized at app level via Supabase service
@@ -391,7 +431,14 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <span className="detail-label">Surgery Set Selection: </span>
               <ul className="detail-value">
                 {caseItem.surgerySetSelection.map(set => (
-                  <li key={set}>{set}</li>
+                  <li key={set} className="set-item-with-quantity">
+                    <span className="set-name">{set}</span>
+                    {caseQuantities[set] && (
+                      <span className="quantity-badge" title={`Quantity: ${caseQuantities[set]}`}>
+                        ×{caseQuantities[set]}
+                      </span>
+                    )}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -399,7 +446,14 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <span className="detail-label">Implant Box: </span>
               <ul className="detail-value">
                 {caseItem.implantBox.map(box => (
-                  <li key={box}>{box}</li>
+                  <li key={box} className="set-item-with-quantity">
+                    <span className="set-name">{box}</span>
+                    {caseQuantities[box] && (
+                      <span className="quantity-badge" title={`Quantity: ${caseQuantities[box]}`}>
+                        ×{caseQuantities[box]}
+                      </span>
+                    )}
+                  </li>
                 ))}
               </ul>
             </div>

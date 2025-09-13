@@ -797,6 +797,207 @@
   color: var(--text-secondary);
 }
 
+/* View Mode Toggle */
+.view-mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.view-mode-toggle label {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.toggle-buttons {
+  display: flex;
+  border: 2px solid var(--border-light);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.toggle-button {
+  padding: 10px 16px;
+  border: none;
+  background: var(--white);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-right: 1px solid var(--border-light);
+}
+
+.toggle-button:last-child {
+  border-right: none;
+}
+
+.toggle-button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.toggle-button.active {
+  background: var(--primary);
+  color: #008b8b;
+  font-weight: 600;
+}
+
+/* Usage Calendar Styles */
+.usage-calendar-grid .calendar-day {
+  min-height: 120px;
+}
+
+.usage-day-content {
+  padding: 6px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.usage-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.usage-totals {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.usage-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.usage-item.surgery-sets {
+  background: #2196F3;
+}
+
+.usage-item.implant-boxes {
+  background: #FF9800;
+}
+
+.usage-icon {
+  font-size: 14px;
+}
+
+.usage-count {
+  font-weight: 700;
+}
+
+.top-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  font-size: 10px;
+}
+
+.top-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 4px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  color: var(--text-secondary);
+}
+
+.item-name {
+  font-weight: 500;
+  flex: 1;
+  text-align: left;
+}
+
+.item-quantity {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.more-items {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-align: center;
+  font-style: italic;
+}
+
+.no-usage {
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+  padding: 20px 8px;
+}
+
+.no-usage-text {
+  opacity: 0.6;
+}
+
+.usage-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  color: var(--text-secondary);
+}
+
+.loading-spinner {
+  font-size: 32px;
+  margin-bottom: 16px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.usage-info {
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: normal;
+  margin-left: 16px;
+}
+
+/* Quantity Badge Styles for Case Cards */
+.set-item-with-quantity {
+  display: flex !important;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.set-name {
+  flex: 1;
+}
+
+.quantity-badge {
+  background: var(--primary);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+  min-width: 24px;
+  text-align: center;
+}
+
 /* Responsive Grid */
 @media (max-width: 1024px) {
   .more-cases-grid {
@@ -811,5 +1012,23 @@
   .more-cases-pagination .pagination-controls {
     flex-wrap: wrap;
     justify-content: center;
+  }
+
+  .calendar-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .view-mode-toggle {
+    justify-content: center;
+  }
+
+  .usage-totals {
+    gap: 8px;
+  }
+
+  .top-items {
+    font-size: 9px;
   }
 }

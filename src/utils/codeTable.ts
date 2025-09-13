@@ -1,7 +1,7 @@
 // DEPRECATED: This file is being replaced by Supabase-based services
 // All functions now delegate to the proper Supabase services
 
-import { DEPARTMENTS } from '../types';
+// DEPARTMENTS constant removed - use database-driven departments instead
 import { SUPPORTED_COUNTRIES } from './countryUtils';
 
 export interface CodeTable {
@@ -32,8 +32,8 @@ export const getDefaultCodeTables = (country?: string): CodeTable[] => {
     {
       id: 'departments',
       name: 'Departments',
-      description: 'Medical departments',
-      items: [...DEPARTMENTS]
+      description: 'Medical departments (use database service instead)',
+      items: [] // Use Supabase department service instead
     },
     {
       id: 'countries',

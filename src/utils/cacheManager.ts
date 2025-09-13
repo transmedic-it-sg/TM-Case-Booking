@@ -4,7 +4,7 @@
  * Based on 2024 standards for data consistency and cache invalidation
  */
 
-import { createClient } from '@supabase/supabase-js';
+// import { createClient } from '@supabase/supabase-js'; // Not used directly here
 
 interface CacheEntry {
   data: any;

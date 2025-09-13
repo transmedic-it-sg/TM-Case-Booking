@@ -8,6 +8,8 @@ import SearchableDropdown from './SearchableDropdown';
 import { getMonthYearDisplay } from '../utils/dateFormat';
 import { getStatusColor } from './CasesList/utils';
 import { CASE_STATUSES } from '../constants/statuses';
+import { getDailyUsageForDate, type DailyUsage } from '../utils/doctorService';
+import { normalizeCountry } from '../utils/countryUtils';
 import '../assets/components/BookingCalendar.css';
 
 interface BookingCalendarProps {
@@ -35,6 +37,11 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [showDatePickers, setShowDatePickers] = useState(false);
   const datePickerRef = useRef<HTMLDivElement>(null);
+
+  // New state for usage view
+  const [viewMode, setViewMode] = useState<'bookings' | 'usage'>('bookings');
+  const [usageData, setUsageData] = useState<DailyUsage[]>([]);
+  const [isLoadingUsage, setIsLoadingUsage] = useState(false);
 
   // Check if user has permission to view booking calendar
   const canViewCalendar = initialCurrentUser ? hasPermission(initialCurrentUser.role, PERMISSION_ACTIONS.BOOKING_CALENDAR) : false;
@@ -136,6 +143,67 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showDatePickers]);
+
+  // Load usage data when view mode is 'usage'
+  useEffect(() => {
+    const loadUsageData = async () => {
+      if (viewMode !== 'usage' || !activeCountry) {
+        setUsageData([]);
+        return;
+      }
+
+      setIsLoadingUsage(true);
+      try {
+        const normalizedCountry = normalizeCountry(activeCountry);
+        
+        // Get all dates in the current month
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        console.log('📊 Loading usage data for:', {
+          country: normalizedCountry,
+          month: month + 1,
+          year: year,
+          daysInMonth: daysInMonth
+        });
+        
+        // Load usage data for each day in the month
+        const allUsageData: DailyUsage[] = [];
+        const loadPromises: Promise<void>[] = [];
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+          const currentDateStr = new Date(year, month, day).toISOString().split('T')[0];
+          
+          const loadPromise = getDailyUsageForDate(currentDateStr, normalizedCountry)
+            .then(dailyUsage => {
+              if (dailyUsage && dailyUsage.length > 0) {
+                allUsageData.push(...dailyUsage);
+              }
+            })
+            .catch(error => {
+              console.warn(`Error loading usage for ${currentDateStr}:`, error);
+            });
+          
+          loadPromises.push(loadPromise);
+        }
+        
+        // Wait for all data to load
+        await Promise.all(loadPromises);
+        
+        console.log('📊 Loaded usage data for month:', allUsageData);
+        setUsageData(allUsageData);
+        
+      } catch (error) {
+        console.error('Error loading usage data:', error);
+        setUsageData([]);
+      } finally {
+        setIsLoadingUsage(false);
+      }
+    };
+
+    loadUsageData();
+  }, [viewMode, activeCountry, currentDate]);
 
   // Calendar helper functions
   const getDaysInMonth = (date: Date): number => {
@@ -479,6 +547,95 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
     );
   };
 
+  // Render usage calendar with quantity aggregation
+  const renderUsageCalendar = () => {
+    const daysInMonth = getDaysInMonth(currentDate);
+    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const startingDayOfWeek = firstDayOfMonth.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    
+    const dayHeaders = [];
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    for (let i = 0; i < 7; i++) {
+      dayHeaders.push(
+        <div key={`header-${i}`} className="calendar-day-header">
+          {dayNames[i]}
+        </div>
+      );
+    }
+
+    const days = [];
+    
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
+    }
+    
+    // Add days of the current month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateString = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
+        .toISOString().split('T')[0];
+      
+      // Find usage data for this day
+      const dayUsage = usageData.find(usage => usage.usage_date === dateString);
+      
+      const isToday = new Date().toDateString() === new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString();
+      const dayClass = `calendar-day usage-day ${isToday ? 'today' : ''}`;
+
+      days.push(
+        <div key={day} className={dayClass}>
+          <div className="calendar-day-number">{day}</div>
+          <div className="usage-day-content">
+            {dayUsage ? (
+              <div className="usage-summary">
+                <div className="usage-totals">
+                  {dayUsage.surgery_sets_total > 0 && (
+                    <div className="usage-item surgery-sets" title="Surgery Sets">
+                      <span className="usage-icon">🏥</span>
+                      <span className="usage-count">{dayUsage.surgery_sets_total}</span>
+                    </div>
+                  )}
+                  {dayUsage.implant_boxes_total > 0 && (
+                    <div className="usage-item implant-boxes" title="Implant Boxes">
+                      <span className="usage-icon">📦</span>
+                      <span className="usage-count">{dayUsage.implant_boxes_total}</span>
+                    </div>
+                  )}
+                </div>
+                {dayUsage.top_items && dayUsage.top_items.length > 0 && (
+                  <div className="top-items">
+                    {dayUsage.top_items.slice(0, 2).map((item, index) => (
+                      <div key={index} className="top-item" title={`${item.item_name}: ${item.quantity}`}>
+                        <span className="item-name">{item.item_name.length > 15 ? item.item_name.substring(0, 15) + '...' : item.item_name}</span>
+                        <span className="item-quantity">×{item.quantity}</span>
+                      </div>
+                    ))}
+                    {dayUsage.top_items.length > 2 && (
+                      <div className="more-items">
+                        +{dayUsage.top_items.length - 2} more
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="no-usage">
+                <span className="no-usage-text">No usage</span>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="calendar-grid usage-calendar-grid">
+        {dayHeaders}
+        {days}
+      </div>
+    );
+  };
+
   if (!canViewCalendar) {
     return (
       <div className="permission-denied">
@@ -529,6 +686,27 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
             placeholder="Search and select department"
             className="form-control"
           />
+        </div>
+
+        {/* View Mode Toggle */}
+        <div className="view-mode-toggle">
+          <label>View:</label>
+          <div className="toggle-buttons">
+            <button
+              className={`toggle-button ${viewMode === 'bookings' ? 'active' : ''}`}
+              onClick={() => setViewMode('bookings')}
+              title="Show case bookings"
+            >
+              📅 Bookings
+            </button>
+            <button
+              className={`toggle-button ${viewMode === 'usage' ? 'active' : ''}`}
+              onClick={() => setViewMode('usage')}
+              title="Show quantity usage aggregation"
+            >
+              📊 Usage
+            </button>
+          </div>
         </div>
         
         <div className="calendar-navigation">
@@ -606,13 +784,28 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
           <div className="calendar-view">
             <div className="calendar-department-info">
               <strong>Department: {selectedDepartment}</strong>
+              {viewMode === 'usage' && (
+                <span className="usage-info">
+                  • Showing quantity aggregation for cases in "Order Preparation" status
+                </span>
+              )}
             </div>
             <div className="desktop-calendar-view">
-              {renderCalendarGrid()}
+              {viewMode === 'bookings' ? renderCalendarGrid() : 
+               viewMode === 'usage' && isLoadingUsage ? (
+                 <div className="usage-loading">
+                   <div className="loading-spinner">⏳</div>
+                   <p>Loading usage data...</p>
+                 </div>
+               ) : (
+                 renderUsageCalendar()
+               )}
             </div>
-            <div className="mobile-calendar-view">
-              {renderMobileListView()}
-            </div>
+            {viewMode === 'bookings' && (
+              <div className="mobile-calendar-view">
+                {renderMobileListView()}
+              </div>
+            )}
           </div>
         ) : (
           <div className="no-department-selected">

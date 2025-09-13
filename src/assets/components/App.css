@@ -665,6 +665,51 @@ body {
   margin-top: 24px;
 }
 
+/* Doctor Hierarchy Section - Consistent with App Theme */
+.form-section-doctor-hierarchy {
+  margin-bottom: 24px;
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  box-shadow: var(--shadow-light);
+}
+
+.form-section-doctor-hierarchy h3 {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.form-section-doctor-hierarchy .section-subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.form-section-procedure-sets {
+  margin-bottom: 24px;
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  box-shadow: var(--shadow-light);
+}
+
+.form-section-procedure-sets h3 {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.form-section-procedure-sets .section-subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
 .pending-indicator {
   margin-top: 4px;
   display: flex;

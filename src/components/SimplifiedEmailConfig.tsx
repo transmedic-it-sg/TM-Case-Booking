@@ -490,6 +490,54 @@ Best regards,
     }
   }, [currentUser, selectedCountry, availableCountries]);
 
+  // Get email configurations from Supabase app_settings table
+  const getEmailConfigFromDatabase = async (country: string): Promise<Record<string, CountryEmailConfig>> => {
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', `simplified_email_configs`)
+        .single();
+
+      if (error || !data?.setting_value) {
+        console.log('No email configurations found in database, using empty config');
+        return {};
+      }
+
+      return data.setting_value;
+    } catch (error) {
+      console.error('Failed to load email configs from database:', error);
+      return {};
+    }
+  };
+
+  // Save email configurations to Supabase app_settings table
+  const saveEmailConfigToDatabase = async (configs: Record<string, CountryEmailConfig>) => {
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({
+          setting_key: 'simplified_email_configs',
+          setting_value: configs,
+          description: 'Email provider configurations for all countries',
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'setting_key'
+        });
+
+      if (error) {
+        throw error;
+      }
+      
+      console.log('✅ Email configurations saved to database');
+    } catch (error) {
+      console.error('Failed to save email configs to database:', error);
+      throw error;
+    }
+  };
+
   // Load stored authentication data
   useEffect(() => {
     if (!selectedCountry) return;
@@ -523,22 +571,24 @@ Best regards,
       return false;
     };
 
-    // Load saved email configurations from localStorage
-    const savedConfigs = localStorage.getItem('simplified_email_configs');
-    let savedEmailConfigs: Record<string, CountryEmailConfig> = {};
-    if (savedConfigs) {
+    // Load saved email configurations from database
+    const loadEmailConfigs = async () => {
       try {
-        savedEmailConfigs = JSON.parse(savedConfigs);
+        const savedEmailConfigs = await getEmailConfigFromDatabase(selectedCountry);
+        return savedEmailConfigs;
       } catch (error) {
-        console.error('Failed to parse saved email configs:', error);
+        console.error('Failed to load email configs from database:', error);
+        return {};
       }
-    }
+    };
 
-    // Get existing saved config for this country or use defaults
-    const existingConfig = savedEmailConfigs[selectedCountry];
+    const initializeEmailConfig = async () => {
+      const savedEmailConfigs = await loadEmailConfigs();
+
+      // Get existing saved config for this country or use defaults
+      const existingConfig = savedEmailConfigs[selectedCountry];
     
-    // Validate tokens asynchronously
-    const validateAndSetConfig = async () => {
+      // Validate tokens asynchronously
       const googleValid = await validateTokens(googleTokens, 'google');
       const microsoftValid = await validateTokens(microsoftTokens, 'microsoft');
       
@@ -579,13 +629,29 @@ Best regards,
       }));
     };
     
-    validateAndSetConfig();
+    initializeEmailConfig();
 
-    // Load email notification matrix configs
-    const savedMatrixConfigs = localStorage.getItem('email-matrix-configs-by-country');
-    if (savedMatrixConfigs) {
+    // Load email notification matrix configs from database
+    const loadNotificationMatrix = async () => {
       try {
-        const matrixConfigs = JSON.parse(savedMatrixConfigs);
+        const { supabase } = await import('../lib/supabase');
+        const { data, error } = await supabase
+          .from('app_settings')
+          .select('setting_value')
+          .eq('setting_key', 'email_matrix_configs_by_country')
+          .single();
+
+        if (error || !data?.setting_value) {
+          console.log('No email matrix configurations found in database, using defaults');
+          const newMatrix = initializeNotificationMatrix(selectedCountry);
+          setEmailMatrixConfigs(prev => ({
+            ...prev,
+            [selectedCountry]: newMatrix
+          }));
+          return;
+        }
+
+        const matrixConfigs = data.setting_value;
         setEmailMatrixConfigs(matrixConfigs);
         
         // Initialize notification matrix if it doesn't exist for this country
@@ -597,7 +663,7 @@ Best regards,
           }));
         }
       } catch (error) {
-        console.error('Failed to load email matrix configurations:', error);
+        console.error('Failed to load email matrix configurations from database:', error);
         // Initialize with default if loading fails
         const newMatrix = initializeNotificationMatrix(selectedCountry);
         setEmailMatrixConfigs(prev => ({
@@ -605,14 +671,9 @@ Best regards,
           [selectedCountry]: newMatrix
         }));
       }
-    } else {
-      // Initialize notification matrix if no saved configs exist
-      const newMatrix = initializeNotificationMatrix(selectedCountry);
-      setEmailMatrixConfigs(prev => ({
-        ...prev,
-        [selectedCountry]: newMatrix
-      }));
-    }
+    };
+    
+    loadNotificationMatrix();
   }, [selectedCountry, initializeNotificationMatrix]);
 
   // Handle OAuth authentication
@@ -678,7 +739,12 @@ Best regards,
       setEmailConfigs(updatedConfigs);
 
       // Automatically save email configs after successful authentication
-      localStorage.setItem('simplified_email_configs', JSON.stringify(updatedConfigs));
+      try {
+        await saveEmailConfigToDatabase(updatedConfigs);
+      } catch (error) {
+        console.error('Failed to save email configs to database after authentication:', error);
+        showError('Save Failed', 'Email configuration saved locally but failed to sync to database');
+      }
 
       playSound.success();
       showSuccess(
@@ -759,7 +825,7 @@ Best regards,
   };
 
   // Save configuration
-  const handleSaveConfig = () => {
+  const handleSaveConfig = async () => {
     if (!selectedCountry) {
       showError('No Country Selected', 'Please select a country first');
       return;
@@ -772,11 +838,16 @@ Best regards,
       return;
     }
 
-    // Save current emailConfigs state to localStorage (includes "From Name" changes)
-    localStorage.setItem('simplified_email_configs', JSON.stringify(emailConfigs));
-    
-    playSound.success();
-    showSuccess('Configuration Saved', `Email settings for ${selectedCountry} have been saved`);
+    try {
+      // Save current emailConfigs state to database (includes "From Name" changes)
+      await saveEmailConfigToDatabase(emailConfigs);
+      
+      playSound.success();
+      showSuccess('Configuration Saved', `Email settings for ${selectedCountry} have been saved to database`);
+    } catch (error) {
+      console.error('Failed to save email configuration:', error);
+      showError('Save Failed', 'Failed to save email configuration to database. Please try again.');
+    }
   };
 
   // Test email functionality
@@ -902,12 +973,32 @@ Best regards,
   };
 
   // Save notification matrix
-  const saveNotificationMatrix = () => {
+  const saveNotificationMatrix = async () => {
     if (!selectedCountry) return;
 
-    localStorage.setItem('email-matrix-configs-by-country', JSON.stringify(emailMatrixConfigs));
-    playSound.success();
-    showSuccess('Notification Rules Saved', `Email notification rules for ${selectedCountry} have been saved successfully`);
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({
+          setting_key: 'email_matrix_configs_by_country',
+          setting_value: emailMatrixConfigs,
+          description: 'Email notification matrix configurations for all countries',
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'setting_key'
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      playSound.success();
+      showSuccess('Notification Rules Saved', `Email notification rules for ${selectedCountry} have been saved to database`);
+    } catch (error) {
+      console.error('Failed to save notification matrix:', error);
+      showError('Save Failed', 'Failed to save notification rules to database. Please try again.');
+    }
   };
 
   if (!canConfigureEmail) {

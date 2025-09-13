@@ -210,7 +210,8 @@ const AppContent: React.FC = () => {
     return () => {
       window.versionCheckInProgress = false;
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount - user state check is intentional initialization
 
   // Check maintenance mode status
   useEffect(() => {
@@ -345,7 +346,8 @@ const AppContent: React.FC = () => {
     };
     
     initialize();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount - user state is intentionally managed within
 
   // Mobile entry is handled in the initialization useEffect above
 

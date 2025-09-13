@@ -17,16 +17,8 @@ export type CaseStatus =
 
 export const COUNTRIES = SUPPORTED_COUNTRIES;
 
-export const DEPARTMENTS = [
-  'Cardiology',
-  'Orthopedics', 
-  'Neurosurgery',
-  'Oncology',
-  'Emergency',
-  'Radiology',
-  'Anesthesiology',
-  'Gastroenterology'
-] as const;
+// DEPARTMENTS constant removed - use database-driven departments via Supabase services instead
+// This ensures consistency with actual department data and prevents hardcoded conflicts
 
 export const PROCEDURE_TYPES = [
   'Knee',
@@ -129,6 +121,7 @@ export interface CaseBooking {
   procedureType: string;
   procedureName: string;
   doctorName?: string;
+  doctorId?: string;
   timeOfProcedure?: string;
   surgerySetSelection: string[];
   implantBox: string[];

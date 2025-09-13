@@ -4,7 +4,6 @@ import { getProcedureTypesForDepartment } from '../utils/storage';
 import { getCurrentUserSync } from '../utils/authCompat';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { useCases } from '../hooks/useCases';
-import MultiSelectDropdown from './MultiSelectDropdown';
 import TimePicker from './common/TimePicker';
 import SearchableDropdown from './SearchableDropdown';
 import CustomModal from './CustomModal';
@@ -13,7 +12,15 @@ import FilterDatePicker from './FilterDatePicker';
 import { addDaysForInput, getTodayForInput } from '../utils/dateFormat';
 import { sendNewCaseNotificationEnhanced } from '../utils/enhancedEmailService';
 import { normalizeCountry } from '../utils/countryUtils';
-import { supabase } from '../lib/supabase';
+import { 
+  getDoctorsForCountry, 
+  getProceduresForDoctor, 
+  getSetsForDoctorProcedure,
+  type Doctor,
+  type DoctorProcedure,
+  type ProcedureSet,
+  type CaseQuantity
+} from '../utils/doctorService';
 
 interface CaseBookingFormProps {
   onCaseSubmitted: () => void;
@@ -35,16 +42,37 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     procedureType: '',
     procedureName: '',
     doctorName: '',
+    doctorId: '', // New field for doctor hierarchy
     timeOfProcedure: '',
     surgerySetSelection: [] as string[],
     implantBox: [] as string[],
-    specialInstruction: ''
+    specialInstruction: '',
+    quantities: {} as Record<string, number> // New field for quantity tracking
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [availableProcedureTypes, setAvailableProcedureTypes] = useState<string[]>([]);
   const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);
-  // Removed categorizedSets - Surgery Sets and Implant Boxes are now independent
+  
+  // New state for doctor hierarchy
+  const [availableDoctors, setAvailableDoctors] = useState<Doctor[]>([]);
+  const [availableDoctorProcedures, setAvailableDoctorProcedures] = useState<DoctorProcedure[]>([]);
+  const [availableProcedureSets, setAvailableProcedureSets] = useState<ProcedureSet[]>([]);
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
+  const [isLoadingProcedures, setIsLoadingProcedures] = useState(false);
+  const [isLoadingSets, setIsLoadingSets] = useState(false);
+
+  // Helper function to format doctor display name
+  const formatDoctorDisplayName = (doctor: Doctor): string => {
+    return `${doctor.name} (${doctor.specialties.join(', ') || 'General'})`;
+  };
+
+  // Helper function to get current doctor display value
+  const getCurrentDoctorDisplayValue = (): string => {
+    if (!formData.doctorId) return '';
+    const currentDoctor = availableDoctors.find(d => d.id === formData.doctorId);
+    return currentDoctor ? formatDoctorDisplayName(currentDoctor) : '';
+  };
 
   // Check for calendar pre-fill data on component mount
   useEffect(() => {
@@ -80,67 +108,136 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     }
   }, []);
 
-  // Load dynamic procedure types on component mount
+  // Load hospitals and doctors when component mounts
   useEffect(() => {
-    const loadData = async () => {
-      // Using currentUser from component scope
-      const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
-      // Procedure types will be loaded when department is selected
+    const loadInitialData = async () => {
+      if (!currentUser) return;
       
-      // Load hospitals from Supabase code tables
+      const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
+      if (!userCountry) return;
+
       try {
-        if (userCountry) {
-          const normalizedCountry = normalizeCountry(userCountry);
+        const normalizedCountry = normalizeCountry(userCountry);
+        
+        // Load hospitals from Supabase code tables
+        const { getSupabaseCodeTables, addSupabaseCodeTableItem } = await import('../utils/supabaseCodeTableService');
+        let countryTables = await getSupabaseCodeTables(normalizedCountry);
+        let hospitalTable = countryTables.find(table => table.id === 'hospitals');
+        
+        // If no hospitals exist for this country, seed them
+        if (!hospitalTable || hospitalTable.items.length === 0) {
+          const sampleHospitals = [
+            `${userCountry} General Hospital`,
+            `${userCountry} Medical Center`,
+            `${userCountry} Specialist Hospital`,
+            `${userCountry} Regional Hospital`
+          ];
           
-          // Load hospitals from Supabase for this country
-          const { getSupabaseCodeTables, addSupabaseCodeTableItem } = await import('../utils/supabaseCodeTableService');
-          let countryTables = await getSupabaseCodeTables(normalizedCountry);
-          let hospitalTable = countryTables.find(table => table.id === 'hospitals');
-          
-          // If no hospitals exist for this country, seed them
-          if (!hospitalTable || hospitalTable.items.length === 0) {
-            const sampleHospitals = [
-              `${userCountry} General Hospital`,
-              `${userCountry} Medical Center`,
-              `${userCountry} Specialist Hospital`,
-              `${userCountry} Regional Hospital`
-            ];
-            
-            for (const hospital of sampleHospitals) {
-              try {
-                await addSupabaseCodeTableItem('hospitals', hospital, normalizedCountry);
-              } catch (error) {
-                console.error('Error seeding hospital:', hospital, error);
-              }
+          for (const hospital of sampleHospitals) {
+            try {
+              await addSupabaseCodeTableItem('hospitals', hospital, normalizedCountry);
+            } catch (error) {
+              console.error('Error seeding hospital:', hospital, error);
             }
-            
-            // Reload tables after seeding
-            countryTables = await getSupabaseCodeTables(normalizedCountry);
-            hospitalTable = countryTables.find(table => table.id === 'hospitals');
           }
           
-          const hospitals = hospitalTable?.items || [];
-          console.log('🏥 Loading hospitals for country:', normalizedCountry, 'Found hospitals:', hospitals);
-          setAvailableHospitals(hospitals.sort());
-        } else {
-          // Fallback to empty list if no country selected
-          setAvailableHospitals([]);
+          // Reload tables after seeding
+          countryTables = await getSupabaseCodeTables(normalizedCountry);
+          hospitalTable = countryTables.find(table => table.id === 'hospitals');
         }
+        
+        const hospitals = hospitalTable?.items || [];
+        console.log('🏥 Loading hospitals for country:', normalizedCountry, 'Found hospitals:', hospitals);
+        setAvailableHospitals(hospitals.sort());
+
+        // Load doctors for the user's country
+        setIsLoadingDoctors(true);
+        const doctors = await getDoctorsForCountry(normalizedCountry);
+        console.log('👨‍⚕️ Loading doctors for country:', normalizedCountry, 'Found doctors:', doctors);
+        setAvailableDoctors(doctors);
+        
       } catch (error) {
-        console.error('Error loading hospitals from Supabase, using fallback:', error);
-        // TODO: Replace with Supabase hospital service
-        console.warn('Hospital loading fallback - implement Supabase hospital service');
+        console.error('Error loading initial data:', error);
         setAvailableHospitals([]);
+        setAvailableDoctors([]);
+      } finally {
+        setIsLoadingDoctors(false);
       }
-      
-      // Surgery Sets and Implant Boxes are now loaded independently in separate useEffect
     };
     
-    loadData();
+    loadInitialData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentUser?.selectedCountry]);
 
-  // Procedure types are now loaded when department is selected
+  // Load procedures when doctor is selected
+  useEffect(() => {
+    const loadDoctorProcedures = async () => {
+      if (!formData.doctorId || !currentUser) {
+        setAvailableDoctorProcedures([]);
+        setAvailableProcedureSets([]);
+        setFormData(prev => ({ ...prev, procedureType: '', surgerySetSelection: [], implantBox: [], quantities: {} }));
+        return;
+      }
+
+      const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
+      if (!userCountry) return;
+
+      try {
+        setIsLoadingProcedures(true);
+        const normalizedCountry = normalizeCountry(userCountry);
+        const procedures = await getProceduresForDoctor(formData.doctorId, normalizedCountry);
+        console.log('📋 Loading procedures for doctor:', formData.doctorId, 'Found procedures:', procedures);
+        setAvailableDoctorProcedures(procedures);
+        
+        // Clear procedure selection and downstream data when doctor changes
+        setFormData(prev => ({ ...prev, procedureType: '', surgerySetSelection: [], implantBox: [], quantities: {} }));
+        setAvailableProcedureSets([]);
+        
+      } catch (error) {
+        console.error('Error loading doctor procedures:', error);
+        setAvailableDoctorProcedures([]);
+      } finally {
+        setIsLoadingProcedures(false);
+      }
+    };
+
+    loadDoctorProcedures();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.doctorId, currentUser?.selectedCountry]);
+
+  // Load surgery sets and implant boxes when doctor + procedure is selected
+  useEffect(() => {
+    const loadDoctorProcedureSets = async () => {
+      if (!formData.doctorId || !formData.procedureType || !currentUser) {
+        setAvailableProcedureSets([]);
+        setFormData(prev => ({ ...prev, surgerySetSelection: [], implantBox: [], quantities: {} }));
+        return;
+      }
+
+      const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
+      if (!userCountry) return;
+
+      try {
+        setIsLoadingSets(true);
+        const normalizedCountry = normalizeCountry(userCountry);
+        const sets = await getSetsForDoctorProcedure(formData.doctorId, formData.procedureType, normalizedCountry);
+        console.log('🏥 Loading sets for doctor-procedure:', formData.doctorId, formData.procedureType, 'Found sets:', sets);
+        setAvailableProcedureSets(sets);
+        
+        // Clear set selections and quantities when doctor/procedure changes
+        setFormData(prev => ({ ...prev, surgerySetSelection: [], implantBox: [], quantities: {} }));
+        
+      } catch (error) {
+        console.error('Error loading doctor procedure sets:', error);
+        setAvailableProcedureSets([]);
+      } finally {
+        setIsLoadingSets(false);
+      }
+    };
+
+    loadDoctorProcedureSets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.doctorId, formData.procedureType, currentUser?.selectedCountry]);
 
   // Use department-specific procedure types directly (no additional filtering needed)
   const filteredProcedureTypes = availableProcedureTypes;
@@ -219,113 +316,8 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     }
   }, [formData.department, formData.procedureType, filteredProcedureTypes]);
 
-  const [availableSurgerySets, setAvailableSurgerySets] = useState<string[]>([]);
-  const [availableImplantBoxes, setAvailableImplantBoxes] = useState<string[]>([]);
 
-  // Load Surgery Sets and Implant Boxes based on selected department
-  useEffect(() => {
-    const loadDepartmentSetsAndBoxes = async () => {
-      if (!currentUser || !formData.department) {
-        setAvailableSurgerySets([]);
-        setAvailableImplantBoxes([]);
-        return;
-      }
 
-      const userCountry = currentUser.selectedCountry || currentUser.countries?.[0];
-      if (userCountry) {
-        try {
-          const normalizedCountry = normalizeCountry(userCountry);
-          
-          // Get department ID first
-          const { data: departments, error: deptError } = await supabase
-            .from('departments')
-            .select('id')
-            .eq('name', formData.department)
-            .eq('country', normalizedCountry)
-            .eq('is_active', true)
-            .single();
-
-          if (deptError || !departments) {
-            console.warn('Department not found or error:', deptError);
-            // Fallback to load all surgery sets for country if department not found
-            const { data: allSurgerySets } = await supabase
-              .from('surgery_sets')
-              .select('name')
-              .eq('country', normalizedCountry)
-              .eq('is_active', true);
-            
-            const { data: allImplantBoxes } = await supabase
-              .from('implant_boxes')
-              .select('name')
-              .eq('country', normalizedCountry)
-              .eq('is_active', true);
-              
-            setAvailableSurgerySets((allSurgerySets || []).map((s: any) => s.name).sort());
-            setAvailableImplantBoxes((allImplantBoxes || []).map((i: any) => i.name).sort());
-            return;
-          }
-
-          const departmentId = departments.id;
-
-          // Load surgery sets for this department
-          const { data: departmentSurgerySets, error: surgerySetsError } = await supabase
-            .from('department_categorized_sets')
-            .select(`
-              surgery_sets!inner(name)
-            `)
-            .eq('department_id', departmentId)
-            .eq('country', normalizedCountry)
-            .not('surgery_set_id', 'is', null);
-
-          if (surgerySetsError) {
-            console.error('Error loading department surgery sets:', surgerySetsError);
-            setAvailableSurgerySets([]);
-          } else {
-            const surgerySetNames = (departmentSurgerySets || [])
-              .map((item: any) => item.surgery_sets?.name)
-              .filter(name => name) // Remove null/undefined values
-              .sort();
-            setAvailableSurgerySets(Array.from(new Set(surgerySetNames))); // Remove duplicates
-          }
-
-          // Load implant boxes for this department
-          const { data: departmentImplantBoxes, error: implantBoxesError } = await supabase
-            .from('department_categorized_sets')
-            .select(`
-              implant_boxes!inner(name)
-            `)
-            .eq('department_id', departmentId)
-            .eq('country', normalizedCountry)
-            .not('implant_box_id', 'is', null);
-
-          if (implantBoxesError) {
-            console.error('Error loading department implant boxes:', implantBoxesError);
-            setAvailableImplantBoxes([]);
-          } else {
-            const implantBoxNames = (departmentImplantBoxes || [])
-              .map((item: any) => item.implant_boxes?.name)
-              .filter(name => name) // Remove null/undefined values
-              .sort();
-            setAvailableImplantBoxes(Array.from(new Set(implantBoxNames))); // Remove duplicates
-          }
-
-        } catch (error) {
-          console.error('Error loading department surgery sets and implant boxes:', error);
-          setAvailableSurgerySets([]);
-          setAvailableImplantBoxes([]);
-        }
-      } else {
-        setAvailableSurgerySets([]);
-        setAvailableImplantBoxes([]);
-      }
-    };
-
-    loadDepartmentSetsAndBoxes();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.selectedCountry, currentUser?.id, formData.department]);
-
-  const surgerySetOptions = availableSurgerySets;
-  const implantBoxOptions = availableImplantBoxes;
 
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
 
@@ -420,6 +412,10 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       newErrors.dateOfSurgery = 'Date of Surgery is required';
     }
 
+    if (!formData.doctorId.trim()) {
+      newErrors.doctorId = 'Doctor is required';
+    }
+
     if (!formData.procedureType.trim()) {
       newErrors.procedureType = 'Procedure Type is required';
     }
@@ -447,12 +443,18 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           procedureType: '',
           procedureName: '',
           doctorName: '',
+          doctorId: '',
           timeOfProcedure: '',
           surgerySetSelection: [],
           implantBox: [],
-          specialInstruction: ''
+          specialInstruction: '',
+          quantities: {}
         });
         setErrors({});
+        
+        // Reset doctor hierarchy state
+        setAvailableDoctorProcedures([]);
+        setAvailableProcedureSets([]);
         
         // Show success popup
         showSuccess('All inputs have been successfully cleared!');
@@ -487,11 +489,50 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         country: userCountry
       };
 
-      const success = await saveCase(newCase);
+      const savedCase = await saveCase(newCase);
       
-      if (!success) {
+      if (!savedCase) {
         showError('Failed to save case. Please try again.');
         return;
+      }
+
+      // Save quantity data if any sets are selected
+      if ((formData.surgerySetSelection.length > 0 || formData.implantBox.length > 0) && Object.keys(formData.quantities).length > 0) {
+        try {
+          const { saveCaseQuantities } = await import('../utils/doctorService');
+          const quantities: CaseQuantity[] = [];
+          
+          // Add surgery set quantities
+          formData.surgerySetSelection.forEach(setName => {
+            const quantity = formData.quantities[setName] || 1;
+            quantities.push({
+              item_type: 'surgery_set',
+              item_name: setName,
+              quantity: quantity
+            });
+          });
+          
+          // Add implant box quantities
+          formData.implantBox.forEach(boxName => {
+            const quantity = formData.quantities[boxName] || 1;
+            quantities.push({
+              item_type: 'implant_box',
+              item_name: boxName,
+              quantity: quantity
+            });
+          });
+          
+          if (quantities.length > 0) {
+            // Use the actual case ID from the saved case
+            const quantitiesSaved = await saveCaseQuantities(savedCase.id, quantities);
+            if (!quantitiesSaved) {
+              console.warn('Failed to save case quantities, but case was created successfully');
+            }
+          }
+        } catch (error) {
+          console.error('Error saving case quantities:', error);
+          // Don't fail the entire operation for quantity saving issues
+        }
       }
       
       // Add audit log for case creation
@@ -537,11 +578,17 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         procedureType: '',
         procedureName: '',
         doctorName: '',
+        doctorId: '',
         timeOfProcedure: '',
         surgerySetSelection: [],
         implantBox: [],
-        specialInstruction: ''
+        specialInstruction: '',
+        quantities: {}
       });
+
+      // Reset doctor hierarchy state
+      setAvailableDoctorProcedures([]);
+      setAvailableProcedureSets([]);
 
       onCaseSubmitted();
     } catch (error) {
@@ -615,33 +662,6 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           </div>
         </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="procedureType" className="required">Procedure Type</label>
-            <SearchableDropdown
-              id="procedureType"
-              value={formData.procedureType}
-              onChange={(value) => setFormData(prev => ({ 
-                ...prev, 
-                procedureType: value,
-                surgerySetSelection: [],
-                implantBox: []
-              }))}
-              options={filteredProcedureTypes}
-              placeholder={
-                !formData.department 
-                  ? "Please select a department first" 
-                  : filteredProcedureTypes.length === 0
-                    ? "No procedure types configured for this department - Contact admin to add types"
-                    : "Search and select procedure type"
-              }
-              className={errors.procedureType ? 'error' : ''}
-              disabled={!formData.department || filteredProcedureTypes.length === 0}
-              required
-            />
-            {errors.procedureType && <span className="error-text">{errors.procedureType}</span>}
-          </div>
-        </div>
 
         <div className="form-row">
           <div className="form-group">
@@ -655,53 +675,231 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             />
             {errors.procedureName && <span className="error-text">{errors.procedureName}</span>}
           </div>
+        </div>
 
-          <div className="form-group">
-            <label htmlFor="doctorName">Doctor Name</label>
-            <input
-              type="text"
-              id="doctorName"
-              value={formData.doctorName}
-              onChange={(e) => setFormData(prev => ({ ...prev, doctorName: e.target.value }))}
-            />
+        {/* Doctor Selection - Regular Form Field */}
+        <div className="form-group">
+          <label htmlFor="doctorId" className="required">Doctor</label>
+          <SearchableDropdown
+            id="doctorId"
+            value={getCurrentDoctorDisplayValue()}
+            onChange={(doctorDisplayName) => {
+              const selectedDoctor = availableDoctors.find(d => 
+                doctorDisplayName === formatDoctorDisplayName(d)
+              );
+              setFormData(prev => ({ 
+                ...prev, 
+                doctorId: selectedDoctor?.id || '',
+                doctorName: selectedDoctor?.name || '',
+                procedureType: '',
+                surgerySetSelection: [],
+                implantBox: [],
+                quantities: {}
+              }));
+            }}
+            options={availableDoctors.map(formatDoctorDisplayName)}
+            placeholder={isLoadingDoctors ? "Loading doctors..." : 
+              availableDoctors.length === 0 ? "No doctors available - Contact admin to add doctors" :
+              "Search and select doctor"
+            }
+            className={errors.doctorId ? 'error' : ''}
+            disabled={isLoadingDoctors || availableDoctors.length === 0 || !formData.department}
+            required
+          />
+          {errors.doctorId && <span className="error-text">{errors.doctorId}</span>}
+          {!formData.department && (
+            <div className="help-text">
+              ℹ️ Please select a department first
+            </div>
+          )}
+          {formData.department && availableDoctors.length === 0 && !isLoadingDoctors && (
+            <div className="help-text">
+              ℹ️ No doctors found for your department. Contact your administrator to add doctors.
+            </div>
+          )}
+        </div>
+
+        {/* Procedure Type Selection - Regular Form Field */}
+        <div className="form-group">
+          <label htmlFor="doctorProcedureType" className="required">Procedure Type</label>
+          <SearchableDropdown
+            id="doctorProcedureType"
+            value={formData.procedureType}
+            onChange={(value) => setFormData(prev => ({ 
+              ...prev, 
+              procedureType: value,
+              surgerySetSelection: [],
+              implantBox: [],
+              quantities: {}
+            }))}
+            options={availableDoctorProcedures.map(proc => proc.procedure_type)}
+            placeholder={!formData.doctorId ? "Please select a doctor first" :
+              isLoadingProcedures ? "Loading procedures..." :
+              availableDoctorProcedures.length === 0 ? "No procedures available for this doctor" :
+              "Select procedure type"
+            }
+            className={errors.procedureType ? 'error' : ''}
+            disabled={!formData.doctorId || isLoadingProcedures || availableDoctorProcedures.length === 0}
+            required
+          />
+          {errors.procedureType && <span className="error-text">{errors.procedureType}</span>}
+          {formData.doctorId && availableDoctorProcedures.length === 0 && !isLoadingProcedures && (
+            <div className="help-text">
+              ℹ️ No procedures configured for this doctor. Contact your administrator.
+            </div>
+          )}
+        </div>
+
+        {/* Surgery Sets & Implant Boxes with Quantities */}
+        {formData.doctorId && formData.procedureType && (
+          <div className="form-section-procedure-sets">
+            <h3>Surgery Sets & Implant Boxes</h3>
+            <p className="section-subtitle">Available sets for {formData.doctorName} - {formData.procedureType}</p>
+            
+            {isLoadingSets ? (
+              <div className="loading-sets">Loading available sets...</div>
+            ) : availableProcedureSets.length === 0 ? (
+              <div className="no-sets-message">
+                <p>ℹ️ No surgery sets or implant boxes configured for this doctor-procedure combination.</p>
+                <p>Contact your administrator to configure sets for this combination.</p>
+              </div>
+            ) : (
+              <div className="procedure-sets-grid">
+                {availableProcedureSets
+                  .filter(set => set.item_type === 'surgery_set')
+                  .length > 0 && (
+                  <div className="sets-category">
+                    <h4>Surgery Sets</h4>
+                    <div className="sets-list">
+                      {availableProcedureSets
+                        .filter(set => set.item_type === 'surgery_set')
+                        .map(set => (
+                          <div key={`surgery-${set.item_id}`} className="set-item">
+                            <label className="set-checkbox">
+                              <input
+                                type="checkbox"
+                                checked={formData.surgerySetSelection.includes(set.item_name)}
+                                onChange={(e) => {
+                                  const isChecked = e.target.checked;
+                                  setFormData(prev => {
+                                    const newSelection = isChecked
+                                      ? [...prev.surgerySetSelection, set.item_name]
+                                      : prev.surgerySetSelection.filter(name => name !== set.item_name);
+                                    
+                                    const newQuantities = { ...prev.quantities };
+                                    if (isChecked && !newQuantities[set.item_name]) {
+                                      newQuantities[set.item_name] = 1;
+                                    } else if (!isChecked) {
+                                      delete newQuantities[set.item_name];
+                                    }
+                                    
+                                    return {
+                                      ...prev,
+                                      surgerySetSelection: newSelection,
+                                      quantities: newQuantities
+                                    };
+                                  });
+                                }}
+                              />
+                              <span className="set-name">{set.item_name}</span>
+                            </label>
+                            {formData.surgerySetSelection.includes(set.item_name) && (
+                              <div className="quantity-input">
+                                <label>Qty:</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="99"
+                                  value={formData.quantities[set.item_name] || 1}
+                                  onChange={(e) => {
+                                    const quantity = Math.max(1, parseInt(e.target.value) || 1);
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      quantities: {
+                                        ...prev.quantities,
+                                        [set.item_name]: quantity
+                                      }
+                                    }));
+                                  }}
+                                  className="quantity-field"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {availableProcedureSets
+                  .filter(set => set.item_type === 'implant_box')
+                  .length > 0 && (
+                  <div className="sets-category">
+                    <h4>Implant Boxes</h4>
+                    <div className="sets-list">
+                      {availableProcedureSets
+                        .filter(set => set.item_type === 'implant_box')
+                        .map(set => (
+                          <div key={`implant-${set.item_id}`} className="set-item">
+                            <label className="set-checkbox">
+                              <input
+                                type="checkbox"
+                                checked={formData.implantBox.includes(set.item_name)}
+                                onChange={(e) => {
+                                  const isChecked = e.target.checked;
+                                  setFormData(prev => {
+                                    const newSelection = isChecked
+                                      ? [...prev.implantBox, set.item_name]
+                                      : prev.implantBox.filter(name => name !== set.item_name);
+                                    
+                                    const newQuantities = { ...prev.quantities };
+                                    if (isChecked && !newQuantities[set.item_name]) {
+                                      newQuantities[set.item_name] = 1;
+                                    } else if (!isChecked) {
+                                      delete newQuantities[set.item_name];
+                                    }
+                                    
+                                    return {
+                                      ...prev,
+                                      implantBox: newSelection,
+                                      quantities: newQuantities
+                                    };
+                                  });
+                                }}
+                              />
+                              <span className="set-name">{set.item_name}</span>
+                            </label>
+                            {formData.implantBox.includes(set.item_name) && (
+                              <div className="quantity-input">
+                                <label>Qty:</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="99"
+                                  value={formData.quantities[set.item_name] || 1}
+                                  onChange={(e) => {
+                                    const quantity = Math.max(1, parseInt(e.target.value) || 1);
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      quantities: {
+                                        ...prev.quantities,
+                                        [set.item_name]: quantity
+                                      }
+                                    }));
+                                  }}
+                                  className="quantity-field"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        </div>
-
-        <div className="form-section-surgery-sets">
-          <MultiSelectDropdown
-            id="surgerySetSelection"
-            label="Surgery Set"
-            options={surgerySetOptions}
-            value={formData.surgerySetSelection}
-            onChange={(values) => setFormData(prev => ({ ...prev, surgerySetSelection: values }))}
-            placeholder={
-              surgerySetOptions.length === 0 
-                ? "No surgery sets available" 
-                : "Select Surgery Sets (Optional)"
-            }
-            required={false}
-            className={errors.surgerySetSelection ? 'error' : ''}
-          />
-          {errors.surgerySetSelection && <span className="error-text">{errors.surgerySetSelection}</span>}
-        </div>
-
-        <div className="form-section-implant-boxes">
-          <MultiSelectDropdown
-            id="implantBox"
-            label="Implant Box"
-            options={implantBoxOptions}
-            value={formData.implantBox}
-            onChange={(values) => setFormData(prev => ({ ...prev, implantBox: values }))}
-            placeholder={
-              implantBoxOptions.length === 0 
-                ? "No implant boxes available" 
-                : "Select Implant Boxes (Optional)"
-            }
-            required={false}
-            className={errors.implantBox ? 'error' : ''}
-          />
-          {errors.implantBox && <span className="error-text">{errors.implantBox}</span>}
-        </div>
+        )}
 
         <div className="form-group form-section-special-instructions">
           <label htmlFor="specialInstruction">Special Instructions</label>

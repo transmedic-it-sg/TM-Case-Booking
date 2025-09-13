@@ -53,11 +53,11 @@ export const useCases = (options: UseCasesOptions = {}) => {
   }, [refreshCases]);
 
   const saveCase = useCallback(async (caseData: CaseBooking) => {
-    const success = await caseService.saveCase(caseData);
-    if (success) {
+    const savedCase = await caseService.saveCase(caseData);
+    if (savedCase) {
       refreshCases();
     }
-    return success;
+    return savedCase;
   }, [refreshCases]);
 
   const deleteCase = useCallback(async (caseId: string) => {

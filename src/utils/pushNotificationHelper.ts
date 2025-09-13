@@ -4,7 +4,7 @@
  */
 
 import { CaseBooking, CaseStatus } from '../types';
-import { getCurrentUser } from './auth';
+import { getCurrentUser, getCurrentUserSync } from './auth';
 
 /**
  * Send a case status update notification
@@ -278,7 +278,7 @@ export const shouldReceiveNotification = (
   caseItem: CaseBooking, 
   notificationType: string
 ): boolean => {
-  const currentUser = getCurrentUser();
+  const currentUser = getCurrentUserSync();
   if (!currentUser) return false;
 
   // Admin and IT users get all notifications

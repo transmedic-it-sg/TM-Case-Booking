@@ -16,7 +16,7 @@ export interface Notification {
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
-  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read' | 'userId'>, notificationType?: string, targetCountry?: string, targetDepartment?: string) => void;
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read' | 'userId'>, notificationType?: string, targetCountry?: string, targetDepartment?: string) => Promise<void>;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   clearNotification: (id: string) => void;
@@ -33,26 +33,31 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const [allNotifications, setAllNotifications] = useState<Notification[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  // Load notifications from localStorage on mount
+  // Load notifications from secure storage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('case-booking-notifications');
-    if (saved) {
+    const loadNotifications = async () => {
       try {
-        const parsed = JSON.parse(saved);
-        // Migrate old notifications without userId - assign to current user or remove
-        const currentUser = getCurrentUser();
-        const migratedNotifications = parsed.map((notification: any) => {
-          if (!notification.userId && currentUser) {
-            return { ...notification, userId: currentUser.id };
-          }
-          return notification;
-        }).filter((notification: any) => notification.userId); // Remove notifications without userId
+        const { SafeStorage } = await import('../utils/secureDataManager');
+        const { STORAGE_KEYS } = await import('../constants/secureStorage');
         
-        setAllNotifications(migratedNotifications);
+        const saved = await SafeStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+        if (saved) {
+          // Ensure all notifications have userId for user isolation
+          const currentUser = getCurrentUser();
+          const validNotifications = saved.filter((notification: any) => 
+            notification.userId && typeof notification.userId === 'string'
+          );
+          
+          setAllNotifications(validNotifications);
+        }
       } catch (error) {
-        console.error('Failed to load notifications:', error);
+        console.error('Failed to load notifications from secure storage:', error);
+        // Don't fallback to localStorage to prevent conflicts
+        setAllNotifications([]);
       }
-    }
+    };
+    
+    loadNotifications();
   }, []);
 
   // Filter notifications for current user whenever allNotifications or user changes
@@ -68,21 +73,38 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     }
   }, [allNotifications]);
 
-  // Save all notifications to localStorage whenever they change
+  // Save all notifications to secure storage whenever they change
   useEffect(() => {
-    localStorage.setItem('case-booking-notifications', JSON.stringify(allNotifications));
+    const saveNotifications = async () => {
+      try {
+        const { SafeStorage } = await import('../utils/secureDataManager');
+        const { STORAGE_KEYS } = await import('../constants/secureStorage');
+        
+        await SafeStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, allNotifications);
+      } catch (error) {
+        console.error('Failed to save notifications to secure storage:', error);
+      }
+    };
+    
+    if (allNotifications.length > 0) {
+      saveNotifications();
+    }
   }, [allNotifications]);
 
-  // Helper function to get user notification preferences
-  const getUserNotificationPreferences = (userId: string): NotificationPreferences => {
-    const savedPreferences = localStorage.getItem(`notificationPreferences_${userId}`);
-    if (savedPreferences) {
-      try {
-        return JSON.parse(savedPreferences);
-      } catch (error) {
-        console.error('Error parsing notification preferences:', error);
+  // Helper function to get user notification preferences using secure storage
+  const getUserNotificationPreferences = async (userId: string): Promise<NotificationPreferences> => {
+    try {
+      const { SafeStorage } = await import('../utils/secureDataManager');
+      const { STORAGE_KEYS } = await import('../constants/secureStorage');
+      
+      const savedPreferences = await SafeStorage.getItem(`${STORAGE_KEYS.USER_PREFERENCES}_notifications_${userId}`);
+      if (savedPreferences) {
+        return savedPreferences;
       }
+    } catch (error) {
+      console.error('Error loading notification preferences from secure storage:', error);
     }
+    
     // Default preferences
     return {
       statusUpdates: true,
@@ -119,7 +141,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     return preferenceKey ? preferences[preferenceKey] : true; // Default to true for unknown types
   };
 
-  const addNotification = (
+  const addNotification = async (
     notification: Omit<Notification, 'id' | 'timestamp' | 'read' | 'userId'>, 
     notificationType?: string,
     targetCountry?: string,
@@ -137,10 +159,17 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       return; // Skip notification if not for user's department
     }
 
-    // Check user notification preferences
-    const userPreferences = getUserNotificationPreferences(currentUser.id);
-    if (notificationType && !shouldSendNotification(notificationType, userPreferences)) {
-      return;
+    // Check user notification preferences asynchronously
+    if (notificationType) {
+      try {
+        const userPreferences = await getUserNotificationPreferences(currentUser.id);
+        if (!shouldSendNotification(notificationType, userPreferences)) {
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to check notification preferences, allowing notification:', error);
+        // Continue to send notification if preferences can't be loaded
+      }
     }
 
     const newNotification: Notification = {

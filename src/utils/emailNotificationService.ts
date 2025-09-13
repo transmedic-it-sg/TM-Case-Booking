@@ -50,33 +50,14 @@ export const getEmailConfig = async (country: string) => {
       .single();
       
     if (error || !data) {
-      // Fallback to localStorage for backward compatibility
-      const stored = localStorage.getItem('simplified_email_configs');
-      if (!stored) return null;
-      
-      try {
-        const configs = JSON.parse(stored);
-        return configs[country] || null;
-      } catch (error) {
-        console.error('Failed to parse email configs from localStorage:', error);
-        return null;
-      }
+      console.warn(`No email config found for country: ${country}`);
+      return null;
     }
     
     return data.setting_value;
   } catch (error) {
     console.error('Failed to get email config from database:', error);
-    // Fallback to localStorage
-    const stored = localStorage.getItem('simplified_email_configs');
-    if (!stored) return null;
-    
-    try {
-      const configs = JSON.parse(stored);
-      return configs[country] || null;
-    } catch (fallbackError) {
-      console.error('Failed to parse email configs from localStorage fallback:', fallbackError);
-      return null;
-    }
+    return null;
   }
 };
 
@@ -99,7 +80,7 @@ const getDefaultNotificationMatrix = (country: string): EmailNotificationMatrix 
           adminGlobalAccess: true
         },
         template: {
-          subject: 'New Case Booked: {{caseReferenceNumber}} - {{hospital}}',
+          subject: 'New Case Booked: {{caseReferenceNumber}} - {{hospital}} - {{doctorName}}',
           body: `Dear Team,
 
 A new case has been booked and requires your attention.
@@ -108,15 +89,15 @@ Case Details:
 • Case Reference: {{caseReferenceNumber}}
 • Hospital: {{hospital}}
 • Department: {{department}}
+• Doctor: {{doctorName}}
 • Procedure Type: {{procedureType}}
-• Surgery Date: {{surgeryDate}}
-• Surgery Time: {{surgeryTime}}
-• Surgeon: {{surgeon}}
+• Surgery Date: {{dateOfSurgery}}
+• Surgery Time: {{timeOfProcedure}}
 
-Surgery Sets: {{surgerySets}}
-Implant Boxes: {{implantBoxes}}
+Ordered Items with Quantities:
+{{quantityInformation}}
 
-Special Instructions: {{specialInstructions}}
+Special Instructions: {{specialInstruction}}
 
 Please process this case according to your department's procedures.
 
@@ -165,32 +146,8 @@ export const getNotificationMatrix = async (country: string): Promise<EmailNotif
     console.error('Error querying database for notification matrix:', error);
   }
   
-  // Fallback to localStorage for backward compatibility
-  const stored = localStorage.getItem('email-matrix-configs-by-country');
-  console.log(`📋 Raw localStorage data:`, stored ? 'Found' : 'Not found');
-  
-  if (!stored) {
-    console.warn(`❌ No stored notification matrix found in localStorage, returning empty configuration`);
-    return { country, rules: [] };
-  }
-  
-  try {
-    const matrixConfigs = JSON.parse(stored);
-    console.log(`📊 Available countries in matrix:`, Object.keys(matrixConfigs));
-    const result = matrixConfigs[country];
-    
-    if (!result) {
-      console.warn(`❌ No matrix found for "${country}", returning empty configuration`);
-      return { country, rules: [] };
-    }
-    
-    console.log(`🎯 Matrix for "${country}":`, result ? `Found with ${result.rules?.length} rules` : 'Not found');
-    return result;
-  } catch (error) {
-    console.error('Failed to parse notification matrix configs:', error);
-    console.warn(`Returning empty notification matrix for "${country}" due to parse error`);
-    return { country, rules: [] };
-  }
+  console.warn(`❌ No notification matrix found for "${country}", returning empty configuration`);
+  return { country, rules: [] };
 };
 
 // Get OAuth tokens for active provider
@@ -208,8 +165,21 @@ export const getActiveProviderTokens = async (country: string) => {
   };
 };
 
-// Apply template variables to text
-export const applyTemplateVariables = (template: string, caseData: CaseBooking, additionalVars: Record<string, string> = {}): string => {
+/**
+ * Apply template variables to email text with enhanced quantity information
+ * 
+ * Available template variables:
+ * - {{caseReferenceNumber}}, {{hospital}}, {{department}}, {{doctorName}}
+ * - {{dateOfSurgery}}, {{timeOfProcedure}}, {{procedureType}}
+ * - {{surgerySetsWithQuantities}} - Surgery sets with quantities (e.g., "ALIF DISC PREP ×2, CAPRI EXPANDABLE ×1")
+ * - {{implantBoxesWithQuantities}} - Implant boxes with quantities
+ * - {{quantityInformation}} - Complete formatted quantity info for both types
+ * - {{surgerySetSelection}}, {{implantBox}} - Enhanced with quantities when available, legacy format as fallback
+ * - {{specialInstruction}}, {{submittedBy}}, {{status}}, etc.
+ * 
+ * Backward compatibility: Legacy variables (surgerySetsBasic, implantBoxesBasic) available without quantities
+ */
+export const applyTemplateVariables = async (template: string, caseData: CaseBooking, additionalVars: Record<string, string> = {}): Promise<string> => {
   let result = template;
   
   console.log('🔄 Applying template variables to:', template.substring(0, 100) + '...');
@@ -219,8 +189,61 @@ export const applyTemplateVariables = (template: string, caseData: CaseBooking, 
     submittedBy: caseData.submittedBy,
     dateOfSurgery: caseData.dateOfSurgery
   });
+
+  // Load quantity information if case has an ID
+  let quantityInfo = '';
+  let surgerySetsWithQuantities = '';
+  let implantBoxesWithQuantities = '';
   
-  // Case-specific variables
+  if (caseData.id) {
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { data: quantities, error } = await supabase
+        .from('case_booking_quantities')
+        .select('item_name, quantity, item_type')
+        .eq('case_booking_id', caseData.id);
+        
+      if (!error && quantities && quantities.length > 0) {
+        console.log('📊 Loaded quantities:', quantities);
+        
+        // Separate surgery sets and implant boxes
+        const surgerySets = quantities.filter(q => q.item_type === 'surgery_set');
+        const implantBoxes = quantities.filter(q => q.item_type === 'implant_box');
+        
+        // Format surgery sets with quantities
+        if (surgerySets.length > 0) {
+          surgerySetsWithQuantities = surgerySets
+            .map(q => `${q.item_name} ×${q.quantity}`)
+            .join(', ');
+        }
+        
+        // Format implant boxes with quantities
+        if (implantBoxes.length > 0) {
+          implantBoxesWithQuantities = implantBoxes
+            .map(q => `${q.item_name} ×${q.quantity}`)
+            .join(', ');
+        }
+        
+        // Create comprehensive quantity information
+        const quantityParts = [];
+        if (surgerySetsWithQuantities) {
+          quantityParts.push(`Surgery Sets: ${surgerySetsWithQuantities}`);
+        }
+        if (implantBoxesWithQuantities) {
+          quantityParts.push(`Implant Boxes: ${implantBoxesWithQuantities}`);
+        }
+        quantityInfo = quantityParts.join('\n');
+        
+        console.log('✅ Formatted quantity info:', quantityInfo);
+      } else {
+        console.log('ℹ️ No quantity data found for case:', caseData.id);
+      }
+    } catch (error) {
+      console.error('❌ Error loading quantity information:', error);
+    }
+  }
+  
+  // Case-specific variables with enhanced quantity information
   const variables = {
     // Primary variable names
     caseReferenceNumber: caseData.caseReferenceNumber || 'N/A',
@@ -236,8 +259,20 @@ export const applyTemplateVariables = (template: string, caseData: CaseBooking, 
     submittedAt: caseData.submittedAt ? new Date(caseData.submittedAt).toLocaleDateString() : 'N/A',
     country: caseData.country || 'N/A',
     specialInstruction: caseData.specialInstruction || 'None',
-    surgerySetSelection: Array.isArray(caseData.surgerySetSelection) ? caseData.surgerySetSelection.join(', ') : 'N/A',
-    implantBox: Array.isArray(caseData.implantBox) ? caseData.implantBox.join(', ') : 'N/A',
+    
+    // Enhanced quantity-aware variables
+    surgerySetSelection: surgerySetsWithQuantities || (Array.isArray(caseData.surgerySetSelection) ? caseData.surgerySetSelection.join(', ') : 'N/A'),
+    implantBox: implantBoxesWithQuantities || (Array.isArray(caseData.implantBox) ? caseData.implantBox.join(', ') : 'N/A'),
+    
+    // New quantity-specific variables
+    surgerySetsWithQuantities: surgerySetsWithQuantities || 'N/A',
+    implantBoxesWithQuantities: implantBoxesWithQuantities || 'N/A',
+    quantityInformation: quantityInfo || 'No quantity information available',
+    
+    // Legacy variables (original format without quantities for backward compatibility)
+    surgerySetsBasic: Array.isArray(caseData.surgerySetSelection) ? caseData.surgerySetSelection.join(', ') : 'N/A',
+    implantBoxesBasic: Array.isArray(caseData.implantBox) ? caseData.implantBox.join(', ') : 'N/A',
+    
     processOrderDetails: caseData.processOrderDetails || 'N/A',
     
     // Template aliases (for backward compatibility with email templates)
@@ -262,6 +297,10 @@ export const applyTemplateVariables = (template: string, caseData: CaseBooking, 
     amendedBy: caseData.amendedBy || 'N/A',
     amendedAt: caseData.amendedAt ? new Date(caseData.amendedAt).toLocaleDateString() : 'N/A',
     isAmended: caseData.isAmended ? 'Yes' : 'No',
+    
+    // Template aliases for quantity information
+    surgerySets: surgerySetsWithQuantities || (Array.isArray(caseData.surgerySetSelection) ? caseData.surgerySetSelection.join(', ') : 'N/A'),
+    implantBoxes: implantBoxesWithQuantities || (Array.isArray(caseData.implantBox) ? caseData.implantBox.join(', ') : 'N/A'),
     
     ...additionalVars
   };
@@ -736,9 +775,9 @@ export const sendCaseStatusNotification = async (
       return false;
     }
 
-    // Apply template variables
-    const subject = applyTemplateVariables(statusRule.template.subject, caseData, additionalInfo);
-    const body = applyTemplateVariables(statusRule.template.body, caseData, additionalInfo);
+    // Apply template variables with quantity information
+    const subject = await applyTemplateVariables(statusRule.template.subject, caseData, additionalInfo);
+    const body = await applyTemplateVariables(statusRule.template.body, caseData, additionalInfo);
     
     // Prepare attachments for email
     const attachments = prepareEmailAttachments(caseData, newStatus);

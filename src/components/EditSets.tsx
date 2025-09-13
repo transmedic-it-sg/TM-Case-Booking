@@ -1,2 +1,2 @@
-// Re-export the standalone EditSets component (Surgery Sets & Implant Boxes independent of Procedure Types)
-export { default } from './EditSets/StandaloneEditSets';
+// Re-export the new dual-tab EditSets component (Doctor-Procedure-Sets hierarchy management)
+export { default } from './EditSets/DualTabEditSets';

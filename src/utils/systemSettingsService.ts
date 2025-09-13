@@ -114,7 +114,7 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
     return supabaseConfig;
   } catch (error) {
     console.error('Error getting system configuration from Supabase:', error);
-    console.log('Falling back to localStorage configuration');
+    console.log('Falling back to secure storage configuration');
     return await getSystemConfigFromSecureStorage();
   }
 };
@@ -123,9 +123,9 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
  * Save system configuration to Supabase
  */
 export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
-  // Always save to localStorage first to ensure settings are persisted
+  // Always save to secure storage first to ensure settings are persisted
   await saveSystemConfigToSecureStorage(config);
-  console.log('✅ System configuration saved to localStorage');
+  console.log('✅ System configuration saved to secure storage');
 
   try {
     // Prepare key-value pairs for Supabase

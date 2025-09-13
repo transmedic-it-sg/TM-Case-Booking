@@ -427,15 +427,10 @@ export const permissions: Permission[] = [
 
 // Get all roles including custom ones
 export const getAllRoles = (): Role[] => {
-  try {
-    const customRoles = localStorage.getItem('case-booking-custom-roles');
-    if (customRoles) {
-      const parsed = JSON.parse(customRoles);
-      return [...roles, ...parsed];
-    }
-  } catch (error) {
-    console.error('Error loading custom roles:', error);
-  }
+  // TODO: Migrate to Supabase role management system
+  // For now, return default roles only to prevent localStorage security issues
+  // Custom roles should be managed through database instead of localStorage
+  console.warn('Custom roles temporarily disabled for security - using default roles only');
   return roles;
 };
 
@@ -447,15 +442,10 @@ export const getAllMatrixRoles = (): Role[] => {
 
 // Get all permissions including custom role permissions
 export const getAllPermissions = (): Permission[] => {
-  try {
-    const customPermissions = localStorage.getItem('case-booking-custom-permissions');
-    if (customPermissions) {
-      const parsed = JSON.parse(customPermissions);
-      return [...permissions, ...parsed];
-    }
-  } catch (error) {
-    console.error('Error loading custom permissions:', error);
-  }
+  // TODO: Migrate to Supabase permission management system
+  // For now, return default permissions only to prevent localStorage security issues
+  // Custom permissions should be managed through database instead of localStorage
+  console.warn('Custom permissions temporarily disabled for security - using default permissions only');
   return permissions;
 };
 
