@@ -374,8 +374,14 @@ export const createDoctor = async (
       .single();
 
     if (error) {
+      // Check for unique constraint violation (doctor already exists)
+      if (error.code === '23505') {
+        logger.info('Doctor already exists', { name, country });
+        throw new Error(`Doctor "${name}" already exists in ${country}. Please use a different name.`);
+      }
+      
       logger.error('Error creating doctor', { name, country, error: error.message });
-      return null;
+      throw new Error(`Failed to create doctor: ${error.message}`);
     }
 
     if (!data) {
@@ -450,6 +456,90 @@ export const addProcedureToDoctor = async (
   }
 };
 
+/**
+ * Update procedure for a doctor with error handling
+ */
+export const updateDoctorProcedure = async (
+  doctorId: string,
+  oldProcedureType: string,
+  newProcedureType: string,
+  country: string
+): Promise<boolean> => {
+  try {
+    if (!doctorId || !oldProcedureType || !newProcedureType || !country) {
+      logger.warn('updateDoctorProcedure: Invalid parameters', { doctorId, oldProcedureType, newProcedureType, country });
+      return false;
+    }
+
+    const { error } = await supabase
+      .from('doctor_procedures')
+      .update({
+        procedure_type: newProcedureType.trim()
+      })
+      .eq('doctor_id', doctorId)
+      .eq('procedure_type', oldProcedureType.trim())
+      .eq('country', country.trim());
+
+    if (error) {
+      logger.error('Error updating doctor procedure', { doctorId, oldProcedureType, newProcedureType, country, error: error.message });
+      return false;
+    }
+
+    logger.info('Successfully updated doctor procedure', { doctorId, oldProcedureType, newProcedureType, country });
+    return true;
+
+  } catch (error) {
+    logger.error('Exception in updateDoctorProcedure', { 
+      doctorId, 
+      oldProcedureType, 
+      newProcedureType,
+      country, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    return false;
+  }
+};
+
+/**
+ * Delete procedure from a doctor with error handling
+ */
+export const deleteDoctorProcedure = async (
+  doctorId: string,
+  procedureType: string,
+  country: string
+): Promise<boolean> => {
+  try {
+    if (!doctorId || !procedureType || !country) {
+      logger.warn('deleteDoctorProcedure: Invalid parameters', { doctorId, procedureType, country });
+      return false;
+    }
+
+    const { error } = await supabase
+      .from('doctor_procedures')
+      .delete()
+      .eq('doctor_id', doctorId)
+      .eq('procedure_type', procedureType.trim())
+      .eq('country', country.trim());
+
+    if (error) {
+      logger.error('Error deleting doctor procedure', { doctorId, procedureType, country, error: error.message });
+      return false;
+    }
+
+    logger.info('Successfully deleted doctor procedure', { doctorId, procedureType, country });
+    return true;
+
+  } catch (error) {
+    logger.error('Exception in deleteDoctorProcedure', { 
+      doctorId, 
+      procedureType,
+      country, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    return false;
+  }
+};
+
 const doctorService = {
   getDoctorsForCountry,
   getProceduresForDoctor,
@@ -457,7 +547,9 @@ const doctorService = {
   getDailyUsageForDate,
   saveCaseQuantities,
   createDoctor,
-  addProcedureToDoctor
+  addProcedureToDoctor,
+  updateDoctorProcedure,
+  deleteDoctorProcedure
 };
 
 export default doctorService;

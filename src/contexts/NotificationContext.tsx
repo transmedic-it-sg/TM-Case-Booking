@@ -43,7 +43,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         const saved = await SafeStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
         if (saved) {
           // Ensure all notifications have userId for user isolation
-          const currentUser = getCurrentUser();
           const validNotifications = saved.filter((notification: any) => 
             notification.userId && typeof notification.userId === 'string'
           );

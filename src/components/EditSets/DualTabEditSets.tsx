@@ -18,6 +18,8 @@ import {
   getProceduresForDoctor, 
   getSetsForDoctorProcedure,
   addProcedureToDoctor,
+  updateDoctorProcedure,
+  deleteDoctorProcedure,
   createDoctor,
   type Doctor,
   type DoctorProcedure,
@@ -210,7 +212,7 @@ const DualTabEditSets: React.FC = () => {
   // Handle doctor selection
   const handleDoctorSelection = (doctorDisplayName: string) => {
     const doctor = availableDoctors.find(d => 
-      doctorDisplayName === `${d.name} (${d.specialties.join(', ') || 'General'})`
+      doctorDisplayName === d.name
     );
     
     setSelectedDoctor(doctor?.id || '');
@@ -248,16 +250,73 @@ const DualTabEditSets: React.FC = () => {
     }
   }, [selectedDoctor, selectedDoctorName, userCountry, isSubmitting, showSuccess, showError, playSound]);
 
+  // Update procedure for doctor
+  const handleUpdateProcedure = useCallback(async (oldProcedureType: string, newProcedureType: string) => {
+    if (!selectedDoctor || !userCountry || !newProcedureType.trim() || isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+      const normalizedCountry = normalizeCountry(userCountry);
+      const success = await updateDoctorProcedure(selectedDoctor, oldProcedureType, newProcedureType.trim(), normalizedCountry);
+      
+      if (success) {
+        // Reload procedures for this doctor
+        const updatedProcedures = await getProceduresForDoctor(selectedDoctor, normalizedCountry);
+        setDoctorProcedures(updatedProcedures);
+        
+        showSuccess('Success', `Procedure updated from "${oldProcedureType}" to "${newProcedureType}"`);
+        playSound.success();
+      } else {
+        throw new Error('Failed to update procedure');
+      }
+      
+    } catch (error) {
+      console.error('Error updating procedure:', error);
+      showError('Error', 'Failed to update procedure');
+      playSound.error();
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [selectedDoctor, userCountry, isSubmitting, showSuccess, showError, playSound]);
+
+  // Delete procedure from doctor
+  const handleDeleteProcedure = useCallback(async (procedureType: string) => {
+    if (!selectedDoctor || !userCountry || isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+      const normalizedCountry = normalizeCountry(userCountry);
+      const success = await deleteDoctorProcedure(selectedDoctor, procedureType, normalizedCountry);
+      
+      if (success) {
+        // Reload procedures for this doctor
+        const updatedProcedures = await getProceduresForDoctor(selectedDoctor, normalizedCountry);
+        setDoctorProcedures(updatedProcedures);
+        
+        showSuccess('Success', `Procedure "${procedureType}" removed from ${selectedDoctorName}`);
+        playSound.success();
+      } else {
+        throw new Error('Failed to delete procedure');
+      }
+      
+    } catch (error) {
+      console.error('Error deleting procedure:', error);
+      showError('Error', 'Failed to delete procedure');
+      playSound.error();
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [selectedDoctor, selectedDoctorName, userCountry, isSubmitting, showSuccess, showError, playSound]);
+
   // Add new doctor
-  const handleAddDoctor = useCallback(async (doctorName: string, specialties: string = '') => {
+  const handleAddDoctor = useCallback(async (doctorName: string) => {
     if (!userCountry || !doctorName.trim() || isSubmitting) return;
 
     try {
       setIsSubmitting(true);
       const normalizedCountry = normalizeCountry(userCountry);
-      const specialtiesList = specialties.split(',').map(s => s.trim()).filter(s => s);
       
-      const newDoctor = await createDoctor(doctorName.trim(), normalizedCountry, specialtiesList);
+      const newDoctor = await createDoctor(doctorName.trim(), normalizedCountry, []);
       
       if (newDoctor) {
         // Reload doctors list
@@ -272,7 +331,8 @@ const DualTabEditSets: React.FC = () => {
       
     } catch (error) {
       console.error('Error creating doctor:', error);
-      showError('Error', 'Failed to create doctor');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create doctor';
+      showError('Error', errorMessage);
       playSound.error();
     } finally {
       setIsSubmitting(false);
@@ -329,10 +389,10 @@ const DualTabEditSets: React.FC = () => {
             <label htmlFor="doctor-select">Select Doctor:</label>
             <SearchableDropdown
               id="doctor-select"
-              value={selectedDoctorName ? `${selectedDoctorName} (${availableDoctors.find(d => d.id === selectedDoctor)?.specialties.join(', ') || 'General'})` : ''}
+              value={selectedDoctorName || ''}
               onChange={handleDoctorSelection}
               options={availableDoctors.map(doctor => 
-                `${doctor.name} (${doctor.specialties.join(', ') || 'General'})`
+                doctor.name
               )}
               placeholder={isLoading ? "Loading doctors..." : 
                 availableDoctors.length === 0 ? "No doctors available for this department - Add a doctor first" :
@@ -362,9 +422,13 @@ const DualTabEditSets: React.FC = () => {
             ) : (
               <div className="procedures-list">
                 {doctorProcedures.map((procedure, index) => (
-                  <div key={index} className="procedure-item">
-                    <span className="procedure-name">{procedure.procedure_type}</span>
-                  </div>
+                  <ProcedureItem
+                    key={index}
+                    procedure={procedure}
+                    onUpdate={handleUpdateProcedure}
+                    onDelete={handleDeleteProcedure}
+                    disabled={isSubmitting}
+                  />
                 ))}
               </div>
             )}
@@ -437,10 +501,10 @@ const DualTabEditSets: React.FC = () => {
             <label htmlFor="sets-doctor-select">Select Doctor:</label>
             <SearchableDropdown
               id="sets-doctor-select"
-              value={selectedDoctorName ? `${selectedDoctorName} (${availableDoctors.find(d => d.id === selectedDoctor)?.specialties.join(', ') || 'General'})` : ''}
+              value={selectedDoctorName || ''}
               onChange={handleDoctorSelection}
               options={availableDoctors.map(doctor => 
-                `${doctor.name} (${doctor.specialties.join(', ') || 'General'})`
+                doctor.name
               )}
               placeholder={isLoading ? "Loading doctors..." : 
                 availableDoctors.length === 0 ? "No doctors available for this department" :
@@ -633,20 +697,103 @@ const AddProcedureForm: React.FC<{
   );
 };
 
+// Helper component for displaying and editing procedures
+const ProcedureItem: React.FC<{ 
+  procedure: DoctorProcedure;
+  onUpdate: (oldType: string, newType: string) => void;
+  onDelete: (procedureType: string) => void;
+  disabled: boolean;
+}> = ({ procedure, onUpdate, onDelete, disabled }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(procedure.procedure_type);
+
+  const handleSave = () => {
+    if (editValue.trim() && editValue.trim() !== procedure.procedure_type) {
+      onUpdate(procedure.procedure_type, editValue.trim());
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditValue(procedure.procedure_type);
+    setIsEditing(false);
+  };
+
+  const handleDelete = () => {
+    if (window.confirm(`Are you sure you want to delete "${procedure.procedure_type}"?`)) {
+      onDelete(procedure.procedure_type);
+    }
+  };
+
+  return (
+    <div className="set-item procedure-item">
+      {isEditing ? (
+        <div className="edit-form">
+          <input
+            type="text"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            className="edit-input"
+            autoFocus
+          />
+          <div className="edit-actions">
+            <button 
+              type="button" 
+              onClick={handleSave}
+              disabled={disabled || !editValue.trim()}
+              className="btn btn-success btn-sm"
+            >
+              ✓ Save
+            </button>
+            <button 
+              type="button" 
+              onClick={handleCancel}
+              disabled={disabled}
+              className="btn btn-secondary btn-sm"
+            >
+              ✗ Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="item-display">
+          <span className="item-name">{procedure.procedure_type}</span>
+          <div className="item-actions">
+            <button
+              onClick={() => setIsEditing(true)}
+              disabled={disabled}
+              className="btn-outline-primary"
+              title="Edit procedure"
+            >
+              ✏️
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={disabled}
+              className="btn-outline-danger"
+              title="Delete procedure"
+            >
+              🗑️
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Helper component for adding doctors
 const AddDoctorForm: React.FC<{ 
-  onAdd: (doctorName: string, specialties: string) => void;
+  onAdd: (doctorName: string) => void;
   disabled: boolean;
 }> = ({ onAdd, disabled }) => {
   const [doctorName, setDoctorName] = useState('');
-  const [specialties, setSpecialties] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (doctorName.trim()) {
-      onAdd(doctorName.trim(), specialties.trim());
+      onAdd(doctorName.trim());
       setDoctorName('');
-      setSpecialties('');
     }
   };
 
@@ -661,14 +808,6 @@ const AddDoctorForm: React.FC<{
           disabled={disabled}
           className="form-input"
           required
-        />
-        <input
-          type="text"
-          value={specialties}
-          onChange={(e) => setSpecialties(e.target.value)}
-          placeholder="Specialties (comma-separated, e.g., Orthopedics, Neurosurgery)"
-          disabled={disabled}
-          className="form-input"
         />
         <button 
           type="submit" 

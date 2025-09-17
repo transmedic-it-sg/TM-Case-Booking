@@ -40,7 +40,11 @@
       "Bash(SKIP_PREFLIGHT_CHECK=true npm run build)",
       "Bash(pkill:*)",
       "Bash(ss:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(npm audit:*)",
+      "Bash(npm ls:*)",
+      "Bash(fuser:*)",
+      "Bash(kill:*)"
     ],
     "deny": [],
     "ask": []

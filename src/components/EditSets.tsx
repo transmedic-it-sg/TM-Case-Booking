@@ -1,2 +1,2 @@
-// Re-export the new dual-tab EditSets component (Doctor-Procedure-Sets hierarchy management)
-export { default } from './EditSets/DualTabEditSets';
+// Re-export the new enhanced 3-tab EditSets component (Doctor-Procedure-Sets hierarchy management)
+export { default } from './EditSets/EnhancedEditSets';

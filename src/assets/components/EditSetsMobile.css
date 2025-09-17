@@ -1,11 +1,392 @@
 /* Edit Sets - Following App Theme (White & Light Green) */
 
+/* Main Tabs - Standardized Design */
+.main-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  background: var(--white, #ffffff);
+  padding: 0.5rem;
+  border-radius: var(--border-radius-large, 12px);
+  box-shadow: var(--shadow-light, 0 2px 4px rgba(0,0,0,0.08));
+  border: 1px solid var(--border-light, #ebebeb);
+}
+
+.main-tab-button {
+  flex: 1;
+  padding: 1rem 1.5rem;
+  border: none;
+  background: transparent;
+  border-radius: var(--border-radius, 8px);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-secondary, #717171);
+  transition: all 0.3s ease;
+  position: relative;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.main-tab-button:hover:not(.active) {
+  background: var(--primary-light, #e0f7f7);
+  color: var(--primary-color, #20b2aa);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-light, 0 2px 4px rgba(0,0,0,0.08));
+}
+
+.main-tab-button.active {
+  background: linear-gradient(135deg, var(--primary-color, #20b2aa) 0%, var(--primary-dark, #008b8b) 100%) !important;
+  color: var(--white, #ffffff) !important;
+  font-weight: 600 !important;
+  box-shadow: var(--shadow-medium, 0 6px 16px rgba(32, 178, 170, 0.3)) !important;
+  transform: translateY(-1px) !important;
+  border: 1px solid var(--primary-color, #20b2aa) !important;
+}
+
 .edit-sets-container {
-  padding: 1.5rem;
+  padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
   background: var(--white, #ffffff);
   min-height: 100vh;
+}
+
+/* Enhanced Edit Sets Layout */
+.enhanced-edit-sets {
+  padding: 2.5rem;
+}
+
+.enhanced-edit-sets .edit-sets-header {
+  margin-bottom: 3rem;
+  text-align: center;
+}
+
+.enhanced-edit-sets .edit-sets-header h2 {
+  margin-bottom: 1rem;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.enhanced-edit-sets .edit-sets-header p {
+  font-size: 1.1rem;
+  color: var(--text-secondary, #717171);
+  margin-bottom: 0;
+}
+
+/* Tab Content Spacing */
+.tab-content {
+  margin-top: 2rem;
+  padding: 2rem;
+  background: var(--white, #ffffff);
+  border-radius: var(--border-radius-large, 12px);
+  box-shadow: var(--shadow-light, 0 2px 4px rgba(0,0,0,0.08));
+  border: 1px solid var(--border-light, #ebebeb);
+}
+
+.section-header {
+  margin-bottom: 2.5rem;
+  text-align: center;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid var(--border-light, #ebebeb);
+}
+
+.section-header h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary, #222222);
+}
+
+.section-header p {
+  color: var(--text-secondary, #717171);
+  font-size: 1rem;
+  margin-bottom: 0;
+}
+
+/* Form Groups Spacing */
+.form-group {
+  margin-bottom: 2rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary, #222222);
+  font-size: 1rem;
+}
+
+/* Management Sections */
+.doctors-management-section,
+.procedures-management-section,
+.sets-management-section {
+  margin-top: 3rem;
+  padding: 2rem;
+  background: var(--background-light, #f7f7f7);
+  border-radius: var(--border-radius-large, 12px);
+  border: 1px solid var(--border-light, #ebebeb);
+}
+
+.doctors-management-section h4,
+.procedures-management-section h4,
+.sets-management-section h4 {
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary, #222222);
+}
+
+/* Lists Spacing */
+.doctors-list,
+.procedures-list {
+  margin-bottom: 2rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.doctor-item,
+.procedure-item {
+  margin-bottom: 0 !important;
+}
+
+/* Add Forms */
+.add-doctor-form,
+.add-procedure-form {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: var(--white, #ffffff);
+  border-radius: var(--border-radius, 8px);
+  border: 1px solid var(--border-light, #ebebeb);
+}
+
+.add-doctor-form h5,
+.add-procedure-form h5 {
+  margin-bottom: 1rem;
+  font-weight: 600;
+  color: var(--text-primary, #222222);
+}
+
+/* Sets Columns Layout */
+.sets-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.sets-column {
+  padding: 2rem;
+  background: var(--white, #ffffff);
+  border-radius: var(--border-radius-large, 12px);
+  border: 1px solid var(--border-light, #ebebeb);
+  box-shadow: var(--shadow-light, 0 2px 4px rgba(0,0,0,0.08));
+}
+
+.sets-column h5 {
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary, #222222);
+  text-align: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--primary-color, #20b2aa);
+  font-size: 1.1rem;
+}
+
+.sets-column-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.current-sets {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.current-sets h6 {
+  margin-bottom: 1rem;
+  font-weight: 600;
+  color: var(--text-primary, #222222);
+  font-size: 1rem;
+  border-bottom: 1px solid var(--border-light, #ebebeb);
+  padding-bottom: 0.5rem;
+}
+
+.enhanced-set-item {
+  padding: 1rem;
+  background: var(--background-light, #f7f7f7);
+  border: 1px solid var(--border-light, #ebebeb);
+  border-radius: var(--border-radius, 8px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.enhanced-set-item:hover {
+  background: var(--white, #ffffff);
+  border-color: var(--primary-color, #20b2aa);
+  box-shadow: var(--shadow-light, 0 2px 4px rgba(0,0,0,0.08));
+}
+
+.set-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.set-info .set-name {
+  font-weight: 500;
+  color: var(--text-primary, #222222);
+  font-size: 0.95rem;
+}
+
+.set-info .set-id {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #717171);
+  font-family: monospace;
+}
+
+.set-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.add-set-form {
+  margin-bottom: 1rem;
+}
+
+.no-sets {
+  text-align: center;
+  color: var(--text-secondary, #717171);
+  font-style: italic;
+  padding: 1rem;
+  background: var(--white, #ffffff);
+  border: 2px dashed var(--border-light, #ebebeb);
+  border-radius: var(--border-radius, 8px);
+}
+
+/* Procedure Sets Form Layout */
+.procedure-sets-form {
+  margin-top: 1.5rem;
+}
+
+.procedure-sets-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+/* Quantities Section */
+.quantities-section {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: var(--background-light, #f7f7f7);
+  border-radius: var(--border-radius, 8px);
+  border: 1px solid var(--border-light, #ebebeb);
+}
+
+.quantities-section h4 {
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary, #222222);
+}
+
+.quantities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.quantity-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.quantity-item label {
+  font-weight: 500;
+  color: var(--text-primary, #222222);
+  font-size: 0.875rem;
+}
+
+.quantity-field {
+  padding: 0.75rem;
+  border: 1px solid var(--border-light, #ebebeb);
+  border-radius: var(--border-radius, 8px);
+  font-size: 1rem;
+  background: var(--white, #ffffff);
+  width: 80px;
+}
+
+/* No Items Messages */
+.no-items {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary, #717171);
+  background: var(--white, #ffffff);
+  border-radius: var(--border-radius, 8px);
+  border: 2px dashed var(--border-light, #ebebeb);
+}
+
+.no-items p {
+  margin-bottom: 0.5rem;
+}
+
+.no-items p:last-child {
+  margin-bottom: 0;
+}
+
+/* Loading States */
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary, #717171);
+  font-style: italic;
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 768px) {
+  .enhanced-edit-sets {
+    padding: 1.5rem;
+  }
+  
+  .tab-content {
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+  }
+  
+  .section-header {
+    margin-bottom: 2rem;
+  }
+  
+  .doctors-management-section,
+  .procedures-management-section,
+  .sets-management-section {
+    padding: 1.5rem;
+    margin-top: 2rem;
+  }
+  
+  .sets-columns {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .procedure-sets-form .form-row {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .quantities-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
 }
 
 /* Header */
@@ -846,5 +1227,561 @@
   .drag-info {
     text-align: center;
     font-size: 11px;
+  }
+}
+
+/* ===== ENHANCED EDIT SETS COMPONENT STYLES ===== */
+
+/* Enhanced Edit Sets Component Styling */
+.enhanced-edit-sets {
+  padding: 2rem;
+  background: var(--white, #ffffff);
+  border-radius: var(--border-radius-large, 12px);
+  box-shadow: var(--shadow-light, 0 2px 4px rgba(0,0,0,0.08));
+  min-height: calc(100vh - 4rem);
+}
+
+/* Tab Header - Matching nav-buttons style */
+.enhanced-edit-sets .tabs-header {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.enhanced-edit-sets .tab-button {
+  background: linear-gradient(135deg, var(--white) 0%, #f8f9fa 100%);
+  border: 2px solid var(--border-light);
+  padding: 16px 32px;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 180px;
+}
+
+.enhanced-edit-sets .tab-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+.enhanced-edit-sets .tab-button:hover {
+  border-color: var(--primary-color);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(32, 178, 170, 0.15);
+  background: linear-gradient(135deg, var(--white) 0%, #f0fdfc 100%);
+}
+
+.enhanced-edit-sets .tab-button:hover::before {
+  left: 100%;
+}
+
+.enhanced-edit-sets .tab-button.active {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  color: var(--white);
+  border-color: var(--primary-dark);
+  box-shadow: 0 8px 32px rgba(32, 178, 170, 0.4);
+  transform: translateY(-2px);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.enhanced-edit-sets .tab-button.active::before {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+}
+
+.enhanced-edit-sets .tab-button:active {
+  transform: translateY(-1px) scale(0.98);
+  transition: transform 0.1s ease;
+}
+
+/* Item Actions (Edit & Delete buttons) */
+.enhanced-edit-sets .item-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.enhanced-edit-sets .edit-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.enhanced-edit-sets .edit-btn:hover {
+  background: #0056b3;
+  transform: scale(1.05);
+}
+
+.enhanced-edit-sets .delete-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.enhanced-edit-sets .delete-btn:hover {
+  background: #c82333;
+  transform: scale(1.05);
+}
+
+.enhanced-edit-sets .edit-btn:disabled,
+.enhanced-edit-sets .delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Loading States */
+.enhanced-edit-sets .loading-sets {
+  text-align: center;
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.enhanced-edit-sets .loading-sets p {
+  color: var(--primary-color);
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Sequence Reordering */
+.enhanced-edit-sets .reorder-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 4px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+  transition: all 0.2s ease;
+  min-width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 2px;
+}
+
+.enhanced-edit-sets .reorder-btn:hover {
+  background: #5a6268;
+  transform: scale(1.1);
+}
+
+.enhanced-edit-sets .reorder-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.enhanced-edit-sets .list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.enhanced-edit-sets .list-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transform: translateY(-1px);
+}
+
+.enhanced-edit-sets .list-item .item-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.enhanced-edit-sets .item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.enhanced-edit-sets .reorder-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-right: 8px;
+}
+
+/* Section Headers with Add Button */
+.enhanced-edit-sets .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #f1f3f4;
+}
+
+.enhanced-edit-sets .section-header h4 {
+  margin: 0;
+  color: var(--text-primary, #333333);
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+/* Standard Add Item Button - Top Right Position */
+.enhanced-edit-sets .add-item-button {
+  background: var(--success-color, #28a745);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+.enhanced-edit-sets .add-item-button:hover {
+  background: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.enhanced-edit-sets .add-item-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Form Groups */
+.enhanced-edit-sets .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.enhanced-edit-sets .form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-primary, #333333);
+}
+
+.enhanced-edit-sets .form-group label.required::after {
+  content: ' *';
+  color: #dc3545;
+}
+
+/* Items List */
+.enhanced-edit-sets .items-list {
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  min-height: 200px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.enhanced-edit-sets .list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e9ecef;
+  background: white;
+  margin: 0;
+  transition: background-color 0.2s ease;
+}
+
+.enhanced-edit-sets .list-item:last-child {
+  border-bottom: none;
+}
+
+.enhanced-edit-sets .list-item:hover {
+  background: #f8f9fa;
+}
+
+.enhanced-edit-sets .item-name {
+  font-weight: 500;
+  color: var(--text-primary, #333333);
+  flex: 1;
+}
+
+.enhanced-edit-sets .item-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.25rem;
+}
+
+.enhanced-edit-sets .item-meta {
+  font-size: 0.9rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.enhanced-edit-sets .info-message {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.enhanced-edit-sets .info-message p {
+  margin: 0.5rem 0;
+}
+
+.enhanced-edit-sets .info-message p:first-child {
+  margin-top: 0;
+}
+
+.enhanced-edit-sets .info-message p:last-child {
+  margin-bottom: 0;
+}
+
+.enhanced-edit-sets .delete-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.enhanced-edit-sets .delete-btn:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
+.enhanced-edit-sets .delete-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* No Items Message */
+.enhanced-edit-sets .no-items-message {
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 2px dashed #dee2e6;
+}
+
+/* Loading State */
+.enhanced-edit-sets .loading {
+  text-align: center;
+  padding: 2rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Modal Styles */
+.enhanced-edit-sets .modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.enhanced-edit-sets .modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  min-width: 400px;
+}
+
+.enhanced-edit-sets .modal-content h4 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary, #333333);
+}
+
+.enhanced-edit-sets .modal-content input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 1.5rem;
+}
+
+.enhanced-edit-sets .modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.enhanced-edit-sets .modal-actions button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.enhanced-edit-sets .modal-actions button:first-child {
+  background: #6c757d;
+  color: white;
+}
+
+.enhanced-edit-sets .modal-actions button:first-child:hover {
+  background: #5a6268;
+}
+
+.enhanced-edit-sets .modal-actions button:last-child {
+  background: var(--primary-color, #20b2aa);
+  color: white;
+}
+
+.enhanced-edit-sets .modal-actions button:last-child:hover {
+  background: var(--primary-dark, #008b8b);
+}
+
+.enhanced-edit-sets .modal-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Surgery and Implants Tab Specific Styles */
+.enhanced-edit-sets .sets-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.enhanced-edit-sets .sets-column {
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  overflow: hidden;
+}
+
+.enhanced-edit-sets .column-header {
+  background: white;
+  padding: 1rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.enhanced-edit-sets .column-header h5 {
+  margin: 0 0 1rem 0;
+  color: var(--text-primary, #333333);
+  font-weight: 600;
+}
+
+/* Permission Message */
+.enhanced-edit-sets .permission-message {
+  text-align: center;
+  padding: 3rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.enhanced-edit-sets .permission-message p {
+  margin: 0.5rem 0;
+  color: #6c757d;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .enhanced-edit-sets {
+    padding: 1rem;
+  }
+  
+  .enhanced-edit-sets .section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .enhanced-edit-sets .sets-columns {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .enhanced-edit-sets .tabs-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .enhanced-edit-sets .tab-button {
+    padding: 18px 24px;
+    font-size: 16px;
+    border-radius: 25px;
+    width: 100%;
+    min-height: 56px;
+    text-align: center;
+  }
+  
+  .enhanced-edit-sets .tab-button:hover {
+    transform: translateY(-2px) scale(1.01);
+  }
+  
+  .enhanced-edit-sets .tab-button.active {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(32, 178, 170, 0.3);
+  }
+  
+  .enhanced-edit-sets .modal-content {
+    min-width: 300px;
+    margin: 1rem;
   }
 }
