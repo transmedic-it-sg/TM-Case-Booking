@@ -1,2 +1,3 @@
-// Re-export the new enhanced 3-tab EditSets component (Doctor-Procedure-Sets hierarchy management)
-export { default } from './EditSets/EnhancedEditSets';
+// Re-export the clean doctors-only EditSets component
+// TODO: Will be extended to 3-tab system (Doctor-Procedure-Sets hierarchy management)
+export { default } from './EditSets/DoctorsOnlyEditSets';

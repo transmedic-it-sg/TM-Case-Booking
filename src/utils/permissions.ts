@@ -275,6 +275,11 @@ export const PERMISSION_ACTIONS = {
   DELETE_CASE: 'delete-case',
   UPDATE_CASE_STATUS: 'update-case-status',
   CANCEL_CASE: 'cancel-case',
+  // Split Edit Sets into granular permissions
+  EDIT_DOCTORS: 'edit-doctors',
+  EDIT_PROCEDURES: 'edit-procedures', 
+  EDIT_SURGERY_IMPLANTS: 'edit-surgery-implants',
+  // Deprecated - keeping for backward compatibility
   EDIT_SETS: 'edit-sets',
   BOOKING_CALENDAR: 'booking-calendar',
   

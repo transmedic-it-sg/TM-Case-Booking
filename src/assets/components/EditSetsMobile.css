@@ -1483,6 +1483,18 @@
   box-shadow: none !important;
 }
 
+/* Selected Item State */
+.list-item.selected {
+  background: var(--primary-light, #e0f7f7);
+  border-color: var(--primary-color, #20b2aa);
+  box-shadow: 0 2px 8px rgba(32, 178, 170, 0.2);
+}
+
+.list-item.selected:hover {
+  background: var(--primary-light, #e0f7f7);
+  border-color: var(--primary-color, #20b2aa);
+}
+
 /* Progress Indicators */
 .loading-indicator {
   display: flex;
