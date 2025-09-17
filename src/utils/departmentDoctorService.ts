@@ -370,3 +370,311 @@ export const removeDoctorFromSystem = async (
     return { success: false, error: 'Internal server error' };
   }
 };
+
+/**
+ * Add procedure to doctor without triggering cache version conflicts
+ */
+export const addProcedureToDoctor = async (
+  doctorId: string,
+  procedureType: string,
+  country: string
+): Promise<boolean> => {
+  try {
+    if (!doctorId || !procedureType || !country) {
+      logger.warn('addProcedureToDoctor: Invalid parameters', { doctorId, procedureType, country });
+      return false;
+    }
+
+    const normalizedCountry = normalizeCountry(country);
+
+    // Check if procedure already exists
+    const { data: existing } = await supabase
+      .from('doctor_procedures')
+      .select('id')
+      .eq('doctor_id', doctorId)
+      .eq('procedure_type', procedureType.trim())
+      .eq('country', normalizedCountry)
+      .single();
+
+    if (existing) {
+      logger.info('Procedure already exists for doctor', { doctorId, procedureType, country: normalizedCountry });
+      return true; // Already exists, consider it success
+    }
+
+    const { error } = await supabase
+      .from('doctor_procedures')
+      .insert({
+        doctor_id: doctorId,
+        procedure_type: procedureType.trim(),
+        country: normalizedCountry,
+        is_active: true
+      });
+
+    if (error) {
+      logger.error('Error adding procedure to doctor', { doctorId, procedureType, country: normalizedCountry, error: error.message });
+      return false;
+    }
+
+    logger.info('Successfully added procedure to doctor', { doctorId, procedureType, country: normalizedCountry });
+    return true;
+
+  } catch (error) {
+    logger.error('Exception in addProcedureToDoctor', { 
+      doctorId, 
+      procedureType, 
+      country, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    return false;
+  }
+};
+
+/**
+ * Update procedure for a doctor with error handling
+ */
+export const updateDoctorProcedure = async (
+  doctorId: string,
+  oldProcedureType: string,
+  newProcedureType: string,
+  country: string
+): Promise<boolean> => {
+  try {
+    if (!doctorId || !oldProcedureType || !newProcedureType || !country) {
+      logger.warn('updateDoctorProcedure: Invalid parameters', { doctorId, oldProcedureType, newProcedureType, country });
+      return false;
+    }
+
+    const normalizedCountry = normalizeCountry(country);
+
+    const { error } = await supabase
+      .from('doctor_procedures')
+      .update({
+        procedure_type: newProcedureType.trim()
+      })
+      .eq('doctor_id', doctorId)
+      .eq('procedure_type', oldProcedureType.trim())
+      .eq('country', normalizedCountry);
+
+    if (error) {
+      logger.error('Error updating doctor procedure', { doctorId, oldProcedureType, newProcedureType, country: normalizedCountry, error: error.message });
+      return false;
+    }
+
+    logger.info('Successfully updated doctor procedure', { doctorId, oldProcedureType, newProcedureType, country: normalizedCountry });
+    return true;
+
+  } catch (error) {
+    logger.error('Exception in updateDoctorProcedure', { 
+      doctorId, 
+      oldProcedureType, 
+      newProcedureType,
+      country, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    return false;
+  }
+};
+
+/**
+ * Delete procedure from a doctor with error handling
+ */
+export const deleteDoctorProcedure = async (
+  doctorId: string,
+  procedureType: string,
+  country: string
+): Promise<boolean> => {
+  try {
+    if (!doctorId || !procedureType || !country) {
+      logger.warn('deleteDoctorProcedure: Invalid parameters', { doctorId, procedureType, country });
+      return false;
+    }
+
+    const normalizedCountry = normalizeCountry(country);
+
+    const { error } = await supabase
+      .from('doctor_procedures')
+      .delete()
+      .eq('doctor_id', doctorId)
+      .eq('procedure_type', procedureType.trim())
+      .eq('country', normalizedCountry);
+
+    if (error) {
+      logger.error('Error deleting doctor procedure', { doctorId, procedureType, country: normalizedCountry, error: error.message });
+      return false;
+    }
+
+    logger.info('Successfully deleted doctor procedure', { doctorId, procedureType, country: normalizedCountry });
+    return true;
+
+  } catch (error) {
+    logger.error('Exception in deleteDoctorProcedure', { 
+      doctorId, 
+      procedureType,
+      country, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    return false;
+  }
+};
+
+/**
+ * Add surgery set to doctor-procedure combination
+ */
+export const addSurgerySetToProcedure = async (
+  doctorId: string,
+  procedureType: string,
+  surgerySetId: string,
+  country: string
+): Promise<boolean> => {
+  try {
+    const normalizedCountry = normalizeCountry(country);
+
+    const { error } = await supabase
+      .from('doctor_procedure_sets')
+      .insert({
+        doctor_id: doctorId,
+        procedure_type: procedureType.trim(),
+        surgery_set_id: surgerySetId,
+        country: normalizedCountry
+      });
+
+    if (error) {
+      logger.error('Error adding surgery set to procedure', { doctorId, procedureType, surgerySetId, country: normalizedCountry, error: error.message });
+      return false;
+    }
+
+    logger.info('Successfully added surgery set to procedure', { doctorId, procedureType, surgerySetId, country: normalizedCountry });
+    return true;
+
+  } catch (error) {
+    logger.error('Exception in addSurgerySetToProcedure', { 
+      doctorId, 
+      procedureType,
+      surgerySetId,
+      country, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    return false;
+  }
+};
+
+/**
+ * Add implant box to doctor-procedure combination
+ */
+export const addImplantBoxToProcedure = async (
+  doctorId: string,
+  procedureType: string,
+  implantBoxId: string,
+  country: string
+): Promise<boolean> => {
+  try {
+    const normalizedCountry = normalizeCountry(country);
+
+    const { error } = await supabase
+      .from('doctor_procedure_sets')
+      .insert({
+        doctor_id: doctorId,
+        procedure_type: procedureType.trim(),
+        implant_box_id: implantBoxId,
+        country: normalizedCountry
+      });
+
+    if (error) {
+      logger.error('Error adding implant box to procedure', { doctorId, procedureType, implantBoxId, country: normalizedCountry, error: error.message });
+      return false;
+    }
+
+    logger.info('Successfully added implant box to procedure', { doctorId, procedureType, implantBoxId, country: normalizedCountry });
+    return true;
+
+  } catch (error) {
+    logger.error('Exception in addImplantBoxToProcedure', { 
+      doctorId, 
+      procedureType,
+      implantBoxId,
+      country, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    return false;
+  }
+};
+
+/**
+ * Remove surgery set from doctor-procedure combination
+ */
+export const removeSurgerySetFromProcedure = async (
+  doctorId: string,
+  procedureType: string,
+  surgerySetId: string,
+  country: string
+): Promise<boolean> => {
+  try {
+    const normalizedCountry = normalizeCountry(country);
+
+    const { error } = await supabase
+      .from('doctor_procedure_sets')
+      .delete()
+      .eq('doctor_id', doctorId)
+      .eq('procedure_type', procedureType.trim())
+      .eq('surgery_set_id', surgerySetId)
+      .eq('country', normalizedCountry);
+
+    if (error) {
+      logger.error('Error removing surgery set from procedure', { doctorId, procedureType, surgerySetId, country: normalizedCountry, error: error.message });
+      return false;
+    }
+
+    logger.info('Successfully removed surgery set from procedure', { doctorId, procedureType, surgerySetId, country: normalizedCountry });
+    return true;
+
+  } catch (error) {
+    logger.error('Exception in removeSurgerySetFromProcedure', { 
+      doctorId, 
+      procedureType,
+      surgerySetId,
+      country, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    return false;
+  }
+};
+
+/**
+ * Remove implant box from doctor-procedure combination
+ */
+export const removeImplantBoxFromProcedure = async (
+  doctorId: string,
+  procedureType: string,
+  implantBoxId: string,
+  country: string
+): Promise<boolean> => {
+  try {
+    const normalizedCountry = normalizeCountry(country);
+
+    const { error } = await supabase
+      .from('doctor_procedure_sets')
+      .delete()
+      .eq('doctor_id', doctorId)
+      .eq('procedure_type', procedureType.trim())
+      .eq('implant_box_id', implantBoxId)
+      .eq('country', normalizedCountry);
+
+    if (error) {
+      logger.error('Error removing implant box from procedure', { doctorId, procedureType, implantBoxId, country: normalizedCountry, error: error.message });
+      return false;
+    }
+
+    logger.info('Successfully removed implant box from procedure', { doctorId, procedureType, implantBoxId, country: normalizedCountry });
+    return true;
+
+  } catch (error) {
+    logger.error('Exception in removeImplantBoxFromProcedure', { 
+      doctorId, 
+      procedureType,
+      implantBoxId,
+      country, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    return false;
+  }
+};
