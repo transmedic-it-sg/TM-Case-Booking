@@ -336,9 +336,11 @@ const AppContent: React.FC = () => {
     setShowWelcomePopup(true);
     setShowMobileEntry(false);
 
-    // Refresh permissions cache for the new user to ensure correct permissionstry {
+    // Refresh permissions cache for the new user to ensure correct permissions
+    try {
       // Force refresh permissions on login to ensure fresh permissions
-      await initializePermissions(true);} catch (error) {
+      await initializePermissions(true);
+    } catch (error) {
       console.error('❌ Failed to refresh permissions on user login:', error);
     }
 
