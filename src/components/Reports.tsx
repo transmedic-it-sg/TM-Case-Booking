@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { CaseBooking, CaseStatus } from '../types';
-import { useCases } from '../hooks/useCases';
+import { useRealtimeCases } from '../hooks/useRealtimeCases';
 import { getCurrentUser } from '../utils/authCompat';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getStatusColor } from './CasesList/utils';
@@ -34,7 +34,7 @@ interface ReportData {
 }
 
 const Reports: React.FC = () => {
-  const { cases } = useCases();
+  const { cases } = useRealtimeCases({ enableRealTime: true });
   const [filteredCases, setFilteredCases] = useState<CaseBooking[]>([]);
   const [currentUser] = useState(getCurrentUser());
   const [showFilters, setShowFilters] = useState(true);
@@ -113,7 +113,7 @@ const Reports: React.FC = () => {
     loadConstants();
   }, []);
 
-  // Cases are automatically loaded by useCases hook
+  // Cases are automatically loaded by useRealtimeCases hook (live data)
   // Apply initial filter when cases are loaded
   useEffect(() => {
     setFilteredCases(cases);

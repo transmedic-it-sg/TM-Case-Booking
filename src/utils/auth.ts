@@ -41,8 +41,22 @@ export const migrateUsersFromLocalStorage = async (): Promise<void> => {
 export const authenticateUser = async (username: string, password: string): Promise<User | null> => {
   try {
     // Use the new authentication function that checks both tables
-    const user = await authenticateSupabaseUser(username, password);
-    return user;
+    const result = await authenticateSupabaseUser(username, password);
+    if (result.success && result.user) {
+      // Convert AuthUser to User format
+      return {
+        id: result.user.id,
+        username: result.user.username,
+        password: '', // Never return password
+        role: result.user.role,
+        name: result.user.name,
+        departments: result.user.departments,
+        countries: result.user.countries,
+        selectedCountry: result.user.selectedCountry,
+        enabled: result.user.enabled
+      };
+    }
+    return null;
   } catch (error) {
     console.error('Authentication error:', error);
     return null;
@@ -325,7 +339,7 @@ export const authenticate = async (username: string, password: string, country: 
       
       const localUsers = await getUsersFromSecureStorage();
       console.log('Available local users:', localUsers.map((u: any) => ({ username: u.username, enabled: u.enabled })));
-      console.log('Looking for username:', username, 'password:', password);
+      console.log('Looking for username:', username); // Password removed for security
       
       const matchedUser = localUsers.find(u => 
         u.username.toLowerCase() === username.toLowerCase() && 

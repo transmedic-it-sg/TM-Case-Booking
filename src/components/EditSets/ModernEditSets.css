@@ -1,0 +1,1227 @@
+/**
+ * Modern Edit Sets - Enhanced UX/UI Styles
+ * 2025 Design System Implementation
+ */
+
+/* Clear Selection Button */
+.clear-selection-btn {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 4px rgba(255, 107, 107, 0.2);
+}
+
+.clear-selection-btn:hover {
+  background: linear-gradient(135deg, #ff5252 0%, #f44336 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 107, 107, 0.3);
+}
+
+.clear-selection-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(255, 107, 107, 0.2);
+}
+
+/* Tab Controls Layout */
+.tab-controls {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.two-column-dropdowns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.three-column-dropdowns {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+}
+
+/* Dropdown containers */
+.department-selection-dropdown,
+.doctor-selection-dropdown,
+.procedure-selection-dropdown {
+  min-width: 0; /* Prevents grid overflow */
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .three-column-dropdowns {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  
+  .procedure-selection-dropdown {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .two-column-dropdowns,
+  .three-column-dropdowns {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .tab-controls {
+    padding: 16px;
+  }
+}
+
+.modern-edit-sets {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background-color: var(--var(--white));
+  min-height: 100vh;
+}
+
+/* Header Styling */
+.edit-sets-header {
+  text-align: center;
+  margin-bottom: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  border-radius: var(--border-radius-large);
+  color: var(--white);
+  box-shadow: var(--shadow-medium);
+}
+
+.edit-sets-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.edit-sets-header p {
+  margin: 0;
+  font-size: 1.1rem;
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+/* Step Indicator */
+.edit-sets-steps {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding: 0 8px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+}
+
+.step {
+  min-width: 280px;
+  padding: 20px;
+  border-radius: var(--border-radius-large);
+  background: var(--var(--white));
+  border: 2px solid var(--border-light);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow-light);
+}
+
+.step:hover:not(.disabled) {
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+.step.active {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: var(--white);
+  box-shadow: var(--shadow-medium);
+}
+
+.step.completed .step-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  background: var(--success-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.step.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--background-light);
+}
+
+.step-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.step-content h4 {
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.step-content p {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.8;
+  line-height: 1.4;
+}
+
+/* Main Content Area */
+.edit-sets-main {
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+/* Department Selection */
+.department-selection,
+.doctor-selection,
+.procedure-selection {
+  padding: 32px;
+  text-align: center;
+}
+
+.department-selection h3,
+.doctor-selection h3,
+.procedure-selection h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.department-selection p,
+.doctor-selection p,
+.procedure-selection p {
+  margin: 0 0 24px 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.department-grid,
+.doctor-grid,
+.procedure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.department-card,
+.doctor-card,
+.procedure-card {
+  padding: 20px;
+  border: 2px solid var(--border-light);
+  border-radius: var(--border-radius-large);
+  background: var(--var(--white));
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+}
+
+.department-card:hover,
+.doctor-card:hover,
+.procedure-card:hover {
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+.department-card.selected,
+.doctor-card.selected,
+.procedure-card.selected {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-light), var(--background-light));
+  box-shadow: var(--shadow-light);
+}
+
+.department-card h4,
+.doctor-card h4,
+.procedure-card h4 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.department-card p,
+.doctor-card p,
+.procedure-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Controls Section */
+.edit-sets-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--background-light);
+}
+
+.search-section {
+  flex: 1;
+  max-width: 400px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border-light);
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+  background: var(--white);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.add-button {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
+}
+
+.add-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.35);
+}
+
+.add-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Add Form */
+.add-form {
+  padding: 24px 32px;
+  background: #f0f4ff;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.add-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border-light);
+  border-radius: 8px;
+  font-size: 1rem;
+  margin-bottom: 16px;
+  transition: border-color 0.3s ease;
+}
+
+.add-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.add-form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.confirm-button {
+  padding: 10px 20px;
+  background: var(--success-color);
+  color: var(--white);
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.confirm-button:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.confirm-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancel-button {
+  padding: 10px 20px;
+  background: #6b7280;
+  color: var(--white);
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-button:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+}
+
+/* Data List */
+.edit-sets-content {
+  background: var(--white);
+}
+
+.data-list {
+  padding: 32px;
+}
+
+.data-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  background: var(--white);
+  transition: all 0.3s ease;
+}
+
+.data-item:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.item-content h4 {
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.item-content p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.item-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-button,
+.delete-button {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.edit-button {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.edit-button:hover {
+  background: #e5e7eb;
+  transform: scale(1.05);
+}
+
+.delete-button {
+  background: #fef2f2;
+  color: var(--danger-color);
+}
+
+.delete-button:hover {
+  background: #fee2e2;
+  transform: scale(1.05);
+}
+
+/* Loading States */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-light);
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-small {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Error States */
+.error-small {
+  padding: 16px;
+  text-align: center;
+  color: var(--danger-color);
+  background: #fef2f2;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modern-edit-sets {
+    padding: 16px;
+  }
+  
+  .edit-sets-header {
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  
+  .edit-sets-header h1 {
+    font-size: 2rem;
+  }
+  
+  .edit-sets-steps {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .step {
+    min-width: auto;
+  }
+  
+  .edit-sets-controls {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .department-grid,
+  .doctor-grid,
+  .procedure-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .data-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .item-actions {
+    align-self: flex-end;
+  }
+}
+
+/* Focus Management for Accessibility */
+.step:focus,
+.department-card:focus,
+.doctor-card:focus,
+.procedure-card:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Two-column layout for procedures tab */
+.procedures-tab-layout {
+  padding: 32px;
+}
+
+.two-column-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  min-height: 400px;
+}
+
+/* Three-column layout for surgery & implants tab */
+.surgery-implants-tab-layout {
+  padding: 32px;
+}
+
+.three-column-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+  min-height: 400px;
+}
+
+.selection-column {
+  background: var(--white);
+  border: 2px solid var(--border-light);
+  border-radius: var(--border-radius-large);
+  padding: 24px;
+  box-shadow: var(--shadow-light);
+}
+
+.department-selection-compact,
+.doctor-selection-compact,
+.procedure-selection-compact {
+  text-align: center;
+}
+
+.department-selection-compact h3,
+.doctor-selection-compact h3,
+.procedure-selection-compact h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.department-selection-compact p,
+.doctor-selection-compact p,
+.procedure-selection-compact p {
+  margin: 0 0 20px 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.department-grid-compact,
+.doctor-grid-compact,
+.procedure-grid-compact {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.department-card-compact,
+.doctor-card-compact,
+.procedure-card-compact {
+  padding: 16px;
+  border: 2px solid var(--border-light);
+  border-radius: var(--border-radius);
+  background: var(--white);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+}
+
+.department-card-compact:hover,
+.doctor-card-compact:hover,
+.procedure-card-compact:hover {
+  border-color: var(--primary-color);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-light);
+}
+
+.department-card-compact.selected,
+.doctor-card-compact.selected,
+.procedure-card-compact.selected {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-light), var(--background-light));
+  box-shadow: var(--shadow-light);
+}
+
+.department-card-compact h4,
+.doctor-card-compact h4,
+.procedure-card-compact h4 {
+  margin: 0 0 6px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.department-card-compact p,
+.doctor-card-compact p,
+.procedure-card-compact p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+.placeholder-message,
+.empty-state-small {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Draggable procedure items */
+.draggable-item {
+  cursor: move;
+  position: relative;
+}
+
+.draggable-item:hover {
+  border-color: var(--primary-color);
+  background: var(--background-light);
+}
+
+.draggable-item.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+  z-index: 1000;
+}
+
+.item-number {
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  background: var(--primary-color);
+  color: var(--white);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+  box-shadow: var(--shadow-medium);
+  z-index: 10;
+}
+
+.drag-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.drag-icon {
+  font-size: 1.2rem;
+  color: var(--primary-color);
+}
+
+.drag-text {
+  font-style: italic;
+}
+
+.draggable-item .drag-hint {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.draggable-item:hover .drag-hint {
+  opacity: 1;
+}
+
+/* Adjust data-item for numbering */
+.data-list .draggable-item {
+  margin-left: 25px;
+}
+
+/* Print Styles */
+@media print {
+  .modern-edit-sets {
+    background: var(--white);
+    padding: 0;
+  }
+  
+  .edit-sets-header {
+    background: none;
+    color: black;
+    box-shadow: none;
+  }
+  
+  .step {
+    border: 1px solid #000;
+    box-shadow: none;
+  }
+  
+  .add-button,
+  .edit-button,
+  .delete-button {
+    display: none;
+  }
+  
+  .two-column-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Additional styles for comprehensive edit sets */
+.edit-sets-tabs {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid var(--border-light);
+  padding-bottom: 16px;
+}
+
+.tab-button {
+  background: var(--white);
+  border: 2px solid var(--border-light);
+  border-radius: var(--border-radius);
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: var(--text-primary);
+}
+
+.tab-button:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.tab-button.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--white);
+  box-shadow: var(--shadow-light);
+}
+
+.tab-content {
+  padding: 24px 0;
+}
+
+.form-section {
+  background: var(--white);
+  border: 2px solid var(--border-light);
+  border-radius: var(--border-radius-large);
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-light);
+}
+
+.form-section h3 {
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.form-control {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--border-light);
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
+}
+
+.add-form {
+  background: var(--background-light);
+  padding: 20px;
+  border-radius: var(--border-radius);
+  margin-top: 20px;
+}
+
+.btn {
+  display: inline-block;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 8px;
+}
+
+.btn-primary {
+  background: var(--primary-color);
+  color: var(--white);
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn-secondary {
+  background: var(--text-secondary);
+  color: var(--white);
+}
+
+.btn-secondary:hover {
+  background: var(--text-primary);
+}
+
+.btn-edit {
+  background: var(--warning-color);
+  color: var(--white);
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.btn-delete {
+  background: var(--danger-color);
+  color: var(--white);
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.btn-edit:hover {
+  opacity: 0.8;
+}
+
+.btn-delete:hover {
+  opacity: 0.8;
+}
+
+.items-list {
+  background: var(--white);
+  border: 2px solid var(--border-light);
+  border-radius: var(--border-radius-large);
+  padding: 24px;
+  box-shadow: var(--shadow-light);
+}
+
+.items-list h4 {
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.item-card {
+  background: var(--white);
+  border: 2px solid var(--border-light);
+  border-radius: var(--border-radius);
+  padding: 16px;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-light);
+}
+
+.item-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-medium);
+}
+
+.item-info h5 {
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.item-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.loading-spinner {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .edit-sets-tabs {
+    flex-direction: column;
+  }
+  
+  .tab-button {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .items-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-section {
+    padding: 16px;
+  }
+  
+  /* Mobile layout for two-column procedures */
+  .two-column-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .procedures-tab-layout {
+    padding: 16px;
+  }
+  
+  /* Mobile layout for three-column surgery & implants */
+  .three-column-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .surgery-implants-tab-layout {
+    padding: 16px;
+  }
+  
+  .selection-column {
+    padding: 16px;
+  }
+  
+  .data-list .draggable-item {
+    margin-left: 20px;
+  }
+  
+  .item-number {
+    width: 25px;
+    height: 25px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Surgery & Implant Management Styles */
+.surgery-implant-management {
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  margin-top: 24px;
+}
+
+.mode-selector {
+  background: var(--background-light);
+  border-bottom: 2px solid var(--border-light);
+  padding: 24px;
+}
+
+.mode-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.mode-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: 2px solid var(--border-light);
+  border-radius: var(--border-radius-large);
+  background: var(--white);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.mode-tab:hover {
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-light);
+}
+
+.mode-tab.active {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  border-color: var(--primary-color);
+  color: var(--white);
+  box-shadow: var(--shadow-medium);
+}
+
+.mode-icon {
+  font-size: 1.2rem;
+}
+
+.mode-info {
+  text-align: center;
+}
+
+.mode-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.mode-info p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.surgery-implant-content {
+  padding: 32px;
+}
+
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.surgery-implant-item {
+  border-left: 4px solid var(--primary-color);
+  background: linear-gradient(135deg, var(--white), var(--background-light));
+}
+
+.surgery-implant-item:hover {
+  border-left-color: var(--primary-dark);
+  box-shadow: var(--shadow-medium);
+}
+
+.item-meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.item-type {
+  background: var(--primary-color);
+  color: var(--white);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.item-procedure {
+  background: var(--background-light);
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  border: 1px solid var(--border-light);
+}
+
+/* Additional mobile responsiveness for surgery/implant management */
+@media (max-width: 768px) {
+  .mode-tabs {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .mode-tab {
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+  }
+  
+  .content-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .surgery-implant-content {
+    padding: 16px;
+  }
+  
+  .mode-selector {
+    padding: 16px;
+  }
+  
+  .item-meta {
+    flex-direction: column;
+    gap: 6px;
+  }
+}

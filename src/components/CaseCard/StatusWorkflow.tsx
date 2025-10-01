@@ -6,7 +6,7 @@
 import React from 'react';
 import { StatusWorkflowProps } from './types';
 import { usePermissions } from '../../hooks';
-import { useCaseActions } from './hooks/useCaseActions';
+// Removed useCaseActions - now using useRealtimeCases directly
 import { CASE_STATUSES } from '../../constants';
 
 const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
@@ -24,7 +24,7 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
   onToBeBilled
 }) => {
   const permissions = usePermissions();
-  const _caseActions = useCaseActions(caseItem); // eslint-disable-line @typescript-eslint/no-unused-vars
+  // Removed useCaseActions - now using functions passed via props
 
   const getStatusActions = () => {
     const actions = [];

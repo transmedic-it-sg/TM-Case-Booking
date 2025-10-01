@@ -1,0 +1,60 @@
+{
+  "timestamp": "2025-09-23T07:27:45.657Z",
+  "overall": "PASSED",
+  "stages": {},
+  "security": {
+    "issues": [],
+    "vulnerabilities": [],
+    "audit": {
+      "status": "WARNINGS",
+      "vulnerabilities": {
+        "info": 0,
+        "low": 5,
+        "moderate": 4,
+        "high": 6,
+        "critical": 0,
+        "total": 15
+      },
+      "total": 0
+    },
+    "patterns": [
+      {
+        "file": "src/hooks/useRealtimeUsers.ts",
+        "type": "PASSWORD_LOGGING",
+        "severity": "MEDIUM",
+        "message": "PASSWORD_LOGGING detected in useRealtimeUsers.ts"
+      },
+      {
+        "file": "src/utils/auth.ts",
+        "type": "PASSWORD_LOGGING",
+        "severity": "MEDIUM",
+        "message": "PASSWORD_LOGGING detected in auth.ts"
+      },
+      {
+        "file": "src/utils/systemSettingsService.ts",
+        "type": "PASSWORD_LOGGING",
+        "severity": "MEDIUM",
+        "message": "PASSWORD_LOGGING detected in systemSettingsService.ts"
+      }
+    ],
+    "environment": [
+      {
+        "file": ".env",
+        "type": "ENV_SECRETS",
+        "message": "Potential secrets in environment file"
+      }
+    ]
+  },
+  "performance": {},
+  "coverage": {},
+  "errors": [],
+  "warnings": [],
+  "summary": {
+    "duration": 1753,
+    "totalStages": 0,
+    "passedStages": 0,
+    "failedStages": 0,
+    "securityIssues": 4,
+    "criticalVulnerabilities": 0
+  }
+}

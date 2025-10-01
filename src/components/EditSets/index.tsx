@@ -1,2 +1,2 @@
-// Re-export the standalone EditSets component
-export { default } from './StandaloneEditSets';
+// Re-export the modern EditSets component with enhanced UX/UI
+export { default } from './ModernEditSets';

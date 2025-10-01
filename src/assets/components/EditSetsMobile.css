@@ -1,50 +1,71 @@
 /* Edit Sets - Following App Theme (White & Light Green) */
 
-/* Main Tabs - Standardized Design */
+/* Main Tabs - Matching App Nav Button Style */
 .main-tabs {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  background: var(--white, #ffffff);
-  padding: 0.5rem;
-  border-radius: var(--border-radius-large, 12px);
-  box-shadow: var(--shadow-light, 0 2px 4px rgba(0,0,0,0.08));
-  border: 1px solid var(--border-light, #ebebeb);
+  gap: 20px;
+  margin-bottom: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .main-tab-button {
-  flex: 1;
-  padding: 1rem 1.5rem;
-  border: none;
-  background: transparent;
-  border-radius: var(--border-radius, 8px);
+  background: linear-gradient(135deg, var(--white) 0%, #f8f9fa 100%);
+  border: 2px solid var(--border-light);
+  padding: 16px 32px;
+  border-radius: 25px;
   cursor: pointer;
-  font-weight: 500;
-  font-size: 14px;
-  color: var(--text-secondary, #717171);
-  transition: all 0.3s ease;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text-dark);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  min-height: 48px;
+  min-height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 12px; /* FIXED: Consistent emoji spacing */
+  overflow: hidden;
+  min-width: 200px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.main-tab-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  transition: left 0.5s ease;
 }
 
 .main-tab-button:hover:not(.active) {
-  background: var(--primary-light, #e0f7f7);
-  color: var(--primary-color, #20b2aa);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-light, 0 2px 4px rgba(0,0,0,0.08));
+  border-color: var(--primary-color);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(32, 178, 170, 0.15);
+}
+
+.main-tab-button:hover:not(.active)::before {
+  left: 100%;
 }
 
 .main-tab-button.active {
-  background: linear-gradient(135deg, var(--primary-color, #20b2aa) 0%, var(--primary-dark, #008b8b) 100%) !important;
-  color: var(--white, #ffffff) !important;
-  font-weight: 600 !important;
-  box-shadow: var(--shadow-medium, 0 6px 16px rgba(32, 178, 170, 0.3)) !important;
-  transform: translateY(-1px) !important;
-  border: 1px solid var(--primary-color, #20b2aa) !important;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  color: var(--white);
+  border-color: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(32, 178, 170, 0.3);
+}
+
+.main-tab-button.active::before {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+}
+
+.main-tab-button:active {
+  transform: translateY(-1px) scale(0.98);
+  transition: transform 0.1s ease;
 }
 
 .edit-sets-container {
@@ -1457,7 +1478,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 12px; /* FIXED: Increased gap between emoji and text */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .main-tab-button:hover:not(.active):not(:disabled) {
@@ -1555,6 +1579,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 12px; /* FIXED: Added emoji spacing for enhanced tabs */
   flex: 1;
   min-width: 180px;
 }

@@ -18,7 +18,7 @@ import AmendmentForm from './AmendmentForm';
 import CaseActions from '../CasesList/CaseActions'; // Reuse existing component
 
 // Hooks
-import { useCaseActions } from './hooks/useCaseActions';
+// Removed useCaseActions - now using useRealtimeCases directly
 import { useCaseData } from './hooks/useCaseData';
 
 // Styles
@@ -61,7 +61,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   ].filter((id): id is string => Boolean(id));
 
   const { getUserName } = useUserNames(userIds);
-  const _caseActions = useCaseActions(caseItem); // eslint-disable-line @typescript-eslint/no-unused-vars
+  // Removed useCaseActions - now using useRealtimeCases directly via props
   const caseData = useCaseData(caseItem);
 
 

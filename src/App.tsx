@@ -28,6 +28,8 @@ import { auditLogout } from './utils/auditService';
 import { SoundProvider, useSound } from './contexts/SoundContext';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { ToastProvider, useToast } from './components/ToastContainer';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { RealtimeProvider } from './components/RealtimeProvider';
 import { getSystemConfig } from './utils/systemSettingsService';
 import { useCacheVersionManager } from './hooks/useCacheVersionManager';
 import { SafeStorage } from './utils/secureDataManager';
@@ -1118,16 +1120,42 @@ const AppContent: React.FC = () => {
   );
 };
 
+// React Query client with optimized settings for real-time data
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Disable caching for live data - always fetch fresh
+      staleTime: 0,
+      gcTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      retry: (failureCount, error) => {
+        // Don't retry on 4xx errors
+        const status = (error as any)?.status;
+        if (status >= 400 && status < 500) return false;
+        return failureCount < 3;
+      },
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
+
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <SoundProvider>
-        <NotificationProvider>
-          <ToastProvider>
-            <AppContent />
-          </ToastProvider>
-        </NotificationProvider>
-      </SoundProvider>
+      <QueryClientProvider client={queryClient}>
+        <SoundProvider>
+          <NotificationProvider>
+            <ToastProvider>
+              <RealtimeProvider>
+                <AppContent />
+              </RealtimeProvider>
+            </ToastProvider>
+          </NotificationProvider>
+        </SoundProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 };

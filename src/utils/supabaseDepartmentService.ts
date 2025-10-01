@@ -1,51 +1,10 @@
 /**
- * Supabase Department Service
- * Handles department-specific procedure types and categorized sets
+ * Supabase Department Service - Department management with Supabase
+ * Provides CRUD operations for departments and related data
  */
 
 import { supabase } from '../lib/supabase';
-import { getCountryForDatabase, getCountryVariations } from './countryDatabaseCompatibility';
 
-/**
- * SUPABASE DEPARTMENT SERVICE - DATA ARCHITECTURE DOCUMENTATION
- * 
- * This service manages the department-procedure-sets relationships using a normalized database structure.
- * 
- * DATABASE TABLES & RELATIONSHIPS:
- * 
- * 1. code_tables (master data):
- *    - table_type='departments': Master list of departments by country
- *    - table_type='hospitals': Master list of hospitals by country
- *    - SINGLE SOURCE OF TRUTH for master reference data
- * 
- * 2. departments (operational data):
- *    - Links to code_tables via code_table_id foreign key
- *    - Contains department operational info per country
- * 
- * 3. department_procedure_types (procedure mapping):
- *    - Maps department_id -> procedure_type per country
- *    - Replaces legacy categorized_sets direct procedure mapping
- * 
- * 4. department_categorized_sets (bridge table):
- *    - Maps department_id + procedure_type -> surgery_sets + implant_boxes
- *    - Many-to-many relationships with proper foreign keys
- * 
- * 5. surgery_sets / implant_boxes (reference data):
- *    - Master lists of available sets per country
- *    - Referenced by department_categorized_sets bridge table
- * 
- * MIGRATION FROM LEGACY:
- * - Legacy: categorized_sets table with direct country->procedure_type->arrays
- * - New: Normalized structure with proper foreign key relationships
- * - Benefits: Data integrity, no duplication, proper relationships
- * 
- * COUNTRY NORMALIZATION:
- * - All functions use getCountryForDatabase() for consistent normalization
- * - "SG" -> "Singapore", etc. handled consistently
- * - Exact country matching (no more country variations fallbacks)
- */
-
-// Types
 export interface Department {
   id: string;
   name: string;
@@ -56,1068 +15,202 @@ export interface Department {
   updated_at: string;
 }
 
-export interface DepartmentProcedureType {
+export interface ProcedureType {
   id: string;
   department_id: string;
   procedure_type: string;
   country: string;
   is_active: boolean;
   is_hidden: boolean;
-  created_at: string;
-  updated_at: string;
 }
 
-export interface SurgerySet {
-  id: string;
-  name: string;
-  country: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+class SupabaseDepartmentService {
+  async getDepartments(country: string): Promise<Department[]> {
+    try {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('*')
+        .eq('country', country)
+        .eq('is_active', true)
+        .order('name');
 
-export interface ImplantBox {
-  id: string;
-  name: string;
-  country: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface DepartmentCategorizedSet {
-  id: string;
-  department_id: string;
-  procedure_type: string;
-  surgery_set_id: string | null;
-  implant_box_id: string | null;
-  country: string;
-  created_at: string;
-  updated_at: string;
-  surgery_set?: SurgerySet;
-  implant_box?: ImplantBox;
-}
-
-export interface CategorizedSetsResult {
-  [procedureType: string]: {
-    surgerySets: string[];
-    implantBoxes: string[];
-  };
-}
-
-// =============================================================================
-// DEPARTMENT OPERATIONS
-// =============================================================================
-
-/**
- * Get all departments for a country from the departments table
- */
-export const getDepartments = async (country?: string): Promise<Department[]> => {
-  try {
-    // console.log('🔍 Getting departments from code_tables (centralized):', { country });
-    
-    let query = supabase
-      .from('code_tables')
-      .select('id, display_name, country, created_at, updated_at, is_active')
-      .eq('table_type', 'departments')
-      .eq('is_active', true)
-      .order('display_name');
-    
-    // Filter by country if specified - use flexible matching for compatibility
-    if (country) {
-      const countryVariations = getCountryVariations(country);
-      query = query.in('country', countryVariations);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
       console.error('Error fetching departments:', error);
-      throw error;
-    }
-
-    // console.log('✅ Found departments in Supabase:', data?.length || 0);
-    // Map display_name to name for compatibility with existing Department interface
-    const mappedData = data?.map(item => ({
-      ...item,
-      name: item.display_name
-    })) || [];
-    return mappedData;
-  } catch (error) {
-    console.error('Error in getDepartments:', error);
-    throw error;
-  }
-};
-
-/**
- * Add a new department
- */
-export const addDepartment = async (name: string, country: string, description?: string): Promise<Department> => {
-  try {
-    const dbCountry = getCountryForDatabase(country);
-    const { data, error } = await supabase
-      .from('departments')
-      .insert({
-        name,
-        country: dbCountry,
-        description,
-        is_active: true
-      })
-      .select()
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error adding department:', error);
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error in addDepartment:', error);
-    throw error;
-  }
-};
-
-// =============================================================================
-// PROCEDURE TYPE OPERATIONS
-// =============================================================================
-
-/**
- * Get procedure types for a specific department from the database
- */
-export const getProcedureTypesForDepartment = async (departmentName: string, country: string): Promise<string[]> => {
-  try {
-    const normalizedCountry = getCountryForDatabase(country);
-    console.log('🔍 Getting procedure types from department_procedure_types for:', { departmentName, country: normalizedCountry });
-    
-    // Get the department ID using normalized country for exact match
-    const { data: departments } = await supabase
-      .from('departments')
-      .select('id')
-      .eq('name', departmentName)
-      .eq('country', normalizedCountry)
-      .eq('is_active', true);
-    
-    if (!departments || departments.length === 0) {
-      console.warn('Department not found in database:', { departmentName, country: normalizedCountry });
       return [];
     }
-    
-    const departmentId = departments[0].id;
-    
-    // Get procedure types from database using exact country match
-    const { data, error } = await supabase
-      .from('department_procedure_types')
-      .select('procedure_type')
-      .eq('department_id', departmentId)
-      .eq('country', normalizedCountry)
-      .eq('is_active', true)
-      .eq('is_hidden', false)
-      .order('procedure_type');
-    
-    if (error) {
+  }
+
+  async getProcedureTypesForDepartment(departmentId: string, country: string): Promise<string[]> {
+    try {
+      const { data, error } = await supabase
+        .from('department_procedure_types')
+        .select('procedure_type')
+        .eq('department_id', departmentId)
+        .eq('country', country)
+        .eq('is_active', true)
+        .eq('is_hidden', false)
+        .order('procedure_type');
+
+      if (error) throw error;
+      return data?.map(item => item.procedure_type) || [];
+    } catch (error) {
       console.error('Error fetching procedure types:', error);
       return [];
     }
-    
-    const dbProcedureTypes = data?.map(item => item.procedure_type) || [];
-    
-    console.log('✅ Found procedure types in department_procedure_types:', dbProcedureTypes.length, 'types:', dbProcedureTypes);
-    
-    return dbProcedureTypes;
-  } catch (error) {
-    console.error('Error in getProcedureTypesForDepartment:', error);
-    return [];
   }
-};
 
-/**
- * Get procedure types for department including inactive departments (for amendments)
- * This version allows inactive departments to support case amendments
- */
-export const getProcedureTypesForDepartmentIncludingInactive = async (departmentName: string, country: string): Promise<string[]> => {
-  try {
-    const countryVariations = getCountryVariations(country);
-    console.log('🔍 Getting procedure types (including inactive) for:', { departmentName, country, countryVariations });
-    
-    // First, get the department ID - ALLOW INACTIVE departments for amendments
-    const { data: departments } = await supabase
-      .from('departments')
-      .select('id')
-      .eq('name', departmentName)
-      .in('country', countryVariations);
-      // NOTE: Removed .eq('is_active', true) to allow inactive departments
-    
-    if (!departments || departments.length === 0) {
-      console.warn('Department not found in database:', { departmentName, country });
-      return [];
-    }
-    
-    const departmentId = departments[0].id;
-    
-    // Get procedure types from database - use flexible country matching
-    const { data, error } = await supabase
-      .from('department_procedure_types')
-      .select('procedure_type')
-      .eq('department_id', departmentId)
-      .in('country', countryVariations)
-      .eq('is_active', true) // Keep procedure types filtering active
-      .eq('is_hidden', false)
-      .order('procedure_type');
-    
-    if (error) {
-      console.error('Error fetching procedure types:', error);
-      return [];
-    }
-    
-    const dbProcedureTypes = data?.map(item => item.procedure_type) || [];
-    
-    // If no procedure types in database, return empty array
-    if (dbProcedureTypes.length === 0) {
-      console.log('No procedure types configured for department:', { departmentName, country });
-      return [];
-    }
-    
-    console.log('✅ Found procedure types (including inactive dept) in Supabase:', dbProcedureTypes.length);
-    return dbProcedureTypes;
-  } catch (error) {
-    console.error('Error in getProcedureTypesForDepartmentIncludingInactive:', error);
-    return [];
-  }
-};
+  async addProcedureTypeToDepartment(
+    departmentId: string, 
+    procedureType: string, 
+    country: string
+  ): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('department_procedure_types')
+        .insert({
+          department_id: departmentId,
+          procedure_type: procedureType,
+          country: country,
+          is_active: true,
+          is_hidden: false
+        });
 
-/**
- * Get default procedure types based on department name
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const getDefaultProcedureTypesForDepartment = (departmentName: string, country: string = 'MY'): string[] => {
-  // Simplified - only 3 procedure types per department
-  const departmentSpecific: Record<string, string[]> = {
-    'Cardiology': [
-      'Cardiac Catheterization',
-      'Heart Surgery', 
-      'Diagnostic Cardiology'
-    ],
-    'Orthopedics': [
-      'Joint Replacement',
-      'Fracture Repair',
-      'Arthroscopy'
-    ],
-    'Neurosurgery': [
-      'Brain Surgery',
-      'Spinal Surgery',
-      'Tumor Removal'
-    ],
-    'Emergency': [
-      'Trauma Care',
-      'Emergency Surgery',
-      'Critical Care'
-    ],
-    'Radiology': [
-      'CT Scan',
-      'MRI',
-      'X-Ray'
-    ],
-    'Oncology': [
-      'Chemotherapy',
-      'Radiation Therapy',
-      'Tumor Resection'
-    ],
-    'Anesthesiology': [
-      'General Anesthesia',
-      'Regional Anesthesia',
-      'Pain Management'
-    ],
-    'Gastroenterology': [
-      'Endoscopy',
-      'Colonoscopy',
-      'Therapeutic Endoscopy'
-    ],
-    'Nephrology': [
-      'Dialysis',
-      'Kidney Biopsy',
-      'Renal Replacement'
-    ],
-    'Pulmonology': [
-      'Bronchoscopy',
-      'Pulmonary Function Test',
-      'Respiratory Therapy'
-    ]
-  };
-
-  // Return exactly 3 types for each department, or generic types if department not found
-  const specific = departmentSpecific[departmentName] || [
-    'General Procedure',
-    'Diagnostic Procedure', 
-    'Therapeutic Procedure'
-  ];
-  
-  return specific;
-};
-
-/**
- * Add procedure type to a department in the database
- */
-export const addProcedureTypeToDepartment = async (
-  departmentName: string, 
-  procedureType: string, 
-  country: string
-): Promise<boolean> => {
-  try {
-    const dbCountry = getCountryForDatabase(country);
-    console.log('🔍 Adding procedure type to Supabase:', { departmentName, procedureType, country, dbCountry });
-    
-    // First, get the department ID
-    const { data: departments } = await supabase
-      .from('departments')
-      .select('id')
-      .eq('name', departmentName)
-      .eq('country', dbCountry)
-      .eq('is_active', true);
-    
-    if (!departments || departments.length === 0) {
-      console.error('Department not found:', { departmentName, country });
-      return false;
-    }
-    
-    const departmentId = departments[0].id;
-    
-    // Check if procedure type already exists
-    const { data: existing } = await supabase
-      .from('department_procedure_types')
-      .select('id')
-      .eq('department_id', departmentId)
-      .eq('procedure_type', procedureType)
-      .eq('country', dbCountry);
-    
-    if (existing && existing.length > 0) {
-      console.log('⚠️ Procedure type already exists:', procedureType);
+      if (error) throw error;
       return true;
-    }
-    
-    // Insert the new procedure type
-    const { error } = await supabase
-      .from('department_procedure_types')
-      .insert({
-        department_id: departmentId,
-        procedure_type: procedureType,
-        country: dbCountry,
-        is_active: true,
-        is_hidden: false
-      });
-
-    if (error) {
+    } catch (error) {
       console.error('Error adding procedure type:', error);
       return false;
     }
-
-    console.log('✅ Successfully added procedure type to Supabase');
-    
-    // Update cache version to notify other users
-    try {
-      const { forceCacheVersionUpdate } = await import('./cacheVersionService');
-      await forceCacheVersionUpdate(
-        dbCountry, 
-        'procedure_types',
-        `Added procedure type: ${procedureType} to ${departmentName}`,
-        'system'
-      );
-      console.log(`📢 Cache version updated for ${dbCountry}:procedure_types`);
-    } catch (cacheError) {
-      console.error('Failed to update cache version:', cacheError);
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error in addProcedureTypeToDepartment:', error);
-    return false;
   }
-};
 
+  async removeProcedureTypeFromDepartment(
+    departmentId: string, 
+    procedureType: string, 
+    country: string
+  ): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('department_procedure_types')
+        .update({ is_active: false })
+        .eq('department_id', departmentId)
+        .eq('procedure_type', procedureType)
+        .eq('country', country);
 
-/**
- * Remove procedure type from a department in the database
- */
-export const removeProcedureTypeFromDepartment = async (
-  departmentName: string, 
-  procedureType: string, 
-  country: string
-): Promise<boolean> => {
-  try {
-    const dbCountry = getCountryForDatabase(country);
-    console.log('🔍 Removing procedure type from Supabase:', { departmentName, procedureType, country, dbCountry });
-    
-    // First, get the department ID
-    const { data: departments } = await supabase
-      .from('departments')
-      .select('id')
-      .eq('name', departmentName)
-      .eq('country', dbCountry)
-      .eq('is_active', true);
-    
-    if (!departments || departments.length === 0) {
-      console.error('Department not found:', { departmentName, country });
-      return false;
-    }
-    
-    const departmentId = departments[0].id;
-    
-    // Remove the procedure type from database
-    const { data, error } = await supabase
-      .from('department_procedure_types')
-      .delete()
-      .eq('department_id', departmentId)
-      .eq('procedure_type', procedureType)
-      .eq('country', dbCountry)
-      .select();
-    
-    if (error) {
+      if (error) throw error;
+      return true;
+    } catch (error) {
       console.error('Error removing procedure type:', error);
       return false;
     }
-    
-    // Check if anything was actually deleted
-    if (!data || data.length === 0) {
-      console.warn('No procedure type was deleted - it may not have existed:', { departmentId, procedureType, country: dbCountry });
-      return false;
-    }
-    
-    console.log('✅ Successfully removed procedure type from Supabase:', data.length, 'rows deleted');
-    
-    // Update cache version to notify other users
+  }
+
+  async getSurgerySets(country: string): Promise<string[]> {
     try {
-      const { forceCacheVersionUpdate } = await import('./cacheVersionService');
-      await forceCacheVersionUpdate(
-        dbCountry, 
-        'procedure_types',
-        `Removed procedure type: ${procedureType} from ${departmentName}`,
-        'system'
-      );
-      console.log(`📢 Cache version updated for ${dbCountry}:procedure_types`);
-    } catch (cacheError) {
-      console.error('Failed to update cache version:', cacheError);
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error in removeProcedureTypeFromDepartment:', error);
-    return false;
-  }
-};
-
-// =============================================================================
-// CATEGORIZED SETS OPERATIONS
-// =============================================================================
-
-// Simple cache for categorized sets to prevent excessive API calls
-const categorizedSetsCache = new Map<string, { data: CategorizedSetsResult; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-/**
- * Get categorized sets for a specific department from the database
- */
-export const getCategorizedSetsForDepartment = async (
-  departmentName: string, 
-  country: string
-): Promise<CategorizedSetsResult> => {
-  try {
-    const dbCountry = getCountryForDatabase(country);
-    const cacheKey = `${departmentName}-${dbCountry}`;
-    
-    // Check cache first
-    const cached = categorizedSetsCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log('🎯 Using cached categorized sets for:', { departmentName, country: dbCountry });
-      return cached.data;
-    }
-    
-    const countryVariations = getCountryVariations(country);
-    console.log('🔍 Getting categorized sets from Supabase:', { departmentName, country, dbCountry, countryVariations });
-    
-    // First, get the department ID - use normalized country
-    const { data: departments } = await supabase
-      .from('departments')
-      .select('id')
-      .eq('name', departmentName)
-      .eq('country', dbCountry)
-      .eq('is_active', true);
-    
-    if (!departments || departments.length === 0) {
-      console.warn('Department not found for categorized sets');
-      return {};
-    }
-    
-    const departmentId = departments[0].id;
-    
-    // Get categorized sets from the new bridge table - use normalized country
-    console.log('🔍 Querying department_categorized_sets for department_id:', departmentId, 'country:', dbCountry);
-    
-    const { data, error } = await supabase
-      .from('department_categorized_sets')
-      .select(`
-        procedure_type,
-        surgery_set:surgery_sets(name),
-        implant_box:implant_boxes(name)
-      `)
-      .eq('department_id', departmentId)
-      .eq('country', dbCountry);
-    
-    if (error) {
-      console.error('Error fetching categorized sets from department_categorized_sets:', error);
-      return {};
-    }
-    
-    console.log('🔍 Raw department_categorized_sets data:', data?.length, 'rows');
-    
-    // Transform the data into the expected format
-    const result: CategorizedSetsResult = {};
-    
-    for (const item of data || []) {
-      if (!result[item.procedure_type]) {
-        result[item.procedure_type] = {
-          surgerySets: [],
-          implantBoxes: []
-        };
-      }
-      
-      if (item.surgery_set && (item.surgery_set as any).name) {
-        const surgerySetName = (item.surgery_set as any).name;
-        if (!result[item.procedure_type].surgerySets.includes(surgerySetName)) {
-          result[item.procedure_type].surgerySets.push(surgerySetName);
-        }
-      }
-      
-      if (item.implant_box && (item.implant_box as any).name) {
-        const implantBoxName = (item.implant_box as any).name;
-        if (!result[item.procedure_type].implantBoxes.includes(implantBoxName)) {
-          result[item.procedure_type].implantBoxes.push(implantBoxName);
-        }
-      }
-    }
-    
-    // Sort the arrays for consistency
-    Object.values(result).forEach(sets => {
-      sets.surgerySets.sort();
-      sets.implantBoxes.sort();
-    });
-    
-    console.log('✅ Transformed categorized sets from department_categorized_sets:', Object.keys(result).length, 'procedure types:', Object.keys(result));
-    
-    // Cache the result
-    categorizedSetsCache.set(cacheKey, { data: result, timestamp: Date.now() });
-    
-    return result;
-  } catch (error) {
-    console.error('Error reading categorized sets from Supabase:', error);
-    return {};
-  }
-};
-
-/**
- * Get categorized sets for department including inactive departments (for amendments)
- * This version allows inactive departments to support case amendments
- */
-export const getCategorizedSetsForDepartmentIncludingInactive = async (
-  departmentName: string, 
-  country: string
-): Promise<CategorizedSetsResult> => {
-  try {
-    const dbCountry = getCountryForDatabase(country);
-    const cacheKey = `${departmentName}-${dbCountry}-inactive`;
-    
-    // Check cache first (separate cache key for inactive version)
-    const cached = categorizedSetsCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log('🎯 Using cached categorized sets (including inactive) for:', { departmentName, country: dbCountry });
-      return cached.data;
-    }
-    
-    const countryVariations = getCountryVariations(country);
-    console.log('🔍 Getting categorized sets (including inactive) from Supabase:', { departmentName, country, dbCountry, countryVariations });
-    
-    // First, get the department ID - ALLOW INACTIVE departments for amendments
-    const { data: departments } = await supabase
-      .from('departments')
-      .select('id')
-      .eq('name', departmentName)
-      .eq('country', dbCountry);
-      // NOTE: Removed .eq('is_active', true) to allow inactive departments
-    
-    if (!departments || departments.length === 0) {
-      console.warn('Department not found for categorized sets (including inactive)');
-      return {};
-    }
-    
-    const departmentId = departments[0].id;
-    
-    // Get categorized sets from database - use normalized country
-    const { data, error } = await supabase
-      .from('department_categorized_sets')
-      .select(`
-        procedure_type,
-        surgery_set:surgery_sets(name),
-        implant_box:implant_boxes(name)
-      `)
-      .eq('department_id', departmentId)
-      .eq('country', dbCountry);
-    
-    if (error) {
-      console.error('Error fetching categorized sets (including inactive):', error);
-      return {};
-    }
-    
-    // Transform the data into the expected format
-    const result: CategorizedSetsResult = {};
-    
-    for (const item of data || []) {
-      if (!result[item.procedure_type]) {
-        result[item.procedure_type] = {
-          surgerySets: [],
-          implantBoxes: []
-        };
-      }
-      
-      if (item.surgery_set && (item.surgery_set as any).name) {
-        result[item.procedure_type].surgerySets.push((item.surgery_set as any).name);
-      }
-      
-      if (item.implant_box && (item.implant_box as any).name) {
-        result[item.procedure_type].implantBoxes.push((item.implant_box as any).name);
-      }
-    }
-    
-    console.log('✅ Found categorized sets (including inactive dept) in Supabase:', Object.keys(result).length, 'procedure types');
-    
-    // Cache the result (separate cache key for inactive version)
-    categorizedSetsCache.set(cacheKey, { data: result, timestamp: Date.now() });
-    
-    return result;
-  } catch (error) {
-    console.error('Error reading categorized sets from Supabase (including inactive):', error);
-    return {};
-  }
-};
-
-/**
- * Save categorized sets for a department to the database
- */
-export const saveCategorizedSetsForDepartment = async (
-  departmentName: string,
-  categorizedSets: CategorizedSetsResult,
-  country: string
-): Promise<void> => {
-  try {
-    const dbCountry = getCountryForDatabase(country);
-    console.log('💾 Saving categorized sets to Supabase:', { departmentName, country, dbCountry, setsCount: Object.keys(categorizedSets).length });
-    
-    // First, get the department ID
-    const { data: departments } = await supabase
-      .from('departments')
-      .select('id')
-      .eq('name', departmentName)
-      .eq('country', dbCountry)
-      .eq('is_active', true);
-    
-    if (!departments || departments.length === 0) {
-      throw new Error(`Department not found: ${departmentName} in ${country}`);
-    }
-    
-    const departmentId = departments[0].id;
-    
-    // First, get existing categorized sets to minimize database operations
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { data: _existingSets } = await supabase
-      .from('department_categorized_sets')
-      .select('id, procedure_type, surgery_set_id, implant_box_id')
-      .eq('department_id', departmentId)
-      .eq('country', dbCountry);
-    
-    // Prepare inserts for new categorized sets
-    const inserts = [];
-    
-    // Collect all unique surgery set names and implant box names
-    const allSurgerySetNames = new Set<string>();
-    const allImplantBoxNames = new Set<string>();
-    
-    for (const sets of Object.values(categorizedSets)) {
-      sets.surgerySets?.forEach(name => allSurgerySetNames.add(name));
-      sets.implantBoxes?.forEach(name => allImplantBoxNames.add(name));
-    }
-    
-    // Fetch all surgery sets in one query
-    const surgerySetMap = new Map<string, string>();
-    if (allSurgerySetNames.size > 0) {
-      const { data: surgerySets } = await supabase
+      const { data, error } = await supabase
         .from('surgery_sets')
-        .select('id, name')
-        .in('name', Array.from(allSurgerySetNames))
-        .eq('country', dbCountry)
-        .eq('is_active', true);
-      
-      surgerySets?.forEach(set => surgerySetMap.set(set.name, set.id));
-    }
-    
-    // Fetch all implant boxes in one query
-    const implantBoxMap = new Map<string, string>();
-    if (allImplantBoxNames.size > 0) {
-      const { data: implantBoxes } = await supabase
-        .from('implant_boxes')
-        .select('id, name')
-        .in('name', Array.from(allImplantBoxNames))
-        .eq('country', dbCountry)
-        .eq('is_active', true);
-      
-      implantBoxes?.forEach(box => implantBoxMap.set(box.name, box.id));
-    }
-    
-    // Track missing items for logging
-    const missingSurgerySets: string[] = [];
-    const missingImplantBoxes: string[] = [];
-    
-    // Now build the inserts using the maps
-    for (const [procedureType, sets] of Object.entries(categorizedSets)) {
-      // Add surgery sets
-      for (const surgerySetName of sets.surgerySets || []) {
-        const surgerySetId = surgerySetMap.get(surgerySetName);
-        if (surgerySetId) {
-          inserts.push({
-            department_id: departmentId,
-            procedure_type: procedureType,
-            surgery_set_id: surgerySetId,
-            implant_box_id: null,
-            country: dbCountry
-          });
-        } else {
-          missingSurgerySets.push(surgerySetName);
-          console.warn(`Surgery set not found in database: "${surgerySetName}" for country ${dbCountry}`);
-        }
-      }
-      
-      // Add implant boxes
-      for (const implantBoxName of sets.implantBoxes || []) {
-        const implantBoxId = implantBoxMap.get(implantBoxName);
-        if (implantBoxId) {
-          inserts.push({
-            department_id: departmentId,
-            procedure_type: procedureType,
-            surgery_set_id: null,
-            implant_box_id: implantBoxId,
-            country: dbCountry
-          });
-        } else {
-          missingImplantBoxes.push(implantBoxName);
-          console.warn(`Implant box not found in database: "${implantBoxName}" for country ${dbCountry}`);
-        }
-      }
-    }
-    
-    // Create missing surgery sets
-    if (missingSurgerySets.length > 0) {
-      console.log(`📦 Creating ${missingSurgerySets.length} missing surgery sets for ${dbCountry}`);
-      const newSurgerySets = missingSurgerySets.map(name => ({
-        name,
-        country: dbCountry,
-        is_active: true
-      }));
-      
-      const { data: createdSurgerySets, error: surgerySetError } = await supabase
-        .from('surgery_sets')
-        .insert(newSurgerySets)
-        .select('id, name');
-        
-      if (surgerySetError) {
-        console.error('Error creating surgery sets:', surgerySetError);
-      } else {
-        console.log(`✅ Created ${createdSurgerySets?.length || 0} new surgery sets`);
-        // Add created surgery sets to our map
-        createdSurgerySets?.forEach(set => surgerySetMap.set(set.name, set.id));
-      }
-    }
-    
-    // Create missing implant boxes
-    if (missingImplantBoxes.length > 0) {
-      console.log(`📦 Creating ${missingImplantBoxes.length} missing implant boxes for ${dbCountry}`);
-      const newImplantBoxes = missingImplantBoxes.map(name => ({
-        name,
-        country: dbCountry,
-        is_active: true
-      }));
-      
-      const { data: createdImplantBoxes, error: implantBoxError } = await supabase
-        .from('implant_boxes')
-        .insert(newImplantBoxes)
-        .select('id, name');
-        
-      if (implantBoxError) {
-        console.error('Error creating implant boxes:', implantBoxError);
-      } else {
-        console.log(`✅ Created ${createdImplantBoxes?.length || 0} new implant boxes`);
-        // Add created implant boxes to our map
-        createdImplantBoxes?.forEach(box => implantBoxMap.set(box.name, box.id));
-      }
-    }
-    
-    // Now rebuild inserts with newly created items
-    const finalInserts: any[] = [];
-    console.log('🔍 DEBUG: Processing categorizedSets entries:', Object.keys(categorizedSets));
-    for (const [procedureType, sets] of Object.entries(categorizedSets)) {
-      console.log(`🔍 DEBUG: Processing ${procedureType}:`, {
-        surgerySets: sets.surgerySets?.length || 0,
-        implantBoxes: sets.implantBoxes?.length || 0,
-        surgerySetNames: sets.surgerySets,
-        implantBoxNames: sets.implantBoxes
-      });
-      // Add surgery sets (now with created ones)
-      for (const surgerySetName of sets.surgerySets || []) {
-        const surgerySetId = surgerySetMap.get(surgerySetName);
-        console.log(`🔍 DEBUG: Surgery set "${surgerySetName}" -> ID: ${surgerySetId}`);
-        if (surgerySetId) {
-          const insertData = {
-            department_id: departmentId,
-            procedure_type: procedureType,
-            surgery_set_id: surgerySetId,
-            implant_box_id: null,
-            country: dbCountry
-          };
-          console.log('➕ Adding surgery set insert:', insertData);
-          finalInserts.push(insertData);
-        } else {
-          console.error(`Still missing surgery set after creation: "${surgerySetName}"`);
-        }
-      }
-      
-      // Add implant boxes (now with created ones)  
-      for (const implantBoxName of sets.implantBoxes || []) {
-        const implantBoxId = implantBoxMap.get(implantBoxName);
-        console.log(`🔍 DEBUG: Implant box "${implantBoxName}" -> ID: ${implantBoxId}`);
-        if (implantBoxId) {
-          const insertData = {
-            department_id: departmentId,
-            procedure_type: procedureType,
-            surgery_set_id: null,
-            implant_box_id: implantBoxId,
-            country: dbCountry
-          };
-          console.log('➕ Adding implant box insert:', insertData);
-          finalInserts.push(insertData);
-        } else {
-          console.error(`Still missing implant box after creation: "${implantBoxName}"`);
-        }
-      }
-    }
-    
-    // Use UPSERT pattern to prevent data loss from concurrent operations
-    try {
-      // Get existing sets for comparison to avoid unnecessary deletions
-      const { data: existingSets } = await supabase
-        .from('department_categorized_sets')
-        .select('id, surgery_set_id, implant_box_id, procedure_type')
-        .eq('department_id', departmentId)
-        .eq('country', dbCountry);
+        .select('name')
+        .eq('country', country)
+        .eq('is_active', true)
+        .order('name');
 
-      // Determine what needs to be deleted (exists in DB but not in new data)
-      const newSetKeys = new Set(
-        finalInserts.map(insert => 
-          `${insert.surgery_set_id || 'null'}-${insert.implant_box_id || 'null'}-${insert.procedure_type}`
-        )
-      );
-
-      // Delete only sets that are no longer needed
-      const setsToDelete = (existingSets || []).filter(set => {
-        const key = `${set.surgery_set_id || 'null'}-${set.implant_box_id || 'null'}-${set.procedure_type}`;
-        return !newSetKeys.has(key);
-      });
-
-      if (setsToDelete.length > 0) {
-        const idsToDelete = setsToDelete.map(set => set.id);
-        const { error: deleteError } = await supabase
-          .from('department_categorized_sets')
-          .delete()
-          .in('id', idsToDelete);
-        
-        if (deleteError) {
-          throw new Error(`Failed to delete obsolete categorized sets: ${deleteError.message}`);
-        }
-        console.log(`🗑️ Deleted ${setsToDelete.length} obsolete categorized sets`);
-      }
-      
-      // Insert new sets - check for existence first to prevent duplicates
-      if (finalInserts.length > 0) {
-        for (const insert of finalInserts) {
-          const { data: existing } = await supabase
-            .from('department_categorized_sets')
-            .select('id')
-            .eq('department_id', insert.department_id)
-            .eq('country', insert.country)
-            .eq('procedure_type', insert.procedure_type)
-            .eq('surgery_set_id', insert.surgery_set_id)
-            .eq('implant_box_id', insert.implant_box_id)
-            .maybeSingle();
-            
-          if (!existing) {
-            // Only insert if doesn't exist
-            const { error: insertError } = await supabase
-              .from('department_categorized_sets')
-              .insert(insert);
-              
-            if (insertError) {
-              throw new Error(`Failed to insert categorized set: ${insertError.message}`);
-            }
-          }
-        }
-        console.log(`✅ Processed ${finalInserts.length} categorized sets`);
-      }
-
+      if (error) throw error;
+      return data?.map(item => item.name) || [];
     } catch (error) {
-      console.error('Save operation failed:', error);
-      throw error;
-    }
-    
-    console.log('✅ Successfully saved categorized sets to Supabase:', finalInserts.length, 'records');
-    
-    // Update cache version to notify other users about Edit Sets changes
-    try {
-      const { forceCacheVersionUpdate } = await import('./cacheVersionService');
-      await forceCacheVersionUpdate(
-        dbCountry, 
-        'edit_sets',
-        `Updated Edit Sets for ${departmentName}`,
-        'system' // Could be enhanced with actual user info
-      );
-      console.log(`📢 Cache version updated for ${dbCountry}:edit_sets`);
-    } catch (cacheError) {
-      console.error('Failed to update cache version:', cacheError);
-    }
-    
-    // Invalidate cache for this department/country (both regular and inactive versions)
-    const cacheKey = `${departmentName}-${dbCountry}`;
-    const cacheKeyInactive = `${departmentName}-${dbCountry}-inactive`;
-    categorizedSetsCache.delete(cacheKey);
-    categorizedSetsCache.delete(cacheKeyInactive);
-    
-    // Log what was saved for debugging
-    for (const [procedureType, sets] of Object.entries(categorizedSets)) {
-      console.log(`  📋 ${procedureType}:`, {
-        surgerySets: sets.surgerySets?.length || 0,
-        implantBoxes: sets.implantBoxes?.length || 0
-      });
-    }
-  } catch (error) {
-    console.error('Error saving categorized sets to Supabase:', error);
-    throw error;
-  }
-};
-
-// =============================================================================
-// SURGERY SETS AND IMPLANT BOXES OPERATIONS
-// =============================================================================
-
-/**
- * Get all surgery sets for a country from the database
- */
-export const getSurgerySets = async (country: string): Promise<string[]> => {
-  try {
-    const countryVariations = getCountryVariations(country);
-    console.log('🔍 Getting surgery sets from Supabase for:', country, countryVariations);
-    
-    const { data, error } = await supabase
-      .from('surgery_sets')
-      .select('name')
-      .in('country', countryVariations)
-      .eq('is_active', true)
-      .order('name');
-
-    if (error) {
       console.error('Error fetching surgery sets:', error);
-      throw error;
+      return [];
     }
-
-    const sets = data?.map(item => item.name) || [];
-    console.log('✅ Found surgery sets in Supabase:', sets.length);
-    return sets;
-  } catch (error) {
-    console.error('Error in getSurgerySets:', error);
-    return [];
   }
-};
 
-/**
- * Get all implant boxes for a country from the database
- */
-export const getImplantBoxes = async (country: string): Promise<string[]> => {
-  try {
-    const countryVariations = getCountryVariations(country);
-    console.log('🔍 Getting implant boxes from Supabase for:', country, countryVariations);
-    
-    const { data, error } = await supabase
-      .from('implant_boxes')
-      .select('name')
-      .in('country', countryVariations)
-      .eq('is_active', true)
-      .order('name');
+  async getImplantBoxes(country: string): Promise<string[]> {
+    try {
+      const { data, error } = await supabase
+        .from('implant_boxes')
+        .select('name')
+        .eq('country', country)
+        .eq('is_active', true)
+        .order('name');
 
-    if (error) {
+      if (error) throw error;
+      return data?.map(item => item.name) || [];
+    } catch (error) {
       console.error('Error fetching implant boxes:', error);
-      throw error;
+      return [];
     }
-
-    const boxes = data?.map(item => item.name) || [];
-    console.log('✅ Found implant boxes in Supabase:', boxes.length);
-    return boxes;
-  } catch (error) {
-    console.error('Error in getImplantBoxes:', error);
-    return [];
   }
-};
 
-/**
- * Add a new surgery set
- */
-export const addSurgerySet = async (name: string, country: string): Promise<boolean> => {
-  try {
-    const dbCountry = getCountryForDatabase(country);
-    const { error } = await supabase
-      .from('surgery_sets')
-      .insert({
-        name,
-        country: dbCountry,
-        is_active: true
-      });
+  async addSurgerySet(name: string, country: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('surgery_sets')
+        .insert({
+          name: name,
+          country: country,
+          is_active: true
+        });
 
-    if (error) {
+      if (error) throw error;
+      return true;
+    } catch (error) {
       console.error('Error adding surgery set:', error);
       return false;
     }
-
-    return true;
-  } catch (error) {
-    console.error('Error in addSurgerySet:', error);
-    return false;
   }
-};
 
-/**
- * Add a new implant box
- */
-export const addImplantBox = async (name: string, country: string): Promise<boolean> => {
-  try {
-    const dbCountry = getCountryForDatabase(country);
-    const { error } = await supabase
-      .from('implant_boxes')
-      .insert({
-        name,
-        country: dbCountry,
-        is_active: true
-      });
+  async addImplantBox(name: string, country: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('implant_boxes')
+        .insert({
+          name: name,
+          country: country,
+          is_active: true
+        });
 
-    if (error) {
+      if (error) throw error;
+      return true;
+    } catch (error) {
       console.error('Error adding implant box:', error);
       return false;
     }
+  }
+}
 
-    return true;
+// Export named functions for backward compatibility
+const service = new SupabaseDepartmentService();
+
+export const getDepartments = (country: string) => service.getDepartments(country);
+export const getProcedureTypesForDepartment = (departmentId: string, country: string) => 
+  service.getProcedureTypesForDepartment(departmentId, country);
+export const addProcedureTypeToDepartment = (departmentId: string, procedureType: string, country: string) => 
+  service.addProcedureTypeToDepartment(departmentId, procedureType, country);
+export const removeProcedureTypeFromDepartment = (departmentId: string, procedureType: string, country: string) => 
+  service.removeProcedureTypeFromDepartment(departmentId, procedureType, country);
+export const getSurgerySets = (country: string) => service.getSurgerySets(country);
+export const getImplantBoxes = (country: string) => service.getImplantBoxes(country);
+export const addSurgerySet = (name: string, country: string) => service.addSurgerySet(name, country);
+export const addImplantBox = (name: string, country: string) => service.addImplantBox(name, country);
+
+// Additional function for backward compatibility
+export const getProcedureTypesForDepartmentIncludingInactive = async (
+  departmentId: string, 
+  country: string
+): Promise<string[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('department_procedure_types')
+      .select('procedure_type')
+      .eq('department_id', departmentId)
+      .eq('country', country)
+      .order('procedure_type');
+
+    if (error) throw error;
+    return data?.map(item => item.procedure_type) || [];
   } catch (error) {
-    console.error('Error in addImplantBox:', error);
-    return false;
+    console.error('Error fetching procedure types (including inactive):', error);
+    return [];
   }
 };
+
+export default service;

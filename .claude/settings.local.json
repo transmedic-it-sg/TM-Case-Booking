@@ -44,7 +44,22 @@
       "Bash(npm audit:*)",
       "Bash(npm ls:*)",
       "Bash(fuser:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(find:*)",
+      "Bash(timeout 30s npm start:*)",
+      "Bash(PORT=3000 npm start)",
+      "Bash(chmod:*)",
+      "Bash(npx playwright install:*)",
+      "Bash(timeout 10s npx tsc:*)",
+      "Bash(npx madge:*)",
+      "Bash(timeout 30s npx tsc:*)",
+      "Bash(echo:*)",
+      "Bash(PORT=3002 npm start)",
+      "Bash(cat:*)",
+      "Bash(timeout 30s npm run build)",
+      "Bash(timeout 10s PORT=3001 npm start)",
+      "Bash(timeout:*)",
+      "Bash(lsof:*)"
     ],
     "deny": [],
     "ask": []

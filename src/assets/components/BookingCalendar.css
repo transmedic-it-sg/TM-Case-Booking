@@ -413,6 +413,28 @@
     font-size: 10px;
     padding: 2px 4px;
   }
+  
+  /* Show click to book text always on mobile instead of hover */
+  .calendar-day-clickable::after {
+    content: '+ Click to book';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(32, 178, 170, 0.8);
+    color: white;
+    padding: 3px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    z-index: 10;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  
+  .calendar-day-clickable:hover::after {
+    background: rgba(32, 178, 170, 0.9);
+  }
 }
 
 @media (max-width: 480px) {

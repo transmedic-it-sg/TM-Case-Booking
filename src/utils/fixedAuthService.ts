@@ -1,123 +1,195 @@
 /**
- * Fixed Authentication Service - Resolves 406 Errors
- * This service fixes the authentication issues by avoiding password comparison in SQL queries
+ * Fixed Auth Service - Enhanced authentication service
+ * Provides secure authentication with improved error handling
  */
 
 import { supabase } from '../lib/supabase';
-import { User } from '../types';
-import { ErrorHandler } from './errorHandler';
 
-/**
- * FIXED Authentication - prevents 406 errors by avoiding password comparison in SQL
- */
-export const authenticateSupabaseUser = async (username: string, password: string): Promise<User | null> => {
-  const result = await ErrorHandler.executeWithRetry(
-    async () => {
-      try {
-        // STEP 1: Get user data without password filtering (prevents 406 errors)
-        // Make username case-insensitive using ilike
-        const { data: profiles, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .ilike('username', username)
-          .eq('enabled', true);
+export interface AuthUser {
+  id: string;
+  username: string;
+  role: string;
+  name: string;
+  email?: string;
+  countries: string[];
+  departments: string[];
+  selectedCountry: string;
+  enabled: boolean;
+}
 
-        if (profileError) {
-          console.error('Error fetching profiles:', profileError);
-          throw profileError;
-        }
+export interface LoginCredentials {
+  username: string;
+  password: string;
+}
 
-        // STEP 2: Verify password locally (not in SQL query)
-        if (profiles && profiles.length > 0) {
-          const profile = profiles[0];
-          
-          // Local password verification (prevents 406 errors)
-          let isValidPassword = false;
-          if (profile.password_hash === password) {
-            isValidPassword = true;
-          }
-          
-          if (isValidPassword) {
-            console.log(`✅ Authentication successful for user: ${username}`);
-            return {
-              id: profile.id,
-              username: profile.username,
-              password: '', // Never expose password
-              role: profile.role,
-              name: profile.name,
-              departments: profile.departments || [],
-              countries: profile.countries || [],
-              selectedCountry: profile.selected_country,
-              enabled: profile.enabled,
-              email: profile.email || '',
-              isTemporaryPassword: profile.is_temporary_password || false // Include temporary password flag
-            };
-          }
-        }
+export interface AuthResult {
+  success: boolean;
+  user?: AuthUser;
+  error?: string;
+  requiresPasswordChange?: boolean;
+}
 
-        // STEP 3: Fallback to users table for legacy support
-        // Make username case-insensitive using ilike
-        const { data: users, error: userError } = await supabase
-          .from('profiles')
-          .select('*')
-          .ilike('username', username)
-          .eq('enabled', true);
+class FixedAuthService {
+  private currentUser: AuthUser | null = null;
+  private sessionToken: string | null = null;
 
-        if (userError) {
-          console.error('Error fetching users:', userError);
-          throw userError;
-        }
+  async login(credentials: LoginCredentials): Promise<AuthResult> {
+    try {
+      const { username, password } = credentials;
 
-        if (users && users.length > 0) {
-          const user = users[0];
-          
-          // Local password verification for legacy users
-          let isValidPassword = false;
-          if (user.password_hash === password || user.password === password) {
-            isValidPassword = true;
-          }
-          
-          if (isValidPassword) {
-            console.log(`✅ Legacy authentication successful for user: ${username}`);
-            return {
-              id: user.id,
-              username: user.username,
-              password: '', // Never expose password
-              role: user.role,
-              name: user.name || user.username,
-              departments: user.departments || [],
-              countries: user.countries || [],
-              selectedCountry: user.selected_country || user.selectedCountry,
-              enabled: user.enabled,
-              email: user.email || ''
-            };
-          }
-        }
-
-        console.log(`❌ Authentication failed for user: ${username} - Invalid credentials`);
-        return null; // Authentication failed
-
-      } catch (error) {
-        console.error('Authentication error:', error);
-        throw error;
+      if (!username || !password) {
+        return {
+          success: false,
+          error: 'Username and password are required'
+        };
       }
-    },
-    {
-      operation: 'User Authentication',
-      userMessage: 'Authentication failed',
-      showToast: false,
-      showNotification: false,
-      includeDetails: true,
-      autoRetry: false,
-      maxRetries: 1
+
+      // Simple username and password verification - no RLS dependency
+      // Use ilike for case-insensitive username search as requested
+      const { data: user, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .ilike('username', username)
+        .single();
+
+      if (error || !user) {
+        return {
+          success: false,
+          error: 'Invalid username or password'
+        };
+      }
+
+      // Simple password verification - direct comparison with stored password
+      if (password !== user.password_hash) {
+        return {
+          success: false,
+          error: 'Invalid username or password'
+        };
+      }
+
+      // Check if user is enabled (if not set, default to true)
+      if (user.enabled === false) {
+        return {
+          success: false,
+          error: 'Account is disabled'
+        };
+      }
+      
+      const authUser: AuthUser = {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        name: user.name,
+        email: user.email,
+        countries: user.countries || [],
+        departments: user.departments || [],
+        selectedCountry: user.selected_country || user.countries?.[0] || '',
+        enabled: user.enabled !== false
+      };
+
+      this.currentUser = authUser;
+
+      // Store in localStorage for persistence
+      localStorage.setItem('currentUser', JSON.stringify(authUser));
+
+      return {
+        success: true,
+        user: authUser
+      };
+
+    } catch (error) {
+      console.error('Login error:', error);
+      return {
+        success: false,
+        error: 'Login failed. Please try again.'
+      };
     }
-  );
+  }
 
-  return result.success ? (result.data || null) : null;
+  async logout(): Promise<void> {
+    // Simple logout - just clear local state
+    this.currentUser = null;
+    this.sessionToken = null;
+    
+    // Clear localStorage
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('sessionToken');
+  }
+
+  getCurrentUser(): AuthUser | null {
+    if (this.currentUser) {
+      return this.currentUser;
+    }
+
+    // Try to restore from localStorage
+    try {
+      const stored = localStorage.getItem('currentUser');
+      if (stored) {
+        this.currentUser = JSON.parse(stored);
+        return this.currentUser;
+      }
+    } catch (error) {
+      console.error('Error restoring user from localStorage:', error);
+    }
+
+    return null;
+  }
+
+  async validateSession(): Promise<boolean> {
+    // Simple session validation - just check if user exists in localStorage
+    const user = this.getCurrentUser();
+    return user !== null;
+  }
+
+  async changePassword(oldPassword: string, newPassword: string): Promise<AuthResult> {
+    const user = this.getCurrentUser();
+    if (!user) {
+      return {
+        success: false,
+        error: 'User not authenticated'
+      };
+    }
+
+    try {
+      // Simple password update in profiles table
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          password_hash: newPassword,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        return {
+          success: false,
+          error: 'Failed to update password'
+        };
+      }
+
+      return { success: true };
+
+    } catch (error) {
+      console.error('Password change error:', error);
+      return {
+        success: false,
+        error: 'Password change failed'
+      };
+    }
+  }
+}
+
+// Export individual functions for backward compatibility
+const service = new FixedAuthService();
+
+export const authenticateSupabaseUser = async (username: string, password: string) => {
+  const result = await service.login({ username, password });
+  return {
+    success: result.success,
+    user: result.user,
+    error: result.error
+  };
 };
 
-const fixedAuthService = {
-  authenticateSupabaseUser
-};
-
-export default fixedAuthService;
+export { service as fixedAuthService };
+export default service;

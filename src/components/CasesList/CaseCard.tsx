@@ -3,7 +3,7 @@ import { CaseCardProps } from './types';
 import { getStatusColor, getNextResponsibleRole, formatDateTime } from './utils';
 import CaseActions from './CaseActions';
 import { getCurrentUserSync } from '../../utils/auth';
-import { getAllProcedureTypes } from '../../utils/storage';
+import { useRealtimeMasterDataQuery } from '../../services/realtimeQueryService';
 import { getDepartments, getDepartmentNamesForUser } from '../../utils/codeTable';
 import { useUserNames } from '../../hooks/useUserNames';
 import TimePicker from '../common/TimePicker';
@@ -108,16 +108,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
   const { getUserName } = useUserNames(userIds);
 
-  // Memoize expensive operations to prevent excessive localStorage calls
-  const availableProcedureTypes = useMemo(() => {
-    try {
-      const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
-      return getAllProcedureTypes(userCountry);
-    } catch (error) {
-      console.error('Error loading procedure types:', error);
-      return [];
-    }
-  }, [currentUser?.selectedCountry, currentUser?.countries]);
+  // Real-time procedure types query - always fresh data
+  const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
+  const { data: availableProcedureTypes = [] } = useRealtimeMasterDataQuery('procedures', userCountry);
 
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
   
@@ -430,7 +423,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
             <div className="detail-item">
               <span className="detail-label">Surgery Set Selection: </span>
               <ul className="detail-value">
-                {caseItem.surgerySetSelection.map(set => (
+                {(caseItem.surgerySetSelection || []).map(set => (
                   <li key={set} className="set-item-with-quantity">
                     <span className="set-name">{set}</span>
                     {caseQuantities[set] && (
@@ -445,7 +438,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
             <div className="detail-item">
               <span className="detail-label">Implant Box: </span>
               <ul className="detail-value">
-                {caseItem.implantBox.map(box => (
+                {(caseItem.implantBox || []).map(box => (
                   <li key={box} className="set-item-with-quantity">
                     <span className="set-name">{box}</span>
                     {caseQuantities[box] && (
@@ -499,7 +492,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                         <div className="amendment-changes">
                           <strong>Changes:</strong>
                           <div className="changes-grid">
-                            {amendment.changes.map((change, changeIndex) => (
+                            {(amendment.changes || []).map((change, changeIndex) => (
                               <div key={changeIndex} className="change-item">
                                 <span className="change-field">{change.field}: </span>
                                 <span className="change-from">{change.oldValue} </span>

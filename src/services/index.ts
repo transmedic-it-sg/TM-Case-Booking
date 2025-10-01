@@ -4,7 +4,7 @@
  */
 
 export { default as userService } from './userService';
-export { default as caseService } from './caseService';
+// export { default as caseService } from './caseService'; // DISABLED - Replaced with realtimeCaseService
 export { default as notificationService } from './notificationService';
 
 // Service types for better type safety

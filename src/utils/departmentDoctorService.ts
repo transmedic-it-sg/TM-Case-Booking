@@ -12,6 +12,7 @@ export interface Department {
   name: string;
   description?: string;
   doctor_count: number;
+  country?: string;
 }
 
 export interface DepartmentDoctor {
@@ -81,7 +82,8 @@ export const getDepartmentsForCountry = async (country: string): Promise<Departm
         id: dept.id,
         name: dept.name,
         description: dept.description || '',
-        doctor_count: parseInt(dept.doctor_count) || 0
+        doctor_count: parseInt(dept.doctor_count) || 0,
+        country: normalizedCountry // CRITICAL: Include country in department object
       };
     }).filter(Boolean); // Remove any null entries
 

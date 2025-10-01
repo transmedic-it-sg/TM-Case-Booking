@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { CaseBooking } from '../types';
-import { useCases } from '../hooks/useCases';
+import { useRealtimeCases } from '../hooks/useRealtimeCases';
 import { getCurrentUser } from '../utils/authCompat';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { formatDateTime } from '../utils/dateFormat';
@@ -18,7 +18,10 @@ const ProcessOrderPage: React.FC<ProcessOrderPageProps> = ({
   onBack 
 }) => {
   const currentUser = getCurrentUser();
-  const { updateCaseStatus } = useCases();
+  const { updateCaseStatus } = useRealtimeCases({
+    enableRealTime: true,
+    enableTesting: true
+  });
   
   const [processOrderDetails, setProcessOrderDetails] = useState(
     caseData.processOrderDetails || ''

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSound } from '../contexts/SoundContext';
 import { useToast } from './ToastContainer';
+import { useRealtimeSettings } from '../hooks/useRealtimeSettings';
 import packageJson from '../../package.json';
 import { getCacheVersion } from '../utils/version';
 
@@ -10,8 +11,22 @@ const Settings: React.FC = () => {
   const { showSuccess } = useToast();
   const settingsRef = useRef<HTMLDivElement>(null);
   const [tempVolume, setTempVolume] = useState(volume);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+
+  // Real-time settings hook
+  const {
+    settings,
+    error,
+    updateSetting,
+    resetSettings: resetRealtimeSettings,
+    isMutating
+  } = useRealtimeSettings({
+    enableRealTime: true,
+    enableTesting: false // Disabled to prevent infinite loops
+  });
+
+  // Use real-time settings for notifications
+  const notificationsEnabled = settings?.notificationsEnabled || false;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -46,6 +61,16 @@ const Settings: React.FC = () => {
     }
   }, [isOpen, volume]);
 
+  // Real-time error handling
+  useEffect(() => {
+    if (error) {
+      console.error('Real-time settings error detected:', error);
+    }
+  }, [error]);
+
+  // Component validation for testing (manual only - no automatic validation)
+  // Auto-validation removed to prevent infinite loops
+
   const handleSettingsClick = () => {
     setIsOpen(!isOpen);
     playSound.click();
@@ -75,18 +100,27 @@ const Settings: React.FC = () => {
     showSuccess('Sound Test', 'This is how notifications will sound');
   };
 
-  const resetSettings = () => {
-    setVolume(0.5);
-    setTempVolume(0.5);
-    if (!isEnabled) {
-      toggleSound();
-    }
-    // Reset notifications
-    setNotificationsEnabled(false);
-    localStorage.removeItem('notifications-enabled');
+  const resetSettings = async () => {
+    console.log('🔄 Resetting all settings to defaults...');
     
-    playSound.success();
-    showSuccess('Settings Reset', 'All settings have been restored to defaults');
+    try {
+      // Reset sound settings
+      setVolume(0.5);
+      setTempVolume(0.5);
+      if (!isEnabled) {
+        toggleSound();
+      }
+      
+      // Reset all real-time settings to defaults
+      await resetRealtimeSettings();
+      
+      playSound.success();
+      showSuccess('Settings Reset', 'All settings have been restored to defaults');
+      console.log('✅ Settings reset successfully');
+    } catch (error) {
+      console.error('❌ Failed to reset settings:', error);
+      showSuccess('Error', 'Failed to reset settings. Please try again.');
+    }
   };
 
   const handleNotificationToggle = async () => {
@@ -106,15 +140,22 @@ const Settings: React.FC = () => {
         setNotificationPermission(permission);
         
         if (permission === 'granted') {
-          setNotificationsEnabled(true);
-          localStorage.setItem('notifications-enabled', 'true');
-          showSuccess('Notifications Enabled', 'You will now receive browser notifications');
-          
-          // Show a test notification
-          new Notification('Case Booking System', {
-            body: 'Notifications are now enabled!',
-            icon: '/favicon.ico'
-          });
+          try {
+            console.log('🔔 Enabling notifications after permission granted...');
+            await updateSetting('notificationsEnabled', true);
+            showSuccess('Notifications Enabled', 'You will now receive browser notifications');
+            
+            // Show a test notification
+            new Notification('Case Booking System', {
+              body: 'Notifications are now enabled!',
+              icon: '/favicon.ico'
+            });
+            
+            console.log('✅ Notifications enabled successfully');
+          } catch (error) {
+            console.error('❌ Failed to enable notifications:', error);
+            showSuccess('Error', 'Failed to save notification settings');
+          }
         } else {
           showSuccess('Permission Required', 'Please allow notifications to enable this feature');
         }
@@ -124,18 +165,26 @@ const Settings: React.FC = () => {
       }
     } else if (notificationPermission === 'granted') {
       const newState = !notificationsEnabled;
-      setNotificationsEnabled(newState);
-      localStorage.setItem('notifications-enabled', JSON.stringify(newState));
       
-      if (newState) {
-        showSuccess('Notifications Enabled', 'You will now receive browser notifications');
-        // Show a test notification
-        new Notification('Case Booking System', {
-          body: 'Notifications are now enabled!',
-          icon: '/favicon.ico'
-        });
-      } else {
-        showSuccess('Notifications Disabled', 'Browser notifications have been disabled');
+      try {
+        console.log(`🔔 ${newState ? 'Enabling' : 'Disabling'} notifications...`);
+        await updateSetting('notificationsEnabled', newState);
+        
+        if (newState) {
+          showSuccess('Notifications Enabled', 'You will now receive browser notifications');
+          // Show a test notification
+          new Notification('Case Booking System', {
+            body: 'Notifications are now enabled!',
+            icon: '/favicon.ico'
+          });
+        } else {
+          showSuccess('Notifications Disabled', 'Browser notifications have been disabled');
+        }
+        
+        console.log('✅ Notification setting updated successfully');
+      } catch (error) {
+        console.error('❌ Failed to update notification setting:', error);
+        showSuccess('Error', 'Failed to update notification settings');
       }
     }
     
@@ -186,12 +235,7 @@ const Settings: React.FC = () => {
     // Check if notifications are supported
     if ('Notification' in window) {
       setNotificationPermission(Notification.permission);
-      
-      // Load saved notification preference
-      const savedNotificationSetting = localStorage.getItem('notifications-enabled');
-      if (savedNotificationSetting) {
-        setNotificationsEnabled(JSON.parse(savedNotificationSetting));
-      }
+      // Note: notificationsEnabled now comes from real-time settings hook
     }
   }, []);
 
@@ -287,9 +331,9 @@ const Settings: React.FC = () => {
                   <button
                     className={getNotificationButtonClass()}
                     onClick={handleNotificationToggle}
-                    disabled={!('Notification' in window) || notificationPermission === 'denied'}
+                    disabled={!('Notification' in window) || notificationPermission === 'denied' || isMutating}
                   >
-                    {getNotificationButtonText()}
+                    {isMutating ? 'Updating...' : getNotificationButtonText()}
                   </button>
                 </div>
               </div>
@@ -361,8 +405,9 @@ const Settings: React.FC = () => {
                 <button
                   onClick={resetSettings}
                   className="btn btn-warning btn-md reset-settings-button"
+                  disabled={isMutating}
                 >
-                  🔄 Reset to Defaults
+                  {isMutating ? '🔄 Resetting...' : '🔄 Reset to Defaults'}
                 </button>
               </div>
             </div>

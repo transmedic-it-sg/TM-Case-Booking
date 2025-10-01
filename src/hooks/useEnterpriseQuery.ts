@@ -27,8 +27,8 @@ export const useEnterpriseQuery = <TData = unknown>(options: UseEnterpriseQueryO
     queryFn,
     tags = [],
     enableRealtime = true,
-    staleTime = 5 * 60 * 1000, // 5 minutes
-    gcTime = 10 * 60 * 1000, // 10 minutes - v5 renamed
+    staleTime = 0, // NO CACHE - Always fresh for 50 concurrent users
+    gcTime = 0, // NO CACHE - No storage
   } = options;
 
   const queryClient = useQueryClient();

@@ -1,144 +1,98 @@
 import React, { useState, useEffect } from 'react';
 import PermissionMatrix from './PermissionMatrix';
-import { getAllRoles, getAllMatrixRoles, permissionActions } from '../data/permissionMatrixData';
-import { getSupabaseRoles } from '../utils/supabaseUserService';
-import { Role, Permission } from './PermissionMatrix';
-import { 
-  getSupabasePermissions, 
-  saveSupabasePermissions, 
-  updateSupabasePermission, 
-  resetSupabasePermissions 
-} from '../utils/supabasePermissionService';
-import { clearPermissionsCache } from '../utils/permissions';
+import { permissionActions } from '../data/permissionMatrixData';
+// import { Role, Permission } from './PermissionMatrix'; // Unused types
+import { useRealtimePermissions } from '../hooks/useRealtimePermissions';
 import { useModal } from '../hooks/useModal';
 import CustomModal from './CustomModal';
 import '../assets/components/PermissionMatrixPage.css';
 
 const PermissionMatrixPage: React.FC = () => {
-  const [permissions, setPermissions] = useState<Permission[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [roles, setRoles] = useState<Role[]>([]);
   const { modal, closeModal, showConfirm, showSuccess } = useModal();
 
-  // Load permissions and roles on component mount
+  // Real-time permissions hook
+  const {
+    permissions,
+    roles,
+    isLoading,
+    error,
+    refreshPermissions,
+    updatePermission,
+    savePermissions,
+    resetPermissions,
+    isMutating,
+    validateComponent,
+    getTestingReport
+  } = useRealtimePermissions({
+    enableRealTime: true,
+    enableTesting: true
+  });
+
+  // Component validation for testing
   useEffect(() => {
-    // Load roles from both static definitions and custom roles
-    const loadRoles = async () => {
+    const runValidation = async () => {
       try {
-        // Use getAllMatrixRoles which includes both static and custom roles (excluding admin)
-        const allMatrixRoles = getAllMatrixRoles();
-        setRoles(allMatrixRoles);
+        await validateComponent();
+        console.log('✅ PermissionMatrixPage validation completed');
       } catch (error) {
-        console.error('Error loading roles:', error);
-        // Fallback to static roles only
-        const allMatrixRoles = getAllMatrixRoles();
-        setRoles(allMatrixRoles);
+        console.error('❌ PermissionMatrixPage validation failed:', error);
       }
     };
-    
-    // Load permissions from Supabase
-    const loadPermissions = async () => {
-      try {
-        const supabasePermissions = await getSupabasePermissions();
-        setPermissions(supabasePermissions);
-      } catch (error) {
-        console.error('Error loading permissions:', error);
-      }
-    };
-    
-    loadRoles();
-    loadPermissions();
-  }, []);
 
-  // Listen for role updates in localStorage and custom events
+    if (!isLoading) {
+      runValidation();
+    }
+  }, [isLoading, validateComponent]);
+
+  // Real-time error handling
   useEffect(() => {
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'case-booking-custom-roles') {
-        // Reload roles from database
-        reloadRoles();
-      }
-    };
+    if (error) {
+      console.error('Real-time permission error detected:', error);
+    }
+  }, [error]);
 
-    const handleRolesUpdated = () => {
-      // Reload roles from database
-      reloadRoles();
-    };
-
-    const reloadRoles = async () => {
-      try {
-        const databaseRoles = await getSupabaseRoles();
-        const matrixRoles = databaseRoles.filter(role => role.id !== 'admin');
-        setRoles(matrixRoles);
-      } catch (error) {
-        console.error('Error reloading roles:', error);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('rolesUpdated', handleRolesUpdated);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('rolesUpdated', handleRolesUpdated);
-    };
-  }, []);
-
+  // Handle permission change - using real-time hook
   const handlePermissionChange = async (actionId: string, roleId: string, allowed: boolean) => {
+    console.log(`🔒 Updating permission: ${actionId} for role ${roleId} = ${allowed}`);
+    
     try {
-      // Update the permission in Supabase
-      await updateSupabasePermission(roleId, actionId, allowed);
-      
-      // Clear the permissions cache to force reload with new permissions
-      clearPermissionsCache();
-      
-      // Update local state
-      setPermissions(prevPermissions => {
-        const existingIndex = prevPermissions.findIndex(
-          p => p.actionId === actionId && p.roleId === roleId
-        );
-
-        if (existingIndex >= 0) {
-          // Update existing permission
-          const updated = [...prevPermissions];
-          updated[existingIndex] = { ...updated[existingIndex], allowed };
-          return updated;
-        } else {
-          // Add new permission
-          return [...prevPermissions, { actionId, roleId, allowed }];
-        }
-      });
+      await updatePermission(actionId, roleId, allowed);
+      console.log('✅ Permission updated successfully, data will auto-refresh via real-time');
     } catch (error) {
-      console.error('Error updating permission:', error);
+      console.error('❌ Failed to update permission:', error);
     }
   };
 
+  // Handle reset - using real-time hook
   const handleReset = async () => {
+    console.log('🔄 Resetting permissions to defaults...');
+    
     try {
-      await resetSupabasePermissions();
-      const defaultPermissions = await getSupabasePermissions();
-      setPermissions(defaultPermissions);
+      await resetPermissions();
       setIsEditing(false);
+      console.log('✅ Permissions reset successfully, data will auto-refresh via real-time');
     } catch (error) {
-      console.error('Error resetting permissions:', error);
+      console.error('❌ Error resetting permissions:', error);
     }
   };
 
+  // Handle save - using real-time hook
   const handleSave = () => {
     const changedPermissions = permissions.filter(p => p.allowed).length;
     const title = 'Confirm Save Changes';
     const message = `Are you sure you want to save the current permission configuration?\n\nThis will update ${changedPermissions} permission(s) and affect system access immediately.`;
     
     showConfirm(title, message, async () => {
+      console.log('💾 Saving permissions configuration...');
+      
       try {
-        // Permissions are already saved in real-time via updateSupabasePermission
-        // But we can still save the current state to ensure consistency
-        await saveSupabasePermissions(permissions);
-        // Clear the permissions cache to force reload with new permissions
-        clearPermissionsCache();
+        await savePermissions(permissions);
         setIsEditing(false);
         showSuccess('Permissions saved successfully!');
+        console.log('✅ Permissions saved successfully');
       } catch (error) {
-        console.error('Error saving permissions:', error);
+        console.error('❌ Error saving permissions:', error);
         showSuccess('Error saving permissions. Please try again.');
       }
     });
@@ -183,20 +137,23 @@ const PermissionMatrixPage: React.FC = () => {
               <button 
                 className="save-button"
                 onClick={handleSave}
+                disabled={isMutating}
               >
-                Save Changes
+                {isMutating ? 'Saving...' : 'Save Changes'}
               </button>
               <button 
                 className="cancel-button"
                 onClick={handleReset}
+                disabled={isMutating}
               >
-                Cancel
+                {isMutating ? 'Resetting...' : 'Cancel'}
               </button>
             </div>
           ) : (
             <button 
               className="edit-button"
               onClick={() => setIsEditing(true)}
+              disabled={isLoading || isMutating}
             >
               Edit Permissions
             </button>
@@ -204,13 +161,69 @@ const PermissionMatrixPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div className="error-message" style={{ margin: '20px 0', padding: '10px', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', borderRadius: '4px', color: '#721c24' }}>
+          <span>{typeof error === 'string' ? error : error.message}</span>
+        </div>
+      )}
+
+      {/* Real-time Testing Section - Development Only */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="testing-section" style={{ marginBottom: '20px', padding: '10px', border: '1px dashed #ccc' }}>
+          <h4>Real-time Testing (Dev Only)</h4>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <button
+              className="btn btn-outline-primary btn-sm"
+              onClick={async () => {
+                console.log('🧪 Running component validation...');
+                const isValid = await validateComponent();
+                console.log(`Component validation result: ${isValid}`);
+              }}
+              disabled={isLoading || isMutating}
+              style={{ padding: '5px 10px', fontSize: '12px' }}
+            >
+              Validate Component
+            </button>
+            <button
+              className="btn btn-outline-secondary btn-sm"
+              onClick={() => {
+                console.log('📊 Testing Report:');
+                console.log(getTestingReport());
+              }}
+              disabled={isLoading || isMutating}
+              style={{ padding: '5px 10px', fontSize: '12px' }}
+            >
+              Show Testing Report
+            </button>
+            <button
+              className="btn btn-outline-info btn-sm"
+              onClick={() => refreshPermissions()}
+              disabled={isLoading || isMutating}
+              style={{ padding: '5px 10px', fontSize: '12px' }}
+            >
+              Force Refresh
+            </button>
+            <span style={{ fontSize: '12px', color: '#666' }}>
+              Loading: {isLoading ? 'Yes' : 'No'} | Mutating: {isMutating ? 'Yes' : 'No'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="loading-state" style={{ textAlign: 'center', padding: '20px' }}>
+          <p>Loading permissions...</p>
+        </div>
+      )}
 
       <PermissionMatrix
         roles={roles}
         actions={permissionActions}
         permissions={permissions}
-        onPermissionChange={isEditing ? handlePermissionChange : undefined}
-        readonly={!isEditing}
+        onPermissionChange={isEditing && !isMutating ? handlePermissionChange : undefined}
+        readonly={!isEditing || isMutating}
       />
 
       <div className="permission-notes">
@@ -220,7 +233,7 @@ const PermissionMatrixPage: React.FC = () => {
           </div>
         </div>
         <div className="role-definitions">
-          {getAllRoles().map(role => (
+          {roles.map(role => (
             <div key={role.id} className="role-definition">
               <div className="role-badge" style={{ backgroundColor: role.color }}>
                 {role.displayName}

@@ -48,7 +48,7 @@ const PushNotificationSettings: React.FC<PushNotificationSettingsProps> = ({
     setPermission(getNotificationPermission());
     
     const status = pushNotificationService.getSubscriptionStatus();
-    setIsSubscribed(status.subscribed);
+    setIsSubscribed(status);
   };
 
   const handleEnableNotifications = async () => {

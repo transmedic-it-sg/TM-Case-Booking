@@ -4,7 +4,8 @@ import { CASE_STATUSES } from '../../constants/statuses';
 import { getCurrentUserSync } from '../../utils/auth';
 import { hasPermission, PERMISSION_ACTIONS } from '../../utils/permissions';
 import { useNotifications } from '../../contexts/NotificationContext';
-import { useCases } from '../../hooks/useCases';
+import { useRealtimeCases } from '../../hooks/useRealtimeCases';
+import { useRealtime } from '../RealtimeProvider';
 import { CasesListProps } from './types';
 import CasesFilter from './CasesFilter';
 import CaseCard from './CaseCard';
@@ -16,16 +17,33 @@ import { useModal } from '../../hooks/useModal';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { userHasDepartmentAccess } from '../../utils/departmentUtils';
 import { normalizeCountry } from '../../utils/countryUtils';
-import { amendCase, processCaseOrder } from '../../utils/storage'; // Keep these for now until replaced
+import { amendCase, processCaseOrder } from '../../utils/realTimeStorage'; // Using real-time storage instead
 
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
   const { modal, closeModal, showConfirm, showConfirmWithCustomButtons } = useModal();
-  const { cases, refreshCases, updateCaseStatus: updateCaseStatusHook, deleteCase } = useCases({
-    autoRefresh: false, // Disabled - using real-time subscriptions only
-    refreshInterval: 0, // No polling needed
-    enableRealTime: true // Real-time Supabase subscriptions for instant updates
+  
+  // REAL-TIME CASES HOOK - Always fresh data, no cache issues, comprehensive testing
+  const { 
+    cases, 
+    isLoading, 
+    refreshCases,
+    updateCaseStatus,
+    deleteCase,
+    validateComponent,
+    getTestingReport,
+    isMutating
+  } = useRealtimeCases({
+    enableRealTime: true,
+    enableTesting: false,
+    filters: {
+      country: currentUser?.selectedCountry,
+    }
   });
+  
+  // Real-time connection status - prioritize cases connection for this component
+  const { overallConnected, casesConnected, forceRefreshAll } = useRealtime();
+  const isConnected = casesConnected || overallConnected;
   const [filteredCases, setFilteredCases] = useState<CaseBooking[]>([]);
   const [availableSubmitters, setAvailableSubmitters] = useState<string[]>([]);
   const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);
@@ -160,7 +178,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   useEffect(() => {
-    // Cases are automatically loaded by useCases hook
+    // Cases are automatically loaded by useRealtimeCases hook (live data)
     // Update available options when cases change
     if (cases.length > 0) {
       const uniqueSubmitters = Array.from(new Set(cases.map(caseItem => caseItem.submittedBy)))
@@ -349,7 +367,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     if (!currentUser) return;
 
     const caseItem = cases.find(c => c.id === caseId);
-    await updateCaseStatusHook(caseId, newStatus);
+    await updateCaseStatus(caseId, newStatus);
     refreshCases();
     
     // Reset to page 1 and expand the updated case
@@ -430,14 +448,13 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       const { caseId: _, ...amendments } = amendmentFormData; // Remove caseId from amendments
       
       const caseItem = cases.find(c => c.id === caseId);
-      const isAdmin = currentUser.role === 'admin';
       
       // Validate that amendment reason is provided
       if (!amendments.amendmentReason || !amendments.amendmentReason.trim()) {
         throw new Error('Amendment reason is required');
       }
       
-      await amendCase(caseId, amendments, currentUser.id, isAdmin);
+      await amendCase(caseId, amendments); // Real-time amendCase handles user automatically
       
       setAmendingCase(null);
       setAmendmentData({});
@@ -578,7 +595,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         processedAt: new Date().toISOString()
       };
       
-      await updateCaseStatusHook(caseId, CASE_STATUSES.SALES_APPROVAL, JSON.stringify(updateDetails));
+      // Use real-time hook for instant UI updates
+      await updateCaseStatus(caseId, CASE_STATUSES.SALES_APPROVAL, JSON.stringify(updateDetails));
       
       // Reset form state
       setSalesApprovalCase(null);
@@ -640,7 +658,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         attachments: hospitalDeliveryAttachments,
         comments: hospitalDeliveryComments
       };
-      await updateCaseStatusHook(caseId, 'Pending Delivery (Hospital)', JSON.stringify(additionalData));
+      await updateCaseStatus(caseId, 'Pending Delivery (Hospital)', JSON.stringify(additionalData));
       setHospitalDeliveryCase(null);
       setHospitalDeliveryAttachments([]);
       setHospitalDeliveryComments('');
@@ -700,7 +718,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         comments: receivedDetails,
         attachments: attachments
       };
-      await updateCaseStatusHook(caseId, 'Delivered (Hospital)', JSON.stringify(additionalData));
+      await updateCaseStatus(caseId, 'Delivered (Hospital)', JSON.stringify(additionalData));
       setReceivedCase(null);
       setReceivedDetails('');
       setReceivedImage('');
@@ -748,7 +766,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         orderSummary,
         doNumber
       };
-      await updateCaseStatusHook(caseId, 'Case Completed', JSON.stringify(additionalData));
+      await updateCaseStatus(caseId, 'Case Completed', JSON.stringify(additionalData));
       setCompletedCase(null);
       setAttachments([]);
       setOrderSummary('');
@@ -782,7 +800,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
     try {
       const caseItem = cases.find(c => c.id === caseId);
-      await updateCaseStatusHook(caseId, 'Delivered (Office)');
+      await updateCaseStatus(caseId, 'Delivered (Office)');
       refreshCases();
       
       // Reset to page 1 and expand the updated case
@@ -812,7 +830,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
     try {
       const caseItem = cases.find(c => c.id === caseId);
-      await updateCaseStatusHook(caseId, 'To be billed');
+      await updateCaseStatus(caseId, 'To be billed');
       refreshCases();
       
       // Reset to page 1 and expand the updated case
@@ -852,7 +870,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         attachments: pendingOfficeAttachments,
         comments: pendingOfficeComments
       };
-      await updateCaseStatusHook(caseId, 'Pending Delivery (Office)', JSON.stringify(additionalData));
+      await updateCaseStatus(caseId, 'Pending Delivery (Office)', JSON.stringify(additionalData));
       setPendingOfficeCase(null);
       setPendingOfficeAttachments([]);
       setPendingOfficeComments('');
@@ -901,11 +919,12 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         attachments: officeDeliveryAttachments,
         comments: officeDeliveryComments
       };
-      await updateCaseStatusHook(caseId, 'Delivered (Office)', JSON.stringify(additionalData));
+      // Use real-time hook for instant UI updates
+      await updateCaseStatus(caseId, 'Delivered (Office)', JSON.stringify(additionalData));
+      
       setOfficeDeliveryCase(null);
       setOfficeDeliveryAttachments([]);
       setOfficeDeliveryComments('');
-      refreshCases();
       
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
@@ -944,7 +963,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     
     showConfirmWithCustomButtons('Cancel Case', confirmMessage, async () => {
       try {
-        await updateCaseStatusHook(caseId, 'Case Cancelled', 'Case cancelled by user request');
+        await updateCaseStatus(caseId, 'Case Cancelled', 'Case cancelled by user request');
         refreshCases();
         
         // Reset to page 1 and expand the updated case
@@ -1037,9 +1056,49 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     <div className="cases-list">
       <div className="cases-header">
         <h2>All Submitted Cases</h2>
-        <button onClick={refreshCases} className="btn btn-outline-secondary btn-md refresh-button">
-          Refresh
-        </button>
+        <div className="header-controls">
+          {/* Real-time connection status indicator */}
+          <div className={`realtime-status ${isConnected ? 'connected' : 'disconnected'}`}>
+            <span className="status-dot"></span>
+            {isConnected ? 'Live Data' : 'Reconnecting...'}
+          </div>
+          
+          {/* Real-time refresh button */}
+          <button 
+            onClick={() => {
+              if (isConnected) {
+                console.log('🔄 Manual refresh requested');
+                refreshCases(); // Use real-time hook refresh
+              } else {
+                console.log('🚨 Emergency force refresh requested');
+                forceRefreshAll(); // Emergency cache clear
+              }
+            }} 
+            className="btn btn-outline-secondary btn-md refresh-button"
+            title={isConnected ? 'Fetch latest data from database' : 'Force refresh all data and clear cache'}
+            disabled={isMutating || isLoading}
+          >
+            {isMutating || isLoading ? '⏳ Loading...' : 
+             isConnected ? '↻ Refresh' : '⚠️ Force Refresh'}
+          </button>
+          
+          {/* Testing validation button (development only) */}
+          {process.env.NODE_ENV === 'development' && (
+            <button 
+              onClick={() => {
+                console.log('🧪 Running component validation...');
+                validateComponent().then(isValid => {
+                  console.log(`🧪 Validation result: ${isValid ? '✅ PASSED' : '❌ FAILED'}`);
+                  console.log(getTestingReport());
+                });
+              }}
+              className="btn btn-outline-info btn-sm"
+              title="Run component validation tests"
+            >
+              🧪 Test
+            </button>
+          )}
+        </div>
       </div>
 
       <CasesFilter

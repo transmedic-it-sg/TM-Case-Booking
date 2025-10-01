@@ -58,7 +58,6 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
 
   const {
     attachments,
-    allAttachments,
     attachmentChanges,
     addFiles,
     removeFile,
@@ -126,21 +125,54 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
     if (fileInfo.isImage && fileInfo.preview) {
       const modalDiv = document.createElement('div');
       modalDiv.className = 'attachment-modal-overlay';
-      modalDiv.innerHTML = `
-        <div class="attachment-modal">
-          <div class="attachment-modal-header">
-            <h4>${fileInfo.name}</h4>
-            <button class="attachment-modal-close">✕</button>
-          </div>
-          <div class="attachment-modal-body">
-            <img src="${fileInfo.preview}" alt="${fileInfo.name}" style="max-width: 100%; max-height: 80vh;" />
-          </div>
-          <div class="attachment-modal-footer">
-            <button class="btn btn-outline-primary attachment-modal-download">Download</button>
-            ${canUploadFiles ? `<button class="btn btn-outline-warning attachment-modal-replace">Replace</button>` : ''}
-          </div>
-        </div>
-      `;
+      
+      // Create modal structure safely without innerHTML
+      const modal = document.createElement('div');
+      modal.className = 'attachment-modal';
+      
+      const header = document.createElement('div');
+      header.className = 'attachment-modal-header';
+      
+      const title = document.createElement('h4');
+      title.textContent = fileInfo.name; // Safe text assignment
+      
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'attachment-modal-close';
+      closeBtn.textContent = '✕';
+      
+      header.appendChild(title);
+      header.appendChild(closeBtn);
+      
+      const body = document.createElement('div');
+      body.className = 'attachment-modal-body';
+      
+      const img = document.createElement('img');
+      img.src = fileInfo.preview; // Direct property assignment is safer
+      img.alt = fileInfo.name;
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '80vh';
+      
+      body.appendChild(img);
+      
+      const footer = document.createElement('div');
+      footer.className = 'attachment-modal-footer';
+      
+      const downloadBtn = document.createElement('button');
+      downloadBtn.className = 'btn btn-outline-primary attachment-modal-download';
+      downloadBtn.textContent = 'Download';
+      footer.appendChild(downloadBtn);
+      
+      if (canUploadFiles) {
+        const replaceBtn = document.createElement('button');
+        replaceBtn.className = 'btn btn-outline-warning attachment-modal-replace';
+        replaceBtn.textContent = 'Replace';
+        footer.appendChild(replaceBtn);
+      }
+      
+      modal.appendChild(header);
+      modal.appendChild(body);
+      modal.appendChild(footer);
+      modalDiv.appendChild(modal);
       
       document.body.appendChild(modalDiv);
       

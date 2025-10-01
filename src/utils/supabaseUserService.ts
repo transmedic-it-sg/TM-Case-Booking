@@ -4,10 +4,10 @@ import { Role } from '../components/PermissionMatrix';
 import { ErrorHandler } from './errorHandler';
 
 // FIXED: Import the secure authentication service to resolve 406 errors
-import fixedAuthService from './fixedAuthService';
+import { authenticateSupabaseUser as fixedAuthenticateSupabaseUser } from './fixedAuthService';
 
 // Main authentication function - USES FIXED SERVICE (no more 406 errors)
-export const authenticateSupabaseUser = fixedAuthService.authenticateSupabaseUser;
+export const authenticateSupabaseUser = fixedAuthenticateSupabaseUser;
 
 // Get all users from both profiles and users tables
 export const getAllSupabaseUsers = async (): Promise<User[]> => {

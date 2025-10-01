@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
 import { getCurrentUserSync } from '../utils/authCompat';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
-import { useCases } from '../hooks/useCases';
+import { useRealtimeCases } from '../hooks/useRealtimeCases';
 import { CaseBooking } from '../types';
 import SearchableDropdown from './SearchableDropdown';
 import { getMonthYearDisplay } from '../utils/dateFormat';
@@ -19,10 +19,12 @@ interface BookingCalendarProps {
 
 const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateClick }) => {
   const initialCurrentUser = getCurrentUserSync();
-  const { cases } = useCases({
-    autoRefresh: true,
-    refreshInterval: 30000, // Auto-refresh every 30 seconds as fallback
-    enableRealTime: true // Enable real-time Supabase subscriptions for instant updates
+  const { cases = [] } = useRealtimeCases({
+    enableRealTime: true,
+    enableTesting: true,
+    filters: {
+      country: initialCurrentUser?.selectedCountry
+    }
   });
   
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
@@ -125,7 +127,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCountry]); // isAdmin is derived from currentUser which is already handled
 
-  // Cases are automatically loaded by useCases hook - no need to manually load
+  // Cases are automatically loaded by useRealtimeCases hook - live data, no cache
 
   // Close date picker when clicking outside
   useEffect(() => {
@@ -471,7 +473,8 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
           key={day} 
           className={`${dayClass} ${dayCases.length === 0 ? 'calendar-day-clickable' : ''}`}
           onClick={(e) => handleDayClick(e, day)}
-          title={dayCases.length === 0 ? `Click to book a new case for ${day}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}` : ''}
+          title={dayCases.length === 0 ? `Click to book a new case for ${day}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}` : `${dayCases.length} case(s) scheduled`}
+          data-tooltip={dayCases.length === 0 ? 'Click to book' : `${dayCases.length} cases`}
         >
           <div className="calendar-day-number">{day}</div>
           <div className="calendar-day-content">

@@ -1,14 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { User } from '../types';
 import { getCurrentUser } from '../utils/authCompat';
+import { useRealtimeUsers } from '../hooks/useRealtimeUsers';
 import { 
-  getSupabaseUsers, 
-  addSupabaseUser, 
-  updateSupabaseUser, 
-  deleteSupabaseUser, 
-  toggleUserEnabled, 
-  checkUsernameAvailable,
-  resetSupabaseUserPassword 
+  checkUsernameAvailable
 } from '../utils/supabaseUserService';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useToast } from './ToastContainer';
@@ -30,7 +25,38 @@ const UserManagement: React.FC = () => {
   const currentUser = getCurrentUser();
   
   const [activeTab, setActiveTab] = useState<'users' | 'roles'>('users');
-  const [users, setUsers] = useState<User[]>([]);
+  
+  // Filter states - declared before real-time hook
+  const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>('');
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  
+  // REAL-TIME USERS HOOK - Always fresh data, no cache issues, comprehensive testing
+  const { 
+    users,
+    isLoading: usersLoading,
+    error: usersError,
+    refreshUsers,
+    addUser,
+    updateUser,
+    deleteUser,
+    toggleUser,
+    resetUserPassword,
+    validateComponent,
+    getTestingReport,
+    isMutating
+  } = useRealtimeUsers({
+    enableRealTime: true,
+    enableTesting: false,
+    filters: {
+      country: selectedCountryFilter,
+      role: selectedRoleFilter,
+      status: selectedStatusFilter === 'enabled' ? 'enabled' : 
+              selectedStatusFilter === 'disabled' ? 'disabled' : 'all',
+      search: searchQuery
+    }
+  });
   const [showAddUser, setShowAddUser] = useState(false);
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [newUser, setNewUser] = useState({
@@ -58,10 +84,7 @@ const UserManagement: React.FC = () => {
     userName: ''
   });
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
-  const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>(''); // For previewing users by country
-  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>(''); // For filtering by role
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>(''); // For filtering by status
-  const [searchQuery, setSearchQuery] = useState<string>(''); // For searching users
+  // Filter states moved up before real-time hook declaration
   const [tempFilters, setTempFilters] = useState({searchQuery: '', selectedRoleFilter: '', selectedStatusFilter: '', selectedCountryFilter: ''}); // Temp filters for Apply button
   const [showFilters, setShowFilters] = useState(false); // Show/hide advanced filters
   const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
@@ -117,7 +140,7 @@ const UserManagement: React.FC = () => {
 
   // ALL useEffect hooks MUST be called before any conditional returns
   useEffect(() => {
-    loadUsers();
+    // Users now loaded automatically by useRealtimeUsers hook
     
     // Load countries directly from code_tables to avoid fake data detection
     const loadCountries = async () => {
@@ -157,10 +180,8 @@ const UserManagement: React.FC = () => {
     loadAvailableRoles();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   
-  // Reload users when country filter changes
-  useEffect(() => {
-    loadUsers();
-  }, [selectedCountryFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Filter changes now handled automatically by useRealtimeUsers hook
+  // No manual reload needed
 
   // Handle escape key to close add user form (removed click outside functionality)
   useEffect(() => {
@@ -241,71 +262,9 @@ const UserManagement: React.FC = () => {
     });
   };
 
-  const cleanupUserDepartments = (user: User): User => {
-    // DISABLE AUTOMATIC CLEANUP - it's causing more problems than it solves
-    // The departments are being over-cleaned because the validation logic is wrong
-    
-    // For now, return user as-is to prevent data loss
-    // TODO: Fix the department validation logic properly using Supabase
-    return user;
-    
-    /*
-    // OLD CLEANUP LOGIC - DISABLED TO PREVENT DATA LOSS
-    if (!user.departments || user.departments.length === 0 || !user.countries || user.countries.length === 0) {
-      return user;
-    }
+  // cleanupUserDepartments function removed - was causing data loss issues
 
-    // Get valid departments for the user's countries
-    const validDepartments = user.departments || [];
-    
-    // Filter out any departments that don't exist in the current code tables
-    const cleanDepartments = user.departments.filter(dept => validDepartments.includes(dept));
-    
-    // If departments were cleaned up, log it for debugging
-    if (cleanDepartments.length !== user.departments.length) {
-      console.log(`Cleaned departments for ${user.name}: ${user.departments.length} → ${cleanDepartments.length}`);
-    }
-    
-    return {
-      ...user,
-      departments: cleanDepartments
-    };
-    */
-  };
-
-  const loadUsers = async () => {
-    try {
-      const allUsers = await getSupabaseUsers();
-      
-      // Clean up department data to match current code tables
-      const cleanedUsers = allUsers.map(cleanupUserDepartments);
-      
-      // Filter users based on current user's role and country access
-      let filteredUsers = cleanedUsers;
-      
-      if (currentUser?.role === 'it' && currentUser.selectedCountry) {
-        // IT can only see users from their assigned country
-        filteredUsers = cleanedUsers.filter(user => 
-          (user.countries && user.countries.includes(currentUser.selectedCountry!)) || user.role === 'admin'
-        );
-      } else if (currentUser?.role === 'admin') {
-        // Admin can see all users
-        filteredUsers = cleanedUsers;
-      }
-      
-      // Apply country filter if selected
-      if (selectedCountryFilter) {
-        filteredUsers = filteredUsers.filter(user => 
-          user.countries && user.countries.includes(selectedCountryFilter)
-        );
-      }
-      
-      setUsers(filteredUsers);
-    } catch (error) {
-      console.error('Error loading users:', error);
-      showError('Database Error', 'Failed to load users from database');
-    }
-  };
+  // Removed loadUsers function - now using useRealtimeUsers hook for always-fresh data
 
   const handleEditUser = (user: User) => {
     setEditingUser(user.id);
@@ -356,10 +315,11 @@ const UserManagement: React.FC = () => {
     }
 
     try {
-      const success = await resetSupabaseUserPassword(resetPasswordUser.id, tempPassword);
-      if (success) {
-        // Audit log for password reset
-        try {
+      await resetUserPassword(resetPasswordUser.id, tempPassword);
+      // Real-time hook handles success automatically
+      
+      // Audit log for password reset
+      try {
           if (currentUser) {
             await auditPasswordReset(
               currentUser.name,
@@ -384,9 +344,6 @@ const UserManagement: React.FC = () => {
           message: `Temporary password set for ${resetPasswordUser.name} (${resetPasswordUser.username}). User must change password on next login.`,
           type: 'success'
         });
-      } else {
-        setError('Failed to reset password. Please try again.');
-      }
     } catch (error) {
       console.error('Error resetting password:', error);
       setError('Failed to reset password. Please try again.');
@@ -414,9 +371,8 @@ const UserManagement: React.FC = () => {
     const userToDelete = confirmModal.user;
     if (userToDelete) {
       try {
-        const success = await deleteSupabaseUser(userToDelete.id);
-        if (success) {
-          loadUsers();
+        await deleteUser(userToDelete.id);
+        // Real-time hook automatically updates the users list
           
           // Audit log for user deletion
           try {
@@ -439,9 +395,6 @@ const UserManagement: React.FC = () => {
             message: `${userToDelete?.name} (${userToDelete?.username}) has been removed from the user access matrix.`,
             type: 'warning'
           });
-        } else {
-          showError('Delete Failed', 'Failed to delete user. Please try again.');
-        }
       } catch (error) {
         console.error('Error deleting user:', error);
         showError('Delete Failed', 'Failed to delete user. Please try again.');
@@ -478,9 +431,8 @@ const UserManagement: React.FC = () => {
       const action = newStatus ? 'enabled' : 'disabled';
       
       try {
-        const success = await toggleUserEnabled(userToToggle.id, newStatus);
-        if (success) {
-          loadUsers();
+        await toggleUser(userToToggle.id);
+        // Real-time hook automatically updates the users list
           
           // Audit log for user status change
           try {
@@ -508,9 +460,6 @@ const UserManagement: React.FC = () => {
             message: `${userToToggle.name} (${userToToggle.username}) has been ${action} in the system.`,
             type: newStatus ? 'success' : 'warning'
           });
-        } else {
-          showError('Update Failed', 'Failed to update user status. Please try again.');
-        }
       } catch (error) {
         console.error('Error updating user status:', error);
         showError('Update Failed', 'Failed to update user status. Please try again.');
@@ -601,9 +550,8 @@ const UserManagement: React.FC = () => {
         // Don't send password if it's empty (keep current password)
         const { password, ...updateDataWithoutPassword } = newUser;
         const updateData: Partial<User> = newUser.password ? newUser : updateDataWithoutPassword;
-        const updatedUser = await updateSupabaseUser(editingUser, updateData);
-        if (updatedUser) {
-          loadUsers();
+        await updateUser(editingUser, updateData);
+        // Real-time hook automatically updates the users list
           
           // Audit log for user update
           try {
@@ -632,10 +580,6 @@ const UserManagement: React.FC = () => {
             message: `${newUser.name} (${newUser.username}) account details have been modified.`,
             type: 'success'
           });
-        } else {
-          setError('Failed to update user. Please try again.');
-          return;
-        }
       } else {
         // Add new user
         // For admin users created by admin, assign all countries and no departments
@@ -647,9 +591,8 @@ const UserManagement: React.FC = () => {
             }
           : newUser;
           
-        const createdUser = await addSupabaseUser(userDataToSave);
-        if (createdUser) {
-          loadUsers();
+        await addUser(userDataToSave);
+        // Real-time hook automatically updates the users list
           
           // Audit log for user creation
           try {
@@ -674,10 +617,6 @@ const UserManagement: React.FC = () => {
             message: `${userDataToSave.name} (${userDataToSave.username}) has been added to the system with ${userDataToSave.role} role.`,
             type: 'success'
           });
-        } else {
-          setError('Failed to create user. Please try again.');
-          return;
-        }
       }
       
       // Reset form
@@ -717,54 +656,17 @@ const UserManagement: React.FC = () => {
     );
   }
 
-  // Pagination helpers
-  // Filter users based on search and filter criteria
-  const getFilteredUsers = () => {
-    return users.filter(user => {
-      // Search query filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const matchesSearch = 
-          user.username.toLowerCase().includes(query) ||
-          user.name.toLowerCase().includes(query) ||
-          (user.email && user.email.toLowerCase().includes(query)) ||
-          user.role.toLowerCase().includes(query) ||
-          (user.departments && user.departments.some(dept => dept.toLowerCase().includes(query))) ||
-          (user.countries && user.countries.some(country => country.toLowerCase().includes(query)));
-        
-        if (!matchesSearch) return false;
-      }
-      
-      // Role filter
-      if (selectedRoleFilter && user.role !== selectedRoleFilter) {
-        return false;
-      }
-      
-      // Country filter
-      if (selectedCountryFilter && (!user.countries || !user.countries.includes(selectedCountryFilter))) {
-        return false;
-      }
-      
-      // Status filter
-      if (selectedStatusFilter) {
-        const userEnabled = user.enabled !== undefined ? user.enabled : true;
-        if (selectedStatusFilter === 'enabled' && !userEnabled) return false;
-        if (selectedStatusFilter === 'disabled' && userEnabled) return false;
-      }
-      
-      return true;
-    });
-  };
+  // Filtering now handled by useRealtimeUsers hook - no manual filtering needed
 
   const getCurrentPageUsers = () => {
-    const filteredUsers = getFilteredUsers();
+    // Users are already filtered by the real-time hook
     const indexOfLastUser = currentPage * usersPerPage;
     const indexOfFirstUser = indexOfLastUser - usersPerPage;
-    return filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+    return users.slice(indexOfFirstUser, indexOfLastUser);
   };
 
   // Calculate pagination info
-  const totalUsers = getFilteredUsers().length;
+  const totalUsers = users.length; // Already filtered by real-time hook
   const totalPages = Math.ceil(totalUsers / usersPerPage);
 
 
@@ -1148,7 +1050,7 @@ const UserManagement: React.FC = () => {
                 {/* Filter Actions */}
                 <div className="modern-filter-actions">
                   <div className="filter-stats">
-                    Showing {getFilteredUsers().length} of {users.length} users
+                    Showing {users.length} users
                   </div>
                   <div className="filter-buttons">
                     <button 
@@ -1215,12 +1117,38 @@ const UserManagement: React.FC = () => {
           {/* Users Section with Modern Cards */}
           <div className="users-section">
             <div className="users-header">
-              <h2 className="users-title">Team Members ({getFilteredUsers().length})</h2>
+              <h2 className="users-title">Team Members ({users.length})</h2>
               <div className="users-actions">
+                {/* Real-time refresh button */}
+                <button
+                  onClick={refreshUsers}
+                  className="refresh-btn"
+                  disabled={usersLoading || isMutating}
+                  title="Refresh users data"
+                >
+                  🔄 {usersLoading ? 'Loading...' : 'Refresh'}
+                </button>
+                
+                {/* Testing button for development */}
+                {process.env.NODE_ENV === 'development' && (
+                  <button
+                    onClick={async () => {
+                      const result = await validateComponent();
+                      console.log('🧪 UserManagement validation result:', result);
+                      console.log('📋 Testing report:', getTestingReport());
+                    }}
+                    className="test-btn"
+                    title="Validate real-time functionality"
+                  >
+                    🧪 Test
+                  </button>
+                )}
+                
                 {canCreateUsers && (
                   <button
                     onClick={() => showAddUser ? handleCancelEdit() : setShowAddUser(true)}
                     className="add-user-btn"
+                    disabled={isMutating}
                   >
                     <span>👤</span>
                     {showAddUser ? 'Cancel' : 'Add New User'}
@@ -1228,6 +1156,26 @@ const UserManagement: React.FC = () => {
                 )}
               </div>
             </div>
+            
+            {/* Real-time error display */}
+            {usersError && (
+              <div className="alert alert-danger" role="alert">
+                <strong>Real-time Error:</strong> {usersError instanceof Error ? usersError.message : 'Failed to load users'}
+                <button onClick={refreshUsers} className="btn btn-sm btn-outline-danger ms-2">
+                  Try Again
+                </button>
+              </div>
+            )}
+            
+            {/* Loading indicator for real-time data */}
+            {usersLoading && (
+              <div className="loading-indicator text-center p-3">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Loading users...</span>
+                </div>
+                <p className="mt-2 mb-0">Loading fresh user data...</p>
+              </div>
+            )}
             
             {/* Users Grid */}
             <div className="users-grid">
