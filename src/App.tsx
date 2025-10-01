@@ -144,7 +144,7 @@ const AppContent: React.FC = () => {
       }
     } else {
       // Normal version logging - ensure versions are stored
-      updateStoredAppVersion();loaded`);
+      updateStoredAppVersion();
     }
 
     // Initialize UserService with existing user session if available
