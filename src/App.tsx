@@ -277,9 +277,10 @@ const AppContent: React.FC = () => {
           }
         } else if (isMobileDevice()) {
           setShowMobileEntry(true); // Only show mobile entry if no user and on mobile
+        }
 
-          // DISABLED: Health monitoring causing infinite loops
-                } catch (error) {
+        // DISABLED: Health monitoring causing infinite loops
+      } catch (error) {
         console.error('Error during initialization:', error);
         // Still try to get current user even if initialization fails
         const currentUser = UserService.getCurrentUserSync();
