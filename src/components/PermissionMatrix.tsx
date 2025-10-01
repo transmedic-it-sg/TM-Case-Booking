@@ -43,7 +43,7 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
   const [showRoleSummary, setShowRoleSummary] = useState<string | null>(null);
 
   const categories = Array.from(new Set(actions.map(action => action.category)));
-  
+
   const filteredActions = actions.filter(action => {
     const matchesCategory = selectedCategory === 'all' || action.category === selectedCategory;
     const matchesSearch = action.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -57,10 +57,10 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
 
   const handlePermissionToggle = (actionId: string, roleId: string) => {
     if (readonly || !onPermissionChange) return;
-    
+
     const currentPermission = getPermission(actionId, roleId);
     const newAllowed = !currentPermission?.allowed;
-    
+
     onPermissionChange(actionId, roleId, newAllowed);
   };
 
@@ -186,7 +186,7 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
                 {roles.map(role => {
                   const permission = getPermission(action.id, role.id);
                   const isAllowed = permission?.allowed || false;
-                  
+
                   return (
                     <td key={`${action.id}-${role.id}`} className="permission-cell">
                       <button
@@ -244,12 +244,12 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
                 ✕
               </button>
             </div>
-            
+
             <div className="role-summary-content">
               {(() => {
                 const summary = getRoleSummary(showRoleSummary);
                 const role = roles.find(r => r.id === showRoleSummary);
-                
+
                 return (
                   <div>
                     <div className="role-summary-stats">
@@ -291,7 +291,7 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
                           </div>
                         </div>
                       ))}
-                      
+
                       {summary.total === 0 && (
                         <div className="no-permissions">
                           <p>This role has no permissions assigned.</p>

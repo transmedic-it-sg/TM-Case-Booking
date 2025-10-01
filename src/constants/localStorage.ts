@@ -13,40 +13,40 @@ export const STORAGE_KEYS = {
   USERS: 'users',
   REMEMBER_ME: 'rememberMe',
   LAST_LOGIN: 'lastLogin',
-  
+
   // Case Data
   CASES: 'cases',
   CASE_REFERENCE_COUNTER: 'caseReferenceCounter',
   CASE_DRAFTS: 'caseDrafts',
-  
+
   // Application State
   USER_PREFERENCES: 'userPreferences',
   SELECTED_COUNTRY: 'selectedCountry',
   FILTER_PREFERENCES: 'filterPreferences',
   COLUMN_PREFERENCES: 'columnPreferences',
-  
+
   // System Data
   NOTIFICATIONS: 'notifications',
   AUDIT_LOGS: 'auditLogs',
   SYSTEM_SETTINGS: 'systemSettings',
-  
+
   // Code Tables
   HOSPITALS: 'hospitals',
   DEPARTMENTS: 'departments',
   PROCEDURE_TYPES: 'procedureTypes',
   SURGERY_SETS: 'surgerySets',
   IMPLANT_BOXES: 'implantBoxes',
-  
+
   // UI State
   EXPANDED_CASES: 'expandedCases',
   COLLAPSED_SECTIONS: 'collapsedSections',
   SIDEBAR_STATE: 'sidebarState',
   THEME_PREFERENCE: 'themePreference',
-  
+
   // Cache
   DATA_CACHE: 'dataCache',
   CACHE_TIMESTAMPS: 'cacheTimestamps',
-  
+
   // Temporary Data
   TEMP_ATTACHMENTS: 'tempAttachments',
   FORM_AUTOSAVE: 'formAutosave',
@@ -190,14 +190,14 @@ export class StorageManager {
 
   static getCache<T>(key: string): T | null {
     const cacheData = this.get<{data: T, timestamp: number, expires: number}>(`${STORAGE_PREFIXES.CACHE}${key}`);
-    
+
     if (!cacheData) return null;
-    
+
     if (Date.now() > cacheData.expires) {
       this.remove(`${STORAGE_PREFIXES.CACHE}${key}`);
       return null;
     }
-    
+
     return cacheData.data;
   }
 
@@ -214,7 +214,7 @@ export class StorageManager {
   static cleanup(): void {
     // Remove expired cache entries
     this.clearCache();
-    
+
     // Remove temporary data older than 1 hour
     const tempKeys = this.getKeys().filter(key => key.startsWith(STORAGE_PREFIXES.TEMP));
     tempKeys.forEach(key => {
@@ -229,19 +229,13 @@ export class StorageManager {
   static migrate(): void {
     const systemSettings = this.get<{version?: string}>(STORAGE_KEYS.SYSTEM_SETTINGS);
     const currentVersion = systemSettings?.version;
-    
-    if (!currentVersion || currentVersion !== DATA_VERSION.CURRENT) {
-      console.log('Migrating localStorage data...');
-      
-      // Perform any necessary data migrations here
+
+    if (!currentVersion || currentVersion !== DATA_VERSION.CURRENT) {// Perform any necessary data migrations here
       // For now, just update the version
       const updatedSettings = this.get<{version?: string, lastMigration?: string}>(STORAGE_KEYS.SYSTEM_SETTINGS) || {};
       updatedSettings.version = DATA_VERSION.CURRENT;
       updatedSettings.lastMigration = new Date().toISOString();
-      this.set(STORAGE_KEYS.SYSTEM_SETTINGS, updatedSettings);
-      
-      console.log('localStorage migration completed');
-    }
+      this.set(STORAGE_KEYS.SYSTEM_SETTINGS, updatedSettings);}
   }
 }
 

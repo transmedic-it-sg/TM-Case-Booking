@@ -40,10 +40,10 @@ const DatabaseConnectionStatus: React.FC = () => {
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit' 
+    return date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
     });
   };
 
@@ -58,7 +58,7 @@ const DatabaseConnectionStatus: React.FC = () => {
 
   // Simple status indicator
   const statusIndicator = (
-    <div 
+    <div
       className="db-status-indicator-simple"
       onClick={handleTogglePanel}
       title="Click for database connection details"
@@ -78,7 +78,7 @@ const DatabaseConnectionStatus: React.FC = () => {
           <span className="db-icon">{isConnected ? '🟢' : '🔴'}</span>
           Database Connection Status
         </div>
-        <button 
+        <button
           className="db-panel-close"
           onClick={() => setShowPanel(false)}
           title="Close"
@@ -86,7 +86,7 @@ const DatabaseConnectionStatus: React.FC = () => {
           ✕
         </button>
       </div>
-      
+
       <div className="db-panel-content">
         <div className="db-info-row">
           <span className="db-label">Status:</span>
@@ -94,38 +94,38 @@ const DatabaseConnectionStatus: React.FC = () => {
             {isConnected ? 'Database Connected' : 'Database Disconnected'}
           </span>
         </div>
-        
+
         <div className="db-info-row">
           <span className="db-label">Last Checked:</span>
           <span className="db-value">{formatTime(lastChecked)}</span>
         </div>
-        
+
         <div className="db-info-row">
           <span className="db-label">Data Source:</span>
           <span className="db-value">{isConnected ? 'Production DB' : 'Local Storage (Fallback)'}</span>
         </div>
-        
+
         {responseTime && (
           <div className="db-info-row">
             <span className="db-label">Response Time:</span>
             <span className="db-value">{responseTime}ms</span>
           </div>
         )}
-        
+
         {!isConnected && (
           <div className="db-connection-info">
             Connected to: Production DB (undefined ms)
           </div>
         )}
-        
+
         {errorMessage && (
           <div className="db-error-message">
             {errorMessage}
           </div>
         )}
-        
+
         <div className="db-panel-actions">
-          <button 
+          <button
             className="db-test-button"
             onClick={handleTestConnection}
             disabled={isTesting}
@@ -133,7 +133,7 @@ const DatabaseConnectionStatus: React.FC = () => {
             {isTesting ? '🔄 Testing...' : '🔄 Test Connection'}
           </button>
         </div>
-        
+
         <div className="db-status-indicators">
           <div className={`db-indicator ${isConnected ? 'active' : ''}`}>
             <div className="db-indicator-dot green"></div>

@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createTestQueryClient, server } from '../setup';
 import { rest } from 'msw';
@@ -14,15 +14,15 @@ import { RealtimeProvider } from '../../components/RealtimeProvider';
 
 // Test component that uses the real-time hook
 const TestCasesComponent: React.FC = () => {
-  const { 
-    cases, 
-    isLoading, 
-    error, 
-    refreshCases, 
+  const {
+    cases,
+    isLoading,
+    error,
+    refreshCases,
     updateCaseStatus,
     saveCase,
     validateComponent,
-    getTestingReport 
+    getTestingReport
   } = useRealtimeCases({
     enableRealTime: true,
     enableTesting: true
@@ -43,26 +43,26 @@ const TestCasesComponent: React.FC = () => {
       <div data-testid="error">{error ? (error instanceof Error ? error.message : String(error)) : 'No Error'}</div>
       <div data-testid="cases-count">{cases.length}</div>
       <div data-testid="cases-data">{JSON.stringify(cases)}</div>
-      
+
       <button data-testid="refresh-btn" onClick={refreshCases}>
         Refresh Cases
       </button>
-      
+
       <button data-testid="validate-btn" onClick={handleValidation}>
         Validate Component
       </button>
-      
-      <button 
-        data-testid="update-status-btn" 
+
+      <button
+        data-testid="update-status-btn"
         onClick={() => updateCaseStatus('test-case-1', 'Order Prepared', 'Test update')}
       >
         Update Status
       </button>
-      
+
       <div data-testid="validation-result">
         {validationResult !== null ? (validationResult ? 'VALID' : 'INVALID') : 'NOT_TESTED'}
       </div>
-      
+
       <div data-testid="test-report">{testReport}</div>
     </div>
   );
@@ -71,7 +71,7 @@ const TestCasesComponent: React.FC = () => {
 // Test wrapper with providers
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = createTestQueryClient();
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <RealtimeProvider>
@@ -105,7 +105,7 @@ describe('Real-time Cases Integration Tests', () => {
     // Should have cases data
     expect(screen.getByTestId('cases-count')).toHaveTextContent('1');
     expect(screen.getByTestId('error')).toHaveTextContent('No Error');
-    
+
     // Verify the actual case data
     const casesData = screen.getByTestId('cases-data').textContent;
     expect(casesData).toContain('TC-2025-001');
@@ -114,7 +114,7 @@ describe('Real-time Cases Integration Tests', () => {
 
   test('should validate no caching behavior', async () => {
     let callCount = 0;
-    
+
     // Mock API to count calls
     server.use(
       rest.get('*/rest/v1/case_bookings*', (req, res, ctx) => {
@@ -262,7 +262,7 @@ describe('Real-time Cases Integration Tests', () => {
     server.use(
       rest.get('*/rest/v1/case_bookings*', (req, res, ctx) => {
         const authHeader = req.headers.get('authorization');
-        
+
         if (authHeader?.includes('user1')) {
           user1Calls++;
           return res(

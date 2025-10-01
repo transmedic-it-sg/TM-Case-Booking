@@ -32,7 +32,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     const casesPage = document.querySelector('[data-page="cases"]') as HTMLElement;
     if (casesPage) {
       casesPage.click();
-      
+
       // Wait for page to load, then scroll to case
       setTimeout(() => {
         const caseElement = document.querySelector(`[data-case-id="${caseId}"]`) as HTMLElement;

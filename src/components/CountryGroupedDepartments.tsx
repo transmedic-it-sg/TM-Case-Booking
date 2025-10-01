@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
+import {
   createCountryDepartmentId
 } from '../utils/codeTable';
 
@@ -10,7 +10,6 @@ interface CountryGroupedDepartmentsProps {
   disabled?: boolean;
   compact?: boolean; // New prop for compact view
 }
-
 
 const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
   selectedDepartments,
@@ -25,22 +24,22 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
 
   useEffect(() => {
     let isComponentMounted = true;
-    
+
     const loadDepartments = async () => {
       if (!isComponentMounted) return;
-      
+
       setIsLoading(true);
       try {
         // Load departments from Supabase for consistency with Code Table Setup
         const departmentsByCountryFromDB: Record<string, string[]> = {};
-        
+
         // Import the service once to avoid repeated imports
         const { getDepartmentsForCountry } = await import('../utils/supabaseCodeTableService');
-        
+
         // Process countries sequentially to avoid overwhelming the API
         for (const country of userCountries) {
           if (!isComponentMounted) return;
-          
+
           try {
             const departments = await getDepartmentsForCountry(country);
             departmentsByCountryFromDB[country] = departments || [];
@@ -49,11 +48,11 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
             departmentsByCountryFromDB[country] = [];
           }
         }
-        
+
         if (!isComponentMounted) return;
-        
+
         setDepartmentsByCountry(departmentsByCountryFromDB);
-        
+
         // Auto-expand countries that have selected departments
         const countriesWithSelections = new Set<string>();
         Object.entries(departmentsByCountryFromDB).forEach(([country, departments]) => {
@@ -66,7 +65,7 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
           }
         });
         setExpandedCountries(countriesWithSelections);
-        
+
       } finally {
         if (isComponentMounted) {
           setIsLoading(false);
@@ -82,7 +81,7 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
       setExpandedCountries(new Set());
       setIsLoading(false);
     }
-    
+
     return () => {
       isComponentMounted = false;
     };
@@ -103,9 +102,9 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
 
   const handleDepartmentChange = useCallback((country: string, department: string, checked: boolean) => {
     if (disabled) return;
-    
+
     const countrySpecificId = createCountryDepartmentId(country, department);
-    
+
     let newDepartments;
     if (checked) {
       // Add department if not already selected
@@ -118,31 +117,31 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
       // Remove department
       newDepartments = selectedDepartments.filter(d => d !== countrySpecificId);
     }
-    
+
     onChange(newDepartments);
   }, [disabled, selectedDepartments, onChange]);
 
   const selectAllInCountry = useCallback((country: string) => {
     if (disabled) return;
-    
+
     const countryDepartments = departmentsByCountry[country] || [];
-    const countrySpecificIds = countryDepartments.map(dept => 
+    const countrySpecificIds = countryDepartments.map(dept =>
       createCountryDepartmentId(country, dept)
     );
-    
+
     const newSelections = new Set([...selectedDepartments, ...countrySpecificIds]);
     onChange(Array.from(newSelections));
   }, [disabled, departmentsByCountry, selectedDepartments, onChange]);
 
   const deselectAllInCountry = useCallback((country: string) => {
     if (disabled) return;
-    
+
     const countryDepartments = departmentsByCountry[country] || [];
-    const countrySpecificIds = countryDepartments.map(dept => 
+    const countrySpecificIds = countryDepartments.map(dept =>
       createCountryDepartmentId(country, dept)
     );
-    
-    const newSelections = selectedDepartments.filter(dept => 
+
+    const newSelections = selectedDepartments.filter(dept =>
       !countrySpecificIds.includes(dept)
     );
     onChange(newSelections);
@@ -227,7 +226,7 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
                     ({selectedInCountry}/{departments.length})
                   </span>
                 </button>
-                
+
                 <div className="country-actions">
                   {!allSelectedInCountry && (
                     <button
@@ -266,7 +265,7 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
                         const countrySpecificId = createCountryDepartmentId(country, department);
                         const isSelected = selectedDepartments.includes(countrySpecificId);
                         const uniqueId = `toggle-${country}-${index}-${department.replace(/\s+/g, '-')}`;
-                        
+
                         return (
                           <div key={`${country}-${department}-${index}`} className={`department-checkbox ${isSelected ? 'selected' : ''}`}>
                             <span className="department-name">{department}</span>

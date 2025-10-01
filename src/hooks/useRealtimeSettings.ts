@@ -54,33 +54,24 @@ const useRealtimeSettingsQuery = (userId?: string) => {
   return useQuery({
     queryKey: ['realtime-settings', userId],
     queryFn: async () => {
-      if (!userId) throw new Error('User ID required for settings');
-      
-      console.log(`🔄 Fetching fresh settings for user ${userId}...`);
-      
-      const { data, error } = await supabase
+      if (!userId) throw new Error('User ID required for settings');const { data, error } = await supabase
         .from('app_settings')
         .select('*')
         .eq('user_id', userId)
         .single();
-      
+
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
         throw error;
       }
-      
+
       // If no settings found, return defaults
-      if (!data) {
-        console.log(`📋 No settings found for user ${userId}, using defaults`);
-        const defaultSettings: UserSettings = {
+      if (!data) {const defaultSettings: UserSettings = {
           userId,
           ...DEFAULT_SETTINGS,
           lastUpdated: new Date().toISOString()
         };
         return defaultSettings;
-      }
-      
-      console.log(`✅ Fresh settings loaded for user ${userId}`);
-      return data as UserSettings;
+      }return data as UserSettings;
     },
     enabled: !!userId,
     staleTime: 0, // Always consider data stale
@@ -95,7 +86,7 @@ const useRealtimeSettingsQuery = (userId?: string) => {
 const useOptimisticSettingsMutation = () => {
   const queryClient = useQueryClient();
   const { addNotification } = useNotifications();
-  
+
   return useMutation({
     mutationFn: async (action: {
       type: 'update' | 'reset';
@@ -103,7 +94,7 @@ const useOptimisticSettingsMutation = () => {
       settings?: Partial<UserSettings>;
     }) => {
       const { userId, settings } = action;
-      
+
       switch (action.type) {
         case 'update':
           // Upsert settings (insert or update)
@@ -116,10 +107,10 @@ const useOptimisticSettingsMutation = () => {
             })
             .select()
             .single();
-          
+
           if (error) throw error;
           return data;
-          
+
         case 'reset':
           // Reset to defaults
           const defaultSettings: UserSettings = {
@@ -127,7 +118,7 @@ const useOptimisticSettingsMutation = () => {
             ...DEFAULT_SETTINGS,
             lastUpdated: new Date().toISOString()
           };
-          
+
           const { data: resetData, error: resetError } = await supabase
             .from('app_settings')
             .upsert({
@@ -137,10 +128,10 @@ const useOptimisticSettingsMutation = () => {
             })
             .select()
             .single();
-          
+
           if (resetError) throw resetError;
           return resetData;
-          
+
         default:
           throw new Error('Invalid settings action');
       }
@@ -148,7 +139,7 @@ const useOptimisticSettingsMutation = () => {
     onSuccess: (result, action) => {
       // Invalidate and refetch settings data
       queryClient.invalidateQueries({ queryKey: ['realtime-settings', action.userId] });
-      
+
       // Show success notification for certain actions
       if (action.type === 'reset') {
         addNotification({
@@ -160,7 +151,7 @@ const useOptimisticSettingsMutation = () => {
     },
     onError: (error, action) => {
       console.error(`❌ Failed to ${action.type} settings:`, error);
-      
+
       addNotification({
         title: 'Settings Error',
         message: `Failed to ${action.type} settings: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -171,70 +162,64 @@ const useOptimisticSettingsMutation = () => {
 };
 
 export const useRealtimeSettings = (options: UseRealtimeSettingsOptions = {}) => {
-  const { 
+  const {
     enableRealTime = true, // eslint-disable-line @typescript-eslint/no-unused-vars
-    enableTesting = false 
+    enableTesting = false
   } = options;
-  
+
   const currentUser = getCurrentUserSync();
   const userId = currentUser?.id;
-  
+
   const [localError, setLocalError] = useState<string | null>(null);
-  
+
   // Real-time settings query
-  const { 
-    data: settings, 
-    isLoading, 
-    error, 
-    isError, 
-    isSuccess, 
-    refetch 
+  const {
+    data: settings,
+    isLoading,
+    error,
+    isError,
+    isSuccess,
+    refetch
   } = useRealtimeSettingsQuery(userId);
-  
+
   // Settings mutations
   const settingsMutation = useOptimisticSettingsMutation();
-  
+
   // Testing validation
   const testing = useTestingValidation({
     componentName: 'useRealtimeSettings',
     enableTesting
   });
-  
+
   // Refresh settings - forces fresh data fetch
   const refreshSettings = useCallback(async () => {
-    if (!userId) return;
-    
-    console.log(`🔄 Manually refreshing settings for user ${userId}...`);
-    setLocalError(null);
-    
+    if (!userId) return;setLocalError(null);
+
     if (enableTesting) {
       testing.recordUpdate();
     }
-    
+
     return refetch();
   }, [userId, refetch, enableTesting, testing]);
-  
+
   // Update specific setting
   const updateSetting = useCallback(async <K extends keyof UserSettings>(
-    key: K, 
+    key: K,
     value: UserSettings[K]
   ) => {
-    if (!userId) throw new Error('User ID required to update settings');
-    
-    console.log(`⚙️ Updating setting ${key} to ${value} for user ${userId}...`);
-    setLocalError(null);
-    
+    if (!userId) throw new Error('User ID required to update settings');setLocalError(null);
+
     try {
-      const result = await settingsMutation.mutateAsync({ 
-        type: 'update', 
+      const result = await settingsMutation.mutateAsync({
+        type: 'update',
         userId,
         settings: { [key]: value }
       });
-      
+
       if (enableTesting) {
         testing.recordUpdate();
       }
-      
+
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update setting';
@@ -243,25 +228,22 @@ export const useRealtimeSettings = (options: UseRealtimeSettingsOptions = {}) =>
       throw error;
     }
   }, [userId, settingsMutation, enableTesting, testing]);
-  
+
   // Update multiple settings at once
   const updateSettings = useCallback(async (newSettings: Partial<UserSettings>) => {
-    if (!userId) throw new Error('User ID required to update settings');
-    
-    console.log(`⚙️ Updating multiple settings for user ${userId}...`);
-    setLocalError(null);
-    
+    if (!userId) throw new Error('User ID required to update settings');setLocalError(null);
+
     try {
-      const result = await settingsMutation.mutateAsync({ 
-        type: 'update', 
+      const result = await settingsMutation.mutateAsync({
+        type: 'update',
         userId,
         settings: newSettings
       });
-      
+
       if (enableTesting) {
         testing.recordUpdate();
       }
-      
+
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update settings';
@@ -270,24 +252,21 @@ export const useRealtimeSettings = (options: UseRealtimeSettingsOptions = {}) =>
       throw error;
     }
   }, [userId, settingsMutation, enableTesting, testing]);
-  
+
   // Reset settings to defaults
   const resetSettings = useCallback(async () => {
-    if (!userId) throw new Error('User ID required to reset settings');
-    
-    console.log(`🔄 Resetting settings to defaults for user ${userId}...`);
-    setLocalError(null);
-    
+    if (!userId) throw new Error('User ID required to reset settings');setLocalError(null);
+
     try {
-      const result = await settingsMutation.mutateAsync({ 
-        type: 'reset', 
+      const result = await settingsMutation.mutateAsync({
+        type: 'reset',
         userId
       });
-      
+
       if (enableTesting) {
         testing.recordUpdate();
       }
-      
+
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to reset settings';
@@ -296,32 +275,28 @@ export const useRealtimeSettings = (options: UseRealtimeSettingsOptions = {}) =>
       throw error;
     }
   }, [userId, settingsMutation, enableTesting, testing]);
-  
+
   // Convenience getters for common settings
   const getSetting = useCallback(<K extends keyof UserSettings>(key: K): UserSettings[K] | undefined => {
     return settings?.[key];
   }, [settings]);
-  
+
   const isSoundEnabled = getSetting('soundEnabled') ?? DEFAULT_SETTINGS.soundEnabled;
   const soundVolume = getSetting('soundVolume') ?? DEFAULT_SETTINGS.soundVolume;
   const notificationsEnabled = getSetting('notificationsEnabled') ?? DEFAULT_SETTINGS.notificationsEnabled;
   const theme = getSetting('theme') ?? DEFAULT_SETTINGS.theme;
   const autoRefresh = getSetting('autoRefresh') ?? DEFAULT_SETTINGS.autoRefresh;
   const refreshInterval = getSetting('refreshInterval') ?? DEFAULT_SETTINGS.refreshInterval;
-  
+
   // Component validation for testing (manual only - no automatic side effects)
   const validateComponent = useCallback(async (): Promise<boolean> => {
-    if (!enableTesting || !userId) return true;
-    
-    console.log('🧪 Validating useRealtimeSettings component...');
-    
-    try {
+    if (!enableTesting || !userId) return true;try {
       // Test settings fetching (read-only validation)
       const testSettings = await refetch();
       if (!testSettings.data || typeof testSettings.data !== 'object') {
         throw new Error('Settings data is invalid');
       }
-      
+
       // Validate data structure without making changes
       const requiredFields = ['userId', 'soundEnabled', 'soundVolume', 'lastUpdated'];
       for (const field of requiredFields) {
@@ -329,28 +304,26 @@ export const useRealtimeSettings = (options: UseRealtimeSettingsOptions = {}) =>
           throw new Error(`Required field ${field} missing from settings`);
         }
       }
-      
+
       // Test functionality without causing side effects
-      testing.recordValidation(true);
-      console.log('✅ useRealtimeSettings validation passed');
-      return true;
+      testing.recordValidation(true);return true;
     } catch (error) {
       testing.recordValidation(false, error instanceof Error ? error.message : 'Validation failed');
       console.error('❌ useRealtimeSettings validation failed:', error);
       return false;
     }
   }, [refetch, userId, enableTesting, testing]);
-  
+
   // Get testing report
   const getTestingReport = useCallback(() => {
     if (!enableTesting) return 'Testing disabled';
-    
+
     if (testing) {
       return testing.generateReport();
     }
     return 'Testing not available';
   }, [enableTesting, testing]);
-  
+
   // Return hook interface
   return {
     // Data
@@ -359,7 +332,7 @@ export const useRealtimeSettings = (options: UseRealtimeSettingsOptions = {}) =>
     error: error || localError,
     isError,
     isSuccess,
-    
+
     // Convenience getters
     isSoundEnabled,
     soundVolume,
@@ -367,18 +340,18 @@ export const useRealtimeSettings = (options: UseRealtimeSettingsOptions = {}) =>
     theme,
     autoRefresh,
     refreshInterval,
-    
+
     // Actions
     refreshSettings,
     updateSetting,
     updateSettings,
     resetSettings,
     getSetting,
-    
+
     // Testing
     validateComponent,
     getTestingReport,
-    
+
     // Status
     isMutating: settingsMutation.isPending,
     lastUpdated: settings?.lastUpdated ? new Date(settings.lastUpdated) : new Date()

@@ -21,9 +21,9 @@ interface NavItem {
   primary?: boolean;
 }
 
-const MobileNavigation: React.FC<MobileNavigationProps> = ({ 
-  user, 
-  activePage, 
+const MobileNavigation: React.FC<MobileNavigationProps> = ({
+  user,
+  activePage,
   onNavigate,
   onLogout
 }) => {
@@ -147,10 +147,10 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               <span className="mobile-nav-label">{item.label}</span>
             </button>
           ))}
-          
+
           {/* More/Menu button for additional features */}
           <div className="mobile-nav-more" ref={menuRef}>
-            <button 
+            <button
               onClick={toggleMenu}
               className={`mobile-nav-item mobile-more-btn ${isMenuOpen ? 'active' : ''}`}
               aria-label="Open menu"
@@ -166,7 +166,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 )}
               </div>
             </button>
-            
+
             {/* Expandable menu */}
             {isMenuOpen && (
               <div className="mobile-menu-overlay active" onClick={closeMenu}>
@@ -196,7 +196,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                     ×
                   </button>
                 </div>
-                
+
                 <div className="mobile-menu-section">
                   <h3>Tools</h3>
                   {hasPermission(user.role, PERMISSION_ACTIONS.EDIT_SETS) && (
@@ -217,7 +217,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   </div>
                 </div>
 
-                {(hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) || 
+                {(hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) ||
                   hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) ||
                   hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) ||
                   hasPermission(user.role, PERMISSION_ACTIONS.VIEW_REPORTS)) && (

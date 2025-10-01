@@ -14,11 +14,11 @@ import { RealtimeProvider } from '../../components/RealtimeProvider';
 
 // Test component that uses the real-time permissions hook
 const TestPermissionsComponent: React.FC = () => {
-  const { 
+  const {
     permissions,
     roles,
-    isLoading, 
-    error, 
+    isLoading,
+    error,
     refreshPermissions,
     updatePermission,
     savePermissions,
@@ -64,31 +64,31 @@ const TestPermissionsComponent: React.FC = () => {
       <div data-testid="roles-count">{roles.length}</div>
       <div data-testid="permissions-data">{JSON.stringify(permissions)}</div>
       <div data-testid="roles-data">{JSON.stringify(roles)}</div>
-      
+
       <button data-testid="refresh-btn" onClick={refreshPermissions}>
         Refresh Permissions
       </button>
-      
+
       <button data-testid="validate-btn" onClick={handleValidation}>
         Validate Component
       </button>
-      
+
       <button data-testid="update-permission-btn" onClick={handleUpdatePermission}>
         Update Permission
       </button>
-      
+
       <button data-testid="save-permissions-btn" onClick={handleSavePermissions}>
         Save Permissions
       </button>
-      
+
       <button data-testid="reset-permissions-btn" onClick={handleResetPermissions}>
         Reset Permissions
       </button>
-      
+
       <div data-testid="validation-result">
         {validationResult !== null ? (validationResult ? 'VALID' : 'INVALID') : 'NOT_TESTED'}
       </div>
-      
+
       <div data-testid="test-report">{testReport}</div>
     </div>
   );
@@ -97,7 +97,7 @@ const TestPermissionsComponent: React.FC = () => {
 // Test wrapper with providers
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = createTestQueryClient();
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <RealtimeProvider>
@@ -111,7 +111,7 @@ describe('Real-time Permissions Integration Tests', () => {
   beforeEach(() => {
     // Reset any previous state
     jest.clearAllMocks();
-    
+
     // Setup default permissions and roles response
     server.use(
       rest.get('*/rest/v1/permissions*', (req, res, ctx) => {
@@ -123,7 +123,7 @@ describe('Real-time Permissions Integration Tests', () => {
               allowed: true
             },
             {
-              actionId: 'edit-cases', 
+              actionId: 'edit-cases',
               roleId: 'nurse',
               allowed: false
             },
@@ -134,13 +134,13 @@ describe('Real-time Permissions Integration Tests', () => {
             },
             {
               actionId: 'edit-cases',
-              roleId: 'doctor', 
+              roleId: 'doctor',
               allowed: true
             }
           ])
         );
       }),
-      
+
       rest.get('*/rest/v1/roles*', (req, res, ctx) => {
         return res(
           ctx.json([
@@ -160,7 +160,7 @@ describe('Real-time Permissions Integration Tests', () => {
             },
             {
               id: 'admin',
-              name: 'admin', 
+              name: 'admin',
               displayName: 'Administrator',
               description: 'Full system administrator',
               color: '#dc3545'
@@ -190,12 +190,12 @@ describe('Real-time Permissions Integration Tests', () => {
     expect(screen.getByTestId('permissions-count')).toHaveTextContent('4');
     expect(screen.getByTestId('roles-count')).toHaveTextContent('3');
     expect(screen.getByTestId('error')).toHaveTextContent('No Error');
-    
+
     // Verify the actual permissions data
     const permissionsData = screen.getByTestId('permissions-data').textContent;
     expect(permissionsData).toContain('view-cases');
     expect(permissionsData).toContain('edit-cases');
-    
+
     // Verify roles data
     const rolesData = screen.getByTestId('roles-data').textContent;
     expect(rolesData).toContain('nurse');
@@ -205,7 +205,7 @@ describe('Real-time Permissions Integration Tests', () => {
 
   test('should validate no caching behavior for permissions', async () => {
     let callCount = 0;
-    
+
     // Mock API to count calls
     server.use(
       rest.get('*/rest/v1/permissions*', (req, res, ctx) => {
@@ -289,14 +289,14 @@ describe('Real-time Permissions Integration Tests', () => {
           })
         );
       }),
-      
+
       rest.post('*/rest/v1/permissions/bulk*', (req, res, ctx) => {
         saveCalled = true;
         return res(
           ctx.json({ success: true, updated_count: 4 })
         );
       }),
-      
+
       rest.post('*/rest/v1/permissions/reset*', (req, res, ctx) => {
         resetCalled = true;
         return res(
@@ -407,16 +407,16 @@ describe('Real-time Permissions Integration Tests', () => {
     // Verify permission matrix structure
     const permissionsData = screen.getByTestId('permissions-data').textContent;
     const rolesData = screen.getByTestId('roles-data').textContent;
-    
+
     // Should have nurse with view access but no edit access
     expect(permissionsData).toContain('"roleId":"nurse"');
     expect(permissionsData).toContain('"actionId":"view-cases"');
     expect(permissionsData).toContain('"allowed":true');
     expect(permissionsData).toContain('"allowed":false');
-    
+
     // Should have doctor role with full access
     expect(permissionsData).toContain('"roleId":"doctor"');
-    
+
     // Should have all role definitions
     expect(rolesData).toContain('Nurse');
     expect(rolesData).toContain('Doctor');

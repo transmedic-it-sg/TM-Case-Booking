@@ -31,7 +31,7 @@ class SupabaseServiceFixed {
       try {
         const result = await Promise.race([
           queryFn(),
-          new Promise<never>((_, reject) => 
+          new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error('Query timeout')), timeout)
           )
         ]);
@@ -44,7 +44,7 @@ class SupabaseServiceFixed {
               success: false
             };
           }
-          
+
           // Wait before retry
           await this.delay(attempt * 1000);
           continue;
@@ -63,7 +63,7 @@ class SupabaseServiceFixed {
             success: false
           };
         }
-        
+
         // Wait before retry
         await this.delay(attempt * 1000);
       }
@@ -105,16 +105,16 @@ class SupabaseServiceFixed {
   }
 
   async batchInsert<T>(
-    tableName: string, 
-    records: T[], 
+    tableName: string,
+    records: T[],
     batchSize: number = 100
   ): Promise<QueryResult<T[]>> {
     try {
       const results: T[] = [];
-      
+
       for (let i = 0; i < records.length; i += batchSize) {
         const batch = records.slice(i, i + batchSize);
-        
+
         const { data, error } = await supabase
           .from(tableName)
           .insert(batch)
@@ -195,7 +195,7 @@ const service = new SupabaseServiceFixed();
 export const lookupOperations = {
   testConnection: () => service.testConnection(),
   getTableCount: (tableName: string) => service.getTableCount(tableName),
-  batchInsert: <T>(tableName: string, records: T[], batchSize?: number) => 
+  batchInsert: <T>(tableName: string, records: T[], batchSize?: number) =>
     service.batchInsert(tableName, records, batchSize),
   getSystemHealth: () => service.getSystemHealth()
 };

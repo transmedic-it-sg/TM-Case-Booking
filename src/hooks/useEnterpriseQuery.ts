@@ -63,9 +63,7 @@ export const useEnterpriseQuery = <TData = unknown>(options: UseEnterpriseQueryO
 
     // Subscribe to each tag for automatic invalidation
     tags.forEach(tag => {
-      const unsubscribe = cache.subscribe(`tag:${tag}`, () => {
-        console.log(`🔄 Real-time invalidation triggered for query:`, queryKey);
-        queryClient.invalidateQueries({ queryKey });
+      const unsubscribe = cache.subscribe(`tag:${tag}`, () => {queryClient.invalidateQueries({ queryKey });
       });
       unsubscribers.push(unsubscribe);
     });
@@ -107,7 +105,7 @@ export const useEnterpriseMutation = (options: {
       if (enableOptimistic && optimisticUpdateFn) {
         // Cancel any outgoing refetches
         await Promise.all(
-          invalidateQueries.map(queryKey => 
+          invalidateQueries.map(queryKey =>
             queryClient.cancelQueries({ queryKey })
           )
         );
@@ -120,7 +118,7 @@ export const useEnterpriseMutation = (options: {
 
         // Optimistically update
         invalidateQueries.forEach(queryKey => {
-          queryClient.setQueryData(queryKey, (old: any) => 
+          queryClient.setQueryData(queryKey, (old: any) =>
             optimisticUpdateFn(variables, old)
           );
         });
@@ -146,10 +144,7 @@ export const useEnterpriseMutation = (options: {
       // Invalidate specific queries
       invalidateQueries.forEach(queryKey => {
         queryClient.invalidateQueries({ queryKey });
-      });
-
-      console.log('✅ Mutation successful, cache invalidated');
-    },
+      });},
   });
 };
 
@@ -164,19 +159,16 @@ export const useCountryCache = (country: string) => {
   const invalidateCountryData = useCallback(() => {
     // Invalidate all country-specific cache entries
     cache.invalidateByTag(`country:${country}`);
-    
+
     // Invalidate React Query entries with country in key
     queryClient.invalidateQueries({
       predicate: (query) => {
         const key = query.queryKey;
-        return Array.isArray(key) && key.some(k => 
+        return Array.isArray(key) && key.some(k =>
           typeof k === 'string' && k.includes(country)
         );
       }
-    });
-
-    console.log(`🌍 Invalidated all cache for country: ${country}`);
-  }, [country, cache, queryClient]);
+    });}, [country, cache, queryClient]);
 
   const getCountryData = useCallback((key: string) => {
     return cache.get(`${country}:${key}`);
@@ -206,7 +198,7 @@ export const useCacheMonitoring = () => {
   const getCacheStats = useCallback(() => {
     const enterpriseStats = cache.getStats();
     const reactQueryCache = queryClient.getQueryCache();
-    
+
     return {
       ...enterpriseStats,
       reactQuerySize: reactQueryCache.getAll().length,

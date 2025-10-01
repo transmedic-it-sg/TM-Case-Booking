@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { CaseBooking } from '../types';
-// Removed old storage import - now using real-time master data queries
 import { getCurrentUserSync } from '../utils/authCompat';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { useRealtimeCases } from '../hooks/useRealtimeCases';
@@ -12,11 +11,10 @@ import CustomModal from './CustomModal';
 import { useModal } from '../hooks/useModal';
 import FilterDatePicker from './FilterDatePicker';
 import { addDaysForInput, getTodayForInput } from '../utils/dateFormat';
-// import { sendNewCaseNotificationEnhanced } from '../utils/enhancedEmailService'; // Disabled
 import { normalizeCountry } from '../utils/countryUtils';
-import { 
+import {
   getDoctorsForDepartment,
-  getProceduresForDoctor, 
+  getProceduresForDoctor,
   getSetsForDoctorProcedure,
   type DepartmentDoctor,
   type DoctorProcedure,
@@ -33,37 +31,21 @@ interface CaseBookingFormProps {
 const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) => {
   const currentUser = getCurrentUserSync();
   const { modal, closeModal, showConfirm, showSuccess, showError } = useModal();
-  
+
   // Real-time cases hook for saving and generating reference numbers
   const { saveCase, generateCaseReferenceNumber } = useRealtimeCases({
     enableRealTime: true,
     enableTesting: true
   });
-  
+
   // Real-time master data queries - always fresh data
-  
+
   // Debug user country for hospitals loading issue
-  const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
-  console.log('🔍 CaseBookingForm Debug:', {
-    currentUser: currentUser ? 'exists' : 'null',
-    selectedCountry: currentUser?.selectedCountry,
-    countries: currentUser?.countries,
-    userCountry: userCountry
-  });
-  
-  const { data: departments = [] } = useRealtimeMasterDataQuery('departments', userCountry);
+  const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];const { data: departments = [] } = useRealtimeMasterDataQuery('departments', userCountry);
   const { data: hospitals = [] } = useRealtimeMasterDataQuery('hospitals', userCountry);
   const { data: procedures = [] } = useRealtimeMasterDataQuery('procedures', userCountry);
-  
-  // Debug query results
-  console.log('🔍 Master Data Results:', {
-    hospitals: hospitals.length,
-    departments: departments.length,
-    procedures: procedures.length,
-    queryCountry: userCountry
-  });
 
-  const getDefaultDate = () => {
+  // Debug query resultsconst getDefaultDate = () => {
     return addDaysForInput(3);
   };
 
@@ -84,7 +66,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   // NOTE: availableProcedureTypes and availableHospitals now come from real-time queries above
-  
+
   // New state for department-based doctor hierarchy
   const [availableDoctors, setAvailableDoctors] = useState<DepartmentDoctor[]>([]);
   const [availableDoctorProcedures, setAvailableDoctorProcedures] = useState<DoctorProcedure[]>([]);
@@ -95,7 +77,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
   // Helper function to format doctor display name
   const formatDoctorDisplayName = (doctor: DepartmentDoctor): string => {
-    return `${doctor.name} (${doctor.specialties.join(', ') || 'General'})`;
+    return `Dr. ${doctor.name}`;
   };
 
   // Helper function to get current doctor display value
@@ -107,21 +89,17 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
   // Check for calendar pre-fill data on component mount
   useEffect(() => {
-    const prefillDate = localStorage.getItem('calendar_prefill_date');
-    const prefillDepartment = localStorage.getItem('calendar_prefill_department');
+    // Calendar prefill now passed via props or URL params, not localStorage
+    const prefillDate = null;
+    const prefillDepartment = null;
 
     if (prefillDate && prefillDepartment) {
-      console.log('[CaseBookingForm] Found calendar pre-fill data:', {
-        date: prefillDate,
-        department: prefillDepartment
-      });
-
       const parsedDate = new Date(prefillDate);
       // Format date using local timezone to avoid timezone conversion issues
-      const formattedDate = parsedDate.getFullYear() + '-' + 
-        String(parsedDate.getMonth() + 1).padStart(2, '0') + '-' + 
+      const formattedDate = parsedDate.getFullYear() + '-' +
+        String(parsedDate.getMonth() + 1).padStart(2, '0') + '-' +
         String(parsedDate.getDate()).padStart(2, '0');
-      
+
       setFormData(prev => ({
         ...prev,
         dateOfSurgery: formattedDate,
@@ -130,31 +108,25 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
       // Clear the pre-fill data from localStorage
       localStorage.removeItem('calendar_prefill_date');
-      localStorage.removeItem('calendar_prefill_department');
-
-      console.log('[CaseBookingForm] Applied calendar pre-fill data:', {
-        dateOfSurgery: formattedDate,
-        department: prefillDepartment
-      });
-    }
+      localStorage.removeItem('calendar_prefill_department');}
   }, []);
 
   // Load hospitals and doctors when component mounts
   useEffect(() => {
     const loadInitialData = async () => {
       if (!currentUser) return;
-      
+
       const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
       if (!userCountry) return;
 
       try {
         const normalizedCountry = normalizeCountry(userCountry);
-        
+
         // Load hospitals from Supabase code tables
         const { getSupabaseCodeTables, addSupabaseCodeTableItem } = await import('../utils/supabaseCodeTableService');
         let countryTables = await getSupabaseCodeTables(normalizedCountry);
         let hospitalTable = countryTables.find(table => table.id === 'hospitals');
-        
+
         // If no hospitals exist for this country, seed them
         if (!hospitalTable || hospitalTable.items.length === 0) {
           const sampleHospitals = [
@@ -163,7 +135,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             `${userCountry} Specialist Hospital`,
             `${userCountry} Regional Hospital`
           ];
-          
+
           for (const hospital of sampleHospitals) {
             try {
               await addSupabaseCodeTableItem('hospitals', hospital, normalizedCountry);
@@ -171,20 +143,16 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               console.error('Error seeding hospital:', hospital, error);
             }
           }
-          
+
           // Reload tables after seeding
           countryTables = await getSupabaseCodeTables(normalizedCountry);
           hospitalTable = countryTables.find(table => table.id === 'hospitals');
         }
-        
-        const hospitals = hospitalTable?.items || [];
-        console.log('🏥 Loading hospitals for country:', normalizedCountry, 'Found hospitals:', hospitals);
-        // Hospitals loaded via real-time query above
 
-        // Doctors will be loaded when department is selected
-        console.log('🏥 Hospitals loaded, doctors will load when department is selected');
-        setAvailableDoctors([]);
-        
+        const hospitals = hospitalTable?.items || [];// Hospitals loaded via real-time query above
+
+        // Doctors will be loaded when department is selectedsetAvailableDoctors([]);
+
       } catch (error) {
         console.error('Error loading initial data:', error);
         // Hospitals loaded via real-time query above
@@ -193,7 +161,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         setIsLoadingDoctors(false);
       }
     };
-    
+
     loadInitialData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.selectedCountry]);
@@ -213,13 +181,11 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       try {
         setIsLoadingDoctors(true);
         const normalizedCountry = normalizeCountry(userCountry);
-        const doctors = await getDoctorsForDepartment(formData.department, normalizedCountry);
-        console.log('👨‍⚕️ Loading doctors for department:', formData.department, 'Found doctors:', doctors);
-        setAvailableDoctors(doctors);
-        
+        const doctors = await getDoctorsForDepartment(formData.department, normalizedCountry);setAvailableDoctors(doctors);
+
         // Clear doctor selection when department changes
         setFormData(prev => ({ ...prev, doctorId: '', doctorName: '' }));
-        
+
       } catch (error) {
         console.error('Error loading doctors for department:', error);
         setAvailableDoctors([]);
@@ -248,14 +214,12 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       try {
         setIsLoadingProcedures(true);
         const normalizedCountry = normalizeCountry(userCountry);
-        const procedures = await getProceduresForDoctor(formData.doctorId, normalizedCountry);
-        console.log('📋 Loading procedures for doctor:', formData.doctorId, 'Found procedures:', procedures);
-        setAvailableDoctorProcedures(procedures);
-        
+        const procedures = await getProceduresForDoctor(formData.doctorId, normalizedCountry);setAvailableDoctorProcedures(procedures);
+
         // Clear procedure selection and downstream data when doctor changes
         setFormData(prev => ({ ...prev, procedureType: '', surgerySetSelection: [], implantBox: [], quantities: {} }));
         setAvailableProcedureSets([]);
-        
+
       } catch (error) {
         console.error('Error loading doctor procedures:', error);
         setAvailableDoctorProcedures([]);
@@ -283,13 +247,11 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       try {
         setIsLoadingSets(true);
         const normalizedCountry = normalizeCountry(userCountry);
-        const sets = await getSetsForDoctorProcedure(formData.doctorId, formData.procedureType, normalizedCountry);
-        console.log('🏥 Loading sets for doctor-procedure:', formData.doctorId, formData.procedureType, 'Found sets:', sets);
-        setAvailableProcedureSets(sets);
-        
+        const sets = await getSetsForDoctorProcedure(formData.doctorId, formData.procedureType, normalizedCountry);setAvailableProcedureSets(sets);
+
         // Clear set selections and quantities when doctor/procedure changes
         setFormData(prev => ({ ...prev, surgerySetSelection: [], implantBox: [], quantities: {} }));
-        
+
       } catch (error) {
         console.error('Error loading doctor procedure sets:', error);
         setAvailableProcedureSets([]);
@@ -308,24 +270,24 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
   // Load department-specific procedure types and categorized sets when department changes
   useEffect(() => {
     let isActive = true; // Cleanup flag to prevent state updates if component unmounts
-    
+
     const loadDepartmentData = async () => {
       if (formData.department && formData.department.trim()) {
         const user = getCurrentUserSync(); // Get current user inside the effect to avoid dependency issues
         if (user && isActive) {
           const userCountry = user.selectedCountry || user.countries?.[0];
-          
+
           if (userCountry) {
             try {
               // Load procedure types for this department
               // Procedures now loaded via real-time query above - no manual fetching needed
-              
+
               if (isActive) {
                 // Procedures now loaded via real-time query - no manual setting needed(departmentProcedureTypes.sort());
               }
-              
+
               // Surgery Sets and Implant Boxes are now loaded independently
-              
+
             } catch (error) {
               console.error('Error loading department data:', error);
               // Fallback to empty data
@@ -350,12 +312,12 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         }
       }
     };
-    
+
     // Add a small delay to debounce rapid changes
     const timeoutId = setTimeout(() => {
       loadDepartmentData();
     }, 100);
-    
+
     return () => {
       isActive = false; // Prevent state updates if component unmounts
       clearTimeout(timeoutId);
@@ -377,9 +339,6 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     }
   }, [formData.department, formData.procedureType, filteredProcedureTypes]);
 
-
-
-
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
 
   // Load departments from Supabase using the fixed service
@@ -396,7 +355,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           // Use the CORRECT code table service instead of the wrong departments table
           const { getDepartmentsForCountry } = await import('../utils/supabaseCodeTableService');
           const countrySpecificDepts = await getDepartmentsForCountry(userCountry);
-          
+
           // Admin and IT users can access all departments for their country
           if (currentUser.role === 'admin' || currentUser.role === 'it') {
             setAvailableDepartments(countrySpecificDepts.sort());
@@ -406,7 +365,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             // Filter departments by user's assigned departments
             const userDepartmentNames = userDepartments;
             const filteredDepts = countrySpecificDepts.filter(dept => userDepartmentNames.includes(dept));
-            
+
             // If no filtered departments, fall back to all available departments
             if (filteredDepts.length === 0) {
               setAvailableDepartments(countrySpecificDepts.sort());
@@ -491,7 +450,6 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     return Object.keys(newErrors).length === 0;
   };
 
-
   const handleClearForm = () => {
     showConfirm(
       'Clear Form',
@@ -512,11 +470,11 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           quantities: {}
         });
         setErrors({});
-        
+
         // Reset doctor hierarchy state
         setAvailableDoctorProcedures([]);
         setAvailableProcedureSets([]);
-        
+
         // Show success popup
         showSuccess('All inputs have been successfully cleared!');
       }
@@ -525,7 +483,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -539,7 +497,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
     try {
       const userCountry = normalizeCountry(currentUser.selectedCountry || 'Singapore');
       const caseReferenceNumber = await generateCaseReferenceNumber();
-      
+
       const newCase: CaseBooking = {
         id: '', // Will be generated by Supabase
         caseReferenceNumber,
@@ -551,7 +509,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       };
 
       const savedCase = await saveCase(newCase);
-      
+
       if (!savedCase) {
         showError('Failed to save case. Please try again.');
         return;
@@ -562,7 +520,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         try {
           const { saveCaseQuantities } = await import('../utils/doctorService');
           const quantities: CaseQuantity[] = [];
-          
+
           // Add surgery set quantities
           formData.surgerySetSelection.forEach(setName => {
             const quantity = formData.quantities[setName] || 1;
@@ -572,7 +530,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               quantity: quantity
             });
           });
-          
+
           // Add implant box quantities
           formData.implantBox.forEach(boxName => {
             const quantity = formData.quantities[boxName] || 1;
@@ -582,7 +540,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               quantity: quantity
             });
           });
-          
+
           if (quantities.length > 0) {
             // Use the actual case ID from the saved case
             const quantitiesSaved = await saveCaseQuantities(savedCase.id, quantities);
@@ -595,7 +553,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           // Don't fail the entire operation for quantity saving issues
         }
       }
-      
+
       // Add audit log for case creation
       try {
         const { auditCaseCreated } = await import('../utils/auditService');
@@ -611,11 +569,9 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       } catch (error) {
         console.error('Failed to log case creation audit:', error);
       }
-      
-      // Enhanced email notification temporarily disabled during TypeScript cleanup
-      console.log('📧 Case submitted successfully:', newCase.caseReferenceNumber);
-      showSuccess('Case Submitted Successfully!', `Case ${newCase.caseReferenceNumber} has been submitted successfully.`);
-      
+
+      // Enhanced email notification temporarily disabled during TypeScript cleanupshowSuccess('Case Submitted Successfully!', `Case ${newCase.caseReferenceNumber} has been submitted successfully.`);
+
       setFormData({
         hospital: '',
         department: '',
@@ -649,7 +605,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         <h2 className="card-title">New Case Booking</h2>
         <p className="card-subtitle">Fill out the details for your medical case booking</p>
       </div>
-      
+
       <div className="card-content">
         <form onSubmit={handleSubmit}>
         <div className="form-row">
@@ -707,7 +663,6 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           </div>
         </div>
 
-
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="procedureName" className="required">Procedure Name</label>
@@ -729,11 +684,11 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             id="doctorId"
             value={getCurrentDoctorDisplayValue()}
             onChange={(doctorDisplayName) => {
-              const selectedDoctor = availableDoctors.find(d => 
+              const selectedDoctor = availableDoctors.find(d =>
                 doctorDisplayName === formatDoctorDisplayName(d)
               );
-              setFormData(prev => ({ 
-                ...prev, 
+              setFormData(prev => ({
+                ...prev,
                 doctorId: selectedDoctor?.id || '',
                 doctorName: selectedDoctor?.name || '',
                 procedureType: '',
@@ -743,7 +698,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               }));
             }}
             options={availableDoctors.map(formatDoctorDisplayName)}
-            placeholder={isLoadingDoctors ? "Loading doctors..." : 
+            placeholder={isLoadingDoctors ? "Loading doctors..." :
               availableDoctors.length === 0 ? "No doctors available - Contact admin to add doctors" :
               "Search and select doctor"
             }
@@ -770,8 +725,8 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           <SearchableDropdown
             id="doctorProcedureType"
             value={formData.procedureType}
-            onChange={(value) => setFormData(prev => ({ 
-              ...prev, 
+            onChange={(value) => setFormData(prev => ({
+              ...prev,
               procedureType: value,
               surgerySetSelection: [],
               implantBox: [],
@@ -800,7 +755,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           <div className="form-section-procedure-sets">
             <h3>Surgery Sets & Implant Boxes</h3>
             <p className="section-subtitle">Available sets for {formData.doctorName} - {formData.procedureType}</p>
-            
+
             {isLoadingSets ? (
               <div className="loading-sets">Loading available sets...</div>
             ) : availableProcedureSets.length === 0 ? (
@@ -825,21 +780,21 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
                         onChange={(selectedSets: string[]) => {
                           setFormData(prev => {
                             const newQuantities = { ...prev.quantities };
-                            
+
                             // Add quantities for newly selected sets
                             selectedSets.forEach((setName: string) => {
                               if (!prev.surgerySetSelection.includes(setName) && !newQuantities[setName]) {
                                 newQuantities[setName] = 1;
                               }
                             });
-                            
+
                             // Remove quantities for deselected sets
                             prev.surgerySetSelection.forEach(setName => {
                               if (!selectedSets.includes(setName)) {
                                 delete newQuantities[setName];
                               }
                             });
-                            
+
                             return {
                               ...prev,
                               surgerySetSelection: selectedSets,
@@ -867,21 +822,21 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
                         onChange={(selectedBoxes: string[]) => {
                           setFormData(prev => {
                             const newQuantities = { ...prev.quantities };
-                            
+
                             // Add quantities for newly selected boxes
                             selectedBoxes.forEach((boxName: string) => {
                               if (!prev.implantBox.includes(boxName) && !newQuantities[boxName]) {
                                 newQuantities[boxName] = 1;
                               }
                             });
-                            
+
                             // Remove quantities for deselected boxes
                             prev.implantBox.forEach(boxName => {
                               if (!selectedBoxes.includes(boxName)) {
                                 delete newQuantities[boxName];
                               }
                             });
-                            
+
                             return {
                               ...prev,
                               implantBox: selectedBoxes,
@@ -965,8 +920,8 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         </div>
 
           <div className="form-actions">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={handleClearForm}
               className="btn btn-outline-secondary btn-lg clear-button"
             >

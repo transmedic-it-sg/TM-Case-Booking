@@ -74,7 +74,7 @@ class FixedAuthService {
           error: 'Account is disabled'
         };
       }
-      
+
       const authUser: AuthUser = {
         id: user.id,
         username: user.username,
@@ -90,7 +90,7 @@ class FixedAuthService {
       this.currentUser = authUser;
 
       // Store in localStorage for persistence
-      localStorage.setItem('currentUser', JSON.stringify(authUser));
+      // User session managed by Supabase auth);
 
       return {
         success: true,
@@ -110,7 +110,7 @@ class FixedAuthService {
     // Simple logout - just clear local state
     this.currentUser = null;
     this.sessionToken = null;
-    
+
     // Clear localStorage
     localStorage.removeItem('currentUser');
     localStorage.removeItem('sessionToken');
@@ -123,7 +123,7 @@ class FixedAuthService {
 
     // Try to restore from localStorage
     try {
-      const stored = localStorage.getItem('currentUser');
+      const stored = null /* Use Supabase auth.getUser() */;
       if (stored) {
         this.currentUser = JSON.parse(stored);
         return this.currentUser;

@@ -28,31 +28,31 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
   readOnly = false
 }) => {
   const { checkPermission } = usePermissions();
-  
+
   // Import the new permission functions
   const { canManageAttachments, canViewAttachments } = React.useMemo(() => {
     return require('../../utils/permissions');
   }, []);
-  
+
   // Get current user info
   const { getCurrentUser } = React.useMemo(() => {
     return require('../../utils/auth');
   }, []);
-  
+
   const currentUser = getCurrentUser();
-  
+
   // Enhanced permission checks
-  const canManageFiles = currentUser && caseSubmittedBy ? 
-    canManageAttachments(currentUser.id, currentUser.role, caseSubmittedBy) && !readOnly : 
+  const canManageFiles = currentUser && caseSubmittedBy ?
+    canManageAttachments(currentUser.id, currentUser.role, caseSubmittedBy) && !readOnly :
     checkPermission('upload-files') && !readOnly;
-  
-  const canViewFiles = currentUser ? 
-    canViewAttachments(currentUser.id, currentUser.role) : 
+
+  const canViewFiles = currentUser ?
+    canViewAttachments(currentUser.id, currentUser.role) :
     checkPermission('download-files');
-  
+
   const canUploadFiles = canManageFiles;
   const canDeleteFiles = canManageFiles;
-  
+
   const [showAttachmentHistory, setShowAttachmentHistory] = useState(false);
   const [replaceFileId, setReplaceFileId] = useState<string | null>(null);
 
@@ -115,7 +115,7 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
 
   const handleViewAttachment = (attachment: AttachmentFile) => {
     const fileInfo = getFileInfo(attachment);
-    
+
     if (!canViewFiles) {
       console.warn('User does not have permission to view attachments');
       return;
@@ -125,61 +125,61 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
     if (fileInfo.isImage && fileInfo.preview) {
       const modalDiv = document.createElement('div');
       modalDiv.className = 'attachment-modal-overlay';
-      
+
       // Create modal structure safely without innerHTML
       const modal = document.createElement('div');
       modal.className = 'attachment-modal';
-      
+
       const header = document.createElement('div');
       header.className = 'attachment-modal-header';
-      
+
       const title = document.createElement('h4');
       title.textContent = fileInfo.name; // Safe text assignment
-      
+
       const closeBtn = document.createElement('button');
       closeBtn.className = 'attachment-modal-close';
       closeBtn.textContent = '✕';
-      
+
       header.appendChild(title);
       header.appendChild(closeBtn);
-      
+
       const body = document.createElement('div');
       body.className = 'attachment-modal-body';
-      
+
       const img = document.createElement('img');
       img.src = fileInfo.preview; // Direct property assignment is safer
       img.alt = fileInfo.name;
       img.style.maxWidth = '100%';
       img.style.maxHeight = '80vh';
-      
+
       body.appendChild(img);
-      
+
       const footer = document.createElement('div');
       footer.className = 'attachment-modal-footer';
-      
+
       const downloadBtn = document.createElement('button');
       downloadBtn.className = 'btn btn-outline-primary attachment-modal-download';
       downloadBtn.textContent = 'Download';
       footer.appendChild(downloadBtn);
-      
+
       if (canUploadFiles) {
         const replaceBtn = document.createElement('button');
         replaceBtn.className = 'btn btn-outline-warning attachment-modal-replace';
         replaceBtn.textContent = 'Replace';
         footer.appendChild(replaceBtn);
       }
-      
+
       modal.appendChild(header);
       modal.appendChild(body);
       modal.appendChild(footer);
       modalDiv.appendChild(modal);
-      
+
       document.body.appendChild(modalDiv);
-      
+
       const closeModal = () => {
         document.body.removeChild(modalDiv);
       };
-      
+
       const downloadFile = () => {
         if (fileInfo.preview && fileInfo.preview.startsWith('data:')) {
           const link = document.createElement('a');
@@ -189,12 +189,12 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
         }
         closeModal();
       };
-      
+
       const replaceFromModal = () => {
         closeModal();
         handleReplaceFile(attachment.id);
       };
-      
+
       modalDiv.querySelector('.attachment-modal-close')?.addEventListener('click', closeModal);
       modalDiv.querySelector('.attachment-modal-download')?.addEventListener('click', downloadFile);
       if (canUploadFiles) {
@@ -297,7 +297,7 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
             const fileInfo = getFileInfo(attachment);
             return (
               <div key={attachment.id} className={`attachment-item ${fileInfo.isNew ? 'new-attachment' : ''}`}>
-                <div 
+                <div
                   className={`attachment-preview ${canViewFiles ? 'clickable' : ''}`}
                   onClick={canViewFiles ? () => handleViewAttachment(attachment) : undefined}
                   title={canViewFiles ? `Click to ${fileInfo.isImage ? 'view' : 'download'} ${fileInfo.name}` : undefined}
@@ -321,7 +321,7 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
                 </div>
 
                 <div className="attachment-info">
-                  <div 
+                  <div
                     className={`file-name ${canViewFiles ? 'clickable' : ''}`}
                     title={canViewFiles ? `Click to ${fileInfo.isImage ? 'view' : 'download'} ${fileInfo.name}` : fileInfo.name}
                     onClick={canViewFiles ? () => handleViewAttachment(attachment) : undefined}
@@ -385,7 +385,7 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
                 </div>
                 <div className="history-details">
                   <span className="history-filename">
-                    {change.type === 'replace' 
+                    {change.type === 'replace'
                       ? `${change.oldFileName} → ${change.fileName}`
                       : change.fileName
                     }
@@ -406,13 +406,13 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
           <p>Contact your administrator for file upload/download access.</p>
         </div>
       )}
-      
+
       {!canUploadFiles && canDeleteFiles && (
         <div className="permission-message">
           <p>📁 You can view and delete files but cannot upload new ones.</p>
         </div>
       )}
-      
+
       {canUploadFiles && !canDeleteFiles && (
         <div className="permission-message">
           <p>📁 You can upload files but cannot delete existing ones.</p>

@@ -11,22 +11,20 @@ export interface SystemConfig {
   // Application Settings
   appVersion: string;
   maintenanceMode: boolean;
-  
+
   // Performance Settings
   cacheTimeout: number;
   maxFileSize: number;
   sessionTimeout: number;
-  
+
   // Security Settings
   passwordComplexity: boolean;
   auditLogRetention: number;
-  
+
   // Amendment Settings
   amendmentTimeLimit: number; // Time limit in minutes for amendments
   maxAmendmentsPerCase: number; // Maximum number of amendments allowed per case
-  
-  
-  
+
   // UI Settings
   defaultTheme: 'light' | 'dark' | 'auto';
   defaultLanguage: string;
@@ -53,7 +51,7 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
   try {
     // First try to get from localStorage as it's more reliable
     const localConfig = await getSystemConfigFromSecureStorage();
-    
+
     // Try to get system settings from Supabase (key-value structure)
     const { data, error } = await supabase
       .from('system_settings')
@@ -61,30 +59,19 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // No settings found, use localStorage or defaults
-        console.log('📋 No system settings found in Supabase, using localStorage');
-        return localConfig;
+        // No settings found, use localStorage or defaultsreturn localConfig;
       }
       if (error.code === '42P01') {
-        // Table doesn't exist
-        console.log('📋 System settings table does not exist, using localStorage');
-        return localConfig;
+        // Table doesn't existreturn localConfig;
       }
-      if (error.code === '401' || error.message.includes('permission denied')) {
-        console.log('📋 Permission denied for system settings, using localStorage');
-        return localConfig;
+      if (error.code === '401' || error.message.includes('permission denied')) {return localConfig;
       }
-      if (error.code === '406' || error.message.includes('Not Acceptable')) {
-        console.log('📋 System settings table not configured, using localStorage (expected in development)');
+      if (error.code === '406' || error.message.includes('Not Acceptable')) {');
         return localConfig;
-      }
-      console.log('Supabase error, falling back to localStorage:', error);
-      return localConfig;
+      }return localConfig;
     }
 
-    if (!data || data.length === 0) {
-      console.log('📋 No system settings data found in Supabase, using localStorage');
-      return localConfig;
+    if (!data || data.length === 0) {return localConfig;
     }
 
     // Transform key-value pairs to config object
@@ -106,16 +93,11 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
       maxAmendmentsPerCase: settingsMap.get('max_amendments_per_case') || DEFAULT_CONFIG.maxAmendmentsPerCase,
       defaultTheme: settingsMap.get('default_theme') || DEFAULT_CONFIG.defaultTheme,
       defaultLanguage: settingsMap.get('default_language') || DEFAULT_CONFIG.defaultLanguage
-    };
-
-    console.log('✅ Successfully loaded system settings from Supabase');
-    // Save the merged config to localStorage for future use
+    };// Save the merged config to localStorage for future use
     await saveSystemConfigToSecureStorage(supabaseConfig);
     return supabaseConfig;
   } catch (error) {
-    console.error('Error getting system configuration from Supabase:', error);
-    console.log('Falling back to secure storage configuration');
-    return await getSystemConfigFromSecureStorage();
+    console.error('Error getting system configuration from Supabase:', error);return await getSystemConfigFromSecureStorage();
   }
 };
 
@@ -124,10 +106,7 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
  */
 export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
   // Always save to secure storage first to ensure settings are persisted
-  await saveSystemConfigToSecureStorage(config);
-  console.log('✅ System configuration saved to secure storage');
-
-  try {
+  await saveSystemConfigToSecureStorage(config);try {
     // Prepare key-value pairs for Supabase
     const configMappings = [
       { key: 'version', value: config.appVersion },
@@ -158,22 +137,14 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
 
       if (error) {
         if (error.code === '42P01') {
-          // Table doesn't exist, localStorage save is sufficient
-          console.log('⚠️ System settings table does not exist, but localStorage save completed');
-          return;
+          // Table doesn't exist, localStorage save is sufficientreturn;
         }
-        if (error.code === '401' || error.message.includes('permission denied')) {
-          console.log('⚠️ Permission denied for Supabase, but localStorage save completed');
-          return;
+        if (error.code === '401' || error.message.includes('permission denied')) {return;
         }
         console.warn(`⚠️ Failed to save setting ${mapping.key} to Supabase:`, error.message);
       }
-    }
-
-    console.log('✅ System configuration saved to both Supabase and localStorage');
-  } catch (error) {
-    console.error('⚠️ Error saving system configuration to Supabase:', error);
-    console.log('✅ Configuration saved to localStorage successfully (Supabase unavailable)');
+    }} catch (error) {
+    console.error('⚠️ Error saving system configuration to Supabase:', error);');
     // Don't throw error since localStorage save was successful
   }
 };
@@ -233,12 +204,8 @@ const getSystemConfigFromSecureStorage = async (): Promise<SystemConfig> => {
         maxAmendmentsPerCase: parsed.maxAmendmentsPerCase || DEFAULT_CONFIG.maxAmendmentsPerCase,
         defaultTheme: parsed.defaultTheme || DEFAULT_CONFIG.defaultTheme,
         defaultLanguage: parsed.defaultLanguage || DEFAULT_CONFIG.defaultLanguage
-      };
-      console.log('📋 Loaded system configuration from secure storage');
-      return config;
-    }
-    console.log('📋 No secure storage config found, using defaults');
-    return DEFAULT_CONFIG;
+      };return config;
+    }return DEFAULT_CONFIG;
   } catch (error) {
     console.error('Error getting system configuration from secure storage:', error);
     return DEFAULT_CONFIG;
@@ -288,7 +255,7 @@ export const getSystemHealth = async (): Promise<{
     status: 'pass' | 'fail' | 'warn';
     message: string;
   }> = [];
-  
+
   try {
     // Check database connection
     const { error: dbError } = await supabase.from('system_settings').select('id').limit(1);
@@ -297,7 +264,7 @@ export const getSystemHealth = async (): Promise<{
       status: dbError ? 'fail' : 'pass',
       message: dbError ? 'Database connection failed' : 'Database connection healthy'
     });
-    
+
     // Check secure storage
     try {
       await SafeStorage.setItem('healthcheck', 'test', { ttl: 1000 });
@@ -314,7 +281,7 @@ export const getSystemHealth = async (): Promise<{
         message: 'Secure storage is not available'
       });
     }
-    
+
     // Check system configuration
     const config = await getSystemConfig();
     checks.push({
@@ -322,18 +289,18 @@ export const getSystemHealth = async (): Promise<{
       status: config ? 'pass' : 'fail',
       message: config ? 'System configuration loaded' : 'System configuration unavailable'
     });
-    
+
     // Determine overall status
     const failCount = checks.filter(c => c.status === 'fail').length;
     const warnCount = checks.filter(c => c.status === 'warn').length;
-    
+
     let status: 'healthy' | 'warning' | 'error' = 'healthy';
     if (failCount > 0) {
       status = 'error';
     } else if (warnCount > 0) {
       status = 'warning';
     }
-    
+
     return { status, checks };
   } catch (error) {
     return {
@@ -351,45 +318,35 @@ export const getSystemHealth = async (): Promise<{
  * Apply system configuration changes
  */
 export const applySystemConfig = async (config: SystemConfig): Promise<void> => {
-  try {
-    console.log('🔄 Applying system configuration changes...');
-
-    // Apply session timeout
+  try {// Apply session timeout
     if (config.sessionTimeout > 0) {
       const sessionTimeout = config.sessionTimeout * 1000; // Convert to milliseconds
       await SafeStorage.setItem('sessionTimeout', sessionTimeout.toString(), {
         tags: ['session-config', 'system'],
         ttl: 90 * 24 * 60 * 60 * 1000
-      });
-      console.log(`✅ Session timeout set to ${config.sessionTimeout} seconds`);
-    }
-    
+      });}
+
     // Apply maintenance mode
     if (config.maintenanceMode) {
       await SafeStorage.setItem('maintenanceMode', 'true', {
         tags: ['maintenance', 'system'],
         ttl: 90 * 24 * 60 * 60 * 1000
-      });
-      console.log('✅ Maintenance mode enabled');
-    } else {
-      await SafeStorage.removeItem('maintenanceMode');
-      console.log('✅ Maintenance mode disabled');
-    }
-    
-    
+      });} else {
+      await SafeStorage.removeItem('maintenanceMode');}
+
     // Apply theme changes
     if (config.defaultTheme) {
       // Apply theme to document
       document.documentElement.setAttribute('data-theme', config.defaultTheme);
       document.body.className = document.body.className.replace(/theme-\w+/g, '');
       document.body.classList.add(`theme-${config.defaultTheme}`);
-      
+
       // Store in secure storage
       await SafeStorage.setItem('defaultTheme', config.defaultTheme, {
         tags: ['theme', 'ui-settings'],
         ttl: 90 * 24 * 60 * 60 * 1000
       });
-      
+
       // Apply CSS variables for light/dark theme
       const root = document.documentElement;
       if (config.defaultTheme === 'dark') {
@@ -402,33 +359,21 @@ export const applySystemConfig = async (config: SystemConfig): Promise<void> => 
         root.style.setProperty('--text-color', '#333333');
         root.style.setProperty('--card-background', '#ffffff');
         root.style.setProperty('--border-color', '#e9ecef');
-      }
-      console.log(`✅ Theme set to ${config.defaultTheme}`);
-    }
-    
-    
+      }}
+
     // Apply cache timeout
     await SafeStorage.setItem('cacheTimeout', config.cacheTimeout.toString(), {
       tags: ['cache-config', 'system'],
       ttl: 90 * 24 * 60 * 60 * 1000
-    });
-    console.log(`✅ Cache timeout set to ${config.cacheTimeout} seconds`);
-    
-    // Apply max file size
+    });// Apply max file size
     await SafeStorage.setItem('maxFileSize', config.maxFileSize.toString(), {
       tags: ['file-config', 'system'],
       ttl: 90 * 24 * 60 * 60 * 1000
-    });
-    console.log(`✅ Max file size set to ${config.maxFileSize} MB`);
-    
-    // Apply audit log retention
+    });// Apply audit log retention
     await SafeStorage.setItem('auditLogRetention', config.auditLogRetention.toString(), {
       tags: ['audit-config', 'system'],
       ttl: 90 * 24 * 60 * 60 * 1000
-    });
-    console.log(`✅ Audit log retention set to ${config.auditLogRetention} days`);
-    
-    // Apply amendment settings
+    });// Apply amendment settings
     await SafeStorage.setItem('amendmentTimeLimit', config.amendmentTimeLimit.toString(), {
       tags: ['amendment-config', 'system'],
       ttl: 90 * 24 * 60 * 60 * 1000
@@ -436,18 +381,11 @@ export const applySystemConfig = async (config: SystemConfig): Promise<void> => 
     await SafeStorage.setItem('maxAmendmentsPerCase', config.maxAmendmentsPerCase.toString(), {
       tags: ['amendment-config', 'system'],
       ttl: 90 * 24 * 60 * 60 * 1000
-    });
-    console.log(`✅ Amendment time limit: ${config.amendmentTimeLimit} minutes, max per case: ${config.maxAmendmentsPerCase}`);
-    
-    // Apply security settings
+    });// Apply security settings
     await SafeStorage.setItem('passwordComplexity', config.passwordComplexity.toString(), {
       tags: ['security-config', 'system'],
       ttl: 90 * 24 * 60 * 60 * 1000
-    });
-    console.log(`✅ Security settings applied - Password complexity: ${config.passwordComplexity}`);
-    
-    console.log('✅ All system configuration changes applied successfully');
-  } catch (error) {
+    });} catch (error) {
     console.error('Error applying system configuration:', error);
     throw error;
   }

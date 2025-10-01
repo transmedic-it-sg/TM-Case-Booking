@@ -72,16 +72,14 @@ beforeAll(() => {
   process.env.NODE_ENV = 'test';
   process.env.REACT_APP_SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || 'http://localhost:54321';
   process.env.REACT_APP_SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || 'test-key';
-  
+
   // Mock global objects for browser environment
   global.Notification = class MockNotification {
-    constructor(title: string, options?: NotificationOptions) {
-      console.log('Mock notification created:', title, options);
-    }
+    constructor(title: string, options?: NotificationOptions) {}
     static permission: NotificationPermission = 'granted';
     static requestPermission = () => Promise.resolve('granted' as NotificationPermission);
   } as any;
-  
+
   // Mock localStorage
   const mockLocalStorage = {
     getItem: () => null,
@@ -89,7 +87,7 @@ beforeAll(() => {
     removeItem: () => {},
     clear: () => {}
   };
-  
+
   Object.defineProperty(window, 'localStorage', {
     value: mockLocalStorage,
     writable: true
@@ -113,7 +111,7 @@ export const server = setupServer(
       ])
     );
   }),
-  
+
   rest.post('*/rest/v1/case_bookings*', (req, res, ctx) => {
     return res(
       ctx.json({
@@ -123,7 +121,7 @@ export const server = setupServer(
       })
     );
   }),
-  
+
   rest.patch('*/rest/v1/case_bookings*', (req, res, ctx) => {
     return res(
       ctx.json({
@@ -181,7 +179,7 @@ afterEach(() => {
 export const waitFor = (callback: () => boolean | Promise<boolean>, timeout = 5000): Promise<void> => {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
-    
+
     const check = async () => {
       try {
         const result = await callback();
@@ -192,15 +190,15 @@ export const waitFor = (callback: () => boolean | Promise<boolean>, timeout = 50
       } catch (error) {
         // Continue checking
       }
-      
+
       if (Date.now() - startTime > timeout) {
         reject(new Error(`Timeout after ${timeout}ms`));
         return;
       }
-      
+
       setTimeout(check, 100);
     };
-    
+
     check();
   });
 };

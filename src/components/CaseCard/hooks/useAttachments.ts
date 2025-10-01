@@ -61,7 +61,7 @@ export const useAttachments = (options: UseAttachmentsOptions = {}) => {
     fileArray.forEach(file => {
       if (validateFile(file)) {
         validFiles.push(file);
-        
+
         // Create preview for images
         if (file.type.startsWith('image/')) {
           const reader = new FileReader();
@@ -98,7 +98,7 @@ export const useAttachments = (options: UseAttachmentsOptions = {}) => {
       size: (file.size / 1024).toFixed(2) + ' KB',
       type: file.type,
       isImage: file.type.startsWith('image/'),
-      preview: file.type.startsWith('image/') 
+      preview: file.type.startsWith('image/')
         ? previews[attachments.indexOf(file)]
         : null
     };

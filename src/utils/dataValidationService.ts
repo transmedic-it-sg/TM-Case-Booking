@@ -108,7 +108,7 @@ class DataValidationService {
     // Validate required fields
     const requiredFields = [
       'hospital',
-      'department', 
+      'department',
       'date_of_surgery',
       'procedure_type',
       'procedure_name',

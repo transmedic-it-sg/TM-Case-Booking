@@ -15,11 +15,11 @@ import { User } from '../../types';
 
 // Test component that uses the real-time users hook
 const TestUsersComponent: React.FC = () => {
-  const { 
-    users, 
-    isLoading, 
-    error, 
-    refreshUsers, 
+  const {
+    users,
+    isLoading,
+    error,
+    refreshUsers,
     addUser,
     updateUser,
     deleteUser,
@@ -62,30 +62,30 @@ const TestUsersComponent: React.FC = () => {
       <div data-testid="error">{error ? (error instanceof Error ? error.message : String(error)) : 'No Error'}</div>
       <div data-testid="users-count">{users.length}</div>
       <div data-testid="users-data">{JSON.stringify(users)}</div>
-      
+
       <button data-testid="refresh-btn" onClick={refreshUsers}>
         Refresh Users
       </button>
-      
+
       <button data-testid="validate-btn" onClick={handleValidation}>
         Validate Component
       </button>
-      
+
       <button data-testid="add-user-btn" onClick={handleAddUser}>
         Add User
       </button>
-      
-      <button 
-        data-testid="toggle-user-btn" 
+
+      <button
+        data-testid="toggle-user-btn"
         onClick={() => users.length > 0 && toggleUser(users[0].id)}
       >
         Toggle User
       </button>
-      
+
       <div data-testid="validation-result">
         {validationResult !== null ? (validationResult ? 'VALID' : 'INVALID') : 'NOT_TESTED'}
       </div>
-      
+
       <div data-testid="test-report">{testReport}</div>
     </div>
   );
@@ -94,7 +94,7 @@ const TestUsersComponent: React.FC = () => {
 // Test wrapper with providers
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = createTestQueryClient();
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <RealtimeProvider>
@@ -108,7 +108,7 @@ describe('Real-time Users Integration Tests', () => {
   beforeEach(() => {
     // Reset any previous state
     jest.clearAllMocks();
-    
+
     // Setup default user data response
     server.use(
       rest.get('*/rest/v1/profiles*', (req, res, ctx) => {
@@ -126,7 +126,7 @@ describe('Real-time Users Integration Tests', () => {
               created_at: new Date().toISOString()
             },
             {
-              id: 'test-user-2', 
+              id: 'test-user-2',
               username: 'testuser2',
               name: 'Test User 2',
               role: 'doctor',
@@ -160,7 +160,7 @@ describe('Real-time Users Integration Tests', () => {
     // Should have users data
     expect(screen.getByTestId('users-count')).toHaveTextContent('2');
     expect(screen.getByTestId('error')).toHaveTextContent('No Error');
-    
+
     // Verify the actual user data
     const usersData = screen.getByTestId('users-data').textContent;
     expect(usersData).toContain('testuser1');
@@ -169,7 +169,7 @@ describe('Real-time Users Integration Tests', () => {
 
   test('should validate no caching behavior for users', async () => {
     let callCount = 0;
-    
+
     // Mock API to count calls
     server.use(
       rest.get('*/rest/v1/profiles*', (req, res, ctx) => {
@@ -264,7 +264,7 @@ describe('Real-time Users Integration Tests', () => {
           })
         );
       }),
-      
+
       rest.patch('*/rest/v1/profiles*', (req, res, ctx) => {
         toggleCalled = true;
         return res(

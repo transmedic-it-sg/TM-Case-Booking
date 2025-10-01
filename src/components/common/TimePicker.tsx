@@ -129,7 +129,7 @@ const TimePicker: React.FC<TimePickerProps> = ({
 
   return (
     <div className={`time-picker-container ${className}`} ref={containerRef}>
-      <div 
+      <div
         className={`time-picker-input ${disabled ? 'disabled' : ''} ${isOpen ? 'open' : ''}`}
         onClick={handleInputClick}
       >

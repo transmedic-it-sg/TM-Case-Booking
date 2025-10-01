@@ -27,31 +27,31 @@ const LoadingSpinner = () => (
 );
 
 // Lazy load heavy components
-const SimplifiedEmailConfig = React.lazy(() => 
+const SimplifiedEmailConfig = React.lazy(() =>
   import('./SimplifiedEmailConfig')
 );
 
-const Reports = React.lazy(() => 
+const Reports = React.lazy(() =>
   import('./Reports')
 );
 
-const AuditLogs = React.lazy(() => 
+const AuditLogs = React.lazy(() =>
   import('./AuditLogs')
 );
 
-const UserManagement = React.lazy(() => 
+const UserManagement = React.lazy(() =>
   import('./UserManagement')
 );
 
-const CodeTableSetup = React.lazy(() => 
+const CodeTableSetup = React.lazy(() =>
   import('./CodeTableSetup')
 );
 
-const SystemSettings = React.lazy(() => 
+const SystemSettings = React.lazy(() =>
   import('./SystemSettings')
 );
 
-const PermissionMatrixPage = React.lazy(() => 
+const PermissionMatrixPage = React.lazy(() =>
   import('./PermissionMatrixPage')
 );
 
@@ -79,7 +79,7 @@ class LazyComponentErrorBoundary extends React.Component<
         <div style={{ padding: '2rem', textAlign: 'center', color: '#e74c3c' }}>
           <h3>⚠️ Component Loading Error</h3>
           <p>This component failed to load. Please refresh the page.</p>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             style={{
               background: '#20b2aa',
@@ -113,7 +113,7 @@ const withLazyLoading = <P extends object>(
       </Suspense>
     </LazyComponentErrorBoundary>
   );
-  
+
   LazyWrapper.displayName = `LazyWrapper(${Component.displayName || Component.name})`;
   return LazyWrapper;
 };

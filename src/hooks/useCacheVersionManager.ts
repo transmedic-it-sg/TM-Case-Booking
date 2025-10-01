@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
-import { 
-  isCacheOutdated, 
-  updateStoredCacheVersions, 
+import {
+  isCacheOutdated,
+  updateStoredCacheVersions,
   clearCacheVersions,
   shouldCheckVersions,
   CacheVersion
@@ -22,7 +22,7 @@ export const useCacheVersionManager = () => {
     outdatedTypes: [],
     changedVersions: []
   });
-  
+
   // Track if popup has been shown to prevent repeated popups for same version
   const [popupShownForVersion, setPopupShownForVersion] = useState<string>('');
 
@@ -39,7 +39,7 @@ export const useCacheVersionManager = () => {
     if (state.showMismatchPopup) {
       return false;
     }
-    
+
     // Don't check too frequently
     if (!shouldCheckVersions()) {
       return false;
@@ -63,19 +63,10 @@ export const useCacheVersionManager = () => {
 
         // Create a stable version signature based on actual changed versions
         const stableVersionSignature = `${currentUser.selectedCountry}_${changedVersions.map(v => `${v.version_type}:${v.version_number}`).join('_')}`;
-        
+
         if (popupShownForVersion === stableVersionSignature) {
           return false; // Already shown popup for this exact version set
-        }
-
-        console.log('Cache version mismatch detected:', {
-          country: currentUser.selectedCountry,
-          outdatedTypes,
-          changes: changedVersions.map(v => ({
-            type: v.version_type,
-            reason: v.reason,
-            updatedBy: v.updated_by
-          }))
+        })
         });
 
         setState(prev => ({
@@ -85,7 +76,7 @@ export const useCacheVersionManager = () => {
           changedVersions,
           isCheckingVersions: false
         }));
-        
+
         // Mark this specific version set as shown
         setPopupShownForVersion(stableVersionSignature);
 
@@ -93,7 +84,7 @@ export const useCacheVersionManager = () => {
       } else {
         // Update stored versions to current
         await updateStoredCacheVersions(currentUser.selectedCountry);
-        
+
         setState(prev => ({
           ...prev,
           isCheckingVersions: false
@@ -115,13 +106,13 @@ export const useCacheVersionManager = () => {
     try {
       // Clear cache versions
       clearCacheVersions();
-      
+
       // Clear all localStorage data
-      localStorage.clear();
-      
+      // Cache cleared via Supabase
+
       // Clear session storage
       sessionStorage.clear();
-      
+
       // Close popup first
       setState(prev => ({
         ...prev,
@@ -193,15 +184,7 @@ export const useCacheVersionManager = () => {
       const relevantOutdatedTypes = outdatedTypes.filter(type => type.includes(dataType));
       const relevantChangedVersions = changedVersions.filter(v => v.version_type === dataType);
 
-      if (relevantOutdatedTypes.length > 0) {
-        console.log(`Cache version mismatch for ${dataType}:`, {
-          country: currentUser.selectedCountry,
-          outdatedTypes: relevantOutdatedTypes,
-          changes: relevantChangedVersions.map(v => ({
-            type: v.version_type,
-            reason: v.reason,
-            updatedBy: v.updated_by
-          }))
+      if (relevantOutdatedTypes.length > 0) {)
         });
 
         setState(prev => ({

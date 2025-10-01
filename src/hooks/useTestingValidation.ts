@@ -23,15 +23,9 @@ export const useTestingValidation = (config: ValidationConfig) => {
   const testInterval = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const { componentName, enablePerformanceMonitoring = false } = config;
-    
-    console.log(`🧪 Initializing testing validation for ${componentName}`);
-    
-    // Start performance monitoring if enabled
+    const { componentName, enablePerformanceMonitoring = false } = config;// Start performance monitoring if enabled
     if (enablePerformanceMonitoring) {
-      performanceMonitor.current = testingFramework.current.monitorPerformance(componentName);
-      console.log(`📊 Performance monitoring started for ${componentName}`);
-    }
+      performanceMonitor.current = testingFramework.current.monitorPerformance(componentName);}
 
     // Cleanup on unmount
     return () => {
@@ -39,14 +33,9 @@ export const useTestingValidation = (config: ValidationConfig) => {
       if (interval) {
         clearInterval(interval);
       }
-      
+
       if (performanceMonitor.current) {
-        const metrics = performanceMonitor.current.getMetrics();
-        console.log(`📊 Final performance metrics for ${componentName}:`, metrics);
-      }
-      
-      console.log(`🧹 Testing validation cleanup for ${componentName}`);
-    };
+        const metrics = performanceMonitor.current.getMetrics();}};
   }, [config]);
 
   // Record update for performance monitoring
@@ -57,21 +46,16 @@ export const useTestingValidation = (config: ValidationConfig) => {
   };
 
   // Test real-time subscription
-  const testRealtimeSubscription = async (table: string) => {
-    console.log(`🧪 Testing real-time subscription for ${table} in ${config.componentName}`);
-    return await testingFramework.current.testRealtimeSubscription(table);
+  const testRealtimeSubscription = async (table: string) => {return await testingFramework.current.testRealtimeSubscription(table);
   };
 
   // Test React Query integration
-  const testQueryIntegration = async (queryKey: string[], queryFn: () => Promise<any>) => {
-    console.log(`🧪 Testing query integration for ${queryKey.join('.')} in ${config.componentName}`);
+  const testQueryIntegration = async (queryKey: string[], queryFn: () => Promise<any>) => {} in ${config.componentName}`);
     return await testingFramework.current.testReactQueryIntegration(queryKey, queryFn);
   };
 
   // Validate component state
-  const validateComponent = async (testFn: () => Promise<boolean>) => {
-    console.log(`🧪 Validating component ${config.componentName}`);
-    return await testingFramework.current.testComponentWithRealtime(config.componentName, testFn);
+  const validateComponent = async (testFn: () => Promise<boolean>) => {return await testingFramework.current.testComponentWithRealtime(config.componentName, testFn);
   };
 
   // Quick cache validation
@@ -86,9 +70,7 @@ export const useTestingValidation = (config: ValidationConfig) => {
 
   // Record validation result
   const recordValidation = (success: boolean, error?: string) => {
-    if (success) {
-      console.log(`✅ Validation passed for ${config.componentName}`);
-    } else {
+    if (success) {} else {
       console.error(`❌ Validation failed for ${config.componentName}: ${error}`);
     }
   };

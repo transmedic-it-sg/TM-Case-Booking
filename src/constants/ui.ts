@@ -167,7 +167,7 @@ export const ICONS = {
   SETTINGS: '⚙️',
   USERS: '👥',
   LOGOUT: '🚪',
-  
+
   // Actions
   ADD: '➕',
   EDIT: '✏️',
@@ -177,14 +177,14 @@ export const ICONS = {
   SEARCH: '🔍',
   FILTER: '🔽',
   SORT: '🔄',
-  
+
   // Status
   SUCCESS: '✅',
   ERROR: '❌',
   WARNING: '⚠️',
   INFO: 'ℹ️',
   LOADING: '⏳',
-  
+
   // File operations
   UPLOAD: '📤',
   DOWNLOAD: '📥',

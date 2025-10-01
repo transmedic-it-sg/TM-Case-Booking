@@ -22,7 +22,7 @@ export const PERMISSIONS = {
   EDIT_CASE: 'edit_case',
   DELETE_CASE: 'delete_case',
   AMEND_CASE: 'amend_case',
-  
+
   // Workflow Actions
   PROCESS_ORDER: 'process_order',
   MARK_DELIVERED: 'mark_delivered_hospital',
@@ -30,14 +30,14 @@ export const PERMISSIONS = {
   COMPLETE_CASE: 'complete_case',
   DELIVER_TO_OFFICE: 'deliver_to_office',
   MARK_TO_BILLED: 'mark_to_billed',
-  
+
   // Administrative
   MANAGE_USERS: 'manage_users',
   MANAGE_PERMISSIONS: 'manage_permissions',
   VIEW_SETTINGS: 'view_settings',
   MANAGE_CODE_TABLES: 'manage_code_tables',
   AUDIT_LOGS: 'view_audit_logs',
-  
+
   // System
   BACKUP_RESTORE: 'backup_restore',
   SYSTEM_CONFIG: 'system_configuration'
@@ -49,7 +49,7 @@ export const ROLE_PERMISSIONS = {
     // All permissions for admin
     ...Object.values(PERMISSIONS)
   ],
-  
+
   [USER_ROLES.OPERATIONS]: [
     PERMISSIONS.VIEW_ALL_CASES,
     PERMISSIONS.CREATE_CASE,
@@ -58,7 +58,7 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.MARK_DELIVERED,
     PERMISSIONS.MARK_TO_BILLED
   ],
-  
+
   [USER_ROLES.OPERATIONS_MANAGER]: [
     PERMISSIONS.VIEW_ALL_CASES,
     PERMISSIONS.CREATE_CASE,
@@ -71,7 +71,7 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.VIEW_SETTINGS,
     PERMISSIONS.AUDIT_LOGS
   ],
-  
+
   [USER_ROLES.SALES]: [
     PERMISSIONS.VIEW_ALL_CASES,
     PERMISSIONS.CREATE_CASE,
@@ -80,7 +80,7 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.DELIVER_TO_OFFICE,
     PERMISSIONS.MARK_TO_BILLED
   ],
-  
+
   [USER_ROLES.SALES_MANAGER]: [
     PERMISSIONS.VIEW_ALL_CASES,
     PERMISSIONS.CREATE_CASE,
@@ -93,13 +93,13 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.VIEW_SETTINGS,
     PERMISSIONS.AUDIT_LOGS
   ],
-  
+
   [USER_ROLES.DRIVER]: [
     PERMISSIONS.VIEW_ALL_CASES,
     PERMISSIONS.RECEIVE_ORDER,
     PERMISSIONS.MARK_TO_BILLED
   ],
-  
+
   [USER_ROLES.IT]: [
     PERMISSIONS.VIEW_ALL_CASES,
     PERMISSIONS.VIEW_SETTINGS,

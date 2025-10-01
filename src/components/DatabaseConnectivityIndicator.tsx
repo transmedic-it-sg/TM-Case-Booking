@@ -10,18 +10,18 @@ interface DatabaseConnectivityIndicatorProps {
   className?: string;
 }
 
-const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps> = ({ 
-  showDetails = false, 
-  className = '' 
+const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps> = ({
+  showDetails = false,
+  className = ''
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const { playSound } = useSound();
-  const { 
-    connectionInfo, 
-    displayInfo, 
-    isVisible, 
-    forceCheck, 
+  const {
+    connectionInfo,
+    displayInfo,
+    isVisible,
+    forceCheck,
     toggleVisibility,
     isConnected,
     isChecking,
@@ -44,7 +44,7 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
   const isMobile = () => {
     return window.innerWidth <= 1366;
   };
-  
+
   // Get position of database indicator for mobile positioning
   const getIndicatorPosition = () => {
     if (containerRef.current) {
@@ -62,10 +62,10 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       const target = event.target as Element;
-      
+
       // Don't close if clicking inside the panel or the indicator
-      if (isVisible && 
-          containerRef.current && 
+      if (isVisible &&
+          containerRef.current &&
           !containerRef.current.contains(target) &&
           panelRef.current &&
           !panelRef.current.contains(target)) {
@@ -104,13 +104,13 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
   return (
     <div ref={containerRef} className={`database-connectivity-indicator ${className}`}>
       {/* Always visible status light */}
-      <div 
+      <div
         className={`connection-status-light ${connectionInfo.status}`}
         onClick={handleToggleVisibility}
         title={`${displayInfo.text} - Click for details`}
       >
         <div className="status-light">
-          <div 
+          <div
             className={`light-dot ${isChecking ? 'pulse' : ''}`}
             style={{ backgroundColor: displayInfo.color }}
           ></div>
@@ -127,7 +127,7 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
       {isVisible && (() => {
         const position = getIndicatorPosition();
         const panelContent = (
-          <div 
+          <div
             ref={panelRef}
             style={{
               position: 'fixed',
@@ -149,7 +149,7 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
                 <span className="status-icon">{displayInfo.icon}</span>
                 Database Connection Status
               </div>
-              <button 
+              <button
                 className="close-button"
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent event bubbling
@@ -160,7 +160,7 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
                 ✕
               </button>
             </div>
-            
+
             <div className="panel-content">
               <div className="status-row">
                 <span className="label">Status:</span>
@@ -168,40 +168,40 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
                   {displayInfo.text}
                 </span>
               </div>
-              
+
               <div className="status-row">
                 <span className="label">Last Checked:</span>
                 <span className="value">{formatTimestamp(connectionInfo.lastChecked)}</span>
               </div>
-              
+
               {connectionInfo.responseTime && (
                 <div className="status-row">
                   <span className="label">Response Time:</span>
                   <span className="value">{connectionInfo.responseTime}ms</span>
                 </div>
               )}
-              
+
               <div className="status-row">
                 <span className="label">Data Source:</span>
                 <span className="value">
                   {isConnected ? getDatabaseName() : 'Local Storage (Fallback)'}
                 </span>
               </div>
-              
+
               {connectionInfo.errorMessage && (
                 <div className="status-row error">
                   <span className="label">Error:</span>
                   <span className="value">{connectionInfo.errorMessage}</span>
                 </div>
               )}
-              
+
               <div className="description">
                 {displayInfo.description}
               </div>
             </div>
-            
+
             <div className="panel-actions">
-              <button 
+              <button
                 className="btn btn-primary btn-sm"
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent event bubbling
@@ -212,7 +212,7 @@ const DatabaseConnectivityIndicator: React.FC<DatabaseConnectivityIndicatorProps
                 {isChecking ? '🔄 Testing...' : '🔄 Test Connection'}
               </button>
             </div>
-            
+
             {/* Connection indicators */}
             <div className="connection-indicators">
               <div className={`indicator ${isConnected ? 'active' : ''}`}>

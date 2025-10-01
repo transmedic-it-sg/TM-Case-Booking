@@ -95,7 +95,7 @@ export const permissionActions: PermissionAction[] = [
     description: 'Manage surgery sets and implant boxes for procedure types. Configure available surgical instruments and implant options for specific medical procedures and specialties.',
     category: 'Case Management'
   },
-  
+
   // Status Transitions
   {
     id: 'process-order',
@@ -163,7 +163,7 @@ export const permissionActions: PermissionAction[] = [
     description: 'Cancel cases in Process Order, Order Processed, Pending Delivery, or Delivered status',
     category: 'Case Management'
   },
-  
+
   // Data Operations
   {
     id: 'export-data',
@@ -183,7 +183,7 @@ export const permissionActions: PermissionAction[] = [
     description: 'Access reporting and analytics',
     category: 'Data Operations'
   },
-  
+
   // User Management
   {
     id: 'create-user',
@@ -227,7 +227,7 @@ export const permissionActions: PermissionAction[] = [
     description: 'Enable or disable user login access',
     category: 'User Management'
   },
-  
+
   // System Settings
   {
     id: 'system-settings',
@@ -277,7 +277,7 @@ export const permissionActions: PermissionAction[] = [
     description: 'Manage user permissions and role assignments',
     category: 'System Settings'
   },
-  
+
   // File Operations
   {
     id: 'upload-files',
@@ -303,7 +303,7 @@ export const permissionActions: PermissionAction[] = [
     description: 'Modify, replace, and manage case attachments beyond basic upload/download',
     category: 'File Operations'
   },
-  
+
   // Notification Management - REMOVED: Notification settings should be freely accessible to all users
 ];
 
@@ -323,7 +323,7 @@ export const permissions: Permission[] = [
   { actionId: 'upload-files', roleId: 'operations', allowed: true },
   { actionId: 'download-files', roleId: 'operations', allowed: true },
   { actionId: 'view-reports', roleId: 'operations', allowed: true },
-  
+
   // Operations Manager - Operations + additional oversight
   { actionId: 'create-case', roleId: 'operations-manager', allowed: true },
   { actionId: 'view-cases', roleId: 'operations-manager', allowed: true },
@@ -341,7 +341,7 @@ export const permissions: Permission[] = [
   { actionId: 'view-reports', roleId: 'operations-manager', allowed: true },
   { actionId: 'export-data', roleId: 'operations-manager', allowed: true },
   { actionId: 'cancel-case', roleId: 'operations-manager', allowed: true },
-  
+
   // Sales - Case completion and office delivery
   { actionId: 'create-case', roleId: 'sales', allowed: true },
   { actionId: 'view-cases', roleId: 'sales', allowed: true },
@@ -357,7 +357,7 @@ export const permissions: Permission[] = [
   { actionId: 'upload-files', roleId: 'sales', allowed: true },
   { actionId: 'download-files', roleId: 'sales', allowed: true },
   { actionId: 'view-reports', roleId: 'sales', allowed: true },
-  
+
   // Sales Manager - Sales + additional oversight
   { actionId: 'create-case', roleId: 'sales-manager', allowed: true },
   { actionId: 'view-cases', roleId: 'sales-manager', allowed: true },
@@ -375,7 +375,7 @@ export const permissions: Permission[] = [
   { actionId: 'manage-attachments', roleId: 'sales-manager', allowed: true },
   { actionId: 'view-reports', roleId: 'sales-manager', allowed: true },
   { actionId: 'export-data', roleId: 'sales-manager', allowed: true },
-  
+
   // Driver - Delivery operations only
   { actionId: 'view-cases', roleId: 'driver', allowed: true },
   { actionId: 'update-case-status', roleId: 'driver', allowed: true },
@@ -388,7 +388,7 @@ export const permissions: Permission[] = [
   { actionId: 'case-closed', roleId: 'driver', allowed: true },
   { actionId: 'upload-files', roleId: 'driver', allowed: true },
   { actionId: 'download-files', roleId: 'driver', allowed: true },
-  
+
   // IT - System management and technical support + user management + status transitions
   { actionId: 'view-cases', roleId: 'it', allowed: true },
   { actionId: 'create-case', roleId: 'it', allowed: true },
@@ -427,8 +427,7 @@ export const permissions: Permission[] = [
 
 // Get all roles including custom ones
 export const getAllRoles = (): Role[] => {
-  // TODO: Migrate to Supabase role management system
-  // For now, return default roles only to prevent localStorage security issues
+    // For now, return default roles only to prevent localStorage security issues
   // Custom roles should be managed through database instead of localStorage
   console.warn('Custom roles temporarily disabled for security - using default roles only');
   return roles;
@@ -442,8 +441,7 @@ export const getAllMatrixRoles = (): Role[] => {
 
 // Get all permissions including custom role permissions
 export const getAllPermissions = (): Permission[] => {
-  // TODO: Migrate to Supabase permission management system
-  // For now, return default permissions only to prevent localStorage security issues
+    // For now, return default permissions only to prevent localStorage security issues
   // Custom permissions should be managed through database instead of localStorage
   console.warn('Custom permissions temporarily disabled for security - using default permissions only');
   return permissions;
@@ -469,6 +467,6 @@ export const getRolesWithPermission = (actionId: string): Role[] => {
   const roleIds = allPermissions
     .filter(p => p.actionId === actionId && p.allowed)
     .map(p => p.roleId);
-  
+
   return allRoles.filter(role => roleIds.includes(role.id));
 };

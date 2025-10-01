@@ -31,24 +31,24 @@ class EmailNotificationService {
       subject: 'Case {{caseNumber}} - Status Updated to {{status}}',
       body: `
         Dear Team,
-        
+
         Case {{caseNumber}} has been updated:
-        
+
         Previous Status: {{previousStatus}}
         New Status: {{status}}
         Updated By: {{updatedBy}}
         Updated At: {{updatedAt}}
-        
+
         Hospital: {{hospital}}
         Department: {{department}}
         Procedure: {{procedureType}}
-        
+
         {{#if notes}}
         Notes: {{notes}}
         {{/if}}
-        
+
         Please take appropriate action if required.
-        
+
         Best regards,
         Case Management System
       `,
@@ -70,21 +70,21 @@ class EmailNotificationService {
       subject: 'New Case Booked - {{caseNumber}}',
       body: `
         Dear Team,
-        
+
         A new case has been booked:
-        
+
         Case Number: {{caseNumber}}
         Hospital: {{hospital}}
         Department: {{department}}
         Surgery Date: {{surgeryDate}}
         Procedure: {{procedureType}} - {{procedureName}}
         Doctor: {{doctorName}}
-        
+
         Submitted By: {{submittedBy}}
         Submitted At: {{submittedAt}}
-        
+
         Please proceed with order preparation.
-        
+
         Best regards,
         Case Management System
       `,
@@ -149,14 +149,7 @@ class EmailNotificationService {
 
   async sendNotification(notification: EmailNotification): Promise<boolean> {
     try {
-      // This would integrate with actual email service (SendGrid, AWS SES, etc.)
-      console.log('Email notification would be sent:', {
-        to: notification.to,
-        subject: notification.subject,
-        type: notification.type
-      });
-
-      // Simulate success
+      // This would integrate with actual email service (SendGrid, AWS SES, etc.)// Simulate success
       return true;
     } catch (error) {
       console.error('Failed to send email notification:', error);

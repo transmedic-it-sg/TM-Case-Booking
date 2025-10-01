@@ -59,8 +59,8 @@ const WelcomePopup: React.FC<WelcomePopupProps> = ({ user, onClose }) => {
           <div className="progress-container">
             <p>This popup will automatically close in 5 seconds</p>
             <div className="progress-bar">
-              <div 
-                className="progress-fill" 
+              <div
+                className="progress-fill"
                 style={{ width: `${progress}%` }}
               ></div>
             </div>

@@ -48,12 +48,12 @@ export const normalizeCountry = (country: string): string => {
   if (SUPPORTED_COUNTRIES.includes(country as SupportedCountry)) {
     return country;
   }
-  
+
   // If it's a legacy code, convert it
   if (LEGACY_COUNTRY_CODE_MAP[country.toUpperCase()]) {
     return LEGACY_COUNTRY_CODE_MAP[country.toUpperCase()];
   }
-  
+
   // Default fallback
   return country;
 };

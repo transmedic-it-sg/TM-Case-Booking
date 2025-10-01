@@ -13,20 +13,20 @@ const CaseHeader: React.FC<CaseHeaderProps> = ({
   isExpanded,
   onToggleExpansion
 }) => {
-  const { 
-    statusColor, 
-    formattedSurgeryDate, 
-    isUrgent, 
+  const {
+    statusColor,
+    formattedSurgeryDate,
+    isUrgent,
     isOverdue,
     displayHospital,
-    displayDoctor 
+    displayDoctor
   } = useCaseData(caseItem);
 
   return (
-    <div 
+    <div
       className="case-card-header"
-      style={{ 
-        background: `linear-gradient(135deg, ${statusColor} 0%, ${statusColor}dd 100%)` 
+      style={{
+        background: `linear-gradient(135deg, ${statusColor} 0%, ${statusColor}dd 100%)`
       }}
     >
       <div className="case-header-main">
@@ -38,7 +38,9 @@ const CaseHeader: React.FC<CaseHeaderProps> = ({
           </h3>
           <div className="case-basic-info">
             <span className="hospital-name">{displayHospital}</span>
-            <span className="doctor-name">Dr. {displayDoctor}</span>
+            <span className="doctor-name">
+              {displayDoctor && displayDoctor !== 'Not specified' ? `Dr. ${displayDoctor}` : displayDoctor}
+            </span>
           </div>
         </div>
 
@@ -47,7 +49,7 @@ const CaseHeader: React.FC<CaseHeaderProps> = ({
             <span className="date-label">Surgery Date</span>
             <span className="date-value">{formattedSurgeryDate}</span>
           </div>
-          
+
           <div className="country-badge-container">
             <span className={`country-badge ${caseItem.country.toLowerCase().replace(' ', '-')}`}>
               {getCountryEmoji(caseItem.country)} {caseItem.country}

@@ -14,12 +14,12 @@ export const useCaseData = (caseItem: CaseBooking) => {
       // Status information
       statusColor: getStatusColor(caseItem.status),
       nextResponsibleRole: getNextResponsibleRole(caseItem.status),
-      
+
       // Date formatting
       formattedSubmissionDate: formatDateTime(caseItem.submittedAt),
       formattedSurgeryDate: formatDate(new Date(caseItem.dateOfSurgery)),
       formattedProcessedDate: caseItem.processedAt ? formatDateTime(caseItem.processedAt) : null,
-      
+
       // Time calculations
       daysSinceSubmission: Math.floor(
         (new Date().getTime() - new Date(caseItem.submittedAt).getTime()) / (1000 * 60 * 60 * 24)
@@ -27,25 +27,25 @@ export const useCaseData = (caseItem: CaseBooking) => {
       daysUntilSurgery: Math.floor(
         (new Date(caseItem.dateOfSurgery).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
       ),
-      
+
       // Status history
-      latestStatusUpdate: caseItem.statusHistory?.length 
+      latestStatusUpdate: caseItem.statusHistory?.length
         ? caseItem.statusHistory[caseItem.statusHistory.length - 1]
         : null,
-      
+
       // Amendment information
       hasAmendments: caseItem.isAmended || false,
       amendmentInfo: caseItem.isAmended ? {
         amendedBy: caseItem.amendedBy,
         amendedAt: caseItem.amendedAt ? formatDateTime(caseItem.amendedAt) : null
       } : null,
-      
+
       // Urgency indicators
       isUrgent: Math.floor(
         (new Date(caseItem.dateOfSurgery).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
       ) <= 2,
       isOverdue: new Date(caseItem.dateOfSurgery) < new Date() && caseItem.status !== 'Case Completed',
-      
+
       // Display helpers
       displayHospital: caseItem.hospital || 'Not specified',
       displayDoctor: caseItem.doctorName || 'Not specified',
@@ -81,7 +81,7 @@ const getTimeAgo = (timestamp: string): string => {
   const now = new Date();
   const past = new Date(timestamp);
   const diffInHours = Math.floor((now.getTime() - past.getTime()) / (1000 * 60 * 60));
-  
+
   if (diffInHours < 1) {
     const diffInMinutes = Math.floor((now.getTime() - past.getTime()) / (1000 * 60));
     return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;

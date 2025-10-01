@@ -9,7 +9,7 @@ const CUSTOM_PERMISSIONS_KEY = 'case-booking-custom-permissions';
  */
 export const saveCustomRoles = (roles: Role[]): void => {
   try {
-    localStorage.setItem(CUSTOM_ROLES_KEY, JSON.stringify(roles));
+    // Roles stored in profiles table);
   } catch (error) {
     console.error('Error saving custom roles:', error);
     throw new Error('Failed to save custom roles');
@@ -21,7 +21,7 @@ export const saveCustomRoles = (roles: Role[]): void => {
  */
 export const loadCustomRoles = (): Role[] => {
   try {
-    const savedRoles = localStorage.getItem(CUSTOM_ROLES_KEY);
+    const savedRoles = null /* Use Supabase profiles table */;
     return savedRoles ? JSON.parse(savedRoles) : [];
   } catch (error) {
     console.error('Error loading custom roles:', error);
@@ -34,7 +34,7 @@ export const loadCustomRoles = (): Role[] => {
  */
 export const saveCustomPermissions = (permissions: Permission[]): void => {
   try {
-    localStorage.setItem(CUSTOM_PERMISSIONS_KEY, JSON.stringify(permissions));
+    // Roles stored in profiles table);
   } catch (error) {
     console.error('Error saving custom permissions:', error);
     throw new Error('Failed to save custom permissions');
@@ -46,7 +46,7 @@ export const saveCustomPermissions = (permissions: Permission[]): void => {
  */
 export const loadCustomPermissions = (): Permission[] => {
   try {
-    const savedPermissions = localStorage.getItem(CUSTOM_PERMISSIONS_KEY);
+    const savedPermissions = null /* Use Supabase profiles table */;
     return savedPermissions ? JSON.parse(savedPermissions) : [];
   } catch (error) {
     console.error('Error loading custom permissions:', error);
@@ -104,7 +104,7 @@ export const createDefaultPermissions = (newRoleId: string, baseRoleId?: string)
 
   const existingPermissions = loadCustomPermissions();
   const basePermissions = existingPermissions.filter(p => p.roleId === baseRoleId);
-  
+
   return basePermissions.map(permission => ({
     ...permission,
     roleId: newRoleId

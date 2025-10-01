@@ -33,10 +33,8 @@ import { RealtimeProvider } from './components/RealtimeProvider';
 import { getSystemConfig } from './utils/systemSettingsService';
 import { useCacheVersionManager } from './hooks/useCacheVersionManager';
 import { SafeStorage } from './utils/secureDataManager';
-// import { getCases } from './utils/storage'; // Removed unused import
 import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
-// Removed unused import: getAppVersion
 import { initializeVersionManager, handleVersionUpdate, updateStoredAppVersion } from './utils/appVersionManager';
 import VersionUpdatePopup from './components/VersionUpdatePopup';
 import StatusLegend from './components/StatusLegend';
@@ -45,8 +43,6 @@ import MobileHeader from './components/MobileHeader';
 import CacheVersionMismatchPopup from './components/CacheVersionMismatchPopup';
 import MaintenanceMode from './components/MaintenanceMode';
 import DatabaseConnectionStatus from './components/DatabaseConnectionStatus';
-// import { SystemHealthMonitor } from './utils/systemHealthMonitor'; // Temporarily disabled
-// import { DataValidationService } from './utils/dataValidationService'; // Unused
 import './assets/components/App.css';
 import './assets/components/CodeTableSetup.css';
 import './assets/components/AuditLogs.css';
@@ -58,9 +54,6 @@ import './assets/components/MobileEntryPage.css';
 import './assets/components/MobileOverrides.css'; // Load last for maximum specificity
 
 type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config' | 'backup-restore' | 'data-import' | 'system-settings';
-
-
-
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -85,7 +78,7 @@ const AppContent: React.FC = () => {
   const { playSound } = useSound();
   const { addNotification } = useNotifications();
   const { showSuccess, showError, showWarning, showInfo } = useToast();
-  
+
   // Cache version management - Re-enabled with improved UX
   const {
     showMismatchPopup,
@@ -98,50 +91,27 @@ const AppContent: React.FC = () => {
   // App version management with logout on version change - DYNAMIC VERSION TRACKING
   useEffect(() => {
     // Prevent double initialization in React Strict Mode
-    if (window.versionCheckInProgress) {
-      console.log('🔄 Version check already in progress, skipping duplicate');
-      return;
+    if (window.versionCheckInProgress) {return;
     }
-    
+
     window.versionCheckInProgress = true;
-    
-    const versionCheck = initializeVersionManager();
-    console.log(`🚀 CACHE VERSION CHECK STARTING - v${versionCheck.currentCacheVersion}`);
-    
-    // Debug logging with current version
-    console.log(`%c🔍 VERSION CHECK DEBUG - v${versionCheck.currentCacheVersion} ACTIVE`, 'color: green; font-weight: bold; font-size: 14px;');
-    console.log('🔍 Version Check Result:', {
-      currentVersion: versionCheck.currentVersion,
-      currentCacheVersion: versionCheck.currentCacheVersion,
-      storedVersion: versionCheck.storedVersion,
-      storedCacheVersion: versionCheck.storedCacheVersion,
-      versionChanged: versionCheck.versionChanged,
-      cacheVersionChanged: versionCheck.cacheVersionChanged,
-      userLoggedIn: versionCheck.userLoggedIn
-    });
-    
-    // If app version or cache version changed, handle it
+
+    const versionCheck = initializeVersionManager();// Debug logging with current version// If app version or cache version changed, handle it
     const anyVersionChanged = versionCheck.versionChanged || versionCheck.cacheVersionChanged;
-    
+
     if (anyVersionChanged) {
       let updateMessage = '🔄 ';
       const changes = [];
-      
+
       if (versionCheck.versionChanged) {
         changes.push(`App version: ${versionCheck.storedVersion} → ${versionCheck.currentVersion}`);
       }
       if (versionCheck.cacheVersionChanged) {
         changes.push(`Cache version: ${versionCheck.storedCacheVersion} → ${versionCheck.currentCacheVersion}`);
       }
-      
-      updateMessage += changes.join(', ') + ' - clearing cache';
-      console.log(updateMessage);
-      
-      // CRITICAL FIX: Update stored versions FIRST to prevent infinite loop
-      updateStoredAppVersion();
-      console.log('✅ Version tracking updated to prevent loops');
-      
-      if (versionCheck.userLoggedIn) {
+
+      updateMessage += changes.join(', ') + ' - clearing cache';// CRITICAL FIX: Update stored versions FIRST to prevent infinite loop
+      updateStoredAppVersion();if (versionCheck.userLoggedIn) {
         // Show popup for logged users
         setVersionUpdateInfo({
           currentVersion: `${versionCheck.currentVersion} (Cache: ${versionCheck.currentCacheVersion})`,
@@ -150,31 +120,16 @@ const AppContent: React.FC = () => {
         setShowVersionUpdatePopup(true);
       } else {
         // For non-logged users, clear cache and reload immediately
-        console.log('🧹 No user logged in - clearing cache immediately');
-        
-        // Preserve version tracking keys when clearing
-        const versionKeys = ['tm-app-version', 'tm-cache-version'];
-        const preservedData: Record<string, string> = {};
-        versionKeys.forEach(key => {
-          const value = localStorage.getItem(key);
-          if (value) preservedData[key] = value;
-        });
-        
-        // Clear localStorage and sessionStorage
-        localStorage.clear();
+        // Version tracking now in system_settings table, not localStorage
+
+        // Clear sessionStorage only
         sessionStorage.clear();
-        
-        // Restore version tracking to prevent loops
-        Object.entries(preservedData).forEach(([key, value]) => {
-          localStorage.setItem(key, value);
-        });
-        
+
         // Clear browser cache if possible
         if ('caches' in window) {
           caches.keys().then(names => {
             return Promise.all(names.map(name => caches.delete(name)));
           }).then(() => {
-            console.log('🧹 Browser cache cleared, version tracking preserved');
             // Force reload to get fresh content
             setTimeout(() => window.location.reload(), 500);
           }).catch(err => {
@@ -189,25 +144,20 @@ const AppContent: React.FC = () => {
       }
     } else {
       // Normal version logging - ensure versions are stored
-      updateStoredAppVersion();
-      console.log(`📱 TM Case Booking v${versionCheck.currentVersion} (Cache: ${versionCheck.currentCacheVersion}) loaded`);
+      updateStoredAppVersion();loaded`);
     }
-    
+
     // Initialize UserService with existing user session if available
     const initializeUserService = async () => {
       try {
         const existingUser = await UserService.getCurrentUser();
         if (existingUser && !user) {
-          setUser(existingUser);
-          console.log('✅ User session restored from secure storage:', existingUser.name);
-        }
-      } catch (error) {
-        console.log('No existing user session found');
-      }
+          setUser(existingUser);}
+      } catch (error) {}
     };
-    
+
     initializeUserService();
-    
+
     // Cleanup flag after initialization
     return () => {
       window.versionCheckInProgress = false;
@@ -221,9 +171,7 @@ const AppContent: React.FC = () => {
       try {
         const config = await getSystemConfig();
         setMaintenanceModeActive(config.maintenanceMode);
-      } catch (error) {
-        console.log('Could not check maintenance mode status:', error);
-      }
+      } catch (error) {}
     };
 
     checkMaintenanceMode();
@@ -259,7 +207,7 @@ const AppContent: React.FC = () => {
       const { type, message } = event.detail;
       const [title, ...messageParts] = message.split('\n\n');
       const detailMessage = messageParts.join('\n\n');
-      
+
       switch (type) {
         case 'success':
           showSuccess(title, detailMessage || '');
@@ -296,7 +244,7 @@ const AppContent: React.FC = () => {
 
   // Check if this is an SSO callback route after all hooks
   const isCallbackRoute = window.location.pathname === '/auth/callback' || window.location.search.includes('code=');
-  
+
   // Check if this is a mobile device
   const isMobileDevice = () => {
     return window.innerWidth <= 1366 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -310,7 +258,7 @@ const AppContent: React.FC = () => {
         await getSupabaseCodeTables();
         // Force refresh permissions on app startup to handle browser refresh scenarios
         await initializePermissions(true);
-        
+
         const currentUser = UserService.getCurrentUserSync();
         if (currentUser) {
           // Validate session to prevent concurrent logins
@@ -331,10 +279,7 @@ const AppContent: React.FC = () => {
           setShowMobileEntry(true); // Only show mobile entry if no user and on mobile
 
           // DISABLED: Health monitoring causing infinite loops
-          // TODO: Fix database schema issues before re-enabling
-          console.log('🔍 System health monitoring temporarily disabled');
-        }
-      } catch (error) {
+                } catch (error) {
         console.error('Error during initialization:', error);
         // Still try to get current user even if initialization fails
         const currentUser = UserService.getCurrentUserSync();
@@ -346,7 +291,7 @@ const AppContent: React.FC = () => {
         }
       }
     };
-    
+
     initialize();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount - user state is intentionally managed within
@@ -378,28 +323,24 @@ const AppContent: React.FC = () => {
   const handleLogin = async (loggedInUser: User) => {
     // Synchronize UserService with authenticated user
     await UserService.setCurrentUser(loggedInUser);
-    
+
     // Check if user has temporary password and needs to change it
     if (loggedInUser.isTemporaryPassword) {
       setUser(loggedInUser);
       setShowPasswordChangeModal(true);
       return;
     }
-    
+
     setUser(loggedInUser);
     setShowWelcomePopup(true);
     setShowMobileEntry(false);
-    
-    // Refresh permissions cache for the new user to ensure correct permissions
-    console.log('🔄 Refreshing permissions cache for new user login:', loggedInUser.name);
-    try {
+
+    // Refresh permissions cache for the new user to ensure correct permissionstry {
       // Force refresh permissions on login to ensure fresh permissions
-      await initializePermissions(true);
-      console.log('✅ Permissions refreshed successfully for user login');
-    } catch (error) {
+      await initializePermissions(true);} catch (error) {
       console.error('❌ Failed to refresh permissions on user login:', error);
     }
-    
+
     playSound.success();
     showSuccess('Welcome back!', `You're now logged in as ${loggedInUser.name}`);
     addNotification({
@@ -435,28 +376,28 @@ const AppContent: React.FC = () => {
     if (!user) return;
 
     const { newPassword, confirmPassword } = passwordChangeData;
-    
+
     // Validation
     const errors: string[] = [];
-    
+
     if (!newPassword.trim()) {
       errors.push('New password is required');
     }
-    
+
     if (!confirmPassword.trim()) {
       errors.push('Password confirmation is required');
     }
-    
+
     if (newPassword !== confirmPassword) {
       errors.push('Passwords do not match');
     }
-    
+
     const passwordErrors = validatePassword(newPassword);
     errors.push(...passwordErrors);
-    
+
     if (errors.length > 0) {
-      setPasswordChangeData(prev => ({ 
-        ...prev, 
+      setPasswordChangeData(prev => ({
+        ...prev,
         error: errors.join('. ')
       }));
       return;
@@ -464,15 +405,15 @@ const AppContent: React.FC = () => {
 
     // Change password
     setPasswordChangeData(prev => ({ ...prev, isChanging: true, error: '' }));
-    
+
     try {
       const { updateSupabaseUserPassword } = await import('./utils/supabaseUserService');
       const success = await updateSupabaseUserPassword(user.id, newPassword);
-      
+
       if (!success) {
         throw new Error('Failed to update password');
       }
-      
+
       // Update user state to remove temporary password flag
       setUser(prev => prev ? { ...prev, isTemporaryPassword: false } : null);
       setShowPasswordChangeModal(false);
@@ -484,13 +425,13 @@ const AppContent: React.FC = () => {
       });
       setShowWelcomePopup(true);
       showSuccess('Password changed successfully!', 'Your password has been updated and you can now access the application.');
-      
+
     } catch (error) {
       console.error('Password change failed:', error);
-      setPasswordChangeData(prev => ({ 
-        ...prev, 
-        isChanging: false, 
-        error: 'Failed to change password. Please try again or contact support.' 
+      setPasswordChangeData(prev => ({
+        ...prev,
+        isChanging: false,
+        error: 'Failed to change password. Please try again or contact support.'
       }));
     }
   };
@@ -515,17 +456,15 @@ const AppContent: React.FC = () => {
     if (user) {
       await auditLogout(user.name, user.id, user.role, user.selectedCountry);
     }
-    
+
     await logout();
-    
+
     // Clear UserService cache
     await UserService.logout();
-    
-    // Clear permissions cache on logout to prevent stale permissions for next user
-    console.log('🗑️ Clearing permissions cache on user logout');
-    const { clearPermissionsCache } = await import('./utils/permissions');
+
+    // Clear permissions cache on logout to prevent stale permissions for next userconst { clearPermissionsCache } = await import('./utils/permissions');
     clearPermissionsCache();
-    
+
     setUser(null);
     setActivePage('booking');
     setProcessingCase(null);
@@ -590,13 +529,10 @@ const AppContent: React.FC = () => {
       // Clear any previous pre-fill data that might interfere with case viewing
       await SafeStorage.removeItem('calendar_prefill_date');
       await SafeStorage.removeItem('calendar_prefill_department');
-      
+
       // Navigate to cases view and highlight the specific case
       setHighlightedCaseId(caseId);
-      setActivePage('cases');
-      
-      console.log(`📅 Calendar: Navigating to case ${caseId} in View All Cases`);
-    } catch (error) {
+      setActivePage('cases');} catch (error) {
       console.error('Error navigating to case from calendar:', error);
       // Still try to navigate to the cases page
       setHighlightedCaseId(caseId);
@@ -609,7 +545,7 @@ const AppContent: React.FC = () => {
     // Store the selected date and department for pre-filling the booking form
     await SafeStorage.setItem('calendar_prefill_date', date.toISOString(), { ttl: 24 * 60 * 60 * 1000 }); // 24 hours
     await SafeStorage.setItem('calendar_prefill_department', department, { ttl: 24 * 60 * 60 * 1000 }); // 24 hours
-    
+
     // Switch to booking page
     setActivePage('booking');
     playSound.click();
@@ -618,12 +554,12 @@ const AppContent: React.FC = () => {
   // Helper function to check if user has admin access
   const hasAdminAccess = (user: User | null): boolean => {
     if (!user) return false;
-    
+
     // Admin and IT roles always have admin access
     if (user.role === 'admin' || user.role === 'it') {
       return true;
     }
-    
+
     // For other roles, check specific permissions
     return hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS);
   };
@@ -639,24 +575,22 @@ const AppContent: React.FC = () => {
     if (user) {
       await auditLogout(user.name, user.id, user.role, user.selectedCountry);
     }
-    
+
     await logout();
-    
-    // Clear permissions cache on maintenance mode logout
-    console.log('🗑️ Clearing permissions cache on maintenance mode logout');
-    const { clearPermissionsCache } = await import('./utils/permissions');
+
+    // Clear permissions cache on maintenance mode logoutconst { clearPermissionsCache } = await import('./utils/permissions');
     clearPermissionsCache();
-    
+
     setUser(null);
     setActivePage('booking');
     setProcessingCase(null);
     setMaintenanceModeActive(false);
-    
+
     // On mobile, go directly to login instead of introduction page
     if (isMobileDevice()) {
       setShowMobileEntry(false);
     }
-    
+
     showSuccess('Maintenance Mode', 'You have been logged out due to system maintenance');
   };
 
@@ -673,7 +607,7 @@ const AppContent: React.FC = () => {
         </>
       );
     }
-    
+
     // Show login directly on desktop or after mobile entry
     return <SupabaseLogin onLogin={handleLogin} />;
   }
@@ -714,7 +648,7 @@ const AppContent: React.FC = () => {
                         {adminPanelExpanded ? '▼' : '▶'}
                       </span>
                     </button>
-                    
+
                     {adminPanelExpanded && (
                       <div className="header-admin-submenu">
                         {hasPermission(user.role, PERMISSION_ACTIONS.VIEW_REPORTS) && (
@@ -909,7 +843,7 @@ const AppContent: React.FC = () => {
         })() && (
           <CaseBookingForm onCaseSubmitted={handleCaseSubmitted} />
         )}
-        
+
         {activePage === 'booking' && !hasPermission(user.role, PERMISSION_ACTIONS.CREATE_CASE) && (
           <div className="permission-denied">
             <div className="permission-denied-content">
@@ -928,11 +862,11 @@ const AppContent: React.FC = () => {
             </div>
           </div>
         )}
-        
+
         {activePage === 'cases' && hasPermission(user.role, PERMISSION_ACTIONS.VIEW_CASES) && (
-          <CasesList 
-            onProcessCase={handleProcessCase} 
-            currentUser={user} 
+          <CasesList
+            onProcessCase={handleProcessCase}
+            currentUser={user}
             highlightedCaseId={highlightedCaseId}
             onClearHighlight={() => setHighlightedCaseId(null)}
             onNavigateToPermissions={() => {
@@ -941,7 +875,7 @@ const AppContent: React.FC = () => {
             }}
           />
         )}
-        
+
         {activePage === 'process' && processingCase && (
           <ProcessOrderPage
             caseData={processingCase}
@@ -949,50 +883,50 @@ const AppContent: React.FC = () => {
             onBack={handleBackToCases}
           />
         )}
-        
+
         {activePage === 'users' && hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) && (
           <UserManagement />
         )}
-        
+
         {activePage === 'audit-logs' && hasPermission(user.role, PERMISSION_ACTIONS.AUDIT_LOGS) && (
           <AuditLogs />
         )}
-        
+
         {activePage === 'permissions' && hasPermission(user.role, PERMISSION_ACTIONS.PERMISSION_MATRIX) && (
           <PermissionMatrixPage />
         )}
-        
+
         {activePage === 'email-config' && hasPermission(user.role, PERMISSION_ACTIONS.EMAIL_CONFIG) && (
           <SimplifiedEmailConfig />
         )}
-        
+
         {activePage === 'calendar' && hasPermission(user.role, PERMISSION_ACTIONS.BOOKING_CALENDAR) && (
-          <BookingCalendar 
-            onCaseClick={handleCalendarCaseClick} 
+          <BookingCalendar
+            onCaseClick={handleCalendarCaseClick}
             onDateClick={hasPermission(user.role, PERMISSION_ACTIONS.CREATE_CASE) ? handleCalendarDateClick : undefined}
           />
         )}
-        
+
         {activePage === 'sets' && hasPermission(user.role, PERMISSION_ACTIONS.EDIT_SETS) && (
           <EditSets />
         )}
-        
+
         {activePage === 'reports' && hasPermission(user.role, PERMISSION_ACTIONS.VIEW_REPORTS) && (
           <Reports />
         )}
-        
+
         {activePage === 'codetables' && hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) && (
           <CodeTableSetup />
         )}
-        
+
         {activePage === 'backup-restore' && hasPermission(user.role, PERMISSION_ACTIONS.BACKUP_RESTORE) && (
           <BackupRestore />
         )}
-        
+
         {activePage === 'data-import' && hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) && (
           <DataImport />
         )}
-        
+
         {activePage === 'system-settings' && hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) && (
           <SystemSettings />
         )}
@@ -1021,13 +955,13 @@ const AppContent: React.FC = () => {
             <div className="modal-body">
               <p>Your password is temporary and must be changed before you can continue.</p>
               <p><strong>User:</strong> {user.name} ({user.username})</p>
-              
+
               {passwordChangeData.error && (
                 <div className="alert alert-danger">
                   {passwordChangeData.error}
                 </div>
               )}
-              
+
               <div className="form-group">
                 <label htmlFor="newPassword">New Password</label>
                 <input
@@ -1058,14 +992,14 @@ const AppContent: React.FC = () => {
               </div>
             </div>
             <div className="modal-footer">
-              <button 
+              <button
                 className="btn btn-secondary"
                 onClick={handlePasswordChangeCancel}
                 disabled={passwordChangeData.isChanging}
               >
                 Logout
               </button>
-              <button 
+              <button
                 className="btn btn-primary"
                 onClick={handlePasswordChangeSubmit}
                 disabled={passwordChangeData.isChanging || !passwordChangeData.newPassword || !passwordChangeData.confirmPassword}

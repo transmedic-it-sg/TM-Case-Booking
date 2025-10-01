@@ -22,19 +22,19 @@ const StatusLegend: React.FC = () => {
 
   return (
     <>
-      <button 
+      <button
         className="status-legend-button"
         onClick={() => setShowPopup(true)}
       >
         📊 Status Colors
       </button>
-      
+
       {showPopup && (
         <div className="status-legend-overlay" onClick={() => setShowPopup(false)}>
           <div className="status-legend-popup" onClick={(e) => e.stopPropagation()}>
             <div className="legend-header">
               <h3>Status Color Legend</h3>
-              <button 
+              <button
                 className="close-button"
                 onClick={() => setShowPopup(false)}
                 aria-label="Close"
@@ -46,7 +46,7 @@ const StatusLegend: React.FC = () => {
               <div className="legend-grid">
                 {statusList.map(({ status, description }) => (
                   <div key={status} className="legend-item">
-                    <div 
+                    <div
                       className="status-indicator"
                       style={{ backgroundColor: getStatusColor(status) }}
                     ></div>

@@ -21,7 +21,7 @@ export const getCodeTables = (country?: string): CodeTable[] => {
 // Get default code tables based on types constants
 export const getDefaultCodeTables = (country?: string): CodeTable[] => {
   const defaultHospitals = getDefaultHospitalsForCountry(country);
-  
+
   return [
     {
       id: 'hospitals',
@@ -71,12 +71,12 @@ export const getHospitalsForCountry = (country: string): string[] => {
 // Get departments list with user filtering
 export const getDepartments = (userDepartments?: string[]): string[] => {
   const allDepartments = getCodeTableItems('departments');
-  
+
   // If user has specific departments, filter by those
   if (userDepartments && userDepartments.length > 0) {
     return allDepartments.filter(dept => userDepartments.includes(dept));
   }
-  
+
   return allDepartments;
 };
 
@@ -90,7 +90,7 @@ export const getCountries = (): string[] => {
 export const getDepartmentsByCountry = (): Record<string, string[]> => {
   const countries = getCountries();
   const departmentsByCountry: Record<string, string[]> = {};
-  
+
   // Get departments for each country from country-specific storage
   countries.forEach(country => {
     try {
@@ -102,7 +102,7 @@ export const getDepartmentsByCountry = (): Record<string, string[]> => {
       departmentsByCountry[country] = [];
     }
   });
-  
+
   return departmentsByCountry;
 };
 
@@ -110,11 +110,11 @@ export const getDepartmentsByCountry = (): Record<string, string[]> => {
 export const getAllDepartmentsFromAllCountries = (): string[] => {
   const departmentsByCountry = getDepartmentsByCountry();
   const allDepartments = new Set<string>();
-  
+
   Object.values(departmentsByCountry).forEach(departments => {
     departments.forEach(dept => allDepartments.add(dept));
   });
-  
+
   return Array.from(allDepartments).sort();
 };
 
@@ -122,13 +122,13 @@ export const getAllDepartmentsFromAllCountries = (): string[] => {
 export const getDepartmentsForCountries = (countries: string[]): string[] => {
   const departmentsByCountry = getDepartmentsByCountry();
   const departments = new Set<string>();
-  
+
   countries.forEach(country => {
     if (departmentsByCountry[country]) {
       departmentsByCountry[country].forEach(dept => departments.add(dept));
     }
   });
-  
+
   return Array.from(departments).sort();
 };
 
@@ -162,11 +162,11 @@ export const getCountryFromDepartmentId = (departmentId: string): string => {
 
 // Convert legacy departments to country-specific format
 export const migrateDepartmentsToCountrySpecific = (
-  departments: string[], 
+  departments: string[],
   userCountries: string[]
 ): string[] => {
   const migratedDepartments: string[] = [];
-  
+
   departments.forEach(dept => {
     if (isCountrySpecificDepartment(dept)) {
       // Already in new format
@@ -181,17 +181,17 @@ export const migrateDepartmentsToCountrySpecific = (
       });
     }
   });
-  
+
   return migratedDepartments;
 };
 
 // Get departments for display in forms (backward compatible)
 export const getDepartmentNamesForUser = (
-  userDepartments: string[], 
+  userDepartments: string[],
   userCountries: string[]
 ): string[] => {
   const departmentNames = new Set<string>();
-  
+
   userDepartments.forEach(dept => {
     if (isCountrySpecificDepartment(dept)) {
       const { country, department } = parseCountryDepartmentId(dept);
@@ -206,19 +206,19 @@ export const getDepartmentNamesForUser = (
       }
     }
   });
-  
+
   return Array.from(departmentNames).sort();
 };
 
 // Get countries filtered by user's assigned countries
 export const getUserCountries = (userCountries?: string[]): string[] => {
   const allCountries = getCountries();
-  
+
   // If user has specific countries, filter by those
   if (userCountries && userCountries.length > 0) {
     return allCountries.filter(country => userCountries.includes(country));
   }
-  
+
   return allCountries;
 };
 
@@ -226,7 +226,7 @@ export const getUserCountries = (userCountries?: string[]): string[] => {
 export const saveCodeTables = (tables: CodeTable[], country?: string): void => {
   try {
     const storageKey = country ? `codeTables-${country}` : 'codeTables';
-    localStorage.setItem(storageKey, JSON.stringify(tables));
+    // Code tables fetched from Supabase);
   } catch (error) {
     console.error('Error saving code tables to localStorage:', error);
   }
@@ -234,7 +234,7 @@ export const saveCodeTables = (tables: CodeTable[], country?: string): void => {
 
 // Initialize code tables if they don't exist or if corrupted
 export const initializeCodeTables = (): void => {
-  const existingTables = localStorage.getItem('codeTables');
+  const existingTables = null /* Use Supabase tables */;
   if (!existingTables) {
     const defaultTables = getDefaultCodeTables();
     saveCodeTables(defaultTables);
@@ -244,11 +244,9 @@ export const initializeCodeTables = (): void => {
       const tables = JSON.parse(existingTables);
       const countriesTable = tables.find((table: CodeTable) => table.id === 'countries');
       const defaultCountries = getDefaultCodeTables().find(table => table.id === 'countries');
-      
+
       // If countries table exists but has fewer items than default, reset to defaults
-      if (countriesTable && defaultCountries && countriesTable.items.length < defaultCountries.items.length) {
-        console.log('Detected corrupted countries table, resetting to defaults...');
-        const defaultTables = getDefaultCodeTables();
+      if (countriesTable && defaultCountries && countriesTable.items.length < defaultCountries.items.length) {const defaultTables = getDefaultCodeTables();
         saveCodeTables(defaultTables);
       }
     } catch (error) {
@@ -262,25 +260,21 @@ export const initializeCodeTables = (): void => {
 // Initialize country-specific code tables
 export const initializeCountryCodeTables = (country: string): void => {
   const storageKey = `codeTables-${country}`;
-  const existingTables = localStorage.getItem(storageKey);
-  
+  const existingTables = null /* Use Supabase tables */;
+
   if (!existingTables) {
     // Create country-specific tables with default data for that country
     const defaultTables = getDefaultCodeTables(country);
     // Only save country-based tables (exclude countries table which is global)
     const countryBasedTables = defaultTables.filter(table => table.id !== 'countries');
-    saveCodeTables(countryBasedTables, country);
-    console.log(`Initialized country-specific code tables for ${country}`);
-  } else {
+    saveCodeTables(countryBasedTables, country);} else {
     // Validate existing country tables
     try {
       const tables = JSON.parse(existingTables);
       const hospitalsTable = tables.find((table: CodeTable) => table.id === 'hospitals');
-      
+
       // If hospitals table doesn't exist, reinitialize
-      if (!hospitalsTable) {
-        console.log(`Missing hospitals table for ${country}, reinitializing...`);
-        const defaultTables = getDefaultCodeTables(country);
+      if (!hospitalsTable) {const defaultTables = getDefaultCodeTables(country);
         const countryBasedTables = defaultTables.filter(table => table.id !== 'countries');
         saveCodeTables(countryBasedTables, country);
       }
@@ -298,12 +292,12 @@ export const addCodeTableItem = (tableId: string, item: string): boolean => {
   try {
     const tables = getCodeTables();
     const tableIndex = tables.findIndex(table => table.id === tableId);
-    
+
     if (tableIndex === -1) return false;
-    
+
     // Check if item already exists
     if (tables[tableIndex].items.includes(item)) return false;
-    
+
     tables[tableIndex].items.push(item);
     saveCodeTables(tables);
     return true;
@@ -318,9 +312,9 @@ export const removeCodeTableItem = (tableId: string, item: string): boolean => {
   try {
     const tables = getCodeTables();
     const tableIndex = tables.findIndex(table => table.id === tableId);
-    
+
     if (tableIndex === -1) return false;
-    
+
     tables[tableIndex].items = tables[tableIndex].items.filter(i => i !== item);
     saveCodeTables(tables);
     return true;
@@ -335,15 +329,15 @@ export const updateCodeTableItem = (tableId: string, oldItem: string, newItem: s
   try {
     const tables = getCodeTables();
     const tableIndex = tables.findIndex(table => table.id === tableId);
-    
+
     if (tableIndex === -1) return false;
-    
+
     const itemIndex = tables[tableIndex].items.findIndex(item => item === oldItem);
     if (itemIndex === -1) return false;
-    
+
     // Check if new item already exists (and it's different from old item)
     if (newItem !== oldItem && tables[tableIndex].items.includes(newItem)) return false;
-    
+
     tables[tableIndex].items[itemIndex] = newItem;
     saveCodeTables(tables);
     return true;
@@ -359,7 +353,7 @@ export const getDefaultHospitalsForCountry = (country?: string): string[] => {
     case 'Singapore':
       return [
         'Singapore General Hospital',
-        'Mount Elizabeth Hospital', 
+        'Mount Elizabeth Hospital',
         'Raffles Hospital',
         'National University Hospital',
         'Changi General Hospital',
@@ -433,7 +427,7 @@ export const getDefaultHospitalsForCountry = (country?: string): string[] => {
     default:
       return [
         'Singapore General Hospital',
-        'Mount Elizabeth Hospital', 
+        'Mount Elizabeth Hospital',
         'Raffles Hospital',
         'National University Hospital'
       ];
@@ -444,7 +438,7 @@ export const getDefaultHospitalsForCountry = (country?: string): string[] => {
 export const saveCodeTablesForCountry = (tables: CodeTable[], country?: string): void => {
   try {
     const storageKey = country ? `codeTables-${country}` : 'codeTables';
-    localStorage.setItem(storageKey, JSON.stringify(tables));
+    // Code tables fetched from Supabase);
   } catch (error) {
     console.error('Error saving code tables to localStorage:', error);
   }

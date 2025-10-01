@@ -34,8 +34,8 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Normalize options to consistent format
-  const normalizedOptions: DropdownOption[] = options.map(option => 
-    typeof option === 'string' 
+  const normalizedOptions: DropdownOption[] = options.map(option =>
+    typeof option === 'string'
       ? { value: option, label: option }
       : option
   );
@@ -44,25 +44,25 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   const filteredOptions = normalizedOptions.filter(option => {
     const optionLower = option.label.toLowerCase();
     const termLower = searchTerm.toLowerCase();
-    
+
     // Exact substring match (highest priority)
     if (optionLower.includes(termLower)) {
       return true;
     }
-    
+
     // Sequential character matching (fuzzy search)
     let optionIndex = 0;
     for (let termIndex = 0; termIndex < termLower.length; termIndex++) {
       const char = termLower[termIndex];
       const foundIndex = optionLower.indexOf(char, optionIndex);
-      
+
       if (foundIndex === -1) {
         return false; // Character not found in remaining string
       }
-      
+
       optionIndex = foundIndex + 1;
     }
-    
+
     return true;
   });
 
@@ -90,7 +90,7 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
         if (!isOpen) {
           setIsOpen(true);
         } else {
-          setFocusedIndex(prev => 
+          setFocusedIndex(prev =>
             prev < filteredOptions.length - 1 ? prev + 1 : 0
           );
         }
@@ -98,7 +98,7 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       case 'ArrowUp':
         e.preventDefault();
         if (isOpen) {
-          setFocusedIndex(prev => 
+          setFocusedIndex(prev =>
             prev > 0 ? prev - 1 : filteredOptions.length - 1
           );
         }
@@ -154,8 +154,8 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   const displayValue = selectedOption ? selectedOption.label : '';
 
   return (
-    <div 
-      ref={dropdownRef} 
+    <div
+      ref={dropdownRef}
       className={`searchable-dropdown ${className} ${disabled ? 'disabled' : ''}`}
     >
       <div className="dropdown-input-container">

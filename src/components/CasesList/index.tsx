@@ -13,20 +13,17 @@ import StatusChangeSuccessPopup from '../StatusChangeSuccessPopup';
 import CustomModal from '../CustomModal';
 import AmendmentForm from '../CaseCard/AmendmentForm';
 import { useModal } from '../../hooks/useModal';
-// import { USER_ROLES } from '../../constants/permissions'; // Removed - not used
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { userHasDepartmentAccess } from '../../utils/departmentUtils';
 import { normalizeCountry } from '../../utils/countryUtils';
 import { amendCase, processCaseOrder } from '../../utils/realTimeStorage'; // Using real-time storage instead
 
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
   const { modal, closeModal, showConfirm, showConfirmWithCustomButtons } = useModal();
-  
+
   // REAL-TIME CASES HOOK - Always fresh data, no cache issues, comprehensive testing
-  const { 
-    cases, 
-    isLoading, 
+  const {
+    cases,
+    isLoading,
     refreshCases,
     updateCaseStatus,
     deleteCase,
@@ -40,7 +37,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       country: currentUser?.selectedCountry,
     }
   });
-  
+
   // Real-time connection status - prioritize cases connection for this component
   const { overallConnected, casesConnected, forceRefreshAll } = useRealtime();
   const isConnected = casesConnected || overallConnected;
@@ -67,19 +64,18 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   const [attachments, setAttachments] = useState<string[]>([]);
   const [orderSummary, setOrderSummary] = useState('');
   const [doNumber, setDoNumber] = useState('');
-  
+
   // State for new comment and attachment fields for status transitions
   const [processAttachments, setProcessAttachments] = useState<string[]>([]);
   const [processComments, setProcessComments] = useState('');
   const [salesApprovalCase, setSalesApprovalCase] = useState<string | null>(null);
   const [salesApprovalAttachments, setSalesApprovalAttachments] = useState<string[]>([]);
   const [salesApprovalComments, setSalesApprovalComments] = useState('');
-  
-  
+
   // Filter cases locally
   const filterCases = useCallback((casesToFilter: CaseBooking[], filterOptions: FilterOptions) => {
     let filtered = casesToFilter;
-    
+
     // Driver role filtering - only show delivery-related cases
     const currentUser = getCurrentUserSync();
     if (currentUser?.role === 'driver') {
@@ -89,12 +85,12 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         CASE_STATUSES.PENDING_DELIVERY_OFFICE,
         CASE_STATUSES.DELIVERED_OFFICE
       ];
-      
-      filtered = filtered.filter(caseItem => 
+
+      filtered = filtered.filter(caseItem =>
         deliveryStatuses.includes(caseItem.status)
       );
     }
-  
+
     // Apply search filter
     if (filterOptions.search) {
       const searchTerm = filterOptions.search.toLowerCase();
@@ -107,36 +103,36 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         caseItem.submittedBy.toLowerCase().includes(searchTerm)
       );
     }
-  
+
     // Apply status filter
     if (filterOptions.status) {
       filtered = filtered.filter(caseItem => caseItem.status === filterOptions.status);
     }
-  
+
     // Apply submitter filter
     if (filterOptions.submitter) {
       filtered = filtered.filter(caseItem => caseItem.submittedBy === filterOptions.submitter);
     }
-  
+
     // Apply hospital filter
     if (filterOptions.hospital) {
       filtered = filtered.filter(caseItem => caseItem.hospital === filterOptions.hospital);
     }
-  
+
     // Apply country filter
     if (filterOptions.country) {
       filtered = filtered.filter(caseItem => caseItem.country === filterOptions.country);
     }
-  
+
     // Apply date range filter
     if (filterOptions.dateFrom) {
       filtered = filtered.filter(caseItem => caseItem.dateOfSurgery >= filterOptions.dateFrom!);
     }
-  
+
     if (filterOptions.dateTo) {
       filtered = filtered.filter(caseItem => caseItem.dateOfSurgery <= filterOptions.dateTo!);
     }
-  
+
     return filtered;
   }, []);
   const [hospitalDeliveryAttachments, setHospitalDeliveryAttachments] = useState<string[]>([]);
@@ -148,7 +144,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   const [pendingOfficeCase, setPendingOfficeCase] = useState<string | null>(null);
   const [pendingOfficeAttachments, setPendingOfficeAttachments] = useState<string[]>([]);
   const [pendingOfficeComments, setPendingOfficeComments] = useState('');
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const [casesPerPage] = useState(5);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -185,7 +181,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         .filter(submitter => submitter && submitter.trim())
         .sort();
       setAvailableSubmitters(uniqueSubmitters);
-      
+
       const uniqueHospitals = Array.from(new Set(cases.map(caseItem => caseItem.hospital)))
         .filter(hospital => hospital && hospital.trim())
         .sort();
@@ -202,56 +198,53 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       const defaultFilters = {
         status: CASE_STATUSES.PENDING_DELIVERY_HOSPITAL as CaseStatus
       };
-      
+
       setFilters(defaultFilters);
-      setTempFilters(defaultFilters);
-      
-      console.log('🚚 Driver role detected: Applied default delivery filters');
-    }
+      setTempFilters(defaultFilters);}
   }, [cases, filters]); // Re-run when cases change or filters are cleared
 
   useEffect(() => {
     const currentUser = getCurrentUserSync();
     let filteredResults = filterCases(cases, filters);
-    
+
     // Admin users see ALL cases without country/department restrictions
     if (currentUser?.role === 'admin') {
       // Admin sees everything - no additional filtering
       setFilteredCases(filteredResults);
       return;
     }
-    
+
     // Non-admin users: Apply country and department restrictions
     if (currentUser) {
       // Country-based filtering for non-admin users
       if (currentUser.countries && currentUser.countries.length > 0) {
         // Normalize user's country names and filter cases by full country names
         const userCountries = currentUser.countries.map(country => normalizeCountry(country));
-        filteredResults = filteredResults.filter(caseItem => 
+        filteredResults = filteredResults.filter(caseItem =>
           userCountries.includes(normalizeCountry(caseItem.country))
         );
       }
-      
+
       // Department-based filtering for non-admin users (excluding Operations Managers who have broader access)
       const hasFullAccess = currentUser && (
-        currentUser.role === 'operations-manager' || 
+        currentUser.role === 'operations-manager' ||
         currentUser.role === 'it'
       );
-      
+
       if (currentUser.departments && currentUser.departments.length > 0 && !hasFullAccess) {
         // Clean department names - remove country prefixes like "Singapore:", "Malaysia:"
         const cleanDepartmentName = (department: string) => {
           return department.replace(/^[A-Za-z\s]+:/, '').trim();
         };
-        
+
         const userDepartments = currentUser.departments.map(cleanDepartmentName);
-        
-        filteredResults = filteredResults.filter(caseItem => 
+
+        filteredResults = filteredResults.filter(caseItem =>
           userDepartments.includes(cleanDepartmentName(caseItem.department))
         );
       }
     }
-    
+
     setFilteredCases(filteredResults);
   }, [cases, filters, filterCases]);
 
@@ -264,17 +257,17 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         const targetPage = Math.ceil((caseIndex + 1) / casesPerPage);
         setCurrentPage(targetPage);
       }
-      
+
       // Auto-expand the highlighted case
       setExpandedCases(prev => new Set([...Array.from(prev), highlightedCaseId]));
-      
+
       // Scroll to the case after a small delay to ensure it's rendered
       setTimeout(() => {
         const caseElement = document.getElementById(`case-${highlightedCaseId}`);
         if (caseElement) {
-          caseElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
+          caseElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
           });
           // Add highlight effect
           caseElement.classList.add('highlighted-case');
@@ -286,7 +279,6 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       }, 100);
     }
   }, [highlightedCaseId, onClearHighlight, filteredCases, casesPerPage]);
-
 
   const handleFilterChange = (field: keyof FilterOptions, value: string) => {
     setTempFilters(prev => ({
@@ -312,11 +304,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
   const toggleCaseExpansion = (caseId: string) => {
     const isMobile = window.innerWidth <= 1366;
-    
+
     setExpandedCases(prev => {
       const newSet = new Set(prev);
       const isCurrentlyExpanded = newSet.has(caseId);
-      
+
       if (isMobile) {
         // Mobile: Only allow one case to be expanded at a time (accordion behavior)
         if (isCurrentlyExpanded) {
@@ -333,7 +325,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
           newSet.add(caseId);
         }
       }
-      
+
       return newSet;
     });
   };
@@ -369,15 +361,15 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     const caseItem = cases.find(c => c.id === caseId);
     await updateCaseStatus(caseId, newStatus);
     refreshCases();
-    
+
     // Reset to page 1 and expand the updated case
     setCurrentPage(1);
     setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
-    
+
     // Show success popup
     setSuccessMessage(`Case status successfully updated to "${newStatus}"`);
     setShowSuccessPopup(true);
-    
+
     // Add notification for status change
     addNotification({
       title: 'Case Status Updated',
@@ -388,22 +380,16 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
   const handleAmendCase = (caseItem: CaseBooking) => {
     // Prevent multiple clicks from opening multiple amendment forms
-    if (amendingCase) {
-      console.log('🔍 Amendment form already open for case:', amendingCase, '- ignoring click for case:', caseItem.id);
-      return;
-    }
-    
-    console.log('🔍 handleAmendCase called with case:', caseItem.id, caseItem.caseReferenceNumber);
-    
-    // First, smoothly scroll to the case card
+    if (amendingCase) {return;
+    }// First, smoothly scroll to the case card
     const caseElement = document.querySelector(`[data-case-id="${caseItem.id}"]`);
     if (caseElement) {
-      caseElement.scrollIntoView({ 
-        behavior: 'smooth', 
+      caseElement.scrollIntoView({
+        behavior: 'smooth',
         block: 'center',
         inline: 'nearest'
       });
-      
+
       // Add a slight delay before opening the modal to allow scroll to complete
       setTimeout(() => {
         setAmendingCase(caseItem.id);
@@ -417,9 +403,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
           timeOfProcedure: caseItem.timeOfProcedure,
           specialInstruction: caseItem.specialInstruction,
           amendmentReason: ''
-        });
-        console.log('🔍 Amendment data set, amendingCase state:', caseItem.id);
-      }, 300);
+        });}, 300);
     } else {
       // If element not found, proceed without scrolling
       setAmendingCase(caseItem.id);
@@ -433,9 +417,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         timeOfProcedure: caseItem.timeOfProcedure,
         specialInstruction: caseItem.specialInstruction,
         amendmentReason: ''
-      });
-      console.log('🔍 Amendment data set, amendingCase state:', caseItem.id);
-    }
+      });}
   };
 
   const handleSaveAmendment = async (amendmentFormData: any) => {
@@ -446,43 +428,43 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       // Extract caseId from amendmentFormData if provided, otherwise use amendingCase
       const caseId = amendmentFormData.caseId || amendingCase;
       const { caseId: _, ...amendments } = amendmentFormData; // Remove caseId from amendments
-      
+
       const caseItem = cases.find(c => c.id === caseId);
-      
+
       // Validate that amendment reason is provided
       if (!amendments.amendmentReason || !amendments.amendmentReason.trim()) {
         throw new Error('Amendment reason is required');
       }
-      
+
       await amendCase(caseId, amendments); // Real-time amendCase handles user automatically
-      
+
       setAmendingCase(null);
       setAmendmentData({});
       refreshCases();
-      
+
       // Reset to page 1 and expand the updated case AND amendment history
       setCurrentPage(1);
       setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
       setExpandedAmendmentHistory(prev => new Set([...Array.from(prev), caseId]));
-      
+
       // Show success popup
       setSuccessMessage('Case amended successfully! Check the Amendment History section below.');
       setShowSuccessPopup(true);
-      
+
       // Add notification for amendment
       addNotification({
         title: 'Case Amended',
         message: `Case ${caseItem?.caseReferenceNumber || caseId} has been successfully amended by ${currentUser.name}`,
         type: 'success'
       }, 'case-amended', caseItem?.country, caseItem?.department);
-      
+
       // Add audit log
       const { auditCaseAmended } = await import('../../utils/auditService');
       const changes = Object.keys(amendments).filter(key => amendments[key as keyof typeof amendments] && key !== 'amendmentReason');
       await auditCaseAmended(
-        currentUser.name, 
-        currentUser.id, 
-        currentUser.role, 
+        currentUser.name,
+        currentUser.id,
+        currentUser.role,
         caseItem?.caseReferenceNumber || amendingCase,
         changes,
         caseItem?.country,
@@ -501,7 +483,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
           errorMessage = error.message;
         }
       }
-      
+
       addNotification({
         title: 'Amendment Failed',
         message: `Failed to amend case: ${errorMessage}`,
@@ -539,15 +521,15 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setProcessDetails('');
       setProcessAttachments([]);
       refreshCases();
-      
+
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
       setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
-      
+
       // Show success popup
       setSuccessMessage('Order successfully marked as prepared');
       setShowSuccessPopup(true);
-      
+
       // Add notification for status change
       addNotification({
         title: 'Order Processed',
@@ -579,13 +561,13 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setSalesApprovalComments('');
     setSalesApprovalAttachments([]);
   };
-  
+
   const handleSaveSalesApproval = async (caseId: string) => {
     const currentUser = getCurrentUserSync();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.SALES_APPROVAL)) {
       return;
     }
-    
+
     try {
       // Prepare status update details
       const updateDetails = {
@@ -594,23 +576,23 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         processedBy: currentUser.name,
         processedAt: new Date().toISOString()
       };
-      
+
       // Use real-time hook for instant UI updates
       await updateCaseStatus(caseId, CASE_STATUSES.SALES_APPROVAL, JSON.stringify(updateDetails));
-      
+
       // Reset form state
       setSalesApprovalCase(null);
       setSalesApprovalComments('');
       setSalesApprovalAttachments([]);
-      
+
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
       setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
-      
+
       // Show success popup
       setSuccessMessage('Case successfully submitted for Sales Approval');
       setShowSuccessPopup(true);
-      
+
       // Add notification for status change
       addNotification({
         title: 'Sales Approval',
@@ -628,13 +610,12 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       });
     }
   };
-  
+
   const handleCancelSalesApproval = () => {
     setSalesApprovalCase(null);
     setSalesApprovalComments('');
     setSalesApprovalAttachments([]);
   };
-
 
   // Pending Delivery (Hospital) workflow
   const handleOpenHospitalDeliveryModal = (caseId: string) => {
@@ -663,15 +644,15 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setHospitalDeliveryAttachments([]);
       setHospitalDeliveryComments('');
       refreshCases();
-      
+
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
       setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
-      
+
       // Show success popup
       setSuccessMessage('Order marked as pending delivery to hospital');
       setShowSuccessPopup(true);
-      
+
       // Add notification for status change
       addNotification({
         title: 'Pending Delivery to Hospital',
@@ -700,7 +681,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
     try {
       const caseItem = cases.find(c => c.id === caseId);
-      
+
       // Convert single image to attachments array for standardization
       const attachments = [];
       if (receivedImage) {
@@ -713,7 +694,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         };
         attachments.push(JSON.stringify(imageFile));
       }
-      
+
       const additionalData = {
         comments: receivedDetails,
         attachments: attachments
@@ -723,15 +704,15 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setReceivedDetails('');
       setReceivedImage('');
       refreshCases();
-      
+
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
       setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
-      
+
       // Show success popup
       setSuccessMessage('Order successfully marked as delivered to hospital');
       setShowSuccessPopup(true);
-      
+
       // Add notification for status change
       addNotification({
         title: 'Delivered at Hospital',
@@ -772,15 +753,15 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setOrderSummary('');
       setDoNumber('');
       refreshCases();
-      
+
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
       setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
-      
+
       // Show success popup
       setSuccessMessage('Case successfully marked as completed');
       setShowSuccessPopup(true);
-      
+
       // Add notification for status change
       addNotification({
         title: 'Case Completed',
@@ -802,15 +783,15 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       const caseItem = cases.find(c => c.id === caseId);
       await updateCaseStatus(caseId, 'Delivered (Office)');
       refreshCases();
-      
+
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
       setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
-      
+
       // Show success popup
       setSuccessMessage('Order successfully delivered to office');
       setShowSuccessPopup(true);
-      
+
       // Add notification for status change
       addNotification({
         title: 'Delivered to Office',
@@ -832,15 +813,15 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       const caseItem = cases.find(c => c.id === caseId);
       await updateCaseStatus(caseId, 'To be billed');
       refreshCases();
-      
+
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
       setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
-      
+
       // Show success popup
       setSuccessMessage('Case successfully marked as "To be billed"');
       setShowSuccessPopup(true);
-      
+
       // Add notification for status change
       addNotification({
         title: 'Case Ready for Billing',
@@ -875,15 +856,15 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setPendingOfficeAttachments([]);
       setPendingOfficeComments('');
       refreshCases();
-      
+
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
       setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
-      
+
       // Show success popup
       setSuccessMessage('Case marked as pending delivery to office');
       setShowSuccessPopup(true);
-      
+
       // Add notification for status change
       addNotification({
         title: 'Pending Delivery to Office',
@@ -921,19 +902,19 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       };
       // Use real-time hook for instant UI updates
       await updateCaseStatus(caseId, 'Delivered (Office)', JSON.stringify(additionalData));
-      
+
       setOfficeDeliveryCase(null);
       setOfficeDeliveryAttachments([]);
       setOfficeDeliveryComments('');
-      
+
       // Reset to page 1 and expand the updated case
       setCurrentPage(1);
       setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
-      
+
       // Show success popup
       setSuccessMessage('Order successfully delivered to office');
       setShowSuccessPopup(true);
-      
+
       // Add notification for status change
       addNotification({
         title: 'Delivered to Office',
@@ -957,23 +938,23 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     if (!currentUser) {
       return;
     }
-    
+
     const caseItem = cases.find(c => c.id === caseId);
     const confirmMessage = `Are you sure you want to cancel case "${caseItem?.caseReferenceNumber}"?\n\nThis action will mark the case as cancelled and cannot be undone.`;
-    
+
     showConfirmWithCustomButtons('Cancel Case', confirmMessage, async () => {
       try {
         await updateCaseStatus(caseId, 'Case Cancelled', 'Case cancelled by user request');
         refreshCases();
-        
+
         // Reset to page 1 and expand the updated case
         setCurrentPage(1);
         setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
-        
+
         // Show success popup
         setSuccessMessage('Case successfully cancelled');
         setShowSuccessPopup(true);
-        
+
         // Add notification for status change
         addNotification({
           title: 'Case Cancelled',
@@ -1006,23 +987,23 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
 
     const confirmMessage = `Are you sure you want to delete case "${caseItem.caseReferenceNumber}"?\n\nCase Details:\n- Hospital: ${caseItem.hospital}\n- Procedure: ${caseItem.procedureType}\n- Status: ${caseItem.status}\n\nThis action cannot be undone.`;
-    
+
     showConfirm('Delete Case', confirmMessage, async () => {
       try {
         // Use the deleteCase hook which handles database deletion with localStorage fallback
         const success = await deleteCase(caseId);
-        
+
         if (success) {
           // Reset to page 1 (case was deleted, so no need to expand)
           setCurrentPage(1);
-        
+
           // Add notification
           addNotification({
             title: 'Case Deleted',
             message: `Case ${caseItem.caseReferenceNumber} has been successfully deleted by ${currentUser.name}`,
             type: 'warning'
           });
-          
+
           // Show success popup
           setSuccessMessage(`Case ${caseItem.caseReferenceNumber} has been successfully deleted`);
           setShowSuccessPopup(true);
@@ -1062,34 +1043,26 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
             <span className="status-dot"></span>
             {isConnected ? 'Live Data' : 'Reconnecting...'}
           </div>
-          
+
           {/* Real-time refresh button */}
-          <button 
+          <button
             onClick={() => {
-              if (isConnected) {
-                console.log('🔄 Manual refresh requested');
-                refreshCases(); // Use real-time hook refresh
-              } else {
-                console.log('🚨 Emergency force refresh requested');
-                forceRefreshAll(); // Emergency cache clear
+              if (isConnected) {refreshCases(); // Use real-time hook refresh
+              } else {forceRefreshAll(); // Emergency cache clear
               }
-            }} 
+            }}
             className="btn btn-outline-secondary btn-md refresh-button"
             title={isConnected ? 'Fetch latest data from database' : 'Force refresh all data and clear cache'}
             disabled={isMutating || isLoading}
           >
-            {isMutating || isLoading ? '⏳ Loading...' : 
+            {isMutating || isLoading ? '⏳ Loading...' :
              isConnected ? '↻ Refresh' : '⚠️ Force Refresh'}
           </button>
-          
+
           {/* Testing validation button (development only) */}
           {process.env.NODE_ENV === 'development' && (
-            <button 
-              onClick={() => {
-                console.log('🧪 Running component validation...');
-                validateComponent().then(isValid => {
-                  console.log(`🧪 Validation result: ${isValid ? '✅ PASSED' : '❌ FAILED'}`);
-                  console.log(getTestingReport());
+            <button
+              onClick={() => {validateComponent().then(isValid => {);
                 });
               }}
               className="btn btn-outline-info btn-sm"
@@ -1221,7 +1194,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
                 ))
               )}
             </div>
-            
+
             {totalCasePages > 1 && (
               <div className="pagination-container">
                 <div className="pagination-info">
@@ -1279,13 +1252,13 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
           </>
         )}
       </div>
-      
+
       <StatusChangeSuccessPopup
         message={successMessage}
         isVisible={showSuccessPopup}
         onClose={() => setShowSuccessPopup(false)}
       />
-      
+
       <CustomModal
         isOpen={modal.isOpen}
         onClose={closeModal}
@@ -1305,7 +1278,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
           }
         ] : undefined}
       />
-      
+
       {/* Amendment Form Modal */}
       {amendingCase && (() => {
         const caseToAmend = cases.find(c => c.id === amendingCase);

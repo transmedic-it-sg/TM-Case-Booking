@@ -47,7 +47,7 @@ export const usePermissions = () => {
       canEditCase: true, // Default to true, can be refined later
       canDeleteCase: hasPermission(userRole, PERMISSION_ACTIONS.DELETE_CASE),
       canViewBookingCalendar: hasPermission(userRole, PERMISSION_ACTIONS.BOOKING_CALENDAR),
-      
+
       // Workflow permissions
       canProcessOrder: hasPermission(userRole, PERMISSION_ACTIONS.PROCESS_ORDER),
       canSalesApproval: hasPermission(userRole, PERMISSION_ACTIONS.SALES_APPROVAL),
@@ -56,14 +56,14 @@ export const usePermissions = () => {
       canCompleteCase: hasPermission(userRole, PERMISSION_ACTIONS.CASE_COMPLETED),
       canDeliverToOffice: hasPermission(userRole, PERMISSION_ACTIONS.DELIVERED_OFFICE),
       canMarkToBilled: hasPermission(userRole, PERMISSION_ACTIONS.TO_BE_BILLED),
-      
+
       // Admin permissions
       canViewAuditLogs: hasPermission(userRole, PERMISSION_ACTIONS.AUDIT_LOGS),
       canManageUsers: hasPermission(userRole, PERMISSION_ACTIONS.VIEW_USERS),
       canManagePermissions: hasPermission(userRole, PERMISSION_ACTIONS.PERMISSION_MATRIX),
       canViewSettings: hasPermission(userRole, PERMISSION_ACTIONS.SYSTEM_SETTINGS),
       canManageCodeTables: hasPermission(userRole, PERMISSION_ACTIONS.CODE_TABLE_SETUP),
-      
+
       // Role checks
       isAdmin: userRole === 'admin',
       isOperations: userRole === 'operations',

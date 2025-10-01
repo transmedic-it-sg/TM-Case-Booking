@@ -1,7 +1,33 @@
 {
-  "timestamp": "2025-09-23T07:27:45.657Z",
-  "overall": "PASSED",
-  "stages": {},
+  "timestamp": "2025-10-01T09:27:59.735Z",
+  "overall": "FAILED",
+  "stages": {
+    "lint": {
+      "status": "FAILED",
+      "output": "\n> case-booking-app@1.3.0 lint\n> eslint src --ext .ts,.tsx,.js,.jsx --max-warnings 0\n\n'eslint' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n",
+      "duration": 551
+    },
+    "format": {
+      "status": "FAILED",
+      "output": "\n> case-booking-app@1.3.0 format:check\n> prettier --check \"src/**/*.{ts,tsx,js,jsx,css,md}\"\n\n'prettier' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n",
+      "duration": 421
+    },
+    "components": {
+      "status": "PASSED",
+      "issues": [],
+      "count": 0
+    },
+    "typescript": {
+      "status": "FAILED",
+      "output": "\n> case-booking-app@1.3.0 typecheck\n> npx tsc --noEmit\n\n\n\u001b[41m                                                                               \u001b[0m\n\u001b[41m\u001b[37m                This is not the tsc command you are looking for                \u001b[0m\n\u001b[41m                                                                               \u001b[0m\n\nTo get access to the TypeScript compiler, \u001b[34mtsc\u001b[0m, from the command line either:\n\n- Use \u001b[1mnpm install typescript\u001b[0m to first add TypeScript to your project \u001b[1mbefore\u001b[0m using npx\n- Use \u001b[1myarn\u001b[0m to avoid accidentally running code from un-installed packages\n",
+      "duration": 1554
+    },
+    "build": {
+      "status": "FAILED",
+      "output": "\n> case-booking-app@1.3.0 build\n> react-scripts build\n\n'react-scripts' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n",
+      "duration": 426
+    }
+  },
   "security": {
     "issues": [],
     "vulnerabilities": [],
@@ -19,19 +45,19 @@
     },
     "patterns": [
       {
-        "file": "src/hooks/useRealtimeUsers.ts",
+        "file": "src\\hooks\\useRealtimeUsers.ts",
         "type": "PASSWORD_LOGGING",
         "severity": "MEDIUM",
         "message": "PASSWORD_LOGGING detected in useRealtimeUsers.ts"
       },
       {
-        "file": "src/utils/auth.ts",
+        "file": "src\\utils\\auth.ts",
         "type": "PASSWORD_LOGGING",
         "severity": "MEDIUM",
         "message": "PASSWORD_LOGGING detected in auth.ts"
       },
       {
-        "file": "src/utils/systemSettingsService.ts",
+        "file": "src\\utils\\systemSettingsService.ts",
         "type": "PASSWORD_LOGGING",
         "severity": "MEDIUM",
         "message": "PASSWORD_LOGGING detected in systemSettingsService.ts"
@@ -50,10 +76,10 @@
   "errors": [],
   "warnings": [],
   "summary": {
-    "duration": 1753,
-    "totalStages": 0,
-    "passedStages": 0,
-    "failedStages": 0,
+    "duration": 4650,
+    "totalStages": 5,
+    "passedStages": 1,
+    "failedStages": 4,
     "securityIssues": 4,
     "criticalVulnerabilities": 0
   }

@@ -13,13 +13,13 @@ export const formatDate = (date: Date | string | number): string => {
   if (isNaN(d.getTime())) {
     return 'Invalid Date';
   }
-  
+
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const dayName = dayNames[d.getDay()];
   const day = d.getDate().toString().padStart(2, '0');
   const month = (d.getMonth() + 1).toString().padStart(2, '0');
   const year = d.getFullYear();
-  
+
   return `${dayName}, ${day}/${month}/${year}`;
 };
 
@@ -33,7 +33,7 @@ export const formatDateTime = (date: Date | string | number): string => {
   if (isNaN(d.getTime())) {
     return 'Invalid Date';
   }
-  
+
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const dayName = dayNames[d.getDay()];
   const day = d.getDate().toString().padStart(2, '0');
@@ -41,7 +41,7 @@ export const formatDateTime = (date: Date | string | number): string => {
   const year = d.getFullYear();
   const hours = d.getHours().toString().padStart(2, '0');
   const minutes = d.getMinutes().toString().padStart(2, '0');
-  
+
   return `${dayName}, ${day}/${month}/${year} ${hours}:${minutes}`;
 };
 
@@ -55,7 +55,7 @@ export const formatDateForInput = (date: Date | string | number): string => {
   if (isNaN(d.getTime())) {
     return '';
   }
-  
+
   return d.toISOString().split('T')[0];
 };
 
@@ -69,22 +69,22 @@ export const parseDateFromDDMMYYYY = (dateString: string): Date | null => {
   if (parts.length !== 3) {
     return null;
   }
-  
+
   const day = parseInt(parts[0], 10);
   const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
   const year = parseInt(parts[2], 10);
-  
+
   if (isNaN(day) || isNaN(month) || isNaN(year)) {
     return null;
   }
-  
+
   const date = new Date(year, month, day);
-  
+
   // Validate that the date is correct (handles invalid dates like 31/02/2023)
   if (date.getDate() !== day || date.getMonth() !== month || date.getFullYear() !== year) {
     return null;
   }
-  
+
   return date;
 };
 
@@ -98,7 +98,7 @@ export const getMonthYearDisplay = (date: Date): string => {
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
-  
+
   return `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
 };
 

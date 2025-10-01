@@ -13,7 +13,7 @@ const MaintenanceMode: React.FC<MaintenanceModeProps> = ({ isActive, onForceLogo
   useEffect(() => {
     if (isActive) {
       setShowModal(true);
-      
+
       // Start countdown for auto-logout
       const timer = setInterval(() => {
         setCountdown(prev => {
@@ -48,13 +48,13 @@ const MaintenanceMode: React.FC<MaintenanceModeProps> = ({ isActive, onForceLogo
             <div className="maintenance-icon">🔧</div>
             <h2>System Maintenance</h2>
           </div>
-          
+
           <div className="maintenance-body">
             <p>
-              The system is currently under maintenance. All users will be automatically 
+              The system is currently under maintenance. All users will be automatically
               logged out to ensure data integrity during the maintenance period.
             </p>
-            
+
             <div className="maintenance-details">
               <div className="maintenance-info">
                 <strong>What's happening:</strong>
@@ -64,27 +64,27 @@ const MaintenanceMode: React.FC<MaintenanceModeProps> = ({ isActive, onForceLogo
                   <li>Performance optimizations</li>
                 </ul>
               </div>
-              
+
               <div className="maintenance-timeline">
                 <strong>Expected duration:</strong> Please check back in 30-60 minutes
               </div>
             </div>
-            
+
             <div className="maintenance-countdown">
               <div className="countdown-text">
                 Automatic logout in: <span className="countdown-number">{countdown}</span> seconds
               </div>
               <div className="countdown-bar">
-                <div 
-                  className="countdown-progress" 
+                <div
+                  className="countdown-progress"
                   style={{ width: `${(countdown / 30) * 100}%` }}
                 ></div>
               </div>
             </div>
           </div>
-          
+
           <div className="maintenance-footer">
-            <button 
+            <button
               className="btn btn-primary"
               onClick={() => onForceLogout && onForceLogout()}
             >

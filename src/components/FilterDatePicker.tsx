@@ -39,7 +39,7 @@ const FilterDatePicker: React.FC<FilterDatePickerProps> = ({
 }) => {
   // Convert string value to Date object
   const selectedDate = value ? new Date(value) : null;
-  
+
   // Convert min/max strings to Date objects
   const minDate = min ? new Date(min) : undefined;
   const maxDate = max ? new Date(max) : undefined;

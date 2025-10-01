@@ -23,25 +23,18 @@ let environmentLogged = false;
  */
 const getRedirectUri = (): string => {
   const origin = window.location.origin;
-  
+
   // Log the current environment for debugging (only once)
-  if (!environmentLogged) {
-    console.log(`[OAuth] Environment detection:`, {
-      origin,
-      hostname: window.location.hostname,
-      port: window.location.port,
-      protocol: window.location.protocol,
-      isLocalhost: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
-      isVercel: window.location.hostname.includes('vercel.app') || window.location.hostname.includes('vercel.com'),
+  if (!environmentLogged) {|| window.location.hostname.includes('vercel.com'),
       isProd: process.env.NODE_ENV === 'production'
     });
-    
+
     environmentLogged = true;
   }
-  
+
   // Construct redirect URI
   const redirectUri = `${origin}/auth/callback`;
-  
+
   return redirectUri;
 };
 
@@ -103,12 +96,12 @@ function generateRandomString(length: number): string {
 
 async function generatePKCEChallenge(): Promise<PKCEChallenge> {
   const codeVerifier = generateRandomString(128);
-  
+
   // Create SHA256 hash of the code verifier
   const encoder = new TextEncoder();
   const data = encoder.encode(codeVerifier);
   const digest = await crypto.subtle.digest('SHA-256', data);
-  
+
   // Convert to base64url - compatible with older TypeScript
   const bytes = new Uint8Array(digest);
   let binaryString = '';
@@ -120,7 +113,7 @@ async function generatePKCEChallenge(): Promise<PKCEChallenge> {
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
-  
+
   return {
     codeVerifier,
     codeChallenge
@@ -147,36 +140,25 @@ class SimplifiedOAuthManager {
   /**
    * Generate OAuth authorization URL with PKCE support
    */
-  async getAuthUrl(state?: string): Promise<string> {
-    console.log(`[OAuth] Building auth URL for ${this.provider}`);
-    
-    if (!this.config.config.clientId || this.config.config.clientId.includes('your-') || this.config.config.clientId === '') {
+  async getAuthUrl(state?: string): Promise<string> {if (!this.config.config.clientId || this.config.config.clientId.includes('your-') || this.config.config.clientId === '') {
       throw new Error(`${this.provider} OAuth client ID is not properly configured. Please check your environment variables.`);
     }
-    
+
     const params: Record<string, string> = {
       client_id: this.config.config.clientId,
       response_type: 'code',
       scope: this.config.config.scopes.join(' '),
       redirect_uri: this.config.config.redirectUri,
       state: state || `${this.provider}_${Date.now()}`
-    };
-
-    console.log(`[OAuth] Base parameters:`, {
-      provider: this.provider,
-      clientId: this.config.config.clientId.substring(0, 8) + '...',
+    };+ '...',
       redirectUri: this.config.config.redirectUri,
       scopes: this.config.config.scopes
     });
 
     // Add PKCE for Microsoft (required) and Google (recommended)
-    if (this.provider === 'microsoft' || this.provider === 'google') {
-      console.log(`[OAuth] Generating PKCE challenge for ${this.provider}`);
-      this.pkceChallenge = await generatePKCEChallenge();
+    if (this.provider === 'microsoft' || this.provider === 'google') {this.pkceChallenge = await generatePKCEChallenge();
       params.code_challenge = this.pkceChallenge.codeChallenge;
-      params.code_challenge_method = 'S256';
-      console.log(`[OAuth] PKCE challenge generated:`, {
-        codeChallenge: this.pkceChallenge.codeChallenge.substring(0, 20) + '...',
+      params.code_challenge_method = 'S256';+ '...',
         method: 'S256'
       });
     }
@@ -184,13 +166,9 @@ class SimplifiedOAuthManager {
     // Provider-specific parameters
     if (this.provider === 'google') {
       params.access_type = 'offline'; // For refresh tokens
-      params.prompt = 'consent'; // Force consent to get refresh token
-      console.log(`[OAuth] Added Google-specific parameters: access_type=offline, prompt=consent`);
-    }
+      params.prompt = 'consent'; // Force consent to get refresh token}
 
-    const authUrl = `${this.config.authUrl}?${new URLSearchParams(params).toString()}`;
-    console.log(`[OAuth] Final auth URL constructed for ${this.provider}`);
-    return authUrl;
+    const authUrl = `${this.config.authUrl}?${new URLSearchParams(params).toString()}`;return authUrl;
   }
 
   /**
@@ -207,12 +185,7 @@ class SimplifiedOAuthManager {
       grant_type: 'authorization_code',
       redirect_uri: this.config.config.redirectUri,
       code_verifier: this.pkceChallenge.codeVerifier // PKCE code verifier
-    });
-
-    console.log(`[OAuth] Token exchange for ${this.provider}:`, {
-      tokenUrl: this.config.tokenUrl,
-      redirectUri: this.config.config.redirectUri,
-      clientId: this.config.config.clientId.substring(0, 8) + '...',
+    });+ '...',
       hasCode: !!code,
       codeLength: code.length
     });
@@ -239,7 +212,7 @@ class SimplifiedOAuthManager {
           url: this.config.tokenUrl,
           environment: process.env.NODE_ENV
         });
-        
+
         // Enhanced error messages for common issues
         if (response.status === 400) {
           if (errorText.includes('invalid_grant')) {
@@ -250,19 +223,11 @@ class SimplifiedOAuthManager {
         } else if (response.status === 401) {
           throw new Error('Authentication failed. Please check your OAuth client configuration.');
         }
-        
+
         throw new Error(`Token exchange failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      const data = await response.json();
-      console.log('Token exchange response:', { 
-        hasAccessToken: !!data.access_token,
-        hasRefreshToken: !!data.refresh_token,
-        expiresIn: data.expires_in,
-        provider: this.provider
-      });
-      
-      const expiresAt = Date.now() + (data.expires_in * 1000);
+      const data = await response.json();const expiresAt = Date.now() + (data.expires_in * 1000);
 
       return {
         accessToken: data.access_token,
@@ -304,15 +269,7 @@ class SimplifiedOAuthManager {
       throw new Error(`Failed to get user info: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
-    const data = await response.json();
-    console.log('User info response:', { 
-      provider: this.provider,
-      hasEmail: !!data.email || !!data.mail || !!data.userPrincipalName,
-      hasId: !!data.id,
-      hasName: !!data.name || !!data.displayName
-    });
-
-    // Normalize response format between Google and Microsoft
+    const data = await response.json();// Normalize response format between Google and Microsoft
     if (this.provider === 'google') {
       return {
         id: data.id,
@@ -365,7 +322,7 @@ class SimplifiedOAuthManager {
   }): Promise<boolean> {
     // Gmail API implementation
     let message: string;
-    
+
     if (emailData.attachments && emailData.attachments.length > 0) {
       // MIME multipart message with attachments
       const boundary = 'boundary_' + Math.random().toString(36).substr(2, 9);
@@ -381,7 +338,7 @@ class SimplifiedOAuthManager {
         emailData.body,
         ''
       ].join('\n');
-      
+
       // Add attachments
       emailData.attachments.forEach(attachment => {
         message += [
@@ -394,7 +351,7 @@ class SimplifiedOAuthManager {
           ''
         ].join('\n');
       });
-      
+
       message += `--${boundary}--`;
     } else {
       // Simple text/html message
@@ -452,7 +409,7 @@ class SimplifiedOAuthManager {
         }))
       }
     };
-    
+
     // Add attachments if provided
     if (emailData.attachments && emailData.attachments.length > 0) {
       message.message.attachments = emailData.attachments.map(attachment => ({
@@ -479,20 +436,20 @@ class SimplifiedOAuthManager {
 // Token storage utilities
 export const storeAuthTokens = (country: string, provider: string, tokens: AuthTokens): void => {
   const key = `email_auth_${country}_${provider}`;
-  localStorage.setItem(key, JSON.stringify(tokens));
+  // OAuth tokens should NOT be in localStorage);
 };
 
 // User info storage utilities
 export const storeUserInfo = (country: string, provider: string, userInfo: UserInfo): void => {
   const key = `email_userinfo_${country}_${provider}`;
-  localStorage.setItem(key, JSON.stringify(userInfo));
+  // OAuth tokens should NOT be in localStorage);
 };
 
 export const getStoredUserInfo = (country: string, provider: string): UserInfo | null => {
   const key = `email_userinfo_${country}_${provider}`;
-  const stored = localStorage.getItem(key);
+  const stored = null /* OAuth tokens should be in secure backend */;
   if (!stored) return null;
-  
+
   try {
     return JSON.parse(stored);
   } catch {
@@ -507,9 +464,9 @@ export const clearUserInfo = (country: string, provider: string): void => {
 
 export const getStoredAuthTokens = (country: string, provider: string): AuthTokens | null => {
   const key = `email_auth_${country}_${provider}`;
-  const stored = localStorage.getItem(key);
+  const stored = null /* OAuth tokens should be in secure backend */;
   if (!stored) return null;
-  
+
   try {
     return JSON.parse(stored);
   } catch {
@@ -540,10 +497,7 @@ export const isTokenExpiringSoon = (tokens: AuthTokens): boolean => {
  * Refresh Microsoft access token using refresh token
  */
 export const refreshMicrosoftToken = async (country: string, refreshToken: string): Promise<AuthTokens | null> => {
-  try {
-    console.log('[OAuth] Refreshing Microsoft access token...');
-    
-    const clientId = process.env.REACT_APP_MICROSOFT_CLIENT_ID;
+  try {const clientId = process.env.REACT_APP_MICROSOFT_CLIENT_ID;
     if (!clientId) {
       throw new Error('Microsoft client ID not configured');
     }
@@ -584,10 +538,7 @@ export const refreshMicrosoftToken = async (country: string, refreshToken: strin
     };
 
     // Store the new tokens
-    storeAuthTokens(country, 'microsoft', newTokens);
-    console.log('[OAuth] Microsoft token refreshed successfully');
-    
-    return newTokens;
+    storeAuthTokens(country, 'microsoft', newTokens);return newTokens;
   } catch (error) {
     console.error('[OAuth] Failed to refresh Microsoft token:', error);
     return null;
@@ -599,36 +550,24 @@ export const refreshMicrosoftToken = async (country: string, refreshToken: strin
  */
 export const getValidAccessToken = async (country: string, provider: 'google' | 'microsoft'): Promise<string | null> => {
   const tokens = getStoredAuthTokens(country, provider);
-  
-  if (!tokens) {
-    console.log(`[OAuth] No stored tokens found for ${provider} in ${country}`);
-    return null;
+
+  if (!tokens) {return null;
   }
 
   // If token is not expired, return it
-  if (!isTokenExpired(tokens)) {
-    console.log(`[OAuth] Using existing valid token for ${provider}`);
-    return tokens.accessToken;
+  if (!isTokenExpired(tokens)) {return tokens.accessToken;
   }
 
   // Token is expired - try to refresh if it's Microsoft and has refresh token
-  if (provider === 'microsoft' && tokens.refreshToken) {
-    console.log('[OAuth] Access token expired, attempting refresh...');
-    const newTokens = await refreshMicrosoftToken(country, tokens.refreshToken);
-    
-    if (newTokens) {
-      console.log('[OAuth] Token refresh successful');
-      return newTokens.accessToken;
-    } else {
-      console.log('[OAuth] Token refresh failed - clearing stored tokens');
-      clearAuthTokens(country, provider);
+  if (provider === 'microsoft' && tokens.refreshToken) {const newTokens = await refreshMicrosoftToken(country, tokens.refreshToken);
+
+    if (newTokens) {return newTokens.accessToken;
+    } else {clearAuthTokens(country, provider);
       return null;
     }
   }
 
-  // For Google or when Microsoft refresh fails, token is expired and unusable
-  console.log(`[OAuth] Token expired and cannot be refreshed for ${provider}`);
-  clearAuthTokens(country, provider);
+  // For Google or when Microsoft refresh fails, token is expired and unusableclearAuthTokens(country, provider);
   return null;
 };
 
@@ -641,19 +580,12 @@ export const createOAuthManager = (provider: 'google' | 'microsoft'): Simplified
 export const authenticateWithPopup = async (
   provider: 'google' | 'microsoft',
   country: string
-): Promise<{ tokens: AuthTokens; userInfo: UserInfo }> => {
-  console.log(`[OAuth] Creating OAuth manager for ${provider}`);
-  const oauth = createOAuthManager(provider);
-  
-  try {
-    // Generate auth URL with PKCE (async operation)
-    console.log(`[OAuth] Generating auth URL for ${provider}`);
-    const authUrl = await oauth.getAuthUrl(`${country}_${Date.now()}`);
-    console.log(`[OAuth] Auth URL generated:`, authUrl.substring(0, 100) + '...');
+): Promise<{ tokens: AuthTokens; userInfo: UserInfo }> => {const oauth = createOAuthManager(provider);
 
-    return new Promise((resolve, reject) => {
-      console.log(`[OAuth] Opening popup window for ${provider}`);
-      const popup = window.open(
+  try {
+    // Generate auth URL with PKCE (async operation)const authUrl = await oauth.getAuthUrl(`${country}_${Date.now()}`);+ '...');
+
+    return new Promise((resolve, reject) => {const popup = window.open(
         authUrl,
         'oauth_auth',
         'width=500,height=600,scrollbars=yes,resizable=yes'
@@ -663,44 +595,16 @@ export const authenticateWithPopup = async (
         console.error(`[OAuth] Popup blocked for ${provider}`);
         reject(new Error('Popup blocked. Please allow popups for this site.'));
         return;
-      }
-
-      console.log(`[OAuth] Popup opened successfully for ${provider}, waiting for callback...`);
-
-      // Listen for auth completion
-      const messageHandler = async (event: MessageEvent) => {
-        console.log(`[OAuth] Received message from popup:`, {
-          origin: event.origin,
-          expectedOrigin: window.location.origin,
-          dataType: event.data?.type,
-          hasCode: !!event.data?.code
-        });
-        
-        if (event.origin !== window.location.origin) {
+      }// Listen for auth completion
+      const messageHandler = async (event: MessageEvent) => {if (event.origin !== window.location.origin) {
           console.warn(`[OAuth] Ignoring message from different origin: ${event.origin}`);
           return;
         }
 
         if ((event.data.type === 'oauth_success' || event.data.type === 'sso_auth_success') && event.data.code) {
-          try {
-            console.log(`[OAuth] Received authorization code for ${provider}, exchanging for tokens...`);
-            const tokens = await oauth.exchangeCodeForTokens(event.data.code);
-            console.log(`[OAuth] Token exchange successful for ${provider}, fetching user info...`);
-            
-            const userInfo = await oauth.getUserInfo(tokens.accessToken);
-            console.log(`[OAuth] User info retrieved for ${provider}:`, { email: userInfo.email, id: userInfo.id });
-            
-            // Store tokens and user info
-            console.log(`[OAuth] Storing tokens and user info for ${provider} in ${country}`);
-            storeAuthTokens(country, provider, tokens);
-            storeUserInfo(country, provider, userInfo);
-            
-            console.log(`[OAuth] Cleaning up event listeners and closing popup`);
-            window.removeEventListener('message', messageHandler);
-            popup.close();
-            
-            console.log(`[OAuth] Resolving with tokens and userInfo`);
-            resolve({ tokens, userInfo });
+          try {const tokens = await oauth.exchangeCodeForTokens(event.data.code);const userInfo = await oauth.getUserInfo(tokens.accessToken);// Store tokens and user infostoreAuthTokens(country, provider, tokens);
+            storeUserInfo(country, provider, userInfo);window.removeEventListener('message', messageHandler);
+            popup.close();resolve({ tokens, userInfo });
           } catch (error) {
             console.error(`[OAuth] OAuth flow failed for ${provider}:`, error);
             window.removeEventListener('message', messageHandler);
@@ -712,24 +616,17 @@ export const authenticateWithPopup = async (
           window.removeEventListener('message', messageHandler);
           popup.close();
           reject(new Error(event.data.error));
-        } else {
-          console.log(`[OAuth] Ignoring unrecognized message:`, event.data);
-        }
-      };
-
-      console.log(`[OAuth] Adding message event listener for ${provider}`);
-      window.addEventListener('message', messageHandler);
+        } else {}
+      };window.addEventListener('message', messageHandler);
 
       // Check if popup was closed manually
       const checkClosed = setInterval(() => {
-        if (popup.closed) {
-          console.log(`[OAuth] Popup was closed manually for ${provider}`);
-          clearInterval(checkClosed);
+        if (popup.closed) {clearInterval(checkClosed);
           window.removeEventListener('message', messageHandler);
           reject(new Error('Authentication cancelled'));
         }
       }, 1000);
-      
+
       // Add timeout protection
       setTimeout(() => {
         if (!popup.closed) {

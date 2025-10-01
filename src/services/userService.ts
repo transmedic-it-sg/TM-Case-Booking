@@ -36,7 +36,7 @@ class UserService {
       console.error('Error loading current user:', error);
       await SafeStorage.removeItem('currentUser');
     }
-    
+
     return null;
   }
 
@@ -110,21 +110,21 @@ class UserService {
     try {
       const users = await this.getAllUsers();
       const existingIndex = users.findIndex(u => u.id === user.id);
-      
+
       if (existingIndex >= 0) {
         users[existingIndex] = user;
       } else {
         users.push(user);
       }
-      
+
       // localStorage usage removed - use Supabase instead
       this.userCache.set(user.id, user);
-      
+
       // Update current user if it's the same user
       if (this.currentUser?.id === user.id) {
         await this.setCurrentUser(user);
       }
-      
+
       return true;
     } catch (error) {
       console.error('Error saving user:', error);
@@ -139,13 +139,13 @@ class UserService {
     try {
       const users = await this.getAllUsers();
       const filteredUsers = users.filter(u => u.id !== userId);
-      
+
       await SafeStorage.setItem('users', filteredUsers, {
         tags: ['user-data'],
         ttl: 7 * 24 * 60 * 60 * 1000 // 7 days
       });
       this.userCache.delete(userId);
-      
+
       return true;
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -171,7 +171,7 @@ class UserService {
   async hasCountryAccess(country: string): Promise<boolean> {
     const user = await this.getCurrentUser();
     if (!user) return false;
-    
+
     return user.role === 'admin' || user.countries.includes(country);
   }
 

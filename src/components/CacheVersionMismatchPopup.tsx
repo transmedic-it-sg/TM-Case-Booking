@@ -56,25 +56,25 @@ const CacheVersionMismatchPopup: React.FC<CacheVersionMismatchPopupProps> = ({
         textAlign: 'center'
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔄</div>
-        
-        <h3 style={{ 
-          color: '#333', 
+
+        <h3 style={{
+          color: '#333',
           marginBottom: '16px',
           fontSize: '18px',
           fontWeight: '600'
         }}>
           System Update Available
         </h3>
-        
-        <p style={{ 
-          color: '#666', 
+
+        <p style={{
+          color: '#666',
           marginBottom: '24px',
           lineHeight: '1.5'
         }}>
           New updates are available. Please refresh to get the latest data and features.
         </p>
-        
-        <button 
+
+        <button
           onClick={handleRefresh}
           style={{
             backgroundColor: '#007bff',
@@ -92,9 +92,9 @@ const CacheVersionMismatchPopup: React.FC<CacheVersionMismatchPopupProps> = ({
         >
           Refresh Now
         </button>
-        
-        <p style={{ 
-          fontSize: '12px', 
+
+        <p style={{
+          fontSize: '12px',
           color: '#888',
           margin: 0
         }}>

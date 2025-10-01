@@ -1,6 +1,6 @@
 export const getDatabaseName = (): string => {
   const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-  
+
   if (!supabaseUrl) {
     return 'Unknown Database';
   }

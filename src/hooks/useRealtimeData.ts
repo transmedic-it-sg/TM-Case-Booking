@@ -1,7 +1,7 @@
 /**
  * Real-time Data Hook - Enterprise Solution for 50-100 Concurrent Users
  * Eliminates manual cache clearing with intelligent real-time updates
- * 
+ *
  * Features:
  * - Supabase real-time subscriptions with automatic cache invalidation
  * - Smart batching to prevent excessive re-renders
@@ -39,11 +39,11 @@ export const useRealtimeData = (configs: RealtimeConfig[]) => {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isCleanupRef = useRef(false);
   const configsRef = useRef(configs);
-  
+
   // Update refs when values change
   queryClientRef.current = queryClient;
   configsRef.current = configs;
-  
+
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
     connected: false,
     lastHeartbeat: null,
@@ -56,10 +56,7 @@ export const useRealtimeData = (configs: RealtimeConfig[]) => {
   const handleDatabaseChange = useCallback((
     payload: RealtimePostgresChangesPayload<any>,
     config: RealtimeConfig
-  ) => {
-    console.log(`📡 Real-time ${payload.eventType} on ${payload.table}:`, payload);
-    
-    // Update connection status
+  ) => {// Update connection status
     setConnectionStatus(prev => ({
       ...prev,
       connected: true,
@@ -82,11 +79,11 @@ export const useRealtimeData = (configs: RealtimeConfig[]) => {
       batchTimeoutRef.current = setTimeout(() => {
         const uniqueKeys = Array.from(pendingInvalidations.current)
           .map(key => JSON.parse(key));
-        
+
         uniqueKeys.forEach(queryKey => {
           queryClientRef.current.invalidateQueries({ queryKey });
         });
-        
+
         pendingInvalidations.current.clear();
       }, 100);
     } else {
@@ -99,18 +96,15 @@ export const useRealtimeData = (configs: RealtimeConfig[]) => {
   // Setup real-time subscriptions with stability controls
   useEffect(() => {
     if (isCleanupRef.current) return; // Prevent new subscriptions during cleanup
-    
+
     const channels: RealtimeChannel[] = [];
 
     configsRef.current.forEach((config, index) => {
-      const channelName = `realtime_${config.table}_${index}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      console.log(`🔌 Setting up real-time subscription for ${config.table}`);
-      realtimeDebugger.logEvent('subscription', {
+      const channelName = `realtime_${config.table}_${index}_${Math.random().toString(36).substr(2, 9)}`;realtimeDebugger.logEvent('subscription', {
         table: config.table,
         message: 'Setting up subscription'
       });
-      
+
       const channel = supabase
         .channel(channelName)
         .on(
@@ -131,11 +125,7 @@ export const useRealtimeData = (configs: RealtimeConfig[]) => {
           }
         )
         .subscribe((status) => {
-          if (isCleanupRef.current) return; // Ignore status updates during cleanup
-          
-          console.log(`📡 Subscription status for ${config.table}:`, status);
-          
-          if (status === 'SUBSCRIBED') {
+          if (isCleanupRef.current) return; // Ignore status updates during cleanupif (status === 'SUBSCRIBED') {
             realtimeDebugger.logEvent('connection', {
               table: config.table,
               message: 'Successfully subscribed'
@@ -168,29 +158,26 @@ export const useRealtimeData = (configs: RealtimeConfig[]) => {
 
     // Cleanup function
     return () => {
-      isCleanupRef.current = true;
-      console.log('🔌 Cleaning up real-time subscriptions');
-      
-      channels.forEach(channel => {
+      isCleanupRef.current = true;channels.forEach(channel => {
         try {
           supabase.removeChannel(channel);
         } catch (error) {
           console.warn('Error removing channel:', error);
         }
       });
-      
+
       channelsRef.current = [];
-      
+
       if (batchTimeoutRef.current) {
         clearTimeout(batchTimeoutRef.current);
         batchTimeoutRef.current = null;
       }
-      
+
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
-      
+
       // Reset cleanup flag after a delay
       setTimeout(() => {
         isCleanupRef.current = false;
@@ -202,9 +189,9 @@ export const useRealtimeData = (configs: RealtimeConfig[]) => {
   useEffect(() => {
     const healthCheck = setInterval(() => {
       if (isCleanupRef.current) return; // Skip during cleanup
-      
+
       const now = new Date();
-      const timeSinceLastHeartbeat = connectionStatus.lastHeartbeat 
+      const timeSinceLastHeartbeat = connectionStatus.lastHeartbeat
         ? now.getTime() - connectionStatus.lastHeartbeat.getTime()
         : Infinity;
 
@@ -219,7 +206,7 @@ export const useRealtimeData = (configs: RealtimeConfig[]) => {
           connected: false
         }));
       }
-      
+
       // Track memory usage periodically
       realtimeDebugger.trackMemoryUsage();
 
@@ -231,9 +218,7 @@ export const useRealtimeData = (configs: RealtimeConfig[]) => {
   }, [connectionStatus.connected, connectionStatus.lastHeartbeat]); // Remove reconnectAttempts to prevent loops
 
   // Manual refresh function for fallback
-  const forceRefresh = useCallback(() => {
-    console.log('🔄 Force refreshing all real-time queries');
-    configsRef.current.forEach(config => {
+  const forceRefresh = useCallback(() => {configsRef.current.forEach(config => {
       config.queryKeys.forEach(queryKey => {
         queryClient.invalidateQueries({ queryKey });
       });
@@ -290,7 +275,7 @@ export const useRealtimeUsers = () => {
 };
 
 /**
- * Hook for code tables and master data real-time updates  
+ * Hook for code tables and master data real-time updates
  */
 export const useRealtimeMasterData = () => {
   return useRealtimeData([

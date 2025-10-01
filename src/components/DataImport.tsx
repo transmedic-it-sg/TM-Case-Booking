@@ -68,12 +68,12 @@ const DataImport: React.FC = () => {
       // Validate file type
       const validTypes = ['.csv', '.xlsx', '.xls'];
       const fileExtension = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
-      
+
       if (!validTypes.includes(fileExtension)) {
         showError('Invalid File Type', 'Please select a CSV or Excel file (.csv, .xlsx, .xls)');
         return;
       }
-      
+
       setSelectedFile(file);
       setImportResults(null);
     }
@@ -96,18 +96,18 @@ const DataImport: React.FC = () => {
     try {
       // Parse file content
       const fileContent = await parseImportFile(selectedFile);
-      
+
       // Validate and import data
       const results = await importDataByType(importType, fileContent);
-      
+
       setImportResults(results);
-      
+
       if (results.success) {
         showSuccess('Import Complete', `Successfully imported ${results.imported} records`);
       } else {
         showError('Import Failed', `Import failed. ${results.errors.length} errors occurred.`);
       }
-      
+
     } catch (error) {
       console.error('Import failed:', error);
       showError('Import Failed', `Failed to import data: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -118,7 +118,7 @@ const DataImport: React.FC = () => {
 
   const parseImportFile = async (file: File): Promise<any[]> => {
     const text = await file.text();
-    
+
     if (file.name.endsWith('.csv')) {
       return parseCSV(text);
     } else {
@@ -129,15 +129,15 @@ const DataImport: React.FC = () => {
   const parseCSV = (text: string): any[] => {
     const lines = text.split('\n').filter(line => line.trim());
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-    
+
     return lines.slice(1).map((line, index) => {
       const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
       const row: any = { _rowNumber: index + 2 };
-      
+
       headers.forEach((header, i) => {
         row[header] = values[i] || '';
       });
-      
+
       return row;
     });
   };
@@ -164,7 +164,7 @@ const DataImport: React.FC = () => {
         default:
           throw new Error('Unknown import type');
       }
-      
+
       result.success = result.failed === 0;
       return result;
     } catch (error) {
@@ -183,7 +183,7 @@ const DataImport: React.FC = () => {
           result.failed++;
           continue;
         }
-        
+
         // Simulate import
         await new Promise(resolve => setTimeout(resolve, 10));
         result.imported++;
@@ -204,7 +204,7 @@ const DataImport: React.FC = () => {
           result.failed++;
           continue;
         }
-        
+
         // Simulate import
         await new Promise(resolve => setTimeout(resolve, 10));
         result.imported++;
@@ -225,7 +225,7 @@ const DataImport: React.FC = () => {
           result.failed++;
           continue;
         }
-        
+
         // Simulate import
         await new Promise(resolve => setTimeout(resolve, 10));
         result.imported++;
@@ -242,7 +242,7 @@ const DataImport: React.FC = () => {
       template.fields.join(','),
       template.example.join(',')
     ].join('\n');
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -278,10 +278,10 @@ const DataImport: React.FC = () => {
           <h3>Select Import Type</h3>
           <p>Choose the type of data you want to import</p>
         </div>
-        
+
         <div className="import-type-grid">
           {Object.entries(importTemplates).map(([key, template]) => (
-            <div 
+            <div
               key={key}
               className={`import-type-card ${importType === key ? 'selected' : ''}`}
               onClick={() => setImportType(key as any)}
@@ -310,7 +310,7 @@ const DataImport: React.FC = () => {
           <h3>Upload Data File</h3>
           <p>Select a CSV or Excel file containing your {importTemplates[importType].name.toLowerCase()} data</p>
         </div>
-        
+
         <div className="upload-area">
           <div className="upload-content">
             <div className="upload-icon">📁</div>
@@ -328,7 +328,7 @@ const DataImport: React.FC = () => {
             </label>
             <p>Select a CSV or Excel file (.csv, .xlsx, .xls)</p>
           </div>
-          
+
           {selectedFile && (
             <div className="selected-file">
               <div className="file-info">
@@ -360,7 +360,7 @@ const DataImport: React.FC = () => {
             <h3>Import Results</h3>
             <p>Summary of the data import operation</p>
           </div>
-          
+
           <div className={`results-summary ${importResults.success ? 'success' : 'warning'}`}>
             <div className="results-stats">
               <div className="stat-item success">
@@ -374,7 +374,7 @@ const DataImport: React.FC = () => {
                 </div>
               )}
             </div>
-            
+
             {importResults.errors.length > 0 && (
               <div className="error-details">
                 <h4>Errors:</h4>

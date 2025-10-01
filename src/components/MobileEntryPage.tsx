@@ -22,9 +22,9 @@ const MobileEntryPage: React.FC<MobileEntryPageProps> = ({ onProceedToLogin }) =
           {/* Logo/Brand Section */}
           <div className="mobile-entry-logo">
             <div className="brand-logo">
-              <img 
-                src="https://www.transmedicgroup.com/wp-content/themes/transmedic/transmedic_assets/images/logo/logo-v5-transmedic-header-small.svg" 
-                alt="Transmedic Logo" 
+              <img
+                src="https://www.transmedicgroup.com/wp-content/themes/transmedic/transmedic_assets/images/logo/logo-v5-transmedic-header-small.svg"
+                alt="Transmedic Logo"
                 className="logo-image"
               />
             </div>
@@ -50,7 +50,7 @@ const MobileEntryPage: React.FC<MobileEntryPageProps> = ({ onProceedToLogin }) =
 
           {/* CTA Button */}
           <div className="mobile-entry-actions">
-            <button 
+            <button
               className="proceed-button"
               onClick={handleProceedClick}
               disabled={isTransitioning}

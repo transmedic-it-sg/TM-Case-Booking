@@ -48,7 +48,7 @@ const LogoutConfirmation: React.FC<LogoutConfirmationProps> = ({
           </div>
           <h3>Confirm Logout</h3>
         </div>
-        
+
         <div className="logout-confirmation-content">
           <p>
             Are you sure you want to logout{userName ? `, ${userName}` : ''}?

@@ -53,7 +53,7 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onClose, o
     if (startX === null || !isDragging) return;
     const touchX = e.touches[0].clientX;
     const diffX = touchX - startX;
-    
+
     // Only allow rightward swipe
     if (diffX > 0) {
       setCurrentX(diffX);
@@ -80,7 +80,7 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onClose, o
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (startX === null || !isDragging) return;
     const diffX = e.clientX - startX;
-    
+
     // Only allow rightward drag
     if (diffX > 0) {
       setCurrentX(diffX);
@@ -212,7 +212,7 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ toast, onClose, o
           <div className="toast-swipe-hint">← Swipe right to dismiss</div>
         )}
       </div>
-      <div 
+      <div
         className="toast-progress"
         style={{
           backgroundColor: getProgressBarColor(),

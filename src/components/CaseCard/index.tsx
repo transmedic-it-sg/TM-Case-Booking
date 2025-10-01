@@ -51,7 +51,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
 }) => {
   const { user } = useCurrentUser();
   const permissions = usePermissions();
-  
+
   // Get user IDs from status history and case data
   const userIds = [
     caseItem.submittedBy,
@@ -63,7 +63,6 @@ const CaseCard: React.FC<CaseCardProps> = ({
   const { getUserName } = useUserNames(userIds);
   // Removed useCaseActions - now using useRealtimeCases directly via props
   const caseData = useCaseData(caseItem);
-
 
   // Local state for UI interactions
   const [showStatusHistory, setShowStatusHistory] = useState(false);
@@ -105,7 +104,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   }, []);
 
   return (
-    <div 
+    <div
       className={`case-card ${isExpanded ? 'expanded' : ''} ${caseData.isUrgent ? 'urgent' : ''} ${caseData.isOverdue ? 'overdue' : ''}`}
       data-case-id={caseItem.id}
     >
@@ -135,7 +134,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <span>📋 Status History</span>
               <span className={`toggle-arrow ${showStatusHistory ? 'open' : ''}`}>▼</span>
             </button>
-            
+
             {showStatusHistory && (
               <div className="status-history-list">
                 {caseData.statusHistory.map((history, index) => (
@@ -157,8 +156,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
                               return (
                                 <div key={attachmentIndex} className="attachment-preview">
                                   {isImage ? (
-                                    <img 
-                                      src={attachment.data} 
+                                    <img
+                                      src={attachment.data}
                                       alt={attachment.name}
                                       className="attachment-thumbnail"
                                       title={attachment.name}
@@ -197,7 +196,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 <span>📝 Amendment History</span>
                 <span className={`toggle-arrow ${showAmendmentHistory ? 'open' : ''}`}>▼</span>
               </button>
-              
+
               {showAmendmentHistory && caseData.amendmentInfo && (
                 <div className="amendment-history-details">
                   <div>Amended by: {getUserName(caseData.amendmentInfo.amendedBy || '')}</div>
@@ -224,8 +223,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
           />
 
           {/* Attachment Manager (when needed) */}
-          {(isProcessing || isReceiving || isCompleting || 
-           caseItem.status === 'Order Prepared' || 
+          {(isProcessing || isReceiving || isCompleting ||
+           caseItem.status === 'Order Prepared' ||
            caseItem.status === 'Order Preparation' ||
            caseItem.status === 'Pending Delivery (Hospital)' ||
            caseItem.status === 'Delivered (Hospital)' ||

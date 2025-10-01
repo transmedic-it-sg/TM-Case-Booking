@@ -18,7 +18,7 @@ class DynamicConstantsService {
 
   async getDynamicConstant(key: string, country?: string): Promise<any> {
     const cacheKey = country ? `${key}_${country}` : key;
-    
+
     // Check cache first
     const cached = this.cache.get(cacheKey);
     if (cached) {
@@ -39,7 +39,7 @@ class DynamicConstantsService {
       }
 
       const value = data?.setting_value || null;
-      
+
       // Cache the result
       this.cache.set(cacheKey, {
         key,
@@ -90,7 +90,7 @@ class DynamicConstantsService {
     if (!this.subscribers.has(key)) {
       this.subscribers.set(key, []);
     }
-    
+
     this.subscribers.get(key)!.push(callback);
 
     // Return unsubscribe function
@@ -127,7 +127,7 @@ class DynamicConstantsService {
       const statuses = await this.getDynamicConstant('case_statuses');
       return statuses || [
         'Case Booked',
-        'Order Preparation', 
+        'Order Preparation',
         'Order Prepared',
         'Pending Delivery (Hospital)',
         'Delivered (Hospital)',

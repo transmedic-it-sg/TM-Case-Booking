@@ -137,11 +137,11 @@ export const isValidStatusTransition = (from: CaseStatus, to: CaseStatus): boole
   if (to === CASE_STATUSES.TO_BE_BILLED) {
     return true;
   }
-  
+
   // Otherwise, must follow workflow order
   const fromIndex = STATUS_WORKFLOW.indexOf(from);
   const toIndex = STATUS_WORKFLOW.indexOf(to);
-  
+
   return toIndex === fromIndex + 1;
 };
 

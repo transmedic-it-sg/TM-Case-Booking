@@ -67,7 +67,7 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
           error: error instanceof Error ? error.message : 'Unknown error',
           caseId: caseId || 'no-case-id'
         });
-        
+
         // Skip malformed attachments instead of using false data
         return null;
       }
@@ -164,7 +164,7 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
     for (const file of validFiles) {
       const attachmentId = `new-${caseId || 'temp'}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const preview = await createPreview(file);
-      
+
       if (preview) {
         setPreviews(prev => new Map(prev).set(attachmentId, preview));
       }
@@ -223,7 +223,7 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
   const removeFile = useCallback(async (attachmentId: string) => {
     const currentUser = getCurrentUserSync();
     const attachment = attachments.find(a => a.id === attachmentId);
-    
+
     if (!attachment) return;
 
     if (attachment.isNew) {
@@ -238,8 +238,8 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
       setAttachmentChanges(prev => prev.filter(c => c.fileName !== attachment.name));
     } else {
       // For existing files, mark as deleted
-      setAttachments(prev => prev.map(a => 
-        a.id === attachmentId 
+      setAttachments(prev => prev.map(a =>
+        a.id === attachmentId
           ? { ...a, isDeleted: true }
           : a
       ));
@@ -283,12 +283,12 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
 
     const currentUser = getCurrentUserSync();
     const existingAttachment = attachments.find(a => a.id === attachmentId);
-    
+
     if (!existingAttachment) return;
 
     const preview = await createPreview(newFile);
     const newAttachmentId = `replace-${caseId || 'temp'}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     if (preview) {
       setPreviews(prev => new Map(prev).set(newAttachmentId, preview));
     }
@@ -312,8 +312,8 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
     };
 
     // Mark original as deleted and add replacement
-    setAttachments(prev => prev.map(a => 
-      a.id === attachmentId 
+    setAttachments(prev => prev.map(a =>
+      a.id === attachmentId
         ? { ...a, isDeleted: true }
         : a
     ).concat(replacementAttachment));
@@ -355,7 +355,7 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
   const clearAll = useCallback(async () => {
     const currentUser = getCurrentUserSync();
     const activeAttachments = attachments.filter(a => !a.isDeleted);
-    
+
     if (activeAttachments.length === 0) return;
 
     // Mark all existing files as deleted

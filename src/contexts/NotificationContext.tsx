@@ -39,14 +39,14 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       try {
         const { SafeStorage } = await import('../utils/secureDataManager');
         const { STORAGE_KEYS } = await import('../constants/secureStorage');
-        
+
         const saved = await SafeStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
         if (saved) {
           // Ensure all notifications have userId for user isolation
-          const validNotifications = saved.filter((notification: any) => 
+          const validNotifications = saved.filter((notification: any) =>
             notification.userId && typeof notification.userId === 'string'
           );
-          
+
           setAllNotifications(validNotifications);
         }
       } catch (error) {
@@ -55,7 +55,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         setAllNotifications([]);
       }
     };
-    
+
     loadNotifications();
   }, []);
 
@@ -78,13 +78,13 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       try {
         const { SafeStorage } = await import('../utils/secureDataManager');
         const { STORAGE_KEYS } = await import('../constants/secureStorage');
-        
+
         await SafeStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, allNotifications);
       } catch (error) {
         console.error('Failed to save notifications to secure storage:', error);
       }
     };
-    
+
     if (allNotifications.length > 0) {
       saveNotifications();
     }
@@ -95,7 +95,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     try {
       const { SafeStorage } = await import('../utils/secureDataManager');
       const { STORAGE_KEYS } = await import('../constants/secureStorage');
-      
+
       const savedPreferences = await SafeStorage.getItem(`${STORAGE_KEYS.USER_PREFERENCES}_notifications_${userId}`);
       if (savedPreferences) {
         return savedPreferences;
@@ -103,7 +103,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     } catch (error) {
       console.error('Error loading notification preferences from secure storage:', error);
     }
-    
+
     // Default preferences
     return {
       statusUpdates: true,
@@ -141,7 +141,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   };
 
   const addNotification = async (
-    notification: Omit<Notification, 'id' | 'timestamp' | 'read' | 'userId'>, 
+    notification: Omit<Notification, 'id' | 'timestamp' | 'read' | 'userId'>,
     notificationType?: string,
     targetCountry?: string,
     targetDepartment?: string

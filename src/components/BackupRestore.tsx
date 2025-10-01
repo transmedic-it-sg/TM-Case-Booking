@@ -38,7 +38,7 @@ const BackupRestore: React.FC = () => {
     try {
       // Create backup - this would integrate with your database backup service
       const backupData = await createSystemBackup();
-      
+
       // Download backup file
       const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -93,7 +93,7 @@ const BackupRestore: React.FC = () => {
     try {
       const fileContent = await selectedFile.text();
       const backupData = JSON.parse(fileContent);
-      
+
       // Validate backup data structure
       if (!backupData.version || !backupData.timestamp || !backupData.tables) {
         throw new Error('Invalid backup file format');
@@ -104,7 +104,7 @@ const BackupRestore: React.FC = () => {
 
       showSuccess('Restore Complete', 'System has been restored successfully. Please refresh the page.');
       setSelectedFile(null);
-      
+
       // Clear the file input
       const fileInput = document.getElementById('backup-file') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
@@ -143,9 +143,7 @@ const BackupRestore: React.FC = () => {
 
   // Mock restore function - replace with actual implementation
   const restoreSystemBackup = async (backupData: any) => {
-    // This would integrate with your actual restore service
-    console.log('Restoring backup:', backupData);
-    // Simulate restore time
+    // This would integrate with your actual restore service// Simulate restore time
     await new Promise(resolve => setTimeout(resolve, 2000));
   };
 
@@ -173,7 +171,7 @@ const BackupRestore: React.FC = () => {
           <h3>Create Backup</h3>
           <p>Create a complete backup of the system including all cases, users, and configurations</p>
         </div>
-        
+
         <div className="backup-actions">
           <button
             onClick={handleCreateBackup}
@@ -189,7 +187,7 @@ const BackupRestore: React.FC = () => {
               'Create Full Backup'
             )}
           </button>
-          
+
           <div className="backup-info">
             <p>• Includes all case data, user accounts, and system settings</p>
             <p>• Downloaded as JSON file for secure storage</p>
@@ -203,7 +201,7 @@ const BackupRestore: React.FC = () => {
           <h3>Restore from Backup</h3>
           <p style={{color: '#dc3545', fontWeight: 'bold'}}>⚠️ Warning: This will overwrite all current data</p>
         </div>
-        
+
         <div className="upload-area">
           <div className="upload-content">
             <div className="upload-icon">📁</div>
@@ -220,7 +218,7 @@ const BackupRestore: React.FC = () => {
               </span>
             </label>
             <p>Choose a JSON backup file to restore</p>
-            
+
             {selectedFile && (
               <div className="selected-file">
                 <div className="file-info">
@@ -231,7 +229,7 @@ const BackupRestore: React.FC = () => {
             )}
           </div>
         </div>
-        
+
         <div className="restore-actions">
           <button
             onClick={handleRestoreBackup}
@@ -256,7 +254,7 @@ const BackupRestore: React.FC = () => {
             <h3>Recent Backups</h3>
             <p>History of backups created in this session</p>
           </div>
-          
+
           <div className="backup-list">
             {backupHistory.map((backup, index) => (
               <div key={index} className="backup-item">

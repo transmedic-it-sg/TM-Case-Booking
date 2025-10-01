@@ -67,7 +67,7 @@ interface SupabaseCaseAmendmentHistory {
 export const generateCaseReferenceNumber = async (country: string): Promise<string> => {
   try {
     const currentYear = new Date().getFullYear();
-    
+
     // Get or create counter for this country and year
     const { data: counterData, error: counterError } = await supabase
       .from('case_counters')
@@ -75,24 +75,24 @@ export const generateCaseReferenceNumber = async (country: string): Promise<stri
       .eq('country', country)
       .eq('year', currentYear)
       .single();
-    
+
     if (counterError && counterError.code !== 'PGRST116') {
       console.error('Error getting counter:', counterError);
       throw counterError;
     }
-    
+
     let newCounter = 1;
-    
+
     if (counterData) {
       newCounter = counterData.current_counter + 1;
-      
+
       // Update counter
       const { error: updateError } = await supabase
         .from('case_counters')
         .update({ current_counter: newCounter })
         .eq('country', country)
         .eq('year', currentYear);
-      
+
       if (updateError) {
         console.error('Error updating counter:', updateError);
         throw updateError;
@@ -106,13 +106,13 @@ export const generateCaseReferenceNumber = async (country: string): Promise<stri
           current_counter: newCounter,
           year: currentYear
         }]);
-      
+
       if (insertError) {
         console.error('Error creating counter:', insertError);
         throw insertError;
       }
     }
-    
+
     // Format: TMC-SG-2024-001
     return `TMC-${country}-${currentYear}-${newCounter.toString().padStart(3, '0')}`;
   } catch (error) {
@@ -174,10 +174,10 @@ const getAmendmentHistoryForCase = async (caseId: string): Promise<AmendmentHist
 
     // Group amendment records by timestamp and amended_by to create grouped amendments
     const groupedAmendments = new Map<string, AmendmentHistory>();
-    
+
     data?.forEach(history => {
       const key = `${history.timestamp}_${history.amended_by}`;
-      
+
       if (!groupedAmendments.has(key)) {
         groupedAmendments.set(key, {
           amendmentId: history.id,
@@ -187,14 +187,14 @@ const getAmendmentHistoryForCase = async (caseId: string): Promise<AmendmentHist
           reason: history.amendment_reason
         });
       }
-      
+
       groupedAmendments.get(key)!.changes.push({
         field: history.field_name,
         oldValue: history.old_value,
         newValue: history.new_value
       });
     });
-    
+
     return Array.from(groupedAmendments.values());
   } catch (error) {
     console.error('Error in getAmendmentHistoryForCase:', error);
@@ -216,12 +216,12 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
       .from('case_bookings')
       .select('*')
       .order('created_at', { ascending: false });
-    
+
     if (country) {
       // Get both the normalized country name and potential legacy country code
       const normalizedCountry = normalizeCountry(country);
       const legacyCountryCode = getLegacyCountryCode(normalizedCountry);
-      
+
       // Search for cases that match either the normalized country name or the legacy code
       if (legacyCountryCode && legacyCountryCode !== normalizedCountry) {
         query = query.or(`country.eq.${normalizedCountry},country.eq.${legacyCountryCode}`);
@@ -229,50 +229,46 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
         query = query.eq('country', normalizedCountry);
       }
     }
-    
+
     const { data, error } = await query;
-    
+
     if (error) {
       console.error('Error fetching cases:', error);
       throw error;
     }
-    
+
     if (!data) {
       return [];
     }
 
     // Extract case IDs for bulk fetching
     const caseIds = data.map(caseData => caseData.id);
-    
+
     // Fetch all status histories at once
     const { data: statusHistories, error: statusError } = await supabase
       .from('status_history')
       .select('*')
       .in('case_id', caseIds)
       .order('timestamp', { ascending: true });
-    
+
     if (statusError) {
       console.error('Error fetching status histories:', statusError);
     }
-    
+
     // Fetch all amendment histories at once
     const { data: amendmentHistories, error: amendmentError } = await supabase
       .from('amendment_history')
       .select('*')
       .in('case_id', caseIds)
       .order('timestamp', { ascending: true });
-    
+
     if (amendmentError) {
       console.error('Error fetching amendment histories:', amendmentError);
     }
-    
+
     // Group histories by case ID
     const statusHistoryMap = new Map<string, StatusHistory[]>();
-    const amendmentHistoryMap = new Map<string, AmendmentHistory[]>();
-    
-    console.log(`📚 Loading status histories for ${caseIds.length} cases. Found ${statusHistories?.length || 0} history entries.`);
-    
-    statusHistories?.forEach(history => {
+    const amendmentHistoryMap = new Map<string, AmendmentHistory[]>();statusHistories?.forEach(history => {
       if (!statusHistoryMap.has(history.case_id)) {
         statusHistoryMap.set(history.case_id, []);
       }
@@ -285,21 +281,21 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
         attachments: history.attachments || []
       });
     });
-    
+
     // Group amendment histories by case and session
     amendmentHistories?.forEach(history => {
       if (!amendmentHistoryMap.has(history.case_id)) {
         amendmentHistoryMap.set(history.case_id, []);
       }
-      
+
       const caseAmendments = amendmentHistoryMap.get(history.case_id)!;
       const sessionKey = `${history.timestamp}_${history.amended_by}`;
-      
+
       // Find existing amendment session or create new one
       let existingAmendment = caseAmendments.find(
         a => `${a.timestamp}_${a.amendedBy}` === sessionKey
       );
-      
+
       if (!existingAmendment) {
         existingAmendment = {
           amendmentId: history.id,
@@ -378,12 +374,12 @@ export const getSupabaseCasesOriginal = async (country?: string): Promise<CaseBo
         )
       `)
       .order('created_at', { ascending: false });
-    
+
     if (country) {
       // Get both the normalized country name and potential legacy country code
       const normalizedCountry = normalizeCountry(country);
       const legacyCountryCode = getLegacyCountryCode(normalizedCountry);
-      
+
       // Search for cases that match either the normalized country name or the legacy code
       if (legacyCountryCode && legacyCountryCode !== normalizedCountry) {
         query = query.or(`country.eq.${normalizedCountry},country.eq.${legacyCountryCode}`);
@@ -391,14 +387,14 @@ export const getSupabaseCasesOriginal = async (country?: string): Promise<CaseBo
         query = query.eq('country', normalizedCountry);
       }
     }
-    
+
     const { data, error } = await query;
-    
+
     if (error) {
       console.error('Error fetching cases:', error);
       throw error;
     }
-    
+
     // Transform Supabase data to CaseBooking interface
     return data.map(caseData => ({
       id: caseData.id,
@@ -434,13 +430,13 @@ export const getSupabaseCasesOriginal = async (country?: string): Promise<CaseBo
         if (!caseData.amendment_history || caseData.amendment_history.length === 0) {
           return [];
         }
-        
+
         // Group amendment records by timestamp and amended_by
         const groupedAmendments = new Map<string, AmendmentHistory>();
-        
+
         caseData.amendment_history.forEach((history: SupabaseCaseAmendmentHistory) => {
           const key = `${history.timestamp}_${history.amended_by}`;
-          
+
           if (!groupedAmendments.has(key)) {
             groupedAmendments.set(key, {
               amendmentId: history.id,
@@ -451,7 +447,7 @@ export const getSupabaseCasesOriginal = async (country?: string): Promise<CaseBo
             });
           }
         });
-        
+
         return Array.from(groupedAmendments.values());
       })()
     }));
@@ -473,7 +469,7 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
 
     // Generate case reference number
     const caseReferenceNumber = await generateCaseReferenceNumber(caseData.country);
-    
+
     // Use direct query instead of secure query
     const { data: insertedCase, error: insertError } = await supabase
       .from('case_bookings')
@@ -502,12 +498,12 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
       })
       .select()
       .single();
-    
+
     if (insertError) {
       console.error('Error inserting case:', insertError);
       throw insertError;
     }
-    
+
     // Create initial status history entry - only if it's a new case with "Case Booked" status
     if (caseData.status === 'Case Booked') {
       const { error: historyError } = await supabase
@@ -519,13 +515,13 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
           timestamp: insertedCase.created_at,
           details: 'Case created'
         }]);
-      
+
       if (historyError) {
         console.error('Error creating status history:', historyError);
         // Don't throw here, case was created successfully
       }
     }
-    
+
     // Transform back to CaseBooking interface
     return {
       id: insertedCase.id,
@@ -584,61 +580,57 @@ export const updateSupabaseCaseStatus = async (
       .select('status, case_reference_number, country, department')
       .eq('id', caseId)
       .single();
-      
+
     if (fetchError) {
       console.error('Error fetching case data:', fetchError);
       // Continue with status update even if we can't fetch current data
     }
-    
+
     const oldStatus = currentCase?.status;
     const caseRef = currentCase?.case_reference_number;
     const country = currentCase?.country;
     const department = currentCase?.department;
-    
+
     // Update case status
     const { error: updateError } = await supabase
       .from('case_bookings')
-      .update({ 
+      .update({
         status: newStatus,
         updated_at: new Date().toISOString()
       })
       .eq('id', caseId);
-    
+
     if (updateError) {
       console.error('Error updating case status:', updateError);
       throw updateError;
     }
-    
+
     // Check if this is a status change that might create duplicates
     let shouldAddHistoryEntry = true;
-    
+
     // Prevent duplicate entries, especially for "Case Booked"
     const { data: existingHistory } = await supabase
       .from('status_history')
       .select('*')
       .eq('case_id', caseId)
       .eq('status', newStatus);
-      
+
     if (existingHistory && existingHistory.length > 0) {
       // For "Case Booked", always prevent duplicates
       if (newStatus === 'Case Booked') {
-        shouldAddHistoryEntry = false;
-        console.log('Prevented duplicate "Case Booked" entry for case:', caseId);
-      } else {
+        shouldAddHistoryEntry = false;} else {
         // For other statuses, check if it's a recent duplicate (within 1 minute)
         const recentDuplicate = existingHistory.find(entry => {
           const entryTime = new Date(entry.timestamp).getTime();
           const now = new Date().getTime();
           return (now - entryTime) < 60000; // 1 minute
         });
-        
+
         if (recentDuplicate) {
-          shouldAddHistoryEntry = false;
-          console.log(`Prevented duplicate "${newStatus}" entry for case:`, caseId);
-        }
+          shouldAddHistoryEntry = false;}
       }
     }
-    
+
     // Add status history entry only if it's not a duplicate
     if (shouldAddHistoryEntry) {
       const historyEntry = {
@@ -648,26 +640,18 @@ export const updateSupabaseCaseStatus = async (
         timestamp: new Date().toISOString(),
         details: details || null,
         attachments: attachments || null
-      };
-      
-      console.log('📝 Creating status history entry:', historyEntry);
-      
-      const { error: historyError } = await supabase
+      };const { error: historyError } = await supabase
         .from('status_history')
         .insert([historyEntry]);
-      
+
       if (historyError) {
         console.error('❌ Error creating status history:', historyError);
         throw historyError;
-      }
-      
-      console.log('✅ Status history entry created successfully for case:', caseId);
-      
-      // Add audit log for status change (only if history entry was added)
+      }// Add audit log for status change (only if history entry was added)
       if (caseRef && oldStatus !== newStatus) {
         try {
           const { auditCaseStatusChange } = await import('./auditService');
-          
+
           // Get current user info for audit using secure method
           const { getCurrentUser } = await import('./authCompat');
           const currentUserData = getCurrentUser();
@@ -715,12 +699,12 @@ export const updateSupabaseCaseProcessing = async (
         updated_at: new Date().toISOString()
       })
       .eq('id', caseId);
-    
+
     if (updateError) {
       console.error('Error updating case processing:', updateError);
       throw updateError;
     }
-    
+
     // Prepare status history entry data
     const historyData: any = {
       case_id: caseId,
@@ -729,17 +713,17 @@ export const updateSupabaseCaseProcessing = async (
       timestamp: new Date().toISOString(),
       details: customDetails || 'Order processed and prepared'
     };
-    
+
     // Add attachments if provided
     if (attachments && attachments.length > 0) {
       historyData.attachments = attachments;
     }
-    
+
     // Add status history entry
     const { error: historyError } = await supabase
       .from('status_history')
       .insert([historyData]);
-    
+
     if (historyError) {
       console.error('Error creating status history:', historyError);
       throw historyError;
@@ -765,12 +749,12 @@ export const amendSupabaseCase = async (
       .select('*')
       .eq('id', caseId)
       .single();
-    
+
     if (fetchError) {
       console.error('Error fetching current case:', fetchError);
       throw fetchError;
     }
-    
+
     // Track what's being changed
     const changes: { field: string; oldValue: string; newValue: string }[] = [];
     const updateData: any = {
@@ -779,7 +763,7 @@ export const amendSupabaseCase = async (
       amended_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
-    
+
     // Map amendments to database columns and track changes
     if (amendments.hospital !== undefined && amendments.hospital !== currentCase.hospital) {
       updateData.hospital = amendments.hospital;
@@ -839,13 +823,13 @@ export const amendSupabaseCase = async (
     }
     if (amendments.surgerySetSelection !== undefined && JSON.stringify(amendments.surgerySetSelection) !== JSON.stringify(currentCase.surgery_set_selection)) {
       updateData.surgery_set_selection = amendments.surgerySetSelection;
-      
+
       // Calculate actual changes (additions and removals)
       const oldSets = currentCase.surgery_set_selection || [];
       const newSets = amendments.surgerySetSelection || [];
       const added = newSets.filter((item: string) => !oldSets.includes(item));
       const removed = oldSets.filter((item: string) => !newSets.includes(item));
-      
+
       let changeDescription = '';
       if (added.length > 0) {
         changeDescription += `Added: ${added.join(', ')}`;
@@ -854,7 +838,7 @@ export const amendSupabaseCase = async (
         if (changeDescription) changeDescription += '; ';
         changeDescription += `Removed: ${removed.join(', ')}`;
       }
-      
+
       if (changeDescription) {
         changes.push({
           field: 'Surgery Set Selection',
@@ -865,13 +849,13 @@ export const amendSupabaseCase = async (
     }
     if (amendments.implantBox !== undefined && JSON.stringify(amendments.implantBox) !== JSON.stringify(currentCase.implant_box)) {
       updateData.implant_box = amendments.implantBox;
-      
+
       // Calculate actual changes (additions and removals)
       const oldBoxes = currentCase.implant_box || [];
       const newBoxes = amendments.implantBox || [];
       const added = newBoxes.filter((item: string) => !oldBoxes.includes(item));
       const removed = oldBoxes.filter((item: string) => !newBoxes.includes(item));
-      
+
       let changeDescription = '';
       if (added.length > 0) {
         changeDescription += `Added: ${added.join(', ')}`;
@@ -880,7 +864,7 @@ export const amendSupabaseCase = async (
         if (changeDescription) changeDescription += '; ';
         changeDescription += `Removed: ${removed.join(', ')}`;
       }
-      
+
       if (changeDescription) {
         changes.push({
           field: 'Implant Box',
@@ -897,36 +881,30 @@ export const amendSupabaseCase = async (
         newValue: amendments.specialInstruction || ''
       });
     }
-    
+
     // Only proceed if there are actual changes
-    if (changes.length === 0) {
-      console.log('No changes detected for case amendment');
-      return;
+    if (changes.length === 0) {return;
     }
-    
+
     // Update case
     const { error: updateError } = await supabase
       .from('case_bookings')
       .update(updateData)
       .eq('id', caseId);
-    
+
     if (updateError) {
       console.error('Error amending case:', updateError);
       throw updateError;
     }
-    
+
     // Get the current authenticated user (with fallback for session)
     const { data: { user } } = await supabase.auth.getUser();
-    const session = await supabase.auth.getSession();
-    
-    console.log('Authentication check:', { user: !!user, session: !!session.data.session });
-    
-    // Skip authentication check if neither user nor session is available
+    const session = await supabase.auth.getSession();// Skip authentication check if neither user nor session is available
     // The RLS policies will handle the actual authorization
     if (!user && !session.data.session) {
       console.warn('No authentication found, but proceeding with RLS policy enforcement');
     }
-    
+
     // Create amendment history entry
     const historyEntry = {
       case_id: caseId,
@@ -934,37 +912,25 @@ export const amendSupabaseCase = async (
       timestamp: new Date().toISOString(),
       reason: (amendments as any).amendmentReason || 'No reason provided',
       changes: changes
-    };
-    
-    console.log('Inserting amendment history entry:', historyEntry);
-    console.log('Current user:', user);
-    
-    const { error: historyError } = await supabase
+    };const { error: historyError } = await supabase
       .from('amendment_history')
       .insert([historyEntry]);
-    
+
     if (historyError) {
       console.error('Error creating amendment history:', historyError);
-      
-      // Try alternative approach - use upsert instead of insert
-      console.log('Attempting alternative approach with upsert...');
-      const { error: upsertError } = await supabase
+
+      // Try alternative approach - use upsert instead of insertconst { error: upsertError } = await supabase
         .from('amendment_history')
         .upsert([{
           ...historyEntry,
           id: `${caseId}_${Date.now()}` // Generate unique ID
         }]);
-        
+
       if (upsertError) {
         console.error('Upsert also failed:', upsertError);
         throw historyError; // Throw original error
-      } else {
-        console.log('Amendment history saved via upsert method');
-      }
-    }
-    
-    console.log('Case amended successfully with', changes.length, 'changes tracked.');
-  } catch (error) {
+      } else {}
+    }} catch (error) {
     console.error('Error in amendSupabaseCase:', error);
     throw error;
   }
@@ -979,7 +945,7 @@ export const updateSupabaseCase = async (caseId: string, updates: Partial<CaseBo
     const updateData: any = {
       updated_at: new Date().toISOString()
     };
-    
+
     if (updates.hospital !== undefined) updateData.hospital = updates.hospital;
     if (updates.department !== undefined) updateData.department = updates.department;
     if (updates.dateOfSurgery !== undefined) updateData.date_of_surgery = updates.dateOfSurgery;
@@ -994,7 +960,7 @@ export const updateSupabaseCase = async (caseId: string, updates: Partial<CaseBo
     if (updates.processedBy !== undefined) updateData.processed_by = updates.processedBy;
     if (updates.processedAt !== undefined) updateData.processed_at = updates.processedAt;
     if (updates.processOrderDetails !== undefined) updateData.process_order_details = updates.processOrderDetails;
-    
+
     // Update case
     const { data: updatedCase, error: updateError } = await supabase
       .from('case_bookings')
@@ -1002,12 +968,12 @@ export const updateSupabaseCase = async (caseId: string, updates: Partial<CaseBo
       .eq('id', caseId)
       .select()
       .single();
-    
+
     if (updateError) {
       console.error('Error updating case:', updateError);
       throw updateError;
     }
-    
+
     // Return updated case in CaseBooking format
     return {
       id: updatedCase.id,
@@ -1049,7 +1015,7 @@ export const deleteSupabaseCase = async (caseId: string): Promise<void> => {
       .from('case_bookings')
       .delete()
       .eq('id', caseId);
-    
+
     if (error) {
       console.error('Error deleting case:', error);
       throw error;
@@ -1073,22 +1039,22 @@ export const getCategorizedSets = async (country: string): Promise<Record<string
       .from('department_categorized_sets')
       .select('*')
       .eq('country', country);
-    
+
     if (error) {
       console.error('Error fetching categorized sets:', error);
       throw error;
     }
-    
+
     // Transform to expected format
     const result: Record<string, { surgerySets: string[], implantBoxes: string[] }> = {};
-    
+
     data.forEach(item => {
       result[item.procedure_type] = {
         surgerySets: item.surgery_sets || [],
         implantBoxes: item.implant_boxes || []
       };
     });
-    
+
     return result;
   } catch (error) {
     console.error('Error in getCategorizedSets:', error);
@@ -1111,14 +1077,14 @@ export const saveCategorizedSets = async (
       surgery_sets: data.surgerySets,
       implant_boxes: data.implantBoxes
     }));
-    
+
     // Use upsert to insert or update existing sets
     const { error: upsertError } = await supabase
       .from('department_categorized_sets')
       .upsert(setsArray, {
         onConflict: 'country,procedure_type'
       });
-    
+
     if (upsertError) {
       console.error('Error upserting categorized sets:', upsertError);
       // Check if it's a table not found error (common cause of 400)
@@ -1144,9 +1110,9 @@ export const migrateCasesFromLocalStorage = async (): Promise<void> => {
   try {
     const localCases = localStorage.getItem('case-booking-cases');
     if (!localCases) return;
-    
+
     const cases = JSON.parse(localCases);
-    
+
     for (const caseData of cases) {
       try {
         // Transform localStorage format to Supabase format
@@ -1171,16 +1137,11 @@ export const migrateCasesFromLocalStorage = async (): Promise<void> => {
           amendedBy: caseData.amendedBy,
           amendedAt: caseData.amendedAt
         };
-        
-        await saveSupabaseCase(supabaseCase);
-        console.log(`Migrated case: ${caseData.caseReferenceNumber}`);
-      } catch (error) {
+
+        await saveSupabaseCase(supabaseCase);} catch (error) {
         console.error(`Error migrating case ${caseData.caseReferenceNumber}:`, error);
       }
-    }
-    
-    console.log('Case migration completed');
-  } catch (error) {
+    }} catch (error) {
     console.error('Error in case migration:', error);
   }
 };
@@ -1194,12 +1155,12 @@ export const checkCasesExist = async (): Promise<boolean> => {
       .from('case_bookings')
       .select('id')
       .limit(1);
-    
+
     if (error) {
       console.error('Error checking cases exist:', error);
       return false;
     }
-    
+
     return data.length > 0;
   } catch (error) {
     console.error('Error in checkCasesExist:', error);

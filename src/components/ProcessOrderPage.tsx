@@ -12,17 +12,17 @@ interface ProcessOrderPageProps {
   onBack: () => void;
 }
 
-const ProcessOrderPage: React.FC<ProcessOrderPageProps> = ({ 
-  caseData, 
-  onProcessComplete, 
-  onBack 
+const ProcessOrderPage: React.FC<ProcessOrderPageProps> = ({
+  caseData,
+  onProcessComplete,
+  onBack
 }) => {
   const currentUser = getCurrentUser();
   const { updateCaseStatus } = useRealtimeCases({
     enableRealTime: true,
     enableTesting: true
   });
-  
+
   const [processOrderDetails, setProcessOrderDetails] = useState(
     caseData.processOrderDetails || ''
   );
@@ -88,7 +88,6 @@ const ProcessOrderPage: React.FC<ProcessOrderPageProps> = ({
     }
   };
 
-
   return (
     <div className="process-order-page">
       <div className="page-header">
@@ -123,7 +122,7 @@ const ProcessOrderPage: React.FC<ProcessOrderPageProps> = ({
             <strong>Submitted at:</strong> {formatDateTime(caseData.submittedAt)}
           </div>
           <div className="summary-item">
-            <strong>Current Status:</strong> 
+            <strong>Current Status:</strong>
             <span className="status-badge">{caseData.status}</span>
           </div>
         </div>
@@ -137,7 +136,7 @@ const ProcessOrderPage: React.FC<ProcessOrderPageProps> = ({
               ))}
             </ul>
           </div>
-          
+
           <div className="equipment-item">
             <strong>Implant Box:</strong>
             <ul>

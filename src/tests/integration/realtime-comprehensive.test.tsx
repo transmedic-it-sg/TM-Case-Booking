@@ -21,10 +21,10 @@ const ComprehensiveRealtimeComponent: React.FC = () => {
   // All real-time hooks
   const cases = useRealtimeCases({ enableRealTime: true, enableTesting: true });
   const users = useRealtimeUsers({ enableRealTime: true, enableTesting: true });
-  const departments = useRealtimeDepartments({ 
-    country: 'Singapore', 
-    enableRealTime: true, 
-    enableTesting: true 
+  const departments = useRealtimeDepartments({
+    country: 'Singapore',
+    enableRealTime: true,
+    enableTesting: true
   });
   const permissions = useRealtimePermissions({ enableRealTime: true, enableTesting: true });
   const settings = useRealtimeSettings({ enableRealTime: true, enableTesting: true });
@@ -43,10 +43,7 @@ const ComprehensiveRealtimeComponent: React.FC = () => {
     settings: null
   });
 
-  const runComprehensiveValidation = async () => {
-    console.log('🧪 Running comprehensive validation of all real-time systems...');
-    
-    try {
+  const runComprehensiveValidation = async () => {try {
       const results = {
         cases: await cases.validateComponent(),
         users: await users.validateComponent(),
@@ -54,13 +51,10 @@ const ComprehensiveRealtimeComponent: React.FC = () => {
         permissions: await permissions.validateComponent(),
         settings: await settings.validateComponent()
       };
-      
+
       setTestResults(results);
-      
-      const allValid = Object.values(results).every(result => result === true);
-      console.log(`🧪 Comprehensive validation result: ${allValid ? 'PASS' : 'FAIL'}`, results);
-      
-      return allValid;
+
+      const allValid = Object.values(results).every(result => result === true);return allValid;
     } catch (error) {
       console.error('🧪 Comprehensive validation failed:', error);
       return false;
@@ -72,7 +66,7 @@ const ComprehensiveRealtimeComponent: React.FC = () => {
     const allLoaded = components.every(comp => !comp.isLoading);
     const hasErrors = components.some(comp => comp.error);
     const allMutating = components.every(comp => comp.isMutating);
-    
+
     return {
       allLoaded,
       hasErrors,
@@ -97,7 +91,7 @@ const ComprehensiveRealtimeComponent: React.FC = () => {
       <div data-testid="overall-mutations">
         Mutating: {status.mutatingCount}
       </div>
-      
+
       {/* Individual Component Data */}
       <div data-testid="cases-count">{cases.cases.length}</div>
       <div data-testid="users-count">{users.users.length}</div>
@@ -106,12 +100,12 @@ const ComprehensiveRealtimeComponent: React.FC = () => {
       <div data-testid="settings-loaded">
         {settings.settings ? 'Settings Loaded' : 'Settings Not Loaded'}
       </div>
-      
+
       {/* Validation Controls */}
       <button data-testid="validate-all-btn" onClick={runComprehensiveValidation}>
         Validate All Systems
       </button>
-      
+
       {/* Validation Results */}
       <div data-testid="validation-results">
         Cases: {testResults.cases === null ? 'NOT_TESTED' : (testResults.cases ? 'VALID' : 'INVALID')}
@@ -120,10 +114,10 @@ const ComprehensiveRealtimeComponent: React.FC = () => {
         Permissions: {testResults.permissions === null ? 'NOT_TESTED' : (testResults.permissions ? 'VALID' : 'INVALID')}
         Settings: {testResults.settings === null ? 'NOT_TESTED' : (testResults.settings ? 'VALID' : 'INVALID')}
       </div>
-      
+
       {/* Real-time Operations */}
-      <button 
-        data-testid="refresh-all-btn" 
+      <button
+        data-testid="refresh-all-btn"
         onClick={() => {
           cases.refreshCases();
           users.refreshUsers();
@@ -133,8 +127,8 @@ const ComprehensiveRealtimeComponent: React.FC = () => {
       >
         Refresh All Data
       </button>
-      
-      <button 
+
+      <button
         data-testid="simulate-updates-btn"
         onClick={() => {
           // Simulate concurrent updates
@@ -162,7 +156,7 @@ const ComprehensiveRealtimeComponent: React.FC = () => {
 // Test wrapper with providers
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = createTestQueryClient();
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <RealtimeProvider>
@@ -176,7 +170,7 @@ describe('Comprehensive Real-time System Integration Tests', () => {
   beforeEach(() => {
     // Reset any previous state
     jest.clearAllMocks();
-    
+
     // Setup comprehensive mock data for all systems
     server.use(
       // Cases
@@ -192,7 +186,7 @@ describe('Comprehensive Real-time System Integration Tests', () => {
           }
         ]));
       }),
-      
+
       // Users
       rest.get('*/rest/v1/profiles*', (req, res, ctx) => {
         return res(ctx.json([
@@ -206,7 +200,7 @@ describe('Comprehensive Real-time System Integration Tests', () => {
           }
         ]));
       }),
-      
+
       // Departments
       rest.get('*/rest/v1/departments*', (req, res, ctx) => {
         return res(ctx.json([
@@ -218,7 +212,7 @@ describe('Comprehensive Real-time System Integration Tests', () => {
           }
         ]));
       }),
-      
+
       // Doctors
       rest.get('*/rest/v1/doctors*', (req, res, ctx) => {
         return res(ctx.json([
@@ -230,7 +224,7 @@ describe('Comprehensive Real-time System Integration Tests', () => {
           }
         ]));
       }),
-      
+
       // Permissions
       rest.get('*/rest/v1/permissions*', (req, res, ctx) => {
         return res(ctx.json([
@@ -241,7 +235,7 @@ describe('Comprehensive Real-time System Integration Tests', () => {
           }
         ]));
       }),
-      
+
       // Roles
       rest.get('*/rest/v1/roles*', (req, res, ctx) => {
         return res(ctx.json([
@@ -253,7 +247,7 @@ describe('Comprehensive Real-time System Integration Tests', () => {
           }
         ]));
       }),
-      
+
       // Settings
       rest.get('*/rest/v1/user_settings*', (req, res, ctx) => {
         return res(ctx.json([
@@ -500,18 +494,15 @@ describe('Comprehensive Real-time System Integration Tests', () => {
     }, { timeout: 30000 });
 
     const loadTime = Date.now() - startTime;
-    
+
     // Performance assertions
     expect(loadTime).toBeLessThan(30000); // Should load within 30 seconds
-    expect(requestCount).toBeGreaterThan(40); // Each instance makes multiple requests
-    
-    console.log(`🚀 Performance Test: ${instances.length} concurrent instances loaded in ${loadTime}ms with ${requestCount} requests`);
-  });
+    expect(requestCount).toBeGreaterThan(40); // Each instance makes multiple requests});
 
   test('should validate real-time subscriptions are working', async () => {
     // This test would require actual Supabase real-time subscriptions
     // For now, we test that the subscription setup doesn't break anything
-    
+
     render(
       <TestWrapper>
         <ComprehensiveRealtimeComponent />

@@ -34,7 +34,7 @@ class Logger {
     const sanitized: any = {};
     for (const [key, value] of Object.entries(data)) {
       const lowerKey = key.toLowerCase();
-      const isSensitive = this.sensitiveKeys.some(sensitiveKey => 
+      const isSensitive = this.sensitiveKeys.some(sensitiveKey =>
         lowerKey.includes(sensitiveKey)
       );
 
@@ -60,14 +60,12 @@ class Logger {
   }
 
   debug(message: string, data?: any): void {
-    if (this.shouldLog('debug')) {
-      console.log(`🔍 ${message}`, data ? this.sanitizeData(data) : '');
+    if (this.shouldLog('debug')) {: '');
     }
   }
 
   info(message: string, data?: any): void {
-    if (this.shouldLog('info')) {
-      console.log(`ℹ️ ${message}`, data ? this.sanitizeData(data) : '');
+    if (this.shouldLog('info')) {: '');
     }
   }
 
@@ -91,9 +89,7 @@ class Logger {
         name: userInfo.name,
         role: userInfo.role,
         // Remove sensitive fields
-      } : undefined;
-      console.log(`🔐 AUTH: ${message}`, sanitizedUser);
-    }
+      } : undefined;}
   }
 
   permissionLog(message: string, data?: any): void {
@@ -104,9 +100,7 @@ class Logger {
         role: data.roleId || data.role,
         action: data.actionId || data.action,
         result: data.result || data.allowed
-      } : undefined;
-      console.log(`🛡️ PERM: ${message}`, essential);
-    }
+      } : undefined;}
   }
 }
 

@@ -45,14 +45,14 @@ export const getDepartmentsForCountry = async (country: string): Promise<Departm
 
     const normalizedCountry = normalizeCountry(country);
     logger.info('Fetching departments for country', { country: normalizedCountry });
-    
+
     const { data, error } = await supabase.rpc('get_departments_for_country_enhanced', {
       p_country: normalizedCountry
     });
 
     if (error) {
-      logger.error('Supabase error fetching departments for country', { 
-        country: normalizedCountry, 
+      logger.error('Supabase error fetching departments for country', {
+        country: normalizedCountry,
         error: error.message,
         code: error.code,
         details: error.details
@@ -77,7 +77,7 @@ export const getDepartmentsForCountry = async (country: string): Promise<Departm
         logger.warn('Invalid department data', { dept });
         return null;
       }
-      
+
       return {
         id: dept.id,
         name: dept.name,
@@ -87,16 +87,16 @@ export const getDepartmentsForCountry = async (country: string): Promise<Departm
       };
     }).filter(Boolean); // Remove any null entries
 
-    logger.info('Successfully fetched departments', { 
-      country: normalizedCountry, 
-      count: departments.length 
+    logger.info('Successfully fetched departments', {
+      country: normalizedCountry,
+      count: departments.length
     });
-    
+
     return departments as Department[];
 
   } catch (error) {
-    logger.error('Exception in getDepartmentsForCountry', { 
-      country, 
+    logger.error('Exception in getDepartmentsForCountry', {
+      country,
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
     });
@@ -121,10 +121,10 @@ export const getDoctorsForDepartment = async (departmentName: string, country: s
     });
 
     if (error) {
-      logger.error('Error fetching doctors for department', { 
-        departmentName, 
-        country: normalizedCountry, 
-        error: error.message 
+      logger.error('Error fetching doctors for department', {
+        departmentName,
+        country: normalizedCountry,
+        error: error.message
       });
       return [];
     }
@@ -142,10 +142,10 @@ export const getDoctorsForDepartment = async (departmentName: string, country: s
     }));
 
   } catch (error) {
-    logger.error('Exception in getDoctorsForDepartment', { 
-      departmentName, 
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    logger.error('Exception in getDoctorsForDepartment', {
+      departmentName,
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return [];
   }
@@ -168,10 +168,10 @@ export const getProceduresForDoctor = async (doctorId: string, country: string):
     });
 
     if (error) {
-      logger.error('Error fetching procedures for doctor', { 
-        doctorId, 
-        country: normalizedCountry, 
-        error: error.message 
+      logger.error('Error fetching procedures for doctor', {
+        doctorId,
+        country: normalizedCountry,
+        error: error.message
       });
       return [];
     }
@@ -186,10 +186,10 @@ export const getProceduresForDoctor = async (doctorId: string, country: string):
     }));
 
   } catch (error) {
-    logger.error('Exception in getProceduresForDoctor', { 
-      doctorId, 
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    logger.error('Exception in getProceduresForDoctor', {
+      doctorId,
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return [];
   }
@@ -199,8 +199,8 @@ export const getProceduresForDoctor = async (doctorId: string, country: string):
  * Get sets for a doctor-procedure combination (reuse existing function)
  */
 export const getSetsForDoctorProcedure = async (
-  doctorId: string, 
-  procedureType: string, 
+  doctorId: string,
+  procedureType: string,
   country: string
 ): Promise<ProcedureSet[]> => {
   try {
@@ -217,20 +217,20 @@ export const getSetsForDoctorProcedure = async (
     });
 
     if (error) {
-      logger.error('Error fetching sets for doctor-procedure', { 
-        doctorId, 
+      logger.error('Error fetching sets for doctor-procedure', {
+        doctorId,
         procedureType,
-        country: normalizedCountry, 
-        error: error.message 
+        country: normalizedCountry,
+        error: error.message
       });
       return [];
     }
 
     if (!data || data.length === 0) {
-      logger.info('No sets found for doctor-procedure', { 
-        doctorId, 
-        procedureType, 
-        country: normalizedCountry 
+      logger.info('No sets found for doctor-procedure', {
+        doctorId,
+        procedureType,
+        country: normalizedCountry
       });
       return [];
     }
@@ -242,11 +242,11 @@ export const getSetsForDoctorProcedure = async (
     }));
 
   } catch (error) {
-    logger.error('Exception in getSetsForDoctorProcedure', { 
-      doctorId, 
+    logger.error('Exception in getSetsForDoctorProcedure', {
+      doctorId,
       procedureType,
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return [];
   }
@@ -256,8 +256,8 @@ export const getSetsForDoctorProcedure = async (
  * Add doctor to department
  */
 export const addDoctorToDepartment = async (
-  doctorName: string, 
-  departmentName: string, 
+  doctorName: string,
+  departmentName: string,
   country: string,
   specialties: string[] = []
 ): Promise<{ success: boolean; doctorId?: string; error?: string }> => {
@@ -267,7 +267,7 @@ export const addDoctorToDepartment = async (
     }
 
     const normalizedCountry = normalizeCountry(country);
-    
+
     // Get department ID
     const { data: deptData, error: deptError } = await supabase
       .from('departments')
@@ -335,7 +335,7 @@ export const addDoctorToDepartment = async (
  * Remove doctor from system
  */
 export const removeDoctorFromSystem = async (
-  doctorId: string, 
+  doctorId: string,
   country: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
@@ -421,11 +421,11 @@ export const addProcedureToDoctor = async (
     return true;
 
   } catch (error) {
-    logger.error('Exception in addProcedureToDoctor', { 
-      doctorId, 
-      procedureType, 
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    logger.error('Exception in addProcedureToDoctor', {
+      doctorId,
+      procedureType,
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return false;
   }
@@ -466,12 +466,12 @@ export const updateDoctorProcedure = async (
     return true;
 
   } catch (error) {
-    logger.error('Exception in updateDoctorProcedure', { 
-      doctorId, 
-      oldProcedureType, 
+    logger.error('Exception in updateDoctorProcedure', {
+      doctorId,
+      oldProcedureType,
       newProcedureType,
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return false;
   }
@@ -509,11 +509,11 @@ export const deleteDoctorProcedure = async (
     return true;
 
   } catch (error) {
-    logger.error('Exception in deleteDoctorProcedure', { 
-      doctorId, 
+    logger.error('Exception in deleteDoctorProcedure', {
+      doctorId,
       procedureType,
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return false;
   }
@@ -549,12 +549,12 @@ export const addSurgerySetToProcedure = async (
     return true;
 
   } catch (error) {
-    logger.error('Exception in addSurgerySetToProcedure', { 
-      doctorId, 
+    logger.error('Exception in addSurgerySetToProcedure', {
+      doctorId,
       procedureType,
       surgerySetId,
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return false;
   }
@@ -590,12 +590,12 @@ export const addImplantBoxToProcedure = async (
     return true;
 
   } catch (error) {
-    logger.error('Exception in addImplantBoxToProcedure', { 
-      doctorId, 
+    logger.error('Exception in addImplantBoxToProcedure', {
+      doctorId,
       procedureType,
       implantBoxId,
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return false;
   }
@@ -630,12 +630,12 @@ export const removeSurgerySetFromProcedure = async (
     return true;
 
   } catch (error) {
-    logger.error('Exception in removeSurgerySetFromProcedure', { 
-      doctorId, 
+    logger.error('Exception in removeSurgerySetFromProcedure', {
+      doctorId,
       procedureType,
       surgerySetId,
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return false;
   }
@@ -670,12 +670,12 @@ export const removeImplantBoxFromProcedure = async (
     return true;
 
   } catch (error) {
-    logger.error('Exception in removeImplantBoxFromProcedure', { 
-      doctorId, 
+    logger.error('Exception in removeImplantBoxFromProcedure', {
+      doctorId,
       procedureType,
       implantBoxId,
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return false;
   }

@@ -18,12 +18,9 @@ const HybridLogin: React.FC<HybridLoginProps> = ({ onLogin }) => {
   useEffect(() => {
     const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
     const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
-    
+
     if (supabaseUrl && supabaseKey && supabaseUrl !== 'your-supabase-project-url') {
-      setUseSupabase(true);
-      console.log('✅ Supabase configuration detected - using cloud authentication');
-    } else {
-      console.log('📦 Using localStorage authentication (development mode)');
+      setUseSupabase(true);} else {');
     }
   }, []);
 
@@ -133,10 +130,10 @@ const HybridLogin: React.FC<HybridLoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      justifyContent: 'center', 
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
       alignItems: 'center',
       background: 'linear-gradient(135deg, #20b2aa 0%, #008b8b 100%)'
     }}>

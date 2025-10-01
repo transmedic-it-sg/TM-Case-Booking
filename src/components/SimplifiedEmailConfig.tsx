@@ -91,7 +91,7 @@ const SimplifiedEmailConfig: React.FC = () => {
         setAvailableCountries([]);
       }
     };
-    
+
     loadCountries();
   }, []);
 
@@ -102,7 +102,7 @@ const SimplifiedEmailConfig: React.FC = () => {
         setAvailableDepartments([]);
         return;
       }
-      
+
       try {
         // Use standardized country-based code table departments
         const { getDepartmentsForCountry } = await import('../utils/supabaseCodeTableService');
@@ -113,7 +113,7 @@ const SimplifiedEmailConfig: React.FC = () => {
         setAvailableDepartments([]);
       }
     };
-    
+
     loadDepartments();
   }, [selectedCountry]);
 
@@ -133,19 +133,19 @@ const SimplifiedEmailConfig: React.FC = () => {
       country,
       rules: statuses.map(status => {
         // Enable key statuses by default and provide better templates
-        const isKeyStatus = status === CASE_STATUSES.CASE_BOOKED || 
+        const isKeyStatus = status === CASE_STATUSES.CASE_BOOKED ||
                            status === CASE_STATUSES.ORDER_PREPARATION ||
                            status === CASE_STATUSES.ORDER_PREPARED ||
                            status === CASE_STATUSES.PENDING_DELIVERY_HOSPITAL ||
                            status === CASE_STATUSES.DELIVERED_HOSPITAL ||
-                           status === CASE_STATUSES.CASE_COMPLETED || 
+                           status === CASE_STATUSES.CASE_COMPLETED ||
                            status === CASE_STATUSES.PENDING_DELIVERY_OFFICE ||
                            status === CASE_STATUSES.DELIVERED_OFFICE ||
                            status === CASE_STATUSES.TO_BE_BILLED;
-        
+
         // Default roles for different statuses based on workflow
         let defaultRoles: string[] = [];
-        
+
         if (status === CASE_STATUSES.CASE_BOOKED) {
           defaultRoles = [USER_ROLES.ADMIN, USER_ROLES.OPERATIONS, USER_ROLES.OPERATIONS_MANAGER];
         } else if (status === CASE_STATUSES.ORDER_PREPARATION) {
@@ -500,9 +500,7 @@ Best regards,
         .eq('setting_key', `simplified_email_configs`)
         .single();
 
-      if (error || !data?.setting_value) {
-        console.log('No email configurations found in database, using empty config');
-        return {};
+      if (error || !data?.setting_value) {return {};
       }
 
       return data.setting_value;
@@ -529,10 +527,7 @@ Best regards,
 
       if (error) {
         throw error;
-      }
-      
-      console.log('✅ Email configurations saved to database');
-    } catch (error) {
+      }} catch (error) {
       console.error('Failed to save email configs to database:', error);
       throw error;
     }
@@ -545,7 +540,7 @@ Best regards,
     // Check for stored tokens for both providers
     const googleTokens = getStoredAuthTokens(selectedCountry, 'google');
     const microsoftTokens = getStoredAuthTokens(selectedCountry, 'microsoft');
-    
+
     // Load stored user info
     const googleUserInfo = getStoredUserInfo(selectedCountry, 'google');
     const microsoftUserInfo = getStoredUserInfo(selectedCountry, 'microsoft');
@@ -553,22 +548,18 @@ Best regards,
     // Enhanced token validation - check if tokens are valid or can be refreshed
     const validateTokens = async (tokens: AuthTokens | null, provider: 'google' | 'microsoft') => {
       if (!tokens) return false;
-      
+
       // If token is still valid, return true
       if (!isTokenExpired(tokens)) {
         return true;
       }
-      
+
       // If token is expired but we have a refresh token (Microsoft), try to refresh
-      if (provider === 'microsoft' && tokens.refreshToken) {
-        console.log(`[EmailConfig] Attempting to refresh expired ${provider} token...`);
-        const validToken = await getValidAccessToken(selectedCountry, provider);
+      if (provider === 'microsoft' && tokens.refreshToken) {const validToken = await getValidAccessToken(selectedCountry, provider);
         return !!validToken;
       }
-      
-      // Token is expired and can't be refreshed
-      console.log(`[EmailConfig] ${provider} token is expired and cannot be refreshed`);
-      return false;
+
+      // Token is expired and can't be refreshedreturn false;
     };
 
     // Load saved email configurations from database
@@ -587,15 +578,15 @@ Best regards,
 
       // Get existing saved config for this country or use defaults
       const existingConfig = savedEmailConfigs[selectedCountry];
-    
+
       // Validate tokens asynchronously
       const googleValid = await validateTokens(googleTokens, 'google');
       const microsoftValid = await validateTokens(microsoftTokens, 'microsoft');
-      
+
       // Get potentially refreshed tokens after validation
       const updatedGoogleTokens = getStoredAuthTokens(selectedCountry, 'google');
       const updatedMicrosoftTokens = getStoredAuthTokens(selectedCountry, 'microsoft');
-      
+
       const config: CountryEmailConfig = {
         country: selectedCountry,
         providers: {
@@ -628,7 +619,7 @@ Best regards,
         [selectedCountry]: config
       }));
     };
-    
+
     initializeEmailConfig();
 
     // Load email notification matrix configs from database
@@ -641,9 +632,7 @@ Best regards,
           .eq('setting_key', 'email_matrix_configs_by_country')
           .single();
 
-        if (error || !data?.setting_value) {
-          console.log('No email matrix configurations found in database, using defaults');
-          const newMatrix = initializeNotificationMatrix(selectedCountry);
+        if (error || !data?.setting_value) {const newMatrix = initializeNotificationMatrix(selectedCountry);
           setEmailMatrixConfigs(prev => ({
             ...prev,
             [selectedCountry]: newMatrix
@@ -653,7 +642,7 @@ Best regards,
 
         const matrixConfigs = data.setting_value;
         setEmailMatrixConfigs(matrixConfigs);
-        
+
         // Initialize notification matrix if it doesn't exist for this country
         if (!matrixConfigs[selectedCountry]) {
           const newMatrix = initializeNotificationMatrix(selectedCountry);
@@ -672,7 +661,7 @@ Best regards,
         }));
       }
     };
-    
+
     loadNotificationMatrix();
   }, [selectedCountry, initializeNotificationMatrix]);
 
@@ -684,15 +673,15 @@ Best regards,
     }
 
     // Check if OAuth client ID is configured
-    const clientId = provider === 'google' 
-      ? process.env.REACT_APP_GOOGLE_CLIENT_ID 
+    const clientId = provider === 'google'
+      ? process.env.REACT_APP_GOOGLE_CLIENT_ID
       : process.env.REACT_APP_MICROSOFT_CLIENT_ID;
-    
+
     if (!clientId) {
       const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
       setAuthError(`${providerName} OAuth is not configured. Please check your environment variables.`);
       showError(
-        'OAuth Not Configured', 
+        'OAuth Not Configured',
         `${providerName} client ID is missing. Please set up OAuth credentials first.`
       );
       return;
@@ -701,23 +690,12 @@ Best regards,
     setIsAuthenticating(prev => ({ ...prev, [provider]: true }));
     setAuthError('');
 
-    try {
-      console.log(`[OAuth] Starting ${provider} authentication for ${selectedCountry}...`);
-      console.log(`[OAuth] Environment check:`, {
-        clientId: provider === 'microsoft' ? process.env.REACT_APP_MICROSOFT_CLIENT_ID?.substring(0, 8) + '...' : process.env.REACT_APP_GOOGLE_CLIENT_ID?.substring(0, 8) + '...',
+    try {+ '...' : process.env.REACT_APP_GOOGLE_CLIENT_ID?.substring(0, 8) + '...',
         redirectUri: `${window.location.origin}/auth/callback`,
         currentOrigin: window.location.origin
       });
-      
-      const { tokens, userInfo } = await authenticateWithPopup(provider, selectedCountry);
-      
-      console.log(`[OAuth] Authentication successful:`, { 
-        provider, 
-        email: userInfo.email, 
-        hasAccessToken: !!tokens.accessToken 
-      });
-      
-      // Update configuration
+
+      const { tokens, userInfo } = await authenticateWithPopup(provider, selectedCountry);// Update configuration
       const updatedConfigs = {
         ...emailConfigs,
         [selectedCountry]: {
@@ -748,18 +726,18 @@ Best regards,
 
       playSound.success();
       showSuccess(
-        'Authentication Successful', 
+        'Authentication Successful',
         `Successfully authenticated with ${provider.charAt(0).toUpperCase() + provider.slice(1)} as ${userInfo.email}`
       );
 
     } catch (error) {
       console.error('Authentication failed - Full error:', error);
-      
+
       // More detailed error handling
       let errorMessage = 'Authentication failed';
       if (error instanceof Error) {
         errorMessage = error.message;
-        
+
         // Check for specific error types
         if (error.message.includes('Token exchange failed')) {
           errorMessage = 'Failed to exchange authorization code for tokens. Please check your OAuth configuration.';
@@ -771,7 +749,7 @@ Best regards,
           errorMessage = 'Authentication was cancelled. Please try again.';
         }
       }
-      
+
       setAuthError(errorMessage);
       showError('Authentication Failed', errorMessage);
     } finally {
@@ -784,7 +762,7 @@ Best regards,
     if (!selectedCountry) return;
 
     clearAuthTokens(selectedCountry, provider);
-    
+
     setEmailConfigs(prev => ({
       ...prev,
       [selectedCountry]: {
@@ -841,7 +819,7 @@ Best regards,
     try {
       // Save current emailConfigs state to database (includes "From Name" changes)
       await saveEmailConfigToDatabase(emailConfigs);
-      
+
       playSound.success();
       showSuccess('Configuration Saved', `Email settings for ${selectedCountry} have been saved to database`);
     } catch (error) {
@@ -872,27 +850,12 @@ Best regards,
 
     try {
       // Show loading state
-      showSuccess('Sending Test Email', 'Preparing test email...');
-      
-      console.log('Test Email Details:', {
-        provider: activeProvider,
-        country: selectedCountry,
-        fromName: providerConfig.fromName,
-        userEmail: providerConfig.userInfo?.email,
-        testEmailSubject: 'Test Email from Case Booking System',
-        testEmailBody: 'This is a test email to verify your email configuration is working correctly.'
-      });
-
-      // Get valid access token (handles refresh if necessary)
+      showSuccess('Sending Test Email', 'Preparing test email...');// Get valid access token (handles refresh if necessary)
       const validAccessToken = await getValidAccessToken(selectedCountry, activeProvider);
-      
+
       if (!validAccessToken) {
         throw new Error('Unable to get valid access token. Please re-authenticate.');
-      }
-
-      console.log(`[TestEmail] Got valid access token for ${activeProvider}`);
-
-      // Create OAuth manager for sending email
+      }// Create OAuth manager for sending email
       const oauth = createOAuthManager(activeProvider);
 
       // Prepare test email data
@@ -902,7 +865,7 @@ Best regards,
         body: `
           <h2>✅ Email Configuration Test</h2>
           <p>This is a test email to verify your email configuration is working correctly.</p>
-          
+
           <h3>Configuration Details:</h3>
           <ul>
             <li><strong>Provider:</strong> ${activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)}</li>
@@ -910,9 +873,9 @@ Best regards,
             <li><strong>From Name:</strong> ${providerConfig.fromName}</li>
             <li><strong>Send Time:</strong> ${new Date().toLocaleString()}</li>
           </ul>
-          
+
           <p><em>If you received this email, your email configuration is working properly!</em></p>
-          
+
           <hr>
           <p style="color: #666; font-size: 12px;">
             This test email was sent from the Case Booking System email configuration.
@@ -926,7 +889,7 @@ Best regards,
       if (success) {
         playSound.success();
         showSuccess(
-          'Test Email Sent Successfully! 📧', 
+          'Test Email Sent Successfully! 📧',
           `Test email sent to ${providerConfig.userInfo.email} via ${activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)}`
         );
       } else {
@@ -935,7 +898,7 @@ Best regards,
     } catch (error) {
       console.error('Test email failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      
+
       if (errorMessage.includes('expired')) {
         showError('Authentication Expired', 'Your authentication has expired. Please re-authenticate and try again.');
       } else if (errorMessage.includes('blocked') || errorMessage.includes('permission')) {
@@ -1014,7 +977,7 @@ Best regards,
   }
 
   const currentConfig = emailConfigs[selectedCountry];
-  
+
   // Check OAuth configuration status
   const isGoogleConfigured = !!process.env.REACT_APP_GOOGLE_CLIENT_ID;
   const isMicrosoftConfigured = !!process.env.REACT_APP_MICROSOFT_CLIENT_ID;
@@ -1024,7 +987,7 @@ Best regards,
       <div className="email-config-header">
         <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>📧 Email Configuration</h3>
         <p style={{ fontSize: '0.9rem', color: '#6c757d' }}>Configure email providers for automated notifications</p>
-        
+
         {/* Country Selection for Admin */}
         {canSwitchCountries && (
           <div className="country-selection" style={{ marginTop: '1rem' }}>
@@ -1042,7 +1005,7 @@ Best regards,
             </select>
           </div>
         )}
-        
+
         {selectedCountry && !canSwitchCountries && (
           <div className="current-country-badge">
             <span className="country-label">Configuration for:</span>
@@ -1055,8 +1018,8 @@ Best regards,
         <>
           {/* Collapsible Provider Authentication with Summary */}
           <div className="config-section">
-            <div 
-              className="section-header collapsible-header" 
+            <div
+              className="section-header collapsible-header"
               onClick={() => setIsProviderSectionCollapsed(!isProviderSectionCollapsed)}
               style={{ cursor: 'pointer' }}
             >
@@ -1081,7 +1044,7 @@ Best regards,
                 {isProviderSectionCollapsed ? '▶' : '▼'}
               </span>
             </div>
-            
+
             {!isProviderSectionCollapsed && (
               <div className="section-content">
                 <p style={{ marginBottom: '1rem', color: '#6c757d' }}>
@@ -1089,10 +1052,10 @@ Best regards,
                 </p>
 
                 {/* Environment-specific setup information */}
-                <div style={{ 
-                  marginBottom: '2rem', 
-                  padding: '1rem', 
-                  background: '#f8f9fa', 
+                <div style={{
+                  marginBottom: '2rem',
+                  padding: '1rem',
+                  background: '#f8f9fa',
                   borderRadius: '8px',
                   border: '1px solid #dee2e6'
                 }}>
@@ -1143,9 +1106,9 @@ Best regards,
             <div className="provider-card">
               <div className="provider-header">
                 <div className="provider-info">
-                  <img 
-                    src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwSDEyVjE0LjI2SDE3LjkyQzE3LjY2IDE1LjYzIDE2Ljg3IDE2Ljc4IDE1LjY2IDE3LjQ4VjIwLjI2SDE5LjI3QzIxLjMgMTguNDMgMjIuNTYgMTUuNiAyMi41NiAxMi4yNVoiIGZpbGw9IiM0Mjg1RjQiLz4KPHBhdGggZD0iTTEyIDIzQzE1LjI0IDIzIDE3LjQ1IDIxLjkyIDE5LjI3IDE5Ljk4TDE1LjY2IDE3LjJDMTQuNTQgMTcuNzUgMTMuMzIgMTguMDggMTIgMTguMDhDOC44NyAxOC4wOCA2LjM1IDE2LjUgNS40MiAxNC4ySDEuNzJWMTYuOTdDMy41OCAyMC43OSA3LjU0IDIzIDEyIDIzWiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNNS40MiAxMi45MkM1LjIgMTIuMzcgNS4wOCAxMS43OCA1LjA4IDExLjE3QzUuMDggMTAuNTYgNS4yIDkuOTcgNS40MiA5LjQyVjYuNjVIMS43MkMxLjEgOC4xNyAwLjc0IDkuODMgMC43NCAxMS4xN0MwLjc0IDEyLjUxIDEuMSAxNC4xNyAxLjcyIDE1LjY5TDQuNzMgMTMuNDJMNS40MiAxMi45MloiIGZpbGw9IiNGQkJDMDQiLz4KPHBhdGggZD0iTTEyIDQuOTJDMTMuNTcgNC45MiAxNC45NiA1LjUxIDE2LjAzIDYuNTJMMTkuMjUgMy4zQzE3LjQ1IDEuNjQgMTUuMjQgMC41IDEyIDAuNUM3LjU0IDAuNSAzLjU4IDIuNzEgMS43MiA2LjUzTDUuNDIgOS4zQzYuMzUgNyAxMS44NyA0LjkyIDEyIDQuOTJaIiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo=" 
-                    alt="Google" 
+                  <img
+                    src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwSDEyVjE0LjI2SDE3LjkyQzE3LjY2IDE1LjYzIDE2Ljg3IDE2Ljc4IDE1LjY2IDE3LjQ4VjIwLjI2SDE5LjI3QzIxLjMgMTguNDMgMjIuNTYgMTUuNiAyMi41NiAxMi4yNVoiIGZpbGw9IiM0Mjg1RjQiLz4KPHBhdGggZD0iTTEyIDIzQzE1LjI0IDIzIDE3LjQ1IDIxLjkyIDE5LjI3IDE5Ljk4TDE1LjY2IDE3LjJDMTQuNTQgMTcuNzUgMTMuMzIgMTguMDggMTIgMTguMDhDOC44NyAxOC4wOCA2LjM1IDE2LjUgNS40MiAxNC4ySDEuNzJWMTYuOTdDMy41OCAyMC43OSA3LjU0IDIzIDEyIDIzWiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNNS40MiAxMi45MkM1LjIgMTIuMzcgNS4wOCAxMS43OCA1LjA4IDExLjE3QzUuMDggMTAuNTYgNS4yIDkuOTcgNS40MiA5LjQyVjYuNjVIMS43MkMxLjEgOC4xNyAwLjc0IDkuODMgMC43NCAxMS4xN0MwLjc0IDEyLjUxIDEuMSAxNC4xNyAxLjcyIDE1LjY5TDQuNzMgMTMuNDJMNS40MiAxMi45MloiIGZpbGw9IiNGQkJDMDQiLz4KPHBhdGggZD0iTTEyIDQuOTJDMTMuNTcgNC45MiAxNC45NiA1LjUxIDE2LjAzIDYuNTJMMTkuMjUgMy4zQzE3LjQ1IDEuNjQgMTUuMjQgMC41IDEyIDAuNUM3LjU0IDAuNSAzLjU4IDIuNzEgMS43MiA2LjUzTDUuNDIgOS4zQzYuMzUgNyAxMS44NyA0LjkyIDEyIDQuOTJaIiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo="
+                    alt="Google"
                     className="provider-icon"
                   />
                   <div>
@@ -1153,7 +1116,7 @@ Best regards,
                     <p>Send emails through Gmail API</p>
                   </div>
                 </div>
-                
+
                 {currentConfig?.providers.google.isAuthenticated ? (
                   <div className="auth-status authenticated">
                     <span className="status-icon">✅</span>
@@ -1194,7 +1157,7 @@ Best regards,
                   <>
                     {!isGoogleConfigured && (
                       <div className="alert alert-warning">
-                        <strong>⚠️ Setup Required:</strong> Google OAuth client ID not configured. 
+                        <strong>⚠️ Setup Required:</strong> Google OAuth client ID not configured.
                         Please see <code>MICROSOFT_OAUTH_SETUP.md</code> for setup instructions.
                       </div>
                     )}
@@ -1220,9 +1183,9 @@ Best regards,
             <div className="provider-card">
               <div className="provider-header">
                 <div className="provider-info">
-                  <img 
-                    src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjExIiBoZWlnaHQ9IjExIiBmaWxsPSIjRjI1MDIyIi8+CjxyZWN0IHg9IjEzIiB3aWR0aD0iMTEiIGhlaWdodD0iMTEiIGZpbGw9IiM3RkJBMDAiLz4KPHJlY3QgeT0iMTMiIHdpZHRoPSIxMSIgaGVpZ2h0PSIxMSIgZmlsbD0iIzAwQTRFRiIvPgo8cmVjdCB4PSIxMyIgeT0iMTMiIHdpZHRoPSIxMSIgaGVpZ2h0PSIxMSIgZmlsbD0iI0ZGQjkwMCIvPgo8L3N2Zz4K" 
-                    alt="Microsoft" 
+                  <img
+                    src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjExIiBoZWlnaHQ9IjExIiBmaWxsPSIjRjI1MDIyIi8+CjxyZWN0IHg9IjEzIiB3aWR0aD0iMTEiIGhlaWdodD0iMTEiIGZpbGw9IiM3RkJBMDAiLz4KPHJlY3QgeT0iMTMiIHdpZHRoPSIxMSIgaGVpZ2h0PSIxMSIgZmlsbD0iIzAwQTRFRiIvPgo8cmVjdCB4PSIxMyIgeT0iMTMiIHdpZHRoPSIxMSIgaGVpZ2h0PSIxMSIgZmlsbD0iI0ZGQjkwMCIvPgo8L3N2Zz4K"
+                    alt="Microsoft"
                     className="provider-icon"
                   />
                   <div>
@@ -1230,7 +1193,7 @@ Best regards,
                     <p>Send emails through Outlook/Office 365</p>
                   </div>
                 </div>
-                
+
                 {currentConfig?.providers.microsoft.isAuthenticated ? (
                   <div className="auth-status authenticated">
                     <span className="status-icon">✅</span>
@@ -1280,7 +1243,7 @@ Best regards,
                   <>
                     {!isMicrosoftConfigured && (
                       <div className="alert alert-warning">
-                        <strong>⚠️ Setup Required:</strong> Microsoft OAuth client ID not configured. 
+                        <strong>⚠️ Setup Required:</strong> Microsoft OAuth client ID not configured.
                         Please see <code>MICROSOFT_OAUTH_SETUP.md</code> for detailed setup instructions.
                       </div>
                     )}
@@ -1308,8 +1271,8 @@ Best regards,
                     onClick={handleSaveConfig}
                     disabled={!currentConfig?.providers.google.isAuthenticated && !currentConfig?.providers.microsoft.isAuthenticated}
                     className="btn btn-success"
-                    title={(!currentConfig?.providers.google.isAuthenticated && !currentConfig?.providers.microsoft.isAuthenticated) 
-                      ? "Please authenticate with at least one email provider first" 
+                    title={(!currentConfig?.providers.google.isAuthenticated && !currentConfig?.providers.microsoft.isAuthenticated)
+                      ? "Please authenticate with at least one email provider first"
                       : "Save email configuration including From Name settings"}
                   >
                     💾 Save Configuration
@@ -1322,15 +1285,7 @@ Best regards,
                     📧 Test Email
                   </button>
                   <button
-                    onClick={() => {
-                      console.log('Debug Info:', {
-                        selectedCountry,
-                        currentConfig,
-                        isGoogleConfigured,
-                        isMicrosoftConfigured,
-                        emailConfigs
-                      });
-                      showSuccess('Debug Info', 'Check console for detailed debug information');
+                    onClick={() => {showSuccess('Debug Info', 'Check console for detailed debug information');
                     }}
                     className="btn btn-outline-secondary btn-sm"
                   >
@@ -1343,8 +1298,8 @@ Best regards,
 
           {/* Email Notification Rules Section */}
           <div className="config-section">
-            <div 
-              className="section-header collapsible-header" 
+            <div
+              className="section-header collapsible-header"
               onClick={() => setIsNotificationRulesCollapsed(!isNotificationRulesCollapsed)}
               style={{ cursor: 'pointer' }}
             >
@@ -1364,7 +1319,7 @@ Best regards,
                 {isNotificationRulesCollapsed ? '▶' : '▼'}
               </span>
             </div>
-            
+
             {!isNotificationRulesCollapsed && (
               <div className="section-content">
                 <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#e3f2fd', borderRadius: '8px', border: '1px solid #2196f3' }}>
@@ -1375,11 +1330,11 @@ Best regards,
                 </div>
 
                 {/* Important notice about Case Booked notifications */}
-                <div style={{ 
-                  marginBottom: '1.5rem', 
-                  padding: '1rem', 
-                  background: '#e8f5e8', 
-                  borderRadius: '8px', 
+                <div style={{
+                  marginBottom: '1.5rem',
+                  padding: '1rem',
+                  background: '#e8f5e8',
+                  borderRadius: '8px',
                   border: '2px solid #4caf50',
                   borderLeft: '6px solid #4caf50'
                 }}>
@@ -1387,7 +1342,7 @@ Best regards,
                     🆕 <strong>New Case Notifications</strong>
                   </h5>
                   <p style={{ margin: '0', color: '#1b5e20', fontSize: '0.9rem' }}>
-                    <strong>"Case Booked"</strong> notifications are automatically enabled and pre-configured to notify operations teams when new cases are submitted. 
+                    <strong>"Case Booked"</strong> notifications are automatically enabled and pre-configured to notify operations teams when new cases are submitted.
                     This ensures immediate awareness of new case bookings requiring attention.
                   </p>
                 </div>
@@ -1399,7 +1354,7 @@ Best regards,
                       const allRoles = getAllRoles();
                       const availableRoles = allRoles.map(role => role.id);
                       const isCaseBookedRule = rule.status === CASE_STATUSES.CASE_BOOKED;
-                      
+
                       return (
                         <div key={rule.status} className="notification-rule" style={{
                           border: isCaseBookedRule ? '2px solid #4caf50' : '1px solid #dee2e6',
@@ -1425,30 +1380,30 @@ Best regards,
                               🆕 NEW CASES
                             </div>
                           )}
-                          
-                          <div 
-                            style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'space-between', 
+
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
                               marginBottom: rule.enabled && !isRuleCollapsed ? '1rem' : '0',
                               cursor: rule.enabled ? 'pointer' : 'default'
                             }}
                             onClick={rule.enabled ? () => toggleRuleCollapse(index) : undefined}
                           >
-                            <h5 style={{ 
-                              margin: '0', 
-                              color: isCaseBookedRule ? '#2e7d32' : '#495057', 
-                              display: 'flex', 
-                              alignItems: 'center', 
+                            <h5 style={{
+                              margin: '0',
+                              color: isCaseBookedRule ? '#2e7d32' : '#495057',
+                              display: 'flex',
+                              alignItems: 'center',
                               gap: '0.5rem',
                               fontWeight: isCaseBookedRule ? 'bold' : 'normal'
                             }}>
                               {isCaseBookedRule ? '🆕' : '📊'} {rule.status}
                               {rule.enabled && (
-                                <span style={{ 
-                                  fontSize: '0.8rem', 
-                                  transform: isRuleCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', 
+                                <span style={{
+                                  fontSize: '0.8rem',
+                                  transform: isRuleCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
                                   transition: 'transform 0.2s ease',
                                   color: '#6c757d',
                                   marginLeft: '0.5rem'
@@ -1520,7 +1475,7 @@ Best regards,
                                     }}
                                     placeholder="Select user roles to notify..."
                                   />
-                                  
+
                                   <div style={{ marginTop: '1rem' }}>
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                                       <input
@@ -1565,7 +1520,7 @@ Best regards,
                                 <h5 style={{ color: '#495057', fontSize: '0.9rem', margin: '0 0 1rem 0', fontWeight: '600' }}>
                                   🏥 Department-Based Filtering
                                 </h5>
-                                
+
                                 <div style={{ marginBottom: '1rem' }}>
                                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                                     <input
@@ -1613,9 +1568,9 @@ Best regards,
                       <button
                         onClick={saveNotificationMatrix}
                         className="btn btn-primary btn-lg"
-                        style={{ 
-                          padding: '12px 24px', 
-                          fontSize: '16px', 
+                        style={{
+                          padding: '12px 24px',
+                          fontSize: '16px',
                           fontWeight: '600',
                           minWidth: '200px',
                           whiteSpace: 'nowrap'
@@ -1633,8 +1588,8 @@ Best regards,
 
           {/* Template Variables Reference Section */}
           <div className="config-section">
-            <div 
-              className="section-header collapsible-header" 
+            <div
+              className="section-header collapsible-header"
               onClick={() => setIsTemplateVariablesCollapsed(!isTemplateVariablesCollapsed)}
               style={{ cursor: 'pointer' }}
             >
@@ -1649,7 +1604,7 @@ Best regards,
                 {isTemplateVariablesCollapsed ? '▶' : '▼'}
               </span>
             </div>
-            
+
             {!isTemplateVariablesCollapsed && (
               <div className="section-content">
                 <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f0f8ff', borderRadius: '8px', border: '1px solid #4fc3f7' }}>
@@ -1659,13 +1614,13 @@ Best regards,
                   </p>
                 </div>
 
-                <div className="template-variables-grid" style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                <div className="template-variables-grid" style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
                   gap: '1rem',
                   marginBottom: '2rem'
                 }}>
-                  
+
                   {/* Basic Case Information */}
                   <div className="variable-category" style={{
                     border: '1px solid #e0e0e0',
@@ -1674,12 +1629,12 @@ Best regards,
                     background: '#fafafa'
                   }}>
                     <h5 style={{ color: '#1976d2', marginBottom: '1rem' }}>📋 Basic Case Information</h5>
-                    
+
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#e3f2fd', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#e3f2fd',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#1565c0'
@@ -1692,10 +1647,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#e3f2fd', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#e3f2fd',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#1565c0'
@@ -1708,10 +1663,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#e3f2fd', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#e3f2fd',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#1565c0'
@@ -1724,10 +1679,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#e3f2fd', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#e3f2fd',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#1565c0'
@@ -1740,10 +1695,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#e3f2fd', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#e3f2fd',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#1565c0'
@@ -1764,12 +1719,12 @@ Best regards,
                     background: '#fafafa'
                   }}>
                     <h5 style={{ color: '#1976d2', marginBottom: '1rem' }}>🏥 Surgery Details</h5>
-                    
+
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#e8f5e8', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#e8f5e8',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#2e7d32'
@@ -1782,10 +1737,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#e8f5e8', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#e8f5e8',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#2e7d32'
@@ -1798,10 +1753,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#e8f5e8', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#e8f5e8',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#2e7d32'
@@ -1814,10 +1769,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#e8f5e8', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#e8f5e8',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#2e7d32'
@@ -1830,10 +1785,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#e8f5e8', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#e8f5e8',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#2e7d32'
@@ -1854,12 +1809,12 @@ Best regards,
                     background: '#fafafa'
                   }}>
                     <h5 style={{ color: '#1976d2', marginBottom: '1rem' }}>👤 User & Timestamps</h5>
-                    
+
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#fff3e0', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#fff3e0',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#f57c00'
@@ -1872,10 +1827,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#fff3e0', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#fff3e0',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#f57c00'
@@ -1888,10 +1843,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#fff3e0', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#fff3e0',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#f57c00'
@@ -1904,10 +1859,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#fff3e0', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#fff3e0',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#f57c00'
@@ -1920,10 +1875,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#fff3e0', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#fff3e0',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#f57c00'
@@ -1944,12 +1899,12 @@ Best regards,
                     background: '#fafafa'
                   }}>
                     <h5 style={{ color: '#1976d2', marginBottom: '1rem' }}>📝 Additional Information</h5>
-                    
+
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#f3e5f5', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#f3e5f5',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#7b1fa2'
@@ -1962,10 +1917,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#f3e5f5', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#f3e5f5',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#7b1fa2'
@@ -1978,10 +1933,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#f3e5f5', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#f3e5f5',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#7b1fa2'
@@ -1994,10 +1949,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#f3e5f5', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#f3e5f5',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#7b1fa2'
@@ -2010,10 +1965,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#f3e5f5', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#f3e5f5',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#7b1fa2'
@@ -2026,10 +1981,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#f3e5f5', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#f3e5f5',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#7b1fa2'
@@ -2042,10 +1997,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#f3e5f5', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#f3e5f5',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#7b1fa2'
@@ -2058,10 +2013,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#f3e5f5', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#f3e5f5',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#7b1fa2'
@@ -2074,10 +2029,10 @@ Best regards,
                     </div>
 
                     <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{ 
-                        background: '#f3e5f5', 
-                        padding: '2px 6px', 
-                        borderRadius: '4px', 
+                      <code className="variable-code" style={{
+                        background: '#f3e5f5',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
                         fontSize: '0.9rem',
                         fontWeight: 'bold',
                         color: '#7b1fa2'
@@ -2092,21 +2047,21 @@ Best regards,
                 </div>
 
                 {/* Usage Examples */}
-                <div style={{ 
-                  background: '#e8f5e8', 
-                  border: '1px solid #4caf50', 
-                  borderRadius: '8px', 
+                <div style={{
+                  background: '#e8f5e8',
+                  border: '1px solid #4caf50',
+                  borderRadius: '8px',
                   padding: '1.5rem',
                   marginBottom: '1rem'
                 }}>
                   <h5 style={{ color: '#2e7d32', marginBottom: '1rem' }}>💡 Usage Examples</h5>
-                  
+
                   <div style={{ marginBottom: '1rem' }}>
                     <strong style={{ color: '#1976d2' }}>Example Subject:</strong>
-                    <div style={{ 
-                      background: '#f5f5f5', 
-                      padding: '8px', 
-                      borderRadius: '4px', 
+                    <div style={{
+                      background: '#f5f5f5',
+                      padding: '8px',
+                      borderRadius: '4px',
                       marginTop: '4px',
                       fontFamily: 'monospace',
                       fontSize: '0.9rem'
@@ -2117,10 +2072,10 @@ Best regards,
 
                   <div>
                     <strong style={{ color: '#1976d2' }}>Example Body:</strong>
-                    <div style={{ 
-                      background: '#f5f5f5', 
-                      padding: '8px', 
-                      borderRadius: '4px', 
+                    <div style={{
+                      background: '#f5f5f5',
+                      padding: '8px',
+                      borderRadius: '4px',
                       marginTop: '4px',
                       fontFamily: 'monospace',
                       fontSize: '0.9rem',
@@ -2144,10 +2099,10 @@ Case Booking System`}
                   </div>
                 </div>
 
-                <div style={{ 
-                  background: '#fff3e0', 
-                  border: '1px solid #ff9800', 
-                  borderRadius: '6px', 
+                <div style={{
+                  background: '#fff3e0',
+                  border: '1px solid #ff9800',
+                  borderRadius: '6px',
                   padding: '0.75rem',
                   fontSize: '0.85rem',
                   color: '#e65100'

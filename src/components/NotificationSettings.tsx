@@ -48,7 +48,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
         try {
           const { SafeStorage } = await import('../utils/secureDataManager');
           const { STORAGE_KEYS } = await import('../constants/secureStorage');
-          
+
           const savedPreferences = await SafeStorage.getItem(`${STORAGE_KEYS.USER_PREFERENCES}_notifications_${currentUser.id}`);
           if (savedPreferences) {
             setPreferences({ ...defaultPreferences, ...savedPreferences });
@@ -57,7 +57,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
           console.error('Error loading notification preferences:', error);
         }
       };
-      
+
       loadPreferences();
     }
   }, [currentUser]);
@@ -93,7 +93,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
       try {
         const { SafeStorage } = await import('../utils/secureDataManager');
         const { STORAGE_KEYS } = await import('../constants/secureStorage');
-        
+
         await SafeStorage.setItem(`${STORAGE_KEYS.USER_PREFERENCES}_notifications_${currentUser.id}`, newPreferences);
         setPreferences(newPreferences);
       } catch (error) {

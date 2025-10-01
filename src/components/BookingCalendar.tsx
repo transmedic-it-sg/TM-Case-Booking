@@ -26,7 +26,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
       country: initialCurrentUser?.selectedCountry
     }
   });
-  
+
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [departments, setDepartments] = useState<string[]>([]);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -56,16 +56,16 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
   useEffect(() => {
     const user = getCurrentUserSync();
     setCurrentUser(user);
-    
+
     // Load countries from centralized country utils
     setAvailableCountries([...SUPPORTED_COUNTRIES]);
-    
+
     // Initialize selected country for Admin users
     if (user?.role === 'admin' && !selectedCountry) {
       const defaultCountry = user?.selectedCountry || user?.countries?.[0] || SUPPORTED_COUNTRIES[0];
       setSelectedCountry(defaultCountry);
     }
-    
+
     // Get departments for the active country using the same service as New Case Booking
     const country = isAdmin && selectedCountry ? selectedCountry : (user?.selectedCountry || user?.countries?.[0]);
     if (country) {
@@ -74,17 +74,13 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
         try {
           // Use the CORRECT code table service instead of the wrong departments table
           const { getDepartmentsForCountry } = await import('../utils/supabaseCodeTableService');
-          const countrySpecificDepts = await getDepartmentsForCountry(country);
-          
-          console.log(`🔍 BookingCalendar: Found ${countrySpecificDepts.length} departments for ${country}:`, countrySpecificDepts);
-          
-          // Filter by user's assigned departments if not admin
+          const countrySpecificDepts = await getDepartmentsForCountry(country);// Filter by user's assigned departments if not admin
           let availableDepartments = countrySpecificDepts;
           if (user?.role !== 'admin' && user?.role !== 'it') {
             const userDepartments = user?.departments || [];
             availableDepartments = countrySpecificDepts.filter(dept => userDepartments.includes(dept));
           }
-          
+
           setDepartments(availableDepartments.sort());
           if (availableDepartments.length > 0) {
             setSelectedDepartment(availableDepartments[0]);
@@ -105,7 +101,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
           }
         }
       };
-      
+
       loadDepartments();
     } else {
       // Try to load departments from alternative service
@@ -157,26 +153,17 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
       setIsLoadingUsage(true);
       try {
         const normalizedCountry = normalizeCountry(activeCountry);
-        
+
         // Get all dates in the current month
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        
-        console.log('📊 Loading usage data for:', {
-          country: normalizedCountry,
-          month: month + 1,
-          year: year,
-          daysInMonth: daysInMonth
-        });
-        
-        // Load usage data for each day in the month
+        const daysInMonth = new Date(year, month + 1, 0).getDate();// Load usage data for each day in the month
         const allUsageData: DailyUsage[] = [];
         const loadPromises: Promise<void>[] = [];
-        
+
         for (let day = 1; day <= daysInMonth; day++) {
           const currentDateStr = new Date(year, month, day).toISOString().split('T')[0];
-          
+
           const loadPromise = getDailyUsageForDate(currentDateStr, normalizedCountry)
             .then(dailyUsage => {
               if (dailyUsage && dailyUsage.length > 0) {
@@ -186,16 +173,13 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
             .catch(error => {
               console.warn(`Error loading usage for ${currentDateStr}:`, error);
             });
-          
+
           loadPromises.push(loadPromise);
         }
-        
+
         // Wait for all data to load
-        await Promise.all(loadPromises);
-        
-        console.log('📊 Loaded usage data for month:', allUsageData);
-        setUsageData(allUsageData);
-        
+        await Promise.all(loadPromises);setUsageData(allUsageData);
+
       } catch (error) {
         console.error('Error loading usage data:', error);
         setUsageData([]);
@@ -297,11 +281,11 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
     const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
     const dayStr = day.toString().padStart(2, '0');
     const dateStr = `${year}-${month}-${dayStr}`;
-    
+
     return cases.filter(caseItem => {
       const matchesDate = caseItem.dateOfSurgery === dateStr;
       const isNotCancelled = caseItem.status !== 'Case Cancelled';
-      
+
       // Driver role filtering - only show delivery-related statuses
       if (currentUser?.role === 'driver') {
         const isDeliveryRelated = [
@@ -310,17 +294,17 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
           CASE_STATUSES.PENDING_DELIVERY_OFFICE,
           CASE_STATUSES.DELIVERED_OFFICE
         ].includes(caseItem.status);
-        
+
         if (!isDeliveryRelated) {
           return false;
         }
       }
-      
+
       // If no department is selected, show all (filtered) non-cancelled cases for that date
       if (!selectedDepartment) {
         return matchesDate && isNotCancelled;
       }
-      
+
       // If department is selected, filter by department as well
       return matchesDate && caseItem.department === selectedDepartment && isNotCancelled;
     });
@@ -332,18 +316,18 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
     const days = [];
     const today = new Date();
     const isCurrentMonth = today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear();
-    
+
     for (let day = 1; day <= daysInMonth; day++) {
       const dayCases = getCasesForDay(day);
       const isToday = isCurrentMonth && day === today.getDate();
       const dayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-      const dateString = dayDate.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        month: 'long', 
+      const dateString = dayDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
         day: 'numeric',
         year: 'numeric'
       });
-      
+
       // Show days with cases OR allow click-to-book on empty days
       if (dayCases.length > 0 || onDateClick) {
         days.push(
@@ -359,8 +343,8 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
             </div>
             <div className="mobile-calendar-cases">
               {dayCases.map((caseItem, index) => (
-                <div 
-                  key={`${caseItem.id}-${index}`} 
+                <div
+                  key={`${caseItem.id}-${index}`}
                   className="mobile-calendar-case"
                   onClick={() => onCaseClick?.(caseItem.id)}
                 >
@@ -368,7 +352,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
                     <div className="mobile-case-time">
                       {caseItem.timeOfProcedure || 'TBD'}
                     </div>
-                    <div 
+                    <div
                       className="mobile-case-status"
                       style={{
                         backgroundColor: getStatusColor(caseItem.status),
@@ -382,14 +366,16 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
                     <div className="mobile-case-ref">{caseItem.caseReferenceNumber}</div>
                     <div className="mobile-case-procedure">{caseItem.procedureType}</div>
                     <div className="mobile-case-hospital">{caseItem.hospital}</div>
-                    <div className="mobile-case-doctor">Dr. {caseItem.doctorName}</div>
+                    <div className="mobile-case-doctor">
+                      {caseItem.doctorName ? `Dr. ${caseItem.doctorName}` : 'No doctor assigned'}
+                    </div>
                   </div>
                 </div>
               ))}
-              
+
               {/* Add click-to-book button for all days when onDateClick is available */}
               {onDateClick && (
-                <div 
+                <div
                   className="mobile-calendar-book-new"
                   onClick={() => {
                     // Create date at noon to avoid timezone issues when converting to/from ISO string
@@ -413,7 +399,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
         );
       }
     }
-    
+
     if (days.length === 0) {
       return (
         <div className="mobile-calendar-empty">
@@ -424,7 +410,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
         </div>
       );
     }
-    
+
     return <div className="mobile-calendar-list">{days}</div>;
   };
 
@@ -433,34 +419,34 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
     const firstDay = getFirstDayOfMonth(currentDate);
     const today = new Date();
     const isCurrentMonth = today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear();
-    
+
     const days = [];
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    
+
     // Day headers
     const dayHeaders = dayNames.map(day => (
       <div key={day} className="calendar-day-header">
         {day}
       </div>
     ));
-    
+
     // Empty cells for days before the first day of month
     for (let i = 0; i < firstDay; i++) {
       days.push(<div key={`empty-${i}`} className="calendar-day calendar-day-empty"></div>);
     }
-    
+
     // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const isToday = isCurrentMonth && day === today.getDate();
       const dayClass = `calendar-day ${isToday ? 'calendar-day-today' : ''}`;
       const dayCases = getCasesForDay(day);
-      
+
       const handleDayClick = (event: React.MouseEvent, clickedDay: number) => {
         // Only trigger date click if clicking on empty space (not on existing cases)
         if ((event.target as HTMLElement).closest('.booking-item, .more-cases-button')) {
           return; // Click was on a case or more cases button, don't trigger date click
         }
-        
+
         if (onDateClick && selectedDepartment) {
           // Create date at noon to avoid timezone issues when converting to/from ISO string
           const clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), clickedDay, 12, 0, 0, 0);
@@ -469,8 +455,8 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
       };
 
       days.push(
-        <div 
-          key={day} 
+        <div
+          key={day}
           className={`${dayClass} ${dayCases.length === 0 ? 'calendar-day-clickable' : ''}`}
           onClick={(e) => handleDayClick(e, day)}
           title={dayCases.length === 0 ? `Click to book a new case for ${day}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}` : `${dayCases.length} case(s) scheduled`}
@@ -485,21 +471,21 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
                 const timeB = b.timeOfProcedure || '23:59';
                 return timeA.localeCompare(timeB);
               });
-              
+
               const displayCases = sortedCases.slice(0, 2);
               const remainingCases = sortedCases.slice(2);
-              
+
               return (
                 <>
                   {displayCases.map((caseItem, index) => (
-                    <div 
-                      key={`${caseItem.id}-${index}`} 
+                    <div
+                      key={`${caseItem.id}-${index}`}
                       className="booking-item"
                       style={{
                         backgroundColor: getStatusColor(caseItem.status),
                         color: 'white'
                       }}
-                      title={`${caseItem.caseReferenceNumber} - ${caseItem.procedureType} at ${caseItem.hospital} - Dr. ${caseItem.doctorName} - Status: ${caseItem.status}`}
+                      title={`${caseItem.caseReferenceNumber} - ${caseItem.procedureType} at ${caseItem.hospital} - ${caseItem.doctorName ? `Dr. ${caseItem.doctorName}` : 'No doctor'} - Status: ${caseItem.status}`}
                       onClick={() => onCaseClick?.(caseItem.id)}
                     >
                       <div className="booking-time" style={{color: 'white', fontWeight: 'bold'}}>{caseItem.timeOfProcedure || 'TBD'}</div>
@@ -515,7 +501,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
                     </div>
                   ))}
                   {remainingCases.length > 0 && (
-                    <div 
+                    <div
                       className="more-cases-button"
                       onClick={() => {
                         // Create date string without timezone issues
@@ -541,7 +527,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
         </div>
       );
     }
-    
+
     return (
       <div className="calendar-grid">
         {dayHeaders}
@@ -555,10 +541,10 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
     const daysInMonth = getDaysInMonth(currentDate);
     const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const startingDayOfWeek = firstDayOfMonth.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    
+
     const dayHeaders = [];
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    
+
     for (let i = 0; i < 7; i++) {
       dayHeaders.push(
         <div key={`header-${i}`} className="calendar-day-header">
@@ -568,20 +554,20 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
     }
 
     const days = [];
-    
+
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
     }
-    
+
     // Add days of the current month
     for (let day = 1; day <= daysInMonth; day++) {
       const dateString = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
         .toISOString().split('T')[0];
-      
+
       // Find usage data for this day
       const dayUsage = usageData.find(usage => usage.usage_date === dateString);
-      
+
       const isToday = new Date().toDateString() === new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString();
       const dayClass = `calendar-day usage-day ${isToday ? 'today' : ''}`;
 
@@ -630,7 +616,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
         </div>
       );
     }
-    
+
     return (
       <div className="calendar-grid usage-calendar-grid">
         {dayHeaders}
@@ -670,7 +656,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
             </div>
           )}
         </div>
-        <p>View and manage case bookings by department 
+        <p>View and manage case bookings by department
           <span> • Country: <strong>{activeCountry}</strong></span>
           {currentUser?.role !== 'admin' && currentUser?.role !== 'it' && (
             <span> • Filtered by your assigned departments</span>
@@ -711,17 +697,17 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
             </button>
           </div>
         </div>
-        
+
         <div className="calendar-navigation">
           <div className="nav-arrows">
-            <button 
+            <button
               onClick={() => navigateMonth('prev')}
               className="nav-button"
               title="Previous Month"
             >
               ← Previous
             </button>
-            <button 
+            <button
               onClick={() => navigateMonth('next')}
               className="nav-button"
               title="Next Month"
@@ -729,13 +715,13 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
               Next →
             </button>
           </div>
-          
+
           <div className="month-year-display">
             <h3 className="current-month" onClick={() => setShowDatePickers(!showDatePickers)}>
               {getMonthName(currentDate)}
               <span className="dropdown-indicator">{showDatePickers ? '▲' : '▼'}</span>
             </h3>
-            
+
             {showDatePickers && (
               <div className="date-picker-controls" ref={datePickerRef}>
                 <div className="month-year-selectors">
@@ -761,14 +747,14 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
                   </div>
                 </div>
                 <div className="quick-actions">
-                  <button 
+                  <button
                     onClick={goToToday}
                     className="today-button"
                     title="Go to current month"
                   >
                     📅 Today
                   </button>
-                  <button 
+                  <button
                     onClick={() => setShowDatePickers(false)}
                     className="close-picker-button"
                     title="Close date picker"
@@ -794,7 +780,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
               )}
             </div>
             <div className="desktop-calendar-view">
-              {viewMode === 'bookings' ? renderCalendarGrid() : 
+              {viewMode === 'bookings' ? renderCalendarGrid() :
                viewMode === 'usage' && isLoadingUsage ? (
                  <div className="usage-loading">
                    <div className="loading-spinner">⏳</div>
@@ -823,7 +809,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
           <div className="more-cases-modal" onClick={(e) => e.stopPropagation()}>
             <div className="more-cases-header">
               <h3>Additional Cases for {moreCasesData.date}</h3>
-              <button 
+              <button
                 className="close-button"
                 onClick={() => setShowMoreCasesPopup(false)}
               >
@@ -833,8 +819,8 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
             <div className="more-cases-content">
               <div className="more-cases-grid">
                 {getCurrentPageCases().map((caseItem, index) => (
-                  <div 
-                    key={`more-${caseItem.id}-${index}`} 
+                  <div
+                    key={`more-${caseItem.id}-${index}`}
                     className="more-case-item"
                     style={{
                       backgroundColor: getStatusColor(caseItem.status),
@@ -854,7 +840,9 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
                         {caseItem.procedureType}
                       </div>
                       <div className="more-case-details">
-                        <span style={{color: 'white'}}>Dr. {caseItem.doctorName || 'TBD'}</span>
+                        <span style={{color: 'white'}}>
+                          {caseItem.doctorName ? `Dr. ${caseItem.doctorName}` : 'TBD'}
+                        </span>
                         <span className="case-ref" style={{color: 'white', opacity: 0.9}}>{caseItem.caseReferenceNumber}</span>
                       </div>
                       <div className="more-case-status" style={{color: 'white', fontWeight: 'bold'}}>{caseItem.status}</div>
@@ -862,7 +850,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
                   </div>
                 ))}
               </div>
-              
+
               {totalMoreCasesPages > 1 && (
                 <div className="more-cases-pagination">
                   <div className="pagination-info">

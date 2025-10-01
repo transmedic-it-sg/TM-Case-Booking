@@ -1,7 +1,7 @@
 /**
  * Modern Edit Sets Component - 2025 UX/UI Best Practices
  * Enhanced user experience with intuitive navigation and visual feedback
- * 
+ *
  * Key UX Improvements:
  * - Progressive disclosure with clear step indicators
  * - Visual hierarchy with proper spacing and typography
@@ -19,7 +19,6 @@ import { useSound } from '../../contexts/SoundContext';
 import EditSetsErrorBoundary from '../ErrorBoundary/EditSetsErrorBoundary';
 import { useRealtimeDepartments } from '../../hooks/useRealtimeDepartments';
 import FuzzySearchDropdown from './FuzzySearchDropdown';
-// import { type Department } from '../../utils/departmentDoctorService';
 import { supabase } from '../../lib/supabase';
 import { normalizeCountry } from '../../utils/countryUtils';
 import './ModernEditSets.css';
@@ -86,7 +85,7 @@ interface SurgeryImplantRecord {
 
 const TABS = {
   DOCTORS: 'doctors',
-  PROCEDURES: 'procedures', 
+  PROCEDURES: 'procedures',
   SURGERY_IMPLANTS: 'surgery-implants'
 } as const;
 
@@ -126,10 +125,10 @@ const ModernEditSets: React.FC = () => {
   const [implantBoxes, setImplantBoxes] = useState<ImplantBoxRecord[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<DoctorRecord | null>(null);
   const [selectedProcedure, setSelectedProcedure] = useState<ProcedureRecord | null>(null);
-  
+
   // Surgery & Implants tab state
   const [surgeryImplantMode, setSurgeryImplantMode] = useState<'surgery' | 'implant'>('surgery');
-  
+
   // Drag and drop state
   const [draggedItem, setDraggedItem] = useState<ProcedureRecord | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -232,13 +231,13 @@ const ModernEditSets: React.FC = () => {
           .order('procedure_type');
 
         if (error) throw error;
-        
+
         // Add sort_order if missing and assign sequential numbers
         const processedData = (data || []).map((item, index) => ({
           ...item,
           sort_order: item.sort_order ?? index + 1
         }));
-        
+
         setProcedures(processedData);
       } catch (error) {
         handleError(error, 'Failed to load procedures');
@@ -316,7 +315,7 @@ const ModernEditSets: React.FC = () => {
     setIsSubmitting(true);
     try {
       let result: any;
-      
+
       switch (activeTab) {
         case TABS.DOCTORS:
           if (!selectedDepartment) throw new Error('Please select a department first');
@@ -389,7 +388,7 @@ const ModernEditSets: React.FC = () => {
 
   const handleDrop = useCallback(async (e: React.DragEvent, targetProcedure: ProcedureRecord) => {
     e.preventDefault();
-    
+
     if (!draggedItem || draggedItem.id === targetProcedure.id) {
       setIsDragging(false);
       setDraggedItem(null);
@@ -400,33 +399,33 @@ const ModernEditSets: React.FC = () => {
       const reorderedProcedures = [...procedures];
       const draggedIndex = reorderedProcedures.findIndex(p => p.id === draggedItem.id);
       const targetIndex = reorderedProcedures.findIndex(p => p.id === targetProcedure.id);
-      
+
       // Remove dragged item and insert at new position
       const [removed] = reorderedProcedures.splice(draggedIndex, 1);
       reorderedProcedures.splice(targetIndex, 0, removed);
-      
+
       // Update sort orders
       const updatedProcedures = reorderedProcedures.map((proc, index) => ({
         ...proc,
         sort_order: index + 1
       }));
-      
+
       // Update state immediately for smooth UX
       setProcedures(updatedProcedures);
-      
+
       // Update database
-      const updatePromises = updatedProcedures.map(proc => 
+      const updatePromises = updatedProcedures.map(proc =>
         supabase
           .from('doctor_procedures')
           .update({ sort_order: proc.sort_order })
           .eq('id', proc.id)
       );
-      
+
       await Promise.all(updatePromises);
-      
+
       showSuccess('Success', 'Procedure order updated successfully');
       playSound?.success();
-      
+
     } catch (error) {
       handleError(error, 'Failed to reorder procedures');
       // Reload procedures to restore correct order
@@ -447,6 +446,89 @@ const ModernEditSets: React.FC = () => {
     setDraggedItem(null);
   }, []);
 
+  // Drag and drop handlers for doctors reordering
+  const [draggedDoctor, setDraggedDoctor] = useState<DoctorRecord | null>(null);
+
+  const handleDoctorDragStart = useCallback((e: React.DragEvent, doctor: DoctorRecord) => {
+    setDraggedDoctor(doctor);
+    setIsDragging(true);
+    e.dataTransfer.effectAllowed = 'move';
+  }, []);
+
+  const handleDoctorDrop = useCallback(async (e: React.DragEvent, targetDoctor: DoctorRecord) => {
+    e.preventDefault();
+
+    if (!draggedDoctor || draggedDoctor.id === targetDoctor.id) {
+      setIsDragging(false);
+      setDraggedDoctor(null);
+      return;
+    }
+
+    try {
+      const reorderedDoctors = [...doctors];
+      const draggedIndex = reorderedDoctors.findIndex(d => d.id === draggedDoctor.id);
+      const targetIndex = reorderedDoctors.findIndex(d => d.id === targetDoctor.id);
+
+      const [removed] = reorderedDoctors.splice(draggedIndex, 1);
+      reorderedDoctors.splice(targetIndex, 0, removed);
+
+      setDoctors(reorderedDoctors);
+
+      showSuccess('Success', 'Doctor order updated');
+      playSound?.success();
+
+    } catch (error) {
+      handleError(error, 'Failed to reorder doctors');
+    } finally {
+      setIsDragging(false);
+      setDraggedDoctor(null);
+    }
+  }, [draggedDoctor, doctors, showSuccess, playSound, handleError]);
+
+  // Drag and drop handlers for surgery/implant items
+  const [draggedSurgeryImplant, setDraggedSurgeryImplant] = useState<any>(null);
+
+  const handleSurgeryImplantDragStart = useCallback((e: React.DragEvent, item: any) => {
+    setDraggedSurgeryImplant(item);
+    setIsDragging(true);
+    e.dataTransfer.effectAllowed = 'move';
+  }, []);
+
+  const handleSurgeryImplantDrop = useCallback(async (e: React.DragEvent, targetItem: any) => {
+    e.preventDefault();
+
+    if (!draggedSurgeryImplant || draggedSurgeryImplant.id === targetItem.id) {
+      setIsDragging(false);
+      setDraggedSurgeryImplant(null);
+      return;
+    }
+
+    try {
+      const currentData = surgeryImplantMode === 'surgery' ? surgerySets : implantBoxes;
+      const reordered = [...currentData];
+      const draggedIndex = reordered.findIndex(i => i.id === draggedSurgeryImplant.id);
+      const targetIndex = reordered.findIndex(i => i.id === targetItem.id);
+
+      const [removed] = reordered.splice(draggedIndex, 1);
+      reordered.splice(targetIndex, 0, removed);
+
+      if (surgeryImplantMode === 'surgery') {
+        setSurgerySets(reordered);
+      } else {
+        setImplantBoxes(reordered);
+      }
+
+      showSuccess('Success', `${surgeryImplantMode === 'surgery' ? 'Surgery set' : 'Implant box'} order updated`);
+      playSound?.success();
+
+    } catch (error) {
+      handleError(error, `Failed to reorder ${surgeryImplantMode === 'surgery' ? 'surgery sets' : 'implant boxes'}`);
+    } finally {
+      setIsDragging(false);
+      setDraggedSurgeryImplant(null);
+    }
+  }, [draggedSurgeryImplant, surgerySets, implantBoxes, surgeryImplantMode, showSuccess, playSound, handleError]);
+
   // Add surgery set or implant box
   const handleAddSurgeryImplantItem = useCallback(async () => {
     if (!newItemName.trim() || isSubmitting || !selectedProcedure) return;
@@ -454,7 +536,7 @@ const ModernEditSets: React.FC = () => {
     setIsSubmitting(true);
     try {
       const tableName = surgeryImplantMode === 'surgery' ? 'surgery_sets' : 'implant_boxes';
-      
+
       const result = await supabase
         .from(tableName)
         .insert({
@@ -489,6 +571,172 @@ const ModernEditSets: React.FC = () => {
     }
   }, [surgeryImplantMode, newItemName, selectedProcedure, normalizedCountry, isSubmitting, showSuccess, playSound, handleError]);
 
+  // Edit surgery set or implant box
+  const handleEditItem = useCallback(async (item: SurgerySetRecord | ImplantBoxRecord) => {
+    const itemType = surgeryImplantMode === 'surgery' ? 'Surgery Set' : 'Implant Box';
+    const newName = window.prompt(`Edit ${itemType} name:`, item.name);
+
+    if (!newName || newName.trim() === '' || newName.trim() === item.name) return;
+
+    setIsSubmitting(true);
+    try {
+      const tableName = surgeryImplantMode === 'surgery' ? 'surgery_sets' : 'implant_boxes';
+
+      const { error } = await supabase
+        .from(tableName)
+        .update({ name: newName.trim() })
+        .eq('id', item.id);
+
+      if (error) throw error;
+
+      showSuccess('Success', `${itemType} updated successfully`);
+      playSound?.success();
+
+      // Update the appropriate state
+      if (surgeryImplantMode === 'surgery') {
+        setSurgerySets(prev => prev.map(s => s.id === item.id ? { ...s, name: newName.trim() } : s));
+      } else {
+        setImplantBoxes(prev => prev.map(i => i.id === item.id ? { ...i, name: newName.trim() } : i));
+      }
+
+    } catch (error) {
+      handleError(error, `Failed to edit ${itemType.toLowerCase()}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [surgeryImplantMode, showSuccess, playSound, handleError]);
+
+  // Delete surgery set or implant box
+  const handleDeleteItem = useCallback(async (item: SurgerySetRecord | ImplantBoxRecord) => {
+    const itemType = surgeryImplantMode === 'surgery' ? 'Surgery Set' : 'Implant Box';
+
+    if (!window.confirm(`Are you sure you want to delete "${item.name}"?\n\nThis action cannot be undone.`)) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const tableName = surgeryImplantMode === 'surgery' ? 'surgery_sets' : 'implant_boxes';
+
+      const { error } = await supabase
+        .from(tableName)
+        .update({ is_active: false })
+        .eq('id', item.id);
+
+      if (error) throw error;
+
+      showSuccess('Success', `${itemType} "${item.name}" has been deleted`);
+      playSound?.success();
+
+      // Remove from state
+      if (surgeryImplantMode === 'surgery') {
+        setSurgerySets(prev => prev.filter(s => s.id !== item.id));
+      } else {
+        setImplantBoxes(prev => prev.filter(i => i.id !== item.id));
+      }
+
+    } catch (error) {
+      handleError(error, `Failed to delete ${itemType.toLowerCase()}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [surgeryImplantMode, showSuccess, playSound, handleError]);
+
+  // Edit doctor or procedure
+  const handleEditDataItem = useCallback(async (item: any) => {
+    if (activeTab === TABS.DOCTORS) {
+      const newName = window.prompt('Edit doctor name:', item.name);
+      if (!newName || newName.trim() === '' || newName.trim() === item.name) return;
+
+      setIsSubmitting(true);
+      try {
+        const { error } = await supabase
+          .from('doctors')
+          .update({ name: newName.trim() })
+          .eq('id', item.id);
+
+        if (error) throw error;
+
+        showSuccess('Success', 'Doctor updated successfully');
+        playSound?.success();
+        setDoctors(prev => prev.map(d => d.id === item.id ? { ...d, name: newName.trim() } : d));
+
+      } catch (error) {
+        handleError(error, 'Failed to edit doctor');
+      } finally {
+        setIsSubmitting(false);
+      }
+
+    } else if (activeTab === TABS.PROCEDURES) {
+      const newProcedureType = window.prompt('Edit procedure type:', item.procedure_type);
+      if (!newProcedureType || newProcedureType.trim() === '' || newProcedureType.trim() === item.procedure_type) return;
+
+      setIsSubmitting(true);
+      try {
+        const { error } = await supabase
+          .from('doctor_procedures')
+          .update({ procedure_type: newProcedureType.trim() })
+          .eq('id', item.id);
+
+        if (error) throw error;
+
+        showSuccess('Success', 'Procedure type updated successfully');
+        playSound?.success();
+        setProcedures(prev => prev.map(p => p.id === item.id ? { ...p, procedure_type: newProcedureType.trim() } : p));
+
+      } catch (error) {
+        handleError(error, 'Failed to edit procedure');
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  }, [activeTab, showSuccess, playSound, handleError]);
+
+  // Delete doctor or procedure
+  const handleDeleteDataItem = useCallback(async (item: any) => {
+    let itemName = '';
+    let tableName = '';
+
+    if (activeTab === TABS.DOCTORS) {
+      itemName = item.name;
+      tableName = 'doctors';
+    } else if (activeTab === TABS.PROCEDURES) {
+      itemName = item.procedure_type;
+      tableName = 'doctor_procedures';
+    } else {
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete "${itemName}"?\n\nThis action cannot be undone.`)) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from(tableName)
+        .update({ is_active: false })
+        .eq('id', item.id);
+
+      if (error) throw error;
+
+      showSuccess('Success', `${activeTab === TABS.DOCTORS ? 'Doctor' : 'Procedure'} deleted successfully`);
+      playSound?.success();
+
+      // Remove from state
+      if (activeTab === TABS.DOCTORS) {
+        setDoctors(prev => prev.filter(d => d.id !== item.id));
+      } else if (activeTab === TABS.PROCEDURES) {
+        setProcedures(prev => prev.filter(p => p.id !== item.id));
+      }
+
+    } catch (error) {
+      handleError(error, `Failed to delete ${activeTab === TABS.DOCTORS ? 'doctor' : 'procedure'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [activeTab, showSuccess, playSound, handleError]);
+
   // Render mode selector for surgery sets vs implant boxes
   const renderSurgeryImplantModeSelector = () => (
     <div className="mode-selector">
@@ -509,9 +757,11 @@ const ModernEditSets: React.FC = () => {
         </button>
       </div>
       <div className="mode-info">
-        <h3>{selectedProcedure?.procedure_type} - Dr. {selectedDoctor?.name}</h3>
+        <h3>
+          {selectedProcedure?.procedure_type} - {selectedDoctor?.name ? `Dr. ${selectedDoctor.name}` : 'No doctor'}
+        </h3>
         <p>
-          {surgeryImplantMode === 'surgery' 
+          {surgeryImplantMode === 'surgery'
             ? 'Manage surgery sets for this procedure'
             : 'Manage implant boxes for this procedure'
           }
@@ -524,7 +774,7 @@ const ModernEditSets: React.FC = () => {
   const renderSurgeryImplantContent = () => {
     const currentData = surgeryImplantMode === 'surgery' ? surgerySets : implantBoxes;
     const itemType = surgeryImplantMode === 'surgery' ? 'Surgery Set' : 'Implant Box';
-    
+
     return (
       <div className="surgery-implant-content">
         <div className="content-header">
@@ -545,7 +795,7 @@ const ModernEditSets: React.FC = () => {
             + Add {itemType}
           </button>
         </div>
-        
+
         {showAddForm && (
           <div className="add-form">
             <input
@@ -577,7 +827,7 @@ const ModernEditSets: React.FC = () => {
             </div>
           </div>
         )}
-        
+
         {isLoading ? (
           <div className="loading-state">
             <div className="spinner"></div>
@@ -591,10 +841,20 @@ const ModernEditSets: React.FC = () => {
           </div>
         ) : (
           <div className="data-list">
-            {currentData.filter((item: any) => 
+            {currentData.filter((item: any) =>
               item.name.toLowerCase().includes(searchQuery.toLowerCase())
             ).map((item: any) => (
-              <div key={item.id} className="data-item surgery-implant-item">
+              <div
+                key={item.id}
+                className={`data-item surgery-implant-item draggable-item ${
+                  isDragging && draggedSurgeryImplant?.id === item.id ? 'dragging' : ''
+                }`}
+                draggable={true}
+                onDragStart={(e) => handleSurgeryImplantDragStart(e, item)}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleSurgeryImplantDrop(e, item)}
+                onDragEnd={handleDragEnd}
+              >
                 <div className="item-content">
                   <h4>{item.name}</h4>
                   <p>{item.description || 'No description'}</p>
@@ -602,12 +862,32 @@ const ModernEditSets: React.FC = () => {
                     <span className="item-type">{itemType}</span>
                     <span className="item-procedure">{selectedProcedure?.procedure_type}</span>
                   </div>
+                  <div className="drag-hint">
+                    <span className="drag-icon">⋮⋮</span>
+                    <span className="drag-text">Drag to reorder</span>
+                  </div>
                 </div>
                 <div className="item-actions">
-                  <button className="edit-button" aria-label={`Edit ${item.name}`}>
+                  <button
+                    className="edit-button"
+                    aria-label={`Edit ${item.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditItem(item);
+                    }}
+                    disabled={isSubmitting}
+                  >
                     ✏️
                   </button>
-                  <button className="delete-button" aria-label={`Delete ${item.name}`}>
+                  <button
+                    className="delete-button"
+                    aria-label={`Delete ${item.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteItem(item);
+                    }}
+                    disabled={isSubmitting}
+                  >
                     🗑️
                   </button>
                 </div>
@@ -622,10 +902,10 @@ const ModernEditSets: React.FC = () => {
   // Filter data based on search query
   const filteredData = useMemo(() => {
     const query = searchQuery.toLowerCase();
-    
+
     switch (activeTab) {
       case TABS.DOCTORS:
-        return doctors.filter(doctor => 
+        return doctors.filter(doctor =>
           doctor.name.toLowerCase().includes(query) ||
           doctor.specialties.some(specialty => specialty.toLowerCase().includes(query))
         );
@@ -679,7 +959,7 @@ const ModernEditSets: React.FC = () => {
           aria-label={`Search ${activeTab}`}
         />
       </div>
-      
+
       {activeTab !== TABS.SURGERY_IMPLANTS && (
         <button
           onClick={() => setShowAddForm(!showAddForm)}
@@ -747,7 +1027,7 @@ const ModernEditSets: React.FC = () => {
           <div className="empty-icon">📋</div>
           <h3>No {activeTab} found</h3>
           <p>
-            {searchQuery 
+            {searchQuery
               ? `No ${activeTab} match your search criteria.`
               : `Start by adding your first ${activeTab.slice(0, -1)}.`
             }
@@ -759,30 +1039,41 @@ const ModernEditSets: React.FC = () => {
     return (
       <div className="data-list">
         {filteredData.map((item: any, index: number) => (
-          <div 
-            key={item.id} 
+          <div
+            key={item.id}
             className={`data-item ${
-              activeTab === TABS.PROCEDURES ? 'draggable-item' : ''
+              (activeTab === TABS.PROCEDURES || activeTab === TABS.DOCTORS) ? 'draggable-item' : ''
             } ${
-              isDragging && draggedItem?.id === item.id ? 'dragging' : ''
+              isDragging && (draggedItem?.id === item.id || draggedDoctor?.id === item.id) ? 'dragging' : ''
             }`}
-            draggable={activeTab === TABS.PROCEDURES}
-            onDragStart={activeTab === TABS.PROCEDURES ? (e) => handleDragStart(e, item) : undefined}
-            onDragOver={activeTab === TABS.PROCEDURES ? handleDragOver : undefined}
-            onDrop={activeTab === TABS.PROCEDURES ? (e) => handleDrop(e, item) : undefined}
-            onDragEnd={activeTab === TABS.PROCEDURES ? handleDragEnd : undefined}
+            draggable={activeTab === TABS.PROCEDURES || activeTab === TABS.DOCTORS}
+            onDragStart={
+              activeTab === TABS.PROCEDURES ? (e) => handleDragStart(e, item) :
+              activeTab === TABS.DOCTORS ? (e) => handleDoctorDragStart(e, item) : undefined
+            }
+            onDragOver={
+              activeTab === TABS.PROCEDURES || activeTab === TABS.DOCTORS ? handleDragOver : undefined
+            }
+            onDrop={
+              activeTab === TABS.PROCEDURES ? (e) => handleDrop(e, item) :
+              activeTab === TABS.DOCTORS ? (e) => handleDoctorDrop(e, item) : undefined
+            }
+            onDragEnd={handleDragEnd}
           >
             {activeTab === TABS.PROCEDURES && (
               <div className="item-number">
                 {item.sort_order || index + 1}
               </div>
             )}
-            
+
             <div className="item-content">
               {activeTab === TABS.DOCTORS && (
                 <>
-                  <h4>{item.name}</h4>
-                  <p>Specialties: {item.specialties.join(', ') || 'None specified'}</p>
+                  <h4>Dr. {item.name}</h4>
+                  <div className="drag-hint">
+                    <span className="drag-icon">⋮⋮</span>
+                    <span className="drag-text">Drag to reorder</span>
+                  </div>
                 </>
               )}
               {activeTab === TABS.PROCEDURES && (
@@ -805,12 +1096,28 @@ const ModernEditSets: React.FC = () => {
                 </>
               )}
             </div>
-            
+
             <div className="item-actions">
-              <button className="edit-button" aria-label={`Edit ${item.name || item.procedure_type}`}>
+              <button
+                className="edit-button"
+                aria-label={`Edit ${item.name || item.procedure_type}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditDataItem(item);
+                }}
+                disabled={isSubmitting || activeTab === TABS.SURGERY_IMPLANTS}
+              >
                 ✏️
               </button>
-              <button className="delete-button" aria-label={`Delete ${item.name || item.procedure_type}`}>
+              <button
+                className="delete-button"
+                aria-label={`Delete ${item.name || item.procedure_type}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteDataItem(item);
+                }}
+                disabled={isSubmitting || activeTab === TABS.SURGERY_IMPLANTS}
+              >
                 🗑️
               </button>
             </div>
@@ -866,8 +1173,8 @@ const ModernEditSets: React.FC = () => {
   const renderDoctorDropdown = () => {
     const doctorOptions = doctors.map(doctor => ({
       id: doctor.id,
-      name: `Dr. ${doctor.name}`,
-      description: doctor.specialties.join(', ') || 'General'
+      name: doctor.name ? `Dr. ${doctor.name}` : doctor.name,
+      description: ''
     }));
 
     return (
@@ -876,8 +1183,8 @@ const ModernEditSets: React.FC = () => {
           options={doctorOptions}
           value={selectedDoctor ? {
             id: selectedDoctor.id,
-            name: `Dr. ${selectedDoctor.name}`,
-            description: selectedDoctor.specialties.join(', ') || 'General'
+            name: selectedDoctor.name ? `Dr. ${selectedDoctor.name}` : selectedDoctor.name,
+            description: ''
           } : null}
           onChange={(option) => {
             if (option) {
@@ -908,7 +1215,7 @@ const ModernEditSets: React.FC = () => {
     const procedureOptions = procedures.map(procedure => ({
       id: procedure.id,
       name: procedure.procedure_type,
-      description: `Dr. ${selectedDoctor?.name || 'Unknown'}`
+      description: selectedDoctor?.name ? `Dr. ${selectedDoctor.name}` : 'Unknown'
     }));
 
     return (
@@ -918,7 +1225,7 @@ const ModernEditSets: React.FC = () => {
           value={selectedProcedure ? {
             id: selectedProcedure.id,
             name: selectedProcedure.procedure_type,
-            description: `Dr. ${selectedDoctor?.name || 'Unknown'}`
+            description: selectedDoctor?.name ? `Dr. ${selectedDoctor.name}` : 'Unknown'
           } : null}
           onChange={(option) => {
             if (option) {
@@ -941,10 +1248,9 @@ const ModernEditSets: React.FC = () => {
     );
   };
 
-
   return (
     <EditSetsErrorBoundary componentName="Modern Edit Sets" userAction="managing edit sets">
-      <div className="modern-edit-sets">
+      <div className="modern-edit-sets" data-active-tab={activeTab}>
         <header className="edit-sets-header">
           <h1>Edit Sets Management</h1>
           <p>Manage doctors, procedures, and surgery sets for {normalizedCountry}</p>
@@ -968,7 +1274,7 @@ const ModernEditSets: React.FC = () => {
               )}
             </>
           )}
-          
+
           {/* Procedures Tab - Department + Doctor dropdowns */}
           {activeTab === TABS.PROCEDURES && (
             <>
@@ -985,7 +1291,7 @@ const ModernEditSets: React.FC = () => {
               )}
             </>
           )}
-          
+
           {/* Surgery & Implants Tab - Department + Doctor + Procedure dropdowns */}
           {activeTab === TABS.SURGERY_IMPLANTS && (
             <>

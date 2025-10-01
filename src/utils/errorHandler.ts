@@ -3,10 +3,6 @@
  * Provides standardized error handling with user notifications and retry logic
  */
 
-// Note: Toast and Notification systems are handled via custom events
-// import { useToast } from '../components/ToastContainer';
-// import { useNotifications } from '../contexts/NotificationContext';
-
 export interface ErrorHandlingOptions {
   operation: string;
   userMessage?: string;
@@ -29,11 +25,6 @@ export interface OperationResult<T = any> {
   isEmpty?: boolean; // Indicates if result is empty but valid
   dataSource?: 'database' | 'cache' | 'localStorage' | 'hardcoded'; // Track data source
 }
-
-// Global hooks for error handling (must be used within React context)
-// These are reserved for future use when we implement a different approach
-// let toastInstance: ReturnType<typeof useToast> | null = null;
-// let notificationInstance: ReturnType<typeof useNotifications> | null = null;
 
 export const initializeErrorHandler = () => {
   // This will be called from App.tsx to initialize the handlers
@@ -68,14 +59,14 @@ export class ErrorHandler {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         const result = await operation();
-        
+
         // Validate result to prevent fake data
         const isValidResult = this.validateResult(result, allowEmptyResult, preventFakeData);
-        
+
         if (!isValidResult.isValid) {
           throw new Error(`Invalid result detected: ${isValidResult.reason}. No fake data allowed in production.`);
         }
-        
+
         // Success - show success message if it was retried
         if (retryCount > 0) {
           this.showUserMessage(
@@ -126,7 +117,7 @@ export class ErrorHandler {
             true,
             true
           );
-          
+
           return {
             success: false,
             error: errorMessage,
@@ -135,7 +126,7 @@ export class ErrorHandler {
             dataSource: 'localStorage'
           };
         }
-        
+
         // If fake data is prevented, ensure we don't return any fallback data
         if (preventFakeData) {
           this.showUserMessage(
@@ -169,11 +160,11 @@ export class ErrorHandler {
    * This is essential for production integrity with 100+ users
    */
   private static validateResult<T>(
-    result: T, 
-    allowEmptyResult: boolean, 
+    result: T,
+    allowEmptyResult: boolean,
     preventFakeData: boolean
   ): { isValid: boolean; reason?: string; isEmpty: boolean } {
-    
+
     // Allow null/undefined if empty results are permitted
     if (result === null || result === undefined) {
       return {
@@ -186,7 +177,7 @@ export class ErrorHandler {
     // Check for array results
     if (Array.isArray(result)) {
       const isEmpty = result.length === 0;
-      
+
       if (isEmpty && !allowEmptyResult) {
         return {
           isValid: false,
@@ -214,7 +205,7 @@ export class ErrorHandler {
     if (typeof result === 'object') {
       const keys = Object.keys(result);
       const isEmpty = keys.length === 0;
-      
+
       if (isEmpty && !allowEmptyResult) {
         return {
           isValid: false,
@@ -247,14 +238,14 @@ export class ErrorHandler {
    */
   private static detectFakeData(data: any[]): string[] {
     const suspiciousPatterns: string[] = [];
-    
+
     // Common fake data patterns to detect
     const fakeDataIndicators = {
       // Hardcoded country lists
       countries: ['Singapore', 'Malaysia', 'Philippines', 'Indonesia', 'Vietnam', 'Hong Kong', 'Thailand'],
       // Hardcoded department names
       departments: ['Cardiology', 'Orthopedics', 'Neurosurgery', 'Oncology', 'Emergency', 'Radiology'],
-      // Hardcoded procedure types  
+      // Hardcoded procedure types
       procedureTypes: ['Knee', 'Head', 'Hip', 'Hands', 'Neck', 'Spine'],
       // Hardcoded status patterns
       statuses: ['pending', 'confirmed', 'order-placed', 'completed', 'cancelled'],
@@ -268,10 +259,10 @@ export class ErrorHandler {
         Object.entries(fakeDataIndicators).forEach(([category, indicators]) => {
           if (Array.isArray(item) && item.length > 0) {
             // Check if array exactly matches a fake data pattern
-            const matchesPattern = indicators.some(indicator => 
+            const matchesPattern = indicators.some(indicator =>
               item.includes(indicator) && item.filter(i => indicators.includes(i)).length > 2
             );
-            
+
             if (matchesPattern) {
               suspiciousPatterns.push(`Hardcoded ${category} array at index ${index}`);
             }
@@ -283,11 +274,11 @@ export class ErrorHandler {
                 if (itemName.toLowerCase().includes(indicator.toLowerCase())) {
                   const consecutiveFakeCount = data.filter(d => {
                     const name = d?.name || d?.display_name || d?.title || '';
-                    return typeof name === 'string' && indicators.some(ind => 
+                    return typeof name === 'string' && indicators.some(ind =>
                       name.toLowerCase().includes(ind.toLowerCase())
                     );
                   }).length;
-                  
+
                   // If more than 3 consecutive fake-looking entries, flag as suspicious
                   if (consecutiveFakeCount > 3) {
                     suspiciousPatterns.push(`Multiple ${category} fake data entries (${consecutiveFakeCount} found)`);
@@ -352,7 +343,7 @@ export class ErrorHandler {
    */
   private static getErrorDetails(error: any, retryCount: number): string {
     const details = [];
-    
+
     if (retryCount > 0) {
       details.push(`Retried ${retryCount} times`);
     }
@@ -384,7 +375,7 @@ export class ErrorHandler {
    */
   static isNetworkError(error: any): boolean {
     if (!error) return false;
-    
+
     const errorStr = error.toString().toLowerCase();
     const networkErrors = [
       'network',
@@ -395,7 +386,7 @@ export class ErrorHandler {
       'unreachable',
       'disconnected'
     ];
-    
+
     return networkErrors.some(keyword => errorStr.includes(keyword));
   }
 
@@ -404,7 +395,7 @@ export class ErrorHandler {
    */
   static isPermissionError(error: any): boolean {
     if (!error) return false;
-    
+
     const errorStr = error.toString().toLowerCase();
     const permissionErrors = [
       'forbidden',
@@ -414,7 +405,7 @@ export class ErrorHandler {
       '403',
       '401'
     ];
-    
+
     return permissionErrors.some(keyword => errorStr.includes(keyword));
   }
 

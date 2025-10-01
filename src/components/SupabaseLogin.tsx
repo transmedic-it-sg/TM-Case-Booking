@@ -24,21 +24,8 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
   useEffect(() => {
     setAvailableCountries([...SUPPORTED_COUNTRIES]);
 
-    
-    // Load remembered credentials
-    const savedCredentials = localStorage.getItem('rememberMe');
-    if (savedCredentials) {
-      try {
-        const { username: savedUsername, password: savedPassword, country: savedCountry } = JSON.parse(savedCredentials);
-        setUsername(savedUsername || '');
-        setPassword(savedPassword || '');
-        setCountry(savedCountry || '');
-        setRememberMe(true);
-      } catch (error) {
-        console.warn('Failed to load saved credentials:', error);
-        localStorage.removeItem('rememberMe');
-      }
-    }
+    // Remember me handled by Supabase auth session persistence
+    // No need to manually store credentials in localStorage
   }, []);
 
   // Set custom validation message for country select
@@ -54,7 +41,7 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
+
     // Check if country is not selected first
     if (!country) {
       setError('Please select a country');
@@ -79,18 +66,10 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
     try {
       // Use the authentication service which handles Supabase and localStorage fallbacks
       const result = await authenticate(username, password, country);
-      
+
       if (result.user) {
-        // Save credentials if remember me is checked
-        if (rememberMe) {
-          localStorage.setItem('rememberMe', JSON.stringify({
-            username,
-            password,
-            country
-          }));
-        } else {
-          localStorage.removeItem('rememberMe');
-        }
+        // Remember me handled by Supabase auth session persistence
+        // Supabase automatically manages session based on rememberMe flag
 
         // Audit the login
         try {
@@ -118,9 +97,9 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
         <div className="login-left">
           <div className="login-branding">
             <div className="brand-logo">
-              <img 
-                src="https://www.transmedicgroup.com/wp-content/themes/transmedic/transmedic_assets/images/logo/logo-v5-transmedic-header-small.svg" 
-                alt="Transmedic Logo" 
+              <img
+                src="https://www.transmedicgroup.com/wp-content/themes/transmedic/transmedic_assets/images/logo/logo-v5-transmedic-header-small.svg"
+                alt="Transmedic Logo"
                 className="logo-image"
               />
             </div>
@@ -227,8 +206,8 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
                 </div>
               )}
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className={`btn btn-primary btn-lg full-width-button ${isLoading ? 'loading' : ''}`}
                 disabled={isLoading}
               >

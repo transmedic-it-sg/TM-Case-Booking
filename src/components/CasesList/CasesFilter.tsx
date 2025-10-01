@@ -3,7 +3,6 @@ import { FilterOptions } from '../../types';
 import FilterDatePicker from '../FilterDatePicker';
 import { statusOptions } from './utils';
 import { getCurrentUserSync } from '../../utils/auth';
-// import { getCountries } from '../../utils/codeTable'; // Unused
 import SearchableDropdown from '../SearchableDropdown';
 
 interface CasesFilterProps {
@@ -58,7 +57,7 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
           {showFilters ? '▲' : '▼'}
         </button>
       </div>
-      
+
       {showFilters && (
         <div className="filters-content">
           <div className="filters-grid">
@@ -124,7 +123,7 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
                         <span className="filter-icon">🌍</span>
                       </div>
                     </div>
-                    
+
                     <div className="modern-filter-group">
                       <label>Department</label>
                       <div className="filter-input-wrapper">
@@ -210,15 +209,15 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
               Showing {filteredCasesCount} of {totalCasesCount} cases
             </div>
             <div className="filter-buttons">
-              <button 
-                onClick={onClearFilters} 
+              <button
+                onClick={onClearFilters}
                 className="btn btn-outline-secondary btn-md modern-clear-button"
                 disabled={Object.keys(tempFilters).length === 0}
               >
                 🗑️ Clear All
               </button>
-              <button 
-                onClick={onApplyFilters} 
+              <button
+                onClick={onApplyFilters}
                 className="btn btn-primary btn-md modern-apply-button"
               >
                 ✨ Apply Filters
@@ -229,25 +228,25 @@ const CasesFilter: React.FC<CasesFilterProps> = ({
           {/* Quick Filter Presets */}
           <div className="quick-filters">
             <span className="quick-filters-label">Quick Filters:</span>
-            <button 
+            <button
               onClick={() => onQuickFilter('status', 'Case Booked')}
               className="btn btn-outline-secondary btn-sm quick-filter-button"
             >
               📋 New Cases
             </button>
-            <button 
+            <button
               onClick={() => onQuickFilter('status', 'Order Preparation')}
               className="btn btn-outline-secondary btn-sm quick-filter-button"
             >
               ⏳ Pending
             </button>
-            <button 
+            <button
               onClick={() => onQuickFilter('status', 'Case Completed')}
               className="btn btn-outline-secondary btn-sm quick-filter-button"
             >
               ✅ Completed
             </button>
-            <button 
+            <button
               onClick={() => {
                 const today = new Date().toISOString().split('T')[0];
                 onQuickFilter('dateFrom', today);

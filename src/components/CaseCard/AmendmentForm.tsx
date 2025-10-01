@@ -58,20 +58,20 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     loadProcedureTypes();
   }, [formData.department, caseItem.country]);
 
-  // Load hospitals, surgery sets and implant boxes independently  
+  // Load hospitals, surgery sets and implant boxes independently
   useEffect(() => {
     const loadAllOptions = async () => {
       if (caseItem.country) {
         try {
           const normalizedCountry = normalizeCountry(caseItem.country);
-          
+
           // Load hospitals from code_tables
           const { getSupabaseCodeTables } = await import('../../utils/supabaseCodeTableService');
           const countryTables = await getSupabaseCodeTables(normalizedCountry);
           const hospitalTable = countryTables.find(table => table.id === 'hospitals');
           const hospitals = hospitalTable?.items || [];
           setAvailableHospitals(hospitals.sort());
-          
+
           // Load all surgery sets for this country
           const { data: surgerySets, error: surgerySetsError } = await supabase
             .from('surgery_sets')
@@ -112,7 +112,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
         setImplantBoxOptions([]);
       }
     };
-    
+
     loadAllOptions();
   }, [caseItem.country]);
 
@@ -169,10 +169,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     }
   };
 
-  // Debug logging to track modal rendering
-  console.log('🔍 AmendmentForm rendering for case:', caseItem?.caseReferenceNumber);
-  
-  return (
+  // Debug logging to track modal renderingreturn (
     <div className="amendment-form-overlay">
       <div className="amendment-form-modal">
         <form onSubmit={handleSubmit} className="amendment-form">

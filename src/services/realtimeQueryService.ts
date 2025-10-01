@@ -1,10 +1,10 @@
 /**
  * Real-time Query Service - Optimized for 50-100 Concurrent Users
  * Replaces manual cache clearing with intelligent real-time data loading
- * 
+ *
  * Key Features:
  * - Always fetch from Supabase (no stale cache issues)
- * - Optimistic updates for instant UI responses  
+ * - Optimistic updates for instant UI responses
  * - Smart batching for performance
  * - Connection pooling for efficiency
  * - Automatic retry logic with exponential backoff
@@ -64,7 +64,7 @@ export const useRealtimeCasesQuery = (filters?: {
   dateTo?: string;
 }) => {
   const queryKey = ['cases', 'realtime', JSON.stringify(filters || {})];
-  
+
   const queryFn = useCallback(async (): Promise<CaseBooking[]> => {
     let query = supabase
       .from('case_bookings')
@@ -105,14 +105,11 @@ export const useRealtimeCasesQuery = (filters?: {
     }
 
     const { data, error } = await query;
-    
+
     if (error) {
       console.error('Error fetching cases:', error);
       throw new Error(`Failed to fetch cases: ${error.message}`);
-    }
-
-    console.log('📊 Fresh case data loaded:', data?.length || 0, 'cases');
-    return data || [];
+    }return data || [];
   }, [filters]);
 
   return useRealtimeQuery(queryKey, queryFn, {
@@ -125,7 +122,7 @@ export const useRealtimeCasesQuery = (filters?: {
  */
 export const useRealtimeUsersQuery = (filters?: { role?: string; enabled?: boolean }) => {
   const queryKey = ['users', 'realtime', JSON.stringify(filters || {})];
-  
+
   const queryFn = useCallback(async (): Promise<User[]> => {
     let query = supabase
       .from('profiles')
@@ -140,14 +137,11 @@ export const useRealtimeUsersQuery = (filters?: { role?: string; enabled?: boole
     }
 
     const { data, error } = await query;
-    
+
     if (error) {
       console.error('Error fetching users:', error);
       throw new Error(`Failed to fetch users: ${error.message}`);
-    }
-
-    console.log('👥 Fresh user data loaded:', data?.length || 0, 'users');
-    return data?.map(user => ({
+    }return data?.map(user => ({
       id: user.id,
       username: user.username,
       password: '', // Never expose passwords
@@ -172,7 +166,7 @@ export const useRealtimeMasterDataQuery = (
   country?: string
 ) => {
   const queryKey = ['master-data', type, country || 'all'];
-  
+
   const queryFn = useCallback(async (): Promise<string[]> => {
     let query = supabase
       .from('code_tables')
@@ -185,7 +179,7 @@ export const useRealtimeMasterDataQuery = (
     }
 
     const { data, error } = await query;
-    
+
     if (error) {
       console.error(`Error fetching ${type}:`, error);
       throw new Error(`Failed to fetch ${type}: ${error.message}`);
@@ -200,10 +194,7 @@ export const useRealtimeMasterDataQuery = (
     });
 
     // Remove duplicates and sort
-    const uniqueValues = [...new Set(allValues)].sort();
-    
-    console.log(`🗂️ Fresh ${type} data loaded:`, uniqueValues.length, 'items');
-    return uniqueValues;
+    const uniqueValues = [...new Set(allValues)].sort();return uniqueValues;
   }, [type, country]);
 
   return useRealtimeQuery(queryKey, queryFn);
@@ -217,7 +208,7 @@ export const useRealtimeEditSetsQuery = (
   country: string
 ) => {
   const queryKey = ['edit-sets', type, country];
-  
+
   const queryFn = useCallback(async (): Promise<string[]> => {
     const { data, error } = await supabase
       .from(type)
@@ -225,15 +216,13 @@ export const useRealtimeEditSetsQuery = (
       .eq('country', country)
       .eq('is_active', true)
       .order('name', { ascending: true });
-    
+
     if (error) {
       console.error(`Error fetching ${type}:`, error);
       throw new Error(`Failed to fetch ${type}: ${error.message}`);
     }
 
-    const names = data?.map(item => item.name) || [];
-    console.log(`🔧 Fresh ${type} data loaded for ${country}:`, names.length, 'items');
-    return names;
+    const names = data?.map(item => item.name) || [];return names;
   }, [type, country]);
 
   return useRealtimeQuery(queryKey, queryFn);
@@ -298,11 +287,11 @@ export const useOptimisticCaseMutation = () => {
       // Optimistically update - instant UI response
       queryClient.setQueryData(['cases', 'realtime'], (old: CaseBooking[] | undefined) => {
         if (!old) return old;
-        
-        return old.map(caseItem => 
+
+        return old.map(caseItem =>
           caseItem.id === variables.caseId
-            ? { 
-                ...caseItem, 
+            ? {
+                ...caseItem,
                 ...(variables.status && { status: variables.status }),
                 ...(variables.data && variables.data),
                 updated_at: new Date().toISOString()
@@ -321,9 +310,7 @@ export const useOptimisticCaseMutation = () => {
       console.error('Case mutation failed:', error);
     },
     onSuccess: () => {
-      // The real-time subscription will automatically update the cache
-      console.log('✅ Case mutation successful - real-time will sync automatically');
-    },
+      // The real-time subscription will automatically update the cache},
   });
 };
 
@@ -333,15 +320,9 @@ export const useOptimisticCaseMutation = () => {
 export const useForceRefreshAll = () => {
   const queryClient = useQueryClient();
 
-  return useCallback(() => {
-    console.log('🚨 Force refreshing ALL queries - clearing cache');
-    
-    // Invalidate all queries
+  return useCallback(() => {// Invalidate all queries
     queryClient.invalidateQueries();
-    
+
     // Clear query cache entirely
-    queryClient.clear();
-    
-    console.log('🔄 All caches cleared - fresh data will be loaded');
-  }, [queryClient]);
+    queryClient.clear();}, [queryClient]);
 };

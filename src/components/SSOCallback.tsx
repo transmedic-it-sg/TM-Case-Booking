@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 
 /**
  * SSO OAuth Callback Handler
- * 
+ *
  * This component handles the OAuth callback from Microsoft Entra ID or Google Workspace.
  * It extracts the authorization code from the URL parameters and sends it back to the parent window.
- * 
+ *
  * This page should be accessible at the redirect URI configured in your OAuth applications:
  * - Microsoft: https://yourdomain.com/auth/callback
  * - Google: https://yourdomain.com/auth/callback
@@ -28,7 +28,7 @@ const SSOCallback: React.FC = () => {
           // OAuth error occurred
           setStatus('error');
           setMessage(`Authentication failed: ${errorDescription || error}`);
-          
+
           // Send error to parent window
           if (window.opener) {
             window.opener.postMessage({
@@ -37,17 +37,17 @@ const SSOCallback: React.FC = () => {
               state: state
             }, window.location.origin);
           }
-          
+
           // Auto-close after 3 seconds
           setTimeout(() => {
             window.close();
           }, 3000);
-          
+
         } else if (code) {
           // Success - we have an authorization code
           setStatus('success');
           setMessage('Authentication successful! Completing setup...');
-          
+
           // Send code to parent window
           if (window.opener) {
             window.opener.postMessage({
@@ -56,41 +56,41 @@ const SSOCallback: React.FC = () => {
               state: state
             }, window.location.origin);
           }
-          
+
           // Auto-close after 1 second
           setTimeout(() => {
             window.close();
           }, 1000);
-          
+
         } else {
           // No code or error - something went wrong
           setStatus('error');
           setMessage('No authorization code received. Please try again.');
-          
+
           if (window.opener) {
             window.opener.postMessage({
               type: 'sso_auth_error',
               error: 'No authorization code received'
             }, window.location.origin);
           }
-          
+
           setTimeout(() => {
             window.close();
           }, 3000);
         }
-        
+
       } catch (err) {
         console.error('Error processing OAuth callback:', err);
         setStatus('error');
         setMessage('An error occurred while processing the authentication callback.');
-        
+
         if (window.opener) {
           window.opener.postMessage({
             type: 'sso_auth_error',
             error: 'Failed to process callback'
           }, window.location.origin);
         }
-        
+
         setTimeout(() => {
           window.close();
         }, 3000);
@@ -155,7 +155,7 @@ const SSOCallback: React.FC = () => {
         }}>
           {getStatusIcon()}
         </div>
-        
+
         <h2 style={{
           color: getStatusColor(),
           marginBottom: '1rem',
@@ -166,7 +166,7 @@ const SSOCallback: React.FC = () => {
           {status === 'success' && 'Authentication Successful'}
           {status === 'error' && 'Authentication Failed'}
         </h2>
-        
+
         <p style={{
           color: '#6c757d',
           fontSize: '1rem',
@@ -175,7 +175,7 @@ const SSOCallback: React.FC = () => {
         }}>
           {message}
         </p>
-        
+
         {status === 'processing' && (
           <div style={{
             display: 'flex',
@@ -195,7 +195,7 @@ const SSOCallback: React.FC = () => {
             <span>Please wait...</span>
           </div>
         )}
-        
+
         {status === 'success' && (
           <p style={{
             color: '#28a745',
@@ -205,7 +205,7 @@ const SSOCallback: React.FC = () => {
             This window will close automatically.
           </p>
         )}
-        
+
         {status === 'error' && (
           <div>
             <button
@@ -237,7 +237,7 @@ const SSOCallback: React.FC = () => {
           </div>
         )}
       </div>
-      
+
       {/* CSS Animations */}
       <style>{`
         @keyframes spin {

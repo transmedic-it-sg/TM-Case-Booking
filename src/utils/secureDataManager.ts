@@ -57,7 +57,7 @@ class SecureDataManager {
           tags: options.tags || ['secure-data'],
           version: Date.now().toString()
         });
-        
+
         logger.debug(`Data stored in enterprise cache: ${key}`);
         return true;
       }
@@ -245,8 +245,7 @@ class SecureDataManager {
 // Create singleton instance
 const dataManagerConfig: DataManagerConfig = {
   enableFallbacks: true, // Enable memory fallbacks only
-  encryptSensitive: false, // TODO: Implement encryption for sensitive data
-  validateData: true,
+  encryptSensitive: false,   validateData: true,
   maxRetries: 3
 };
 
@@ -324,7 +323,7 @@ export class StorageMigration {
    */
   static async migrateFromLocalStorage(keys: string[]): Promise<void> {
     logger.info('Starting localStorage to secure storage migration');
-    
+
     let migrated = 0;
     let failed = 0;
 
@@ -350,7 +349,7 @@ export class StorageMigration {
           // Remove from localStorage after successful migration
           localStorage.removeItem(key);
           migrated++;
-          
+
           logger.debug(`Migrated localStorage key: ${key}`);
         }
       } catch (error) {

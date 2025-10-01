@@ -59,9 +59,29 @@
       "Bash(timeout 30s npm run build)",
       "Bash(timeout 10s PORT=3001 npm start)",
       "Bash(timeout:*)",
-      "Bash(lsof:*)"
+      "Bash(lsof:*)",
+      "Bash(/mnt/c/Windows/System32/cmd.exe /c \"echo %CLAUDE_CODE_GIT_BASH_PATH%\")",
+      "Bash(/mnt/c/Windows/System32/cmd.exe /c \"\"\"C:\\Program Files\\Git\\bin\\bash.exe\"\" --version\")",
+      "Bash(/mnt/c/Windows/System32/cmd.exe /c \"echo %PATH%\")",
+      "Bash(/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -Command \"[Environment]::SetEnvironmentVariable(''PATH'', [Environment]::GetEnvironmentVariable(''PATH'', ''Machine'') + '';C:\\Program Files\\Git\\bin'', ''Machine'')\")",
+      "Bash(/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -Command \"[Environment]::SetEnvironmentVariable(''PATH'', [Environment]::GetEnvironmentVariable(''PATH'', ''User'') + '';C:\\Program Files\\Git\\bin'', ''User'')\")",
+      "Bash(/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -Command \"[Environment]::SetEnvironmentVariable(''CLAUDE_CODE_GIT_BASH_PATH'', ''C:/Program Files/Git/bin/bash.exe'', ''User'')\")",
+      "Bash(claude-code --version)",
+      "Bash(npm:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:docs.claude.com)",
+      "Bash(./install.cmd)",
+      "Bash(/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -Command \"[Environment]::SetEnvironmentVariable(''CLAUDE_CODE_GIT_BASH_PATH'', ''C:\\Program Files\\Git\\bin\\bash.exe'', ''User'')\")",
+      "Bash(claude mcp:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(npx typescript:*)",
+      "Bash(node_modules/.bin/tsc:*)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "/mnt/c",
+      "/usr/lib/node_modules/@anthropic-ai/claude-code"
+    ]
   }
 }

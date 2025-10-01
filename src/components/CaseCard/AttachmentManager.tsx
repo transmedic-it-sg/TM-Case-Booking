@@ -18,7 +18,7 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
   const { checkPermission } = usePermissions();
   const canUploadFiles = checkPermission('upload-files');
   const canDeleteFiles = checkPermission('delete-files');
-  
+
   const {
     attachments,
     previews: _previews, // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -150,13 +150,13 @@ const AttachmentManager: React.FC<AttachmentManagerProps> = ({
           <p>Contact your administrator for file upload/download access.</p>
         </div>
       )}
-      
+
       {!canUploadFiles && canDeleteFiles && (
         <div className="permission-message">
           <p>📁 You can view and delete files but cannot upload new ones.</p>
         </div>
       )}
-      
+
       {canUploadFiles && !canDeleteFiles && (
         <div className="permission-message">
           <p>📁 You can upload files but cannot delete existing ones.</p>

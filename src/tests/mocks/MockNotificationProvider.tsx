@@ -36,21 +36,11 @@ export const MockNotificationProvider: React.FC<MockNotificationProviderProps> =
   const mockContext: NotificationContextType = {
     notifications: [],
     unreadCount: 0,
-    addNotification: async (notification) => {
-      console.log('Mock notification added:', notification);
-    },
-    markAsRead: (id: string) => {
-      console.log('Mock notification marked as read:', id);
-    },
-    markAllAsRead: () => {
-      console.log('Mock all notifications marked as read');
-    },
-    clearNotification: (id: string) => {
-      console.log('Mock notification cleared:', id);
-    },
-    clearAllNotifications: () => {
-      console.log('Mock all notifications cleared');
-    }
+    addNotification: async (notification) => {},
+    markAsRead: (id: string) => {},
+    markAllAsRead: () => {},
+    clearNotification: (id: string) => {},
+    clearAllNotifications: () => {}
   };
 
   return (

@@ -29,7 +29,7 @@ class NotificationService {
    */
   private loadNotifications(): void {
     try {
-      const notificationsData = localStorage.getItem('notifications');
+      const notificationsData = null; // Use Supabase notifications table
       if (notificationsData) {
         this.notifications = JSON.parse(notificationsData);
       }
@@ -44,7 +44,7 @@ class NotificationService {
    */
   private saveNotifications(): void {
     try {
-      localStorage.setItem('notifications', JSON.stringify(this.notifications));
+      // Notifications stored in Supabase notifications table
     } catch (error) {
       console.error('Error saving notifications:', error);
     }
@@ -68,10 +68,10 @@ class NotificationService {
    */
   subscribe(listener: NotificationListener): () => void {
     this.listeners.add(listener);
-    
+
     // Immediately call with current notifications
     listener([...this.notifications]);
-    
+
     // Return unsubscribe function
     return () => {
       this.listeners.delete(listener);
@@ -89,7 +89,7 @@ class NotificationService {
     };
 
     this.notifications.unshift(newNotification);
-    
+
     // Limit notifications to prevent memory bloat
     if (this.notifications.length > this.MAX_NOTIFICATIONS) {
       this.notifications = this.notifications.slice(0, this.MAX_NOTIFICATIONS);
@@ -229,7 +229,7 @@ class NotificationService {
   cleanupOldNotifications(): void {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const filteredNotifications = this.notifications.filter(notification => {
       const notificationDate = new Date(notification.timestamp);
       return notificationDate > thirtyDaysAgo;

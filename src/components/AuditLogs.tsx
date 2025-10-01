@@ -15,7 +15,7 @@ const AuditLogs: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [logsPerPage] = useState(20);
   const [showFilters, setShowFilters] = useState(false);
-  
+
   // Modal states
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedLogDetails, setSelectedLogDetails] = useState<string>('');
@@ -98,7 +98,7 @@ const AuditLogs: React.FC = () => {
       // Additional client-side filtering for user name search
       let finalFiltered = filtered;
       if (filters.user) {
-        finalFiltered = filtered.filter(log => 
+        finalFiltered = filtered.filter(log =>
           getUserDisplayName(log).toLowerCase().includes(filters.user.toLowerCase())
         );
       }
@@ -223,7 +223,7 @@ const AuditLogs: React.FC = () => {
     if (isNaN(d.getTime())) {
       return 'Invalid Date';
     }
-    
+
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const dayName = dayNames[d.getDay()];
     const day = d.getDate().toString().padStart(2, '0');
@@ -231,7 +231,7 @@ const AuditLogs: React.FC = () => {
     const year = d.getFullYear();
     const hours = d.getHours().toString().padStart(2, '0');
     const minutes = d.getMinutes().toString().padStart(2, '0');
-    
+
     return `${dayName}, ${day}/${month}/${year} ${hours}:${minutes}`;
   };
 
@@ -250,22 +250,22 @@ const AuditLogs: React.FC = () => {
   const getActiveUsersCount = (): number => {
     const userIds = Array.from(new Set(filteredLogs.map(log => log.userId)));
     let activeCount = 0;
-    
+
     userIds.forEach(userId => {
       // Find the most recent login and logout for this user
-      const userAuthLogs = auditLogs.filter(log => 
-        log.userId === userId && 
-        log.category === 'Authentication' && 
+      const userAuthLogs = auditLogs.filter(log =>
+        log.userId === userId &&
+        log.category === 'Authentication' &&
         (log.action === 'User Login' || log.action === 'User Logout')
       ).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      
+
       // Check if user is currently active (last action was login, not logout)
       const isActive = userAuthLogs.length > 0 && userAuthLogs[0].action === 'User Login';
       if (isActive) {
         activeCount++;
       }
     });
-    
+
     return activeCount;
   };
 
@@ -276,7 +276,7 @@ const AuditLogs: React.FC = () => {
         .map(log => log.userId)
         .filter(userId => userId && userId.trim() !== '') // Remove null, undefined, and empty strings
     ));
-    
+
     // Create a Map to store unique users by both userId and username to avoid duplicates
     const userStatusMap = new Map<string, {
       username: string;
@@ -285,32 +285,32 @@ const AuditLogs: React.FC = () => {
       isActive: boolean;
       status: string;
     }>();
-    
+
     // Also create a set to track processed usernames to avoid username duplicates
     const processedUsernames = new Set<string>();
-    
+
     userIds.forEach(userId => {
       const user = userMap.get(userId);
-      
+
       // Find the most recent login and logout for this user
-      const userAuthLogs = auditLogs.filter(log => 
-        log.userId === userId && 
-        log.category === 'Authentication' && 
+      const userAuthLogs = auditLogs.filter(log =>
+        log.userId === userId &&
+        log.category === 'Authentication' &&
         (log.action === 'User Login' || log.action === 'User Logout')
       ).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      
+
       // Get username with fallback logic
       const username = user ? user.name : (auditLogs.find(log => log.userId === userId)?.user || 'Unknown User');
-      
+
       // Skip if we've already processed this username to avoid duplicates
       if (processedUsernames.has(username)) {
         return;
       }
-      
+
       // Check if user is currently active (last action was login, not logout)
       const isActive = userAuthLogs.length > 0 && userAuthLogs[0].action === 'User Login';
       const lastActivity = userAuthLogs.length > 0 ? userAuthLogs[0].timestamp : undefined;
-      
+
       // Only add users who have some authentication activity
       if (userAuthLogs.length > 0) {
         const uniqueKey = `${userId}_${username}`;
@@ -324,22 +324,22 @@ const AuditLogs: React.FC = () => {
         processedUsernames.add(username);
       }
     });
-    
+
     // Convert Map to array and sort by active status first, then by last activity
     const sortedUsers = Array.from(userStatusMap.values()).sort((a, b) => {
       // First, sort by active status (active users first)
       if (a.isActive && !b.isActive) return -1;
       if (!a.isActive && b.isActive) return 1;
-      
+
       // Then sort by last activity (most recent first)
       if (a.lastActivity && b.lastActivity) {
         return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
       }
-      
+
       // Finally, sort by username alphabetically
       return a.username.localeCompare(b.username);
     });
-    
+
     setActiveUsers(sortedUsers);
     setShowActiveUsersModal(true);
   };
@@ -419,7 +419,7 @@ const AuditLogs: React.FC = () => {
             {showFilters ? '▲' : '▼'}
           </button>
         </div>
-        
+
         {showFilters && (
           <div className="filters-content">
             <div className="filters-grid">
@@ -549,36 +549,36 @@ const AuditLogs: React.FC = () => {
                 Showing {filteredLogs.length} of {auditLogs.length} log entries
               </div>
               <div className="filter-buttons">
-                <button 
-                  onClick={clearFilters} 
+                <button
+                  onClick={clearFilters}
                   className="btn btn-outline-secondary btn-md modern-clear-button"
                   disabled={!Object.values(tempFilters).some(value => value)}
                 >
                   🗑️ Clear All
                 </button>
-                <button 
-                  onClick={applyFiltersHandler} 
+                <button
+                  onClick={applyFiltersHandler}
                   className="btn btn-primary btn-md modern-apply-button"
                 >
                   ✨ Apply Filters
                 </button>
-                <button 
-                  onClick={loadAuditLogs} 
+                <button
+                  onClick={loadAuditLogs}
                   className="btn btn-outline-secondary btn-md"
                 >
                   🔄 Refresh
                 </button>
                 {hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.EXPORT_DATA) && (
-                  <button 
-                    onClick={handleExportLogs} 
+                  <button
+                    onClick={handleExportLogs}
                     className="btn btn-success btn-md"
                   >
                     📥 Export
                   </button>
                 )}
                 {currentUser?.role === 'admin' && (
-                  <button 
-                    onClick={handleClearOldLogs} 
+                  <button
+                    onClick={handleClearOldLogs}
                     className="btn btn-warning btn-md"
                   >
                     🗑️ Clear Old
@@ -590,25 +590,25 @@ const AuditLogs: React.FC = () => {
             {/* Quick Filter Presets */}
             <div className="quick-filters">
               <span className="quick-filters-label">Quick Filters:</span>
-              <button 
+              <button
                 onClick={() => setFilters(prev => ({ ...prev, category: 'Case Management' }))}
                 className="btn btn-outline-secondary btn-sm quick-filter-button"
               >
                 📋 Cases
               </button>
-              <button 
+              <button
                 onClick={() => setFilters(prev => ({ ...prev, category: 'User Management' }))}
                 className="btn btn-outline-secondary btn-sm quick-filter-button"
               >
                 👥 Users
               </button>
-              <button 
+              <button
                 onClick={() => setFilters(prev => ({ ...prev, status: 'error' }))}
                 className="btn btn-outline-secondary btn-sm quick-filter-button"
               >
                 ❌ Errors
               </button>
-              <button 
+              <button
                 onClick={() => {
                   const today = new Date().toISOString().split('T')[0];
                   setFilters(prev => ({ ...prev, dateFrom: today, dateTo: today }));
@@ -675,7 +675,7 @@ const AuditLogs: React.FC = () => {
                   <div className="details-preview" title={log.details}>
                     {log.details.length > 40 ? `${log.details.substring(0, 40)}...` : log.details}
                     {log.details.length > 40 && (
-                      <button 
+                      <button
                         className="btn btn-link btn-sm more-details-btn"
                         onClick={() => openDetailsModal(log.details)}
                         title="Click to view full details"
@@ -856,15 +856,15 @@ const AuditLogs: React.FC = () => {
               </div>
             </div>
             <div className="modal-footer">
-              <button 
-                className="btn btn-secondary" 
+              <button
+                className="btn btn-secondary"
                 onClick={cancelClearOldLogs}
                 disabled={isClearingLogs}
               >
                 Cancel
               </button>
-              <button 
-                className="btn btn-danger" 
+              <button
+                className="btn btn-danger"
                 onClick={confirmClearOldLogs}
                 disabled={clearLogsConfirmText !== 'Confirm to delete Audit Log' || isClearingLogs}
               >

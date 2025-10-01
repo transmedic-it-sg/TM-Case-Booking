@@ -21,7 +21,7 @@ const VersionUpdatePopup: React.FC<VersionUpdatePopupProps> = ({
         <div className="modal-header">
           <h3>🚀 App Update Available</h3>
         </div>
-        
+
         <div className="modal-body">
           <div className="version-update-info">
             <div className="version-details">
@@ -34,16 +34,16 @@ const VersionUpdatePopup: React.FC<VersionUpdatePopupProps> = ({
                 <span className="version-number">{currentVersion}</span>
               </div>
             </div>
-            
+
             <div className="update-message">
               <p>
                 <strong>The app has been updated to a new version.</strong>
               </p>
               <p>
-                To ensure the best experience and avoid any issues, you will be logged out automatically. 
+                To ensure the best experience and avoid any issues, you will be logged out automatically.
                 Please log in again to access the updated features.
               </p>
-              
+
               <div className="update-benefits">
                 <h4>✨ What's New in v{currentVersion}:</h4>
                 <ul>
@@ -58,9 +58,9 @@ const VersionUpdatePopup: React.FC<VersionUpdatePopupProps> = ({
             </div>
           </div>
         </div>
-        
+
         <div className="modal-footer">
-          <button 
+          <button
             className="btn-primary btn-full"
             onClick={onConfirm}
             autoFocus
@@ -69,17 +69,17 @@ const VersionUpdatePopup: React.FC<VersionUpdatePopupProps> = ({
           </button>
         </div>
       </div>
-      
+
       <style>{`
         .version-update-popup {
           max-width: 500px;
           width: 90%;
         }
-        
+
         .version-update-info {
           text-align: center;
         }
-        
+
         .version-details {
           display: flex;
           justify-content: space-between;
@@ -89,25 +89,25 @@ const VersionUpdatePopup: React.FC<VersionUpdatePopupProps> = ({
           border-radius: 8px;
           border: 2px solid #e9ecef;
         }
-        
+
         .version-item {
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 5px;
         }
-        
+
         .version-item.current {
           color: #28a745;
           font-weight: bold;
         }
-        
+
         .version-label {
           font-size: 0.9em;
           color: #6c757d;
           margin-bottom: 3px;
         }
-        
+
         .version-number {
           font-size: 1.2em;
           font-weight: bold;
@@ -118,23 +118,23 @@ const VersionUpdatePopup: React.FC<VersionUpdatePopupProps> = ({
           min-width: 80px;
           text-align: center;
         }
-        
+
         .version-item.current .version-number {
           background: #d4edda;
           border-color: #28a745;
           color: #155724;
         }
-        
+
         .update-message {
           text-align: left;
           margin-top: 20px;
         }
-        
+
         .update-message p {
           margin-bottom: 15px;
           line-height: 1.5;
         }
-        
+
         .update-benefits {
           background: #f8f9fa;
           padding: 15px;
@@ -142,48 +142,48 @@ const VersionUpdatePopup: React.FC<VersionUpdatePopupProps> = ({
           margin-top: 20px;
           text-align: left;
         }
-        
+
         .update-benefits h4 {
           margin: 0 0 10px 0;
           color: #495057;
         }
-        
+
         .update-benefits ul {
           margin: 0;
           padding-left: 20px;
         }
-        
+
         .update-benefits li {
           margin-bottom: 8px;
           color: #495057;
         }
-        
+
         .btn-full {
           width: 100%;
           padding: 12px;
           font-size: 1.1em;
         }
-        
+
         /* Mobile responsiveness */
         @media (max-width: 768px) {
           .version-update-popup {
             width: 95%;
             margin: 10px;
           }
-          
+
           .version-details {
             flex-direction: column;
             gap: 15px;
           }
-          
+
           .version-item {
             width: 100%;
           }
-          
+
           .update-benefits ul {
             padding-left: 15px;
           }
-          
+
           .update-benefits li {
             font-size: 0.9em;
           }

@@ -184,7 +184,7 @@ export const updateSupabaseUser = async (userId: string, userData: Partial<User>
   const result = await ErrorHandler.executeWithRetry(
     async () => {
       const updateData: any = {};
-      
+
       if (userData.username) updateData.username = userData.username;
       if (userData.password) updateData.password_hash = userData.password; // Should be hashed
       if (userData.role) updateData.role = userData.role;
@@ -223,7 +223,7 @@ export const updateSupabaseUser = async (userId: string, userData: Partial<User>
 
         if (userError) throw userError;
       }
-      
+
       return true;
     },
     {
@@ -273,7 +273,7 @@ export const resetSupabaseUserPassword = async (userId: string, newPassword: str
       // Update profiles table with temporary password flag
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           password_hash: newPassword, // Should be hashed in production
           is_temporary_password: true, // Mark as temporary - user must change on next login
           updated_at: new Date().toISOString()
@@ -284,7 +284,7 @@ export const resetSupabaseUserPassword = async (userId: string, newPassword: str
         // Try users table as fallback
         const { error: userError } = await supabase
           .from('profiles')
-          .update({ 
+          .update({
             password: newPassword, // users table uses 'password' column, not 'password_hash'
             updated_at: new Date().toISOString()
           })
@@ -315,7 +315,7 @@ export const updateSupabaseUserPassword = async (userId: string, newPassword: st
       // Update profiles table - clear temporary password flag and update password
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           password_hash: newPassword, // Should be hashed in production
           is_temporary_password: false, // Clear temporary flag
           password_changed_at: new Date().toISOString(),
@@ -399,7 +399,7 @@ export const toggleUserEnabled = async (userId: string, enabled: boolean): Promi
     async () => {
       const { error } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           enabled: enabled,
           updated_at: new Date().toISOString()
         })

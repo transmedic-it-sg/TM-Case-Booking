@@ -50,7 +50,7 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
         setRequirements(req);
       }
     };
-    
+
     loadConfig();
   }, []);
 
@@ -103,7 +103,7 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
         <label htmlFor={id} className={required ? 'required' : ''}>
           {label}
         </label>
-        
+
         <div className="password-input-wrapper">
           <input
             type={showPassword ? 'text' : 'password'}
@@ -117,7 +117,7 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
               validation && validation.isValid ? 'valid' : ''
             }`}
           />
-          
+
           <div className="password-controls">
             {showGenerateButton && !disabled && (
               <button
@@ -129,7 +129,7 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
                 🎲
               </button>
             )}
-            
+
             <button
               type="button"
               className="password-toggle-btn"
@@ -156,8 +156,8 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
         {showStrength && value && validation && (
           <div className="password-strength">
             <div className="strength-label">
-              Password Strength: 
-              <span 
+              Password Strength:
+              <span
                 className="strength-text"
                 style={{ color: getStrengthColor(validation.strengthText) }}
               >
@@ -166,7 +166,7 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
               <span className="strength-score">({validation.score}/100)</span>
             </div>
             <div className="strength-bar-container">
-              <div 
+              <div
                 className="strength-bar"
                 style={{
                   width: getStrengthBarWidth(validation.score),
@@ -192,10 +192,10 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
                   else if (text.includes('number')) isMet = /\d/.test(value);
                   else if (text.includes('special')) isMet = /[^a-zA-Z0-9]/.test(value);
                 }
-                
+
                 return (
-                  <li 
-                    key={index} 
+                  <li
+                    key={index}
                     className={`requirement-item ${isMet ? 'met' : 'unmet'}`}
                   >
                     <span className="requirement-icon">
@@ -215,7 +215,7 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
             <div className="requirements-title">Password Requirements:</div>
             <div className="simple-requirement">
               <span className={value.length >= requirements.minLength ? 'met' : 'unmet'}>
-                {value.length >= requirements.minLength ? '✅' : '⭕'} 
+                {value.length >= requirements.minLength ? '✅' : '⭕'}
                 Minimum {requirements.minLength} characters
               </span>
             </div>

@@ -71,7 +71,7 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
   const handleSelectAll = () => {
     const filteredOptions = getFilteredOptions();
     const allFilteredSelected = filteredOptions.every(option => value.includes(option));
-    
+
     if (allFilteredSelected) {
       // Deselect all filtered options
       const newValue = value.filter(v => !filteredOptions.includes(v));
@@ -85,9 +85,9 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
 
   const getFilteredOptions = () => {
     if (!searchTerm.trim()) return [...options];
-    
+
     const term = searchTerm.toLowerCase();
-    return options.filter(option => 
+    return options.filter(option =>
       option.toLowerCase().includes(term) ||
       // Fuzzy match: check if all characters of search term appear in order
       term.split('').every((char, index) => {
@@ -109,8 +109,8 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
       <label htmlFor={id} className={required ? "required" : ""}>
         {label}
       </label>
-      <div 
-        ref={dropdownRef} 
+      <div
+        ref={dropdownRef}
         className={`custom-multi-select ${className}`}
       >
         <div
@@ -129,7 +129,7 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
           </span>
           <span className={`dropdown-arrow ${isOpen ? 'open' : ''}`}>▼</span>
         </div>
-        
+
         {isOpen && !disabled && (
           <div className="multi-select-dropdown-content">
             <div className="dropdown-header">

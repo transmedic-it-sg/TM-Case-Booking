@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Role } from './PermissionMatrix';
 import { roles as defaultRoles, permissionActions as allActions, permissions as allPermissions } from '../data/permissionMatrixData';
-import { 
-  loadCustomRoles, 
-  saveCustomRoles, 
-  validateRole, 
-  generateRoleId, 
+import {
+  loadCustomRoles,
+  saveCustomRoles,
+  validateRole,
+  generateRoleId,
   deleteCustomRole,
-  getPredefinedColors 
+  getPredefinedColors
 } from '../utils/roleManagement';
 import SearchableDropdown from './SearchableDropdown';
 import CustomModal from './CustomModal';
@@ -67,7 +67,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
       const updatedAllRoles = [...defaultRoles, ...roles];
       setAllRoles(updatedAllRoles);
       onRoleUpdate?.(updatedAllRoles);
-      
+
       // Trigger a custom event to notify other components about role updates
       window.dispatchEvent(new CustomEvent('rolesUpdated', { detail: updatedAllRoles }));
     } catch (error) {
@@ -134,7 +134,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
     if (!role) return;
 
     const confirmMessage = `Are you sure you want to delete the "${role.displayName}" role?\n\nThis action cannot be undone and will affect all users assigned to this role.`;
-    
+
     showConfirm('Delete Role', confirmMessage, () => {
       try {
         deleteCustomRole(roleId);
@@ -143,10 +143,10 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
         const updatedAllRoles = [...defaultRoles, ...updatedCustomRoles];
         setAllRoles(updatedAllRoles);
         onRoleUpdate?.(updatedAllRoles);
-        
+
         // Trigger a custom event to notify other components about role updates
         window.dispatchEvent(new CustomEvent('rolesUpdated', { detail: updatedAllRoles }));
-        
+
         playSound.delete();
         showSuccess('Role Deleted', `Role "${role.displayName}" has been removed successfully.`);
       } catch (error) {
@@ -162,9 +162,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
 
   const handlePermissionChange = (actionId: string, roleId: string, allowed: boolean) => {
     // This would update the permissions for the specific role
-    // For now, this is handled by the PermissionMatrix component itself
-    console.log(`Permission change: ${actionId} for ${roleId} = ${allowed}`);
-  };
+    // For now, this is handled by the PermissionMatrix component itself};
 
   const closePermissionMatrix = () => {
     setShowPermissionMatrix(false);
@@ -290,8 +288,8 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
               >
                 Cancel
               </button>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="btn btn-primary btn-lg submit-button"
                 disabled={!newRole.displayName.trim() || !newRole.description.trim()}
               >
@@ -330,8 +328,8 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
                   <span className="role-type-badge system">System</span>
                 </td>
                 <td>
-                  <div 
-                    className="role-color-indicator" 
+                  <div
+                    className="role-color-indicator"
                     style={{ backgroundColor: role.color }}
                     title={role.color}
                   ></div>
@@ -350,7 +348,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
                 </td>
               </tr>
             ))}
-            
+
             {/* Custom Roles */}
             {customRoles.map(role => (
               <tr key={role.id} className="custom-role">
@@ -365,8 +363,8 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
                   <span className="role-type-badge custom">Custom</span>
                 </td>
                 <td>
-                  <div 
-                    className="role-color-indicator" 
+                  <div
+                    className="role-color-indicator"
                     style={{ backgroundColor: role.color }}
                     title={role.color}
                   ></div>
@@ -394,7 +392,6 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
           </tbody>
         </table>
       </div>
-
 
       <CustomModal
         isOpen={modal.isOpen}
@@ -424,7 +421,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
               <h2>
                 🛡️ Manage Permissions: {allRoles.find(r => r.id === selectedRoleForPermissions)?.displayName}
               </h2>
-              <button 
+              <button
                 className="permission-modal-close"
                 onClick={closePermissionMatrix}
                 title="Close Permission Manager"

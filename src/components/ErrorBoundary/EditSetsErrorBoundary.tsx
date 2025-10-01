@@ -12,8 +12,8 @@ interface EditSetsErrorFallbackProps extends FallbackProps {
   userAction?: string;
 }
 
-const EditSetsErrorFallback: React.FC<EditSetsErrorFallbackProps> = ({ 
-  error, 
+const EditSetsErrorFallback: React.FC<EditSetsErrorFallbackProps> = ({
+  error,
   resetErrorBoundary,
   componentName = 'Edit Sets',
   userAction = 'working with Edit Sets'
@@ -40,7 +40,7 @@ const EditSetsErrorFallback: React.FC<EditSetsErrorFallbackProps> = ({
         <div className="error-details">
           <p><strong>What happened:</strong> An error occurred while {userAction}</p>
           <p><strong>Error:</strong> {error.message}</p>
-          
+
           {process.env.NODE_ENV === 'development' && (
             <details className="error-technical">
               <summary>Technical Details (Development)</summary>
@@ -48,28 +48,28 @@ const EditSetsErrorFallback: React.FC<EditSetsErrorFallbackProps> = ({
             </details>
           )}
         </div>
-        
+
         <div className="error-actions">
-          <button 
+          <button
             onClick={resetErrorBoundary}
             className="btn btn-primary"
           >
             Try Again
           </button>
-          <button 
+          <button
             onClick={handleReportError}
             className="btn btn-outline-secondary"
           >
             Report Issue
           </button>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="btn btn-outline-danger"
           >
             Reload Page
           </button>
         </div>
-        
+
         <div className="error-help">
           <h4>Need Help?</h4>
           <ul>
@@ -107,17 +107,15 @@ const EditSetsErrorBoundary: React.FC<{
   return (
     <ErrorBoundary
       FallbackComponent={(props) => (
-        <EditSetsErrorFallback 
-          {...props} 
+        <EditSetsErrorFallback
+          {...props}
           componentName={componentName}
           userAction={userAction}
         />
       )}
       onError={handleError}
       onReset={() => {
-        // Clear any error state, reset forms, etc.
-        console.log('Resetting Edit Sets error boundary');
-      }}
+        // Clear any error state, reset forms, etc.}}
     >
       {children}
     </ErrorBoundary>

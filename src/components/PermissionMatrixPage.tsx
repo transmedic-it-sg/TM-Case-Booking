@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PermissionMatrix from './PermissionMatrix';
 import { permissionActions } from '../data/permissionMatrixData';
-// import { Role, Permission } from './PermissionMatrix'; // Unused types
 import { useRealtimePermissions } from '../hooks/useRealtimePermissions';
 import { useModal } from '../hooks/useModal';
 import CustomModal from './CustomModal';
@@ -33,9 +32,7 @@ const PermissionMatrixPage: React.FC = () => {
   useEffect(() => {
     const runValidation = async () => {
       try {
-        await validateComponent();
-        console.log('✅ PermissionMatrixPage validation completed');
-      } catch (error) {
+        await validateComponent();} catch (error) {
         console.error('❌ PermissionMatrixPage validation failed:', error);
       }
     };
@@ -53,26 +50,16 @@ const PermissionMatrixPage: React.FC = () => {
   }, [error]);
 
   // Handle permission change - using real-time hook
-  const handlePermissionChange = async (actionId: string, roleId: string, allowed: boolean) => {
-    console.log(`🔒 Updating permission: ${actionId} for role ${roleId} = ${allowed}`);
-    
-    try {
-      await updatePermission(actionId, roleId, allowed);
-      console.log('✅ Permission updated successfully, data will auto-refresh via real-time');
-    } catch (error) {
+  const handlePermissionChange = async (actionId: string, roleId: string, allowed: boolean) => {try {
+      await updatePermission(actionId, roleId, allowed);} catch (error) {
       console.error('❌ Failed to update permission:', error);
     }
   };
 
   // Handle reset - using real-time hook
-  const handleReset = async () => {
-    console.log('🔄 Resetting permissions to defaults...');
-    
-    try {
+  const handleReset = async () => {try {
       await resetPermissions();
-      setIsEditing(false);
-      console.log('✅ Permissions reset successfully, data will auto-refresh via real-time');
-    } catch (error) {
+      setIsEditing(false);} catch (error) {
       console.error('❌ Error resetting permissions:', error);
     }
   };
@@ -82,35 +69,28 @@ const PermissionMatrixPage: React.FC = () => {
     const changedPermissions = permissions.filter(p => p.allowed).length;
     const title = 'Confirm Save Changes';
     const message = `Are you sure you want to save the current permission configuration?\n\nThis will update ${changedPermissions} permission(s) and affect system access immediately.`;
-    
-    showConfirm(title, message, async () => {
-      console.log('💾 Saving permissions configuration...');
-      
-      try {
+
+    showConfirm(title, message, async () => {try {
         await savePermissions(permissions);
         setIsEditing(false);
-        showSuccess('Permissions saved successfully!');
-        console.log('✅ Permissions saved successfully');
-      } catch (error) {
+        showSuccess('Permissions saved successfully!');} catch (error) {
         console.error('❌ Error saving permissions:', error);
         showSuccess('Error saving permissions. Please try again.');
       }
     });
   };
 
-
   const exportPermissions = () => {
     const dataStr = JSON.stringify(permissions, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
+
     const exportFileDefaultName = `permissions_${new Date().toISOString().split('T')[0]}.json`;
-    
+
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
   };
-
 
   return (
     <div className="permission-matrix-page">
@@ -123,25 +103,25 @@ const PermissionMatrixPage: React.FC = () => {
             <p>Configure role-based access control for the Case Booking Application</p>
           </div>
         </div>
-        
+
         <div className="header-actions">
-          <button 
+          <button
             className="export-button"
             onClick={exportPermissions}
           >
             Export Permissions
           </button>
-          
+
           {isEditing ? (
             <div className="edit-actions">
-              <button 
+              <button
                 className="save-button"
                 onClick={handleSave}
                 disabled={isMutating}
               >
                 {isMutating ? 'Saving...' : 'Save Changes'}
               </button>
-              <button 
+              <button
                 className="cancel-button"
                 onClick={handleReset}
                 disabled={isMutating}
@@ -150,7 +130,7 @@ const PermissionMatrixPage: React.FC = () => {
               </button>
             </div>
           ) : (
-            <button 
+            <button
               className="edit-button"
               onClick={() => setIsEditing(true)}
               disabled={isLoading || isMutating}
@@ -175,11 +155,7 @@ const PermissionMatrixPage: React.FC = () => {
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <button
               className="btn btn-outline-primary btn-sm"
-              onClick={async () => {
-                console.log('🧪 Running component validation...');
-                const isValid = await validateComponent();
-                console.log(`Component validation result: ${isValid}`);
-              }}
+              onClick={async () => {const isValid = await validateComponent();}}
               disabled={isLoading || isMutating}
               style={{ padding: '5px 10px', fontSize: '12px' }}
             >
@@ -187,9 +163,7 @@ const PermissionMatrixPage: React.FC = () => {
             </button>
             <button
               className="btn btn-outline-secondary btn-sm"
-              onClick={() => {
-                console.log('📊 Testing Report:');
-                console.log(getTestingReport());
+              onClick={() => {);
               }}
               disabled={isLoading || isMutating}
               style={{ padding: '5px 10px', fontSize: '12px' }}
@@ -242,7 +216,7 @@ const PermissionMatrixPage: React.FC = () => {
             </div>
           ))}
         </div>
-        
+
         <div className="system-notes">
           <div className="role-details-header">
             <h4>Role Details:</h4>

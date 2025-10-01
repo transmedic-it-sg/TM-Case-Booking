@@ -52,24 +52,16 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
   try {
     const normalizedCountry = country ? normalizeCountryForDB(country) : null;
     const cacheKey = normalizedCountry || 'Global';
-    
+
     // Check cache first
     const cached = codeTableCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
-      console.log(`🎯 Using cached code tables for ${cacheKey}`);
-      return cached.data;
+    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {return cached.data;
     }
-    
+
     // Check if there's already a pending request for this country
     const pendingRequest = pendingRequests.get(cacheKey);
-    if (pendingRequest) {
-      console.log(`⏳ Waiting for existing request for ${cacheKey}`);
-      return await pendingRequest;
-    }
-    
-    console.log(`🔄 Fetching code tables for ${cacheKey}`);
-    
-    // Create a promise for the fetch operation and store it
+    if (pendingRequest) {return await pendingRequest;
+    }// Create a promise for the fetch operation and store it
     const fetchPromise = (async (): Promise<CodeTable[]> => {
       try {
         // Query the actual code_tables table
@@ -78,7 +70,7 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
       .select('*')
       .eq('is_active', true)
       .order('table_type, display_name');
-    
+
     // Apply country filter based on data model:
     // - countries: Always Global
     // - departments/hospitals: Country-specific only
@@ -90,19 +82,19 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
       // For global request, only get Global data (countries)
       query = query.eq('country', 'Global');
     }
-    
+
     const { data: codeTableData, error } = await query;
-    
+
     if (error) {
       console.error('❌ Error fetching code tables:', error);
       throw error;
     }
-    
+
     if (!codeTableData || codeTableData.length === 0) {
       console.warn('⚠️ No code table data found');
       return [];
     }
-    
+
     // Apply data model filtering rules:
     // - countries: Always from Global
     // - departments: Always from specific country (never Global)
@@ -124,7 +116,7 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
       // For any other table types, use existing logic
       return normalizedCountry ? (item.country === 'Global' || item.country === normalizedCountry) : item.country === 'Global';
     });
-    
+
     // Group by table_type and transform to CodeTable format
     const grouped: Record<string, SupabaseCodeTableItem[]> = {};
     filteredData.forEach(item => {
@@ -133,7 +125,7 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
       }
       grouped[item.table_type].push(item);
     });
-    
+
     // Transform to CodeTable format
     const tables: CodeTable[] = Object.entries(grouped).map(([tableType, items]) => ({
       id: tableType,
@@ -141,26 +133,23 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
       description: getTableDescription(tableType),
       items: items.map(item => item.display_name).sort()
     }));
-    
+
     // Cache the result
     codeTableCache.set(cacheKey, {
       data: tables,
       timestamp: Date.now(),
       country: normalizedCountry
-    });
-    
-        console.log(`✅ Successfully loaded and cached ${tables.length} code tables for ${cacheKey}`);
-        return tables;
-        
+    });return tables;
+
       } catch (error) {
         console.error('❌ Error fetching code tables:', error);
         throw error;
       }
     })();
-    
+
     // Store the promise in pendingRequests
     pendingRequests.set(cacheKey, fetchPromise);
-    
+
     try {
       const result = await fetchPromise;
       return result;
@@ -168,10 +157,10 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
       // Clean up the pending request
       pendingRequests.delete(cacheKey);
     }
-    
+
   } catch (error) {
     console.error('❌ Error in getSupabaseCodeTables:', error);
-    
+
     // Return empty array instead of false fallback data
     return [];
   }
@@ -186,10 +175,10 @@ export const saveSupabaseCodeTables = async (
 ): Promise<void> => {
   try {
     const normalizedCountry = normalizeCountryForDB(country);
-    
+
     // Convert CodeTable format to database format
     const itemsToInsert: Omit<SupabaseCodeTableItem, 'id' | 'created_at' | 'updated_at'>[] = [];
-    
+
     codeTables.forEach(table => {
       table.items.forEach(item => {
         itemsToInsert.push({
@@ -201,21 +190,18 @@ export const saveSupabaseCodeTables = async (
         });
       });
     });
-    
+
     if (itemsToInsert.length > 0) {
       const { error } = await supabase
         .from('code_tables')
         .upsert(itemsToInsert, {
           onConflict: 'country,table_type,code'
         });
-        
+
       if (error) {
         console.error('Error saving code tables:', error);
         throw error;
-      }
-      
-      console.log(`✅ Successfully saved ${itemsToInsert.length} code table items`);
-    }
+      }}
   } catch (error) {
     console.error('Error in saveSupabaseCodeTables:', error);
     throw error;
@@ -232,7 +218,7 @@ export const addSupabaseCodeTableItem = async (
 ): Promise<boolean> => {
   try {
     const normalizedCountry = normalizeCountryForDB(country);
-    
+
     // Apply correct data model logic:
     // - countries: Always add to Global
     // - departments/hospitals: Always add to specific country
@@ -249,7 +235,7 @@ export const addSupabaseCodeTableItem = async (
       // Fallback for other table types
       targetCountry = country ? normalizedCountry : 'Global';
     }
-    
+
     const { error } = await supabase
       .from('code_tables')
       .insert({
@@ -259,39 +245,33 @@ export const addSupabaseCodeTableItem = async (
         display_name: item,
         is_active: true
       });
-      
+
     if (error) {
       console.error('Error adding code table item:', error);
       return false;
-    }
-    
-    console.log(`✅ Successfully added ${item} to ${tableType}`);
-    
-    // Update cache version to notify other users
+    }// Update cache version to notify other users
     try {
       const { forceCacheVersionUpdate } = await import('./cacheVersionService');
       await forceCacheVersionUpdate(
-        normalizedCountry, 
+        normalizedCountry,
         tableType,
         `Added ${tableType}: ${item}`,
         'system' // Could be enhanced with actual user info
-      );
-      console.log(`📢 Cache version updated for ${normalizedCountry}:${tableType}`);
-    } catch (cacheError) {
+      );} catch (cacheError) {
       console.error('Failed to update cache version:', cacheError);
     }
-    
+
     // Clear cache to ensure UI updates immediately
     const cacheKey = normalizedCountry || 'Global';
     codeTableCache.delete(cacheKey);
     pendingRequests.delete(cacheKey);
-    
+
     // Also clear department-specific cache if this is a departments table
     if (tableType === 'departments') {
       departmentCache.clear();
       departmentPendingRequests.clear();
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error in addSupabaseCodeTableItem:', error);
@@ -311,7 +291,7 @@ export const updateSupabaseCodeTableItem = async (
   try {
     const normalizedCountry = normalizeCountryForDB(country);
     const oldCode = oldItem.toLowerCase().replace(/\s+/g, '_');
-    
+
     // Apply correct data model logic:
     // - countries: Always update in Global
     // - departments/hospitals: Always update in specific country
@@ -328,7 +308,7 @@ export const updateSupabaseCodeTableItem = async (
       // Fallback for other table types
       targetCountry = country ? normalizedCountry : 'Global';
     }
-    
+
     const { error } = await supabase
       .from('code_tables')
       .update({
@@ -338,39 +318,33 @@ export const updateSupabaseCodeTableItem = async (
       .eq('country', targetCountry)
       .eq('table_type', tableType)
       .eq('code', oldCode);
-      
+
     if (error) {
       console.error('Error updating code table item:', error);
       return false;
-    }
-    
-    console.log(`✅ Successfully updated ${oldItem} to ${newItem} in ${tableType}`);
-    
-    // Update cache version to notify other users
+    }// Update cache version to notify other users
     try {
       const { forceCacheVersionUpdate } = await import('./cacheVersionService');
       await forceCacheVersionUpdate(
-        normalizedCountry, 
+        normalizedCountry,
         tableType,
         `Updated ${tableType}: ${oldItem} → ${newItem}`,
         'system' // Could be enhanced with actual user info
-      );
-      console.log(`📢 Cache version updated for ${normalizedCountry}:${tableType}`);
-    } catch (cacheError) {
+      );} catch (cacheError) {
       console.error('Failed to update cache version:', cacheError);
     }
-    
+
     // Clear cache to ensure UI updates immediately
     const cacheKey = normalizedCountry || 'Global';
     codeTableCache.delete(cacheKey);
     pendingRequests.delete(cacheKey);
-    
+
     // Also clear department-specific cache if this is a departments table
     if (tableType === 'departments') {
       departmentCache.clear();
       departmentPendingRequests.clear();
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error in updateSupabaseCodeTableItem:', error);
@@ -389,7 +363,7 @@ export const removeSupabaseCodeTableItem = async (
   try {
     const normalizedCountry = normalizeCountryForDB(country);
     const code = item.toLowerCase().replace(/\s+/g, '_');
-    
+
     // Apply correct data model logic:
     // - countries: Always delete from Global
     // - departments/hospitals: Always delete from specific country
@@ -406,47 +380,39 @@ export const removeSupabaseCodeTableItem = async (
       // Fallback for other table types
       targetCountry = country ? normalizedCountry : 'Global';
     }
-    
+
     const result = await supabase
       .from('code_tables')
       .update({ is_active: false })
       .eq('country', targetCountry)
       .eq('table_type', tableType)
       .eq('code', code);
-    
+
     if (result.error) {
       console.error('Error removing code table item:', result.error);
       return false;
-    }
-    
-    console.log(`✅ Successfully removed ${item} from ${tableType}`);
-    
-    // Update cache version to notify other users
+    }// Update cache version to notify other users
     try {
       const { forceCacheVersionUpdate } = await import('./cacheVersionService');
       await forceCacheVersionUpdate(
-        normalizedCountry, 
+        normalizedCountry,
         tableType,
         `Removed ${tableType}: ${item}`,
         'system' // Could be enhanced with actual user info
-      );
-      console.log(`📢 Cache version updated for ${normalizedCountry}:${tableType}`);
-    } catch (cacheError) {
+      );} catch (cacheError) {
       console.error('Failed to update cache version:', cacheError);
     }
-    
+
     // Clear cache to ensure UI updates immediately
     const cacheKey = normalizedCountry || 'Global';
     codeTableCache.delete(cacheKey);
     pendingRequests.delete(cacheKey);
-    
+
     // Also clear department-specific cache if this is a departments table
     if (tableType === 'departments') {
       departmentCache.clear();
-      departmentPendingRequests.clear();
-      console.log(`🧹 Cleared department cache after deleting ${item} from ${normalizedCountry}`);
-    }
-    
+      departmentPendingRequests.clear();}
+
     return true;
   } catch (error) {
     console.error('Error in removeSupabaseCodeTableItem:', error);
@@ -483,9 +449,7 @@ function getTableDescription(tableType: string): string {
  */
 export const clearCodeTableCache = (): void => {
   codeTableCache.clear();
-  pendingRequests.clear();
-  console.log('🧹 Cleared code table cache');
-};
+  pendingRequests.clear();};
 
 /**
  * Force refresh code tables by clearing cache and fetching fresh data
@@ -493,13 +457,10 @@ export const clearCodeTableCache = (): void => {
 export const forceRefreshCodeTables = async (country?: string): Promise<CodeTable[]> => {
   const normalizedCountry = country ? normalizeCountryForDB(country) : null;
   const cacheKey = normalizedCountry || 'Global';
-  
+
   // Clear cache for this country
   codeTableCache.delete(cacheKey);
-  pendingRequests.delete(cacheKey);
-  
-  console.log(`🔄 Force refreshing code tables for ${cacheKey}`);
-  return await getSupabaseCodeTables(country);
+  pendingRequests.delete(cacheKey);return await getSupabaseCodeTables(country);
 };
 
 // Department-specific cache to prevent excessive requests
@@ -514,19 +475,19 @@ export const getDepartmentsForCountry = async (country: string): Promise<string[
   try {
     const normalizedCountry = normalizeCountryForDB(country);
     const cacheKey = `departments_${normalizedCountry}`;
-    
+
     // Check cache first
     const cached = departmentCache.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
       return cached.data;
     }
-    
+
     // Check if there's already a pending request
     const pendingRequest = departmentPendingRequests.get(cacheKey);
     if (pendingRequest) {
       return await pendingRequest;
     }
-    
+
     // Create a promise for the fetch operation
     const fetchPromise = (async (): Promise<string[]> => {
       const { data, error } = await supabase
@@ -543,19 +504,19 @@ export const getDepartmentsForCountry = async (country: string): Promise<string[
       }
 
       const departments = data?.map(item => item.display_name) || [];
-      
+
       // Cache the result
       departmentCache.set(cacheKey, {
         data: departments,
         timestamp: Date.now()
       });
-      
+
       return departments;
     })();
-    
+
     // Store the promise in pendingRequests
     departmentPendingRequests.set(cacheKey, fetchPromise);
-    
+
     try {
       const result = await fetchPromise;
       return result;
@@ -574,10 +535,7 @@ export const getDepartmentsForCountry = async (country: string): Promise<string[
  * Get hospitals for a country from code_tables
  */
 export const getHospitalsForCountry = async (country: string): Promise<string[]> => {
-  try {
-    console.log('🔍 Getting hospitals from code_tables for country:', country);
-    
-    const { data, error } = await supabase
+  try {const { data, error } = await supabase
       .from('code_tables')
       .select('display_name')
       .eq('table_type', 'hospitals')
@@ -590,9 +548,7 @@ export const getHospitalsForCountry = async (country: string): Promise<string[]>
       throw error;
     }
 
-    const hospitals = data?.map(item => item.display_name) || [];
-    console.log(`✅ Found ${hospitals.length} hospitals from code_tables for ${country}:`, hospitals);
-    return hospitals;
+    const hospitals = data?.map(item => item.display_name) || [];return hospitals;
 
   } catch (error) {
     console.error('Error in getHospitalsForCountry:', error);

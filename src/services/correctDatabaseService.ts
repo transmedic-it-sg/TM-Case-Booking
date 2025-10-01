@@ -19,10 +19,10 @@ class CorrectDatabaseService {
     try {
       // Check case_bookings foreign key constraints
       results.push(await this.checkCaseBookingsConstraints());
-      
+
       // Check RLS policies
       results.push(await this.checkRLSPolicies());
-      
+
       // Check for orphaned records
       results.push(await this.checkOrphanedRecords());
 

@@ -14,12 +14,12 @@ import { RealtimeProvider } from '../../components/RealtimeProvider';
 
 // Test component that uses the real-time departments hook
 const TestDepartmentsComponent: React.FC = () => {
-  const { 
+  const {
     departments,
     selectedDepartment,
-    doctors, 
-    isLoading, 
-    error, 
+    doctors,
+    isLoading,
+    error,
     refreshDepartments,
     selectDepartment,
     addDoctor,
@@ -72,31 +72,31 @@ const TestDepartmentsComponent: React.FC = () => {
       </div>
       <div data-testid="departments-data">{JSON.stringify(departments)}</div>
       <div data-testid="doctors-data">{JSON.stringify(doctors)}</div>
-      
+
       <button data-testid="refresh-btn" onClick={refreshDepartments}>
         Refresh Departments
       </button>
-      
+
       <button data-testid="validate-btn" onClick={handleValidation}>
         Validate Component
       </button>
-      
+
       <button data-testid="select-dept-btn" onClick={handleSelectDepartment}>
         Select Department
       </button>
-      
+
       <button data-testid="add-doctor-btn" onClick={handleAddDoctor}>
         Add Doctor
       </button>
-      
+
       <button data-testid="remove-doctor-btn" onClick={handleRemoveDoctor}>
         Remove Doctor
       </button>
-      
+
       <div data-testid="validation-result">
         {validationResult !== null ? (validationResult ? 'VALID' : 'INVALID') : 'NOT_TESTED'}
       </div>
-      
+
       <div data-testid="test-report">{testReport}</div>
     </div>
   );
@@ -105,7 +105,7 @@ const TestDepartmentsComponent: React.FC = () => {
 // Test wrapper with providers
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = createTestQueryClient();
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <RealtimeProvider>
@@ -119,7 +119,7 @@ describe('Real-time Departments Integration Tests', () => {
   beforeEach(() => {
     // Reset any previous state
     jest.clearAllMocks();
-    
+
     // Setup default departments response
     server.use(
       rest.get('*/rest/v1/departments*', (req, res, ctx) => {
@@ -134,7 +134,7 @@ describe('Real-time Departments Integration Tests', () => {
             },
             {
               id: 'dept-2',
-              name: 'Surgery Department', 
+              name: 'Surgery Department',
               description: 'Surgical procedures',
               doctor_count: 8,
               country: 'Singapore'
@@ -142,7 +142,7 @@ describe('Real-time Departments Integration Tests', () => {
           ])
         );
       }),
-      
+
       rest.get('*/rest/v1/doctors*', (req, res, ctx) => {
         return res(
           ctx.json([
@@ -157,7 +157,7 @@ describe('Real-time Departments Integration Tests', () => {
               id: 'doctor-2',
               name: 'Dr. Jane Doe',
               specialties: ['General Surgery'],
-              department_id: 'dept-1', 
+              department_id: 'dept-1',
               is_active: true
             }
           ])
@@ -184,7 +184,7 @@ describe('Real-time Departments Integration Tests', () => {
     // Should have departments data
     expect(screen.getByTestId('departments-count')).toHaveTextContent('2');
     expect(screen.getByTestId('error')).toHaveTextContent('No Error');
-    
+
     // Verify the actual department data
     const departmentsData = screen.getByTestId('departments-data').textContent;
     expect(departmentsData).toContain('Emergency Department');
@@ -193,7 +193,7 @@ describe('Real-time Departments Integration Tests', () => {
 
   test('should validate no caching behavior for departments', async () => {
     let callCount = 0;
-    
+
     // Mock API to count calls
     server.use(
       rest.get('*/rest/v1/departments*', (req, res, ctx) => {
@@ -314,7 +314,7 @@ describe('Real-time Departments Integration Tests', () => {
           })
         );
       }),
-      
+
       rest.delete('*/rest/v1/doctors*', (req, res, ctx) => {
         removeCalled = true;
         return res(ctx.status(204));
@@ -418,7 +418,7 @@ describe('Real-time Departments Integration Tests', () => {
     server.use(
       rest.get('*/rest/v1/departments*', (req, res, ctx) => {
         const country = req.url.searchParams.get('country') || 'Singapore';
-        
+
         if (country === 'Singapore') {
           return res(
             ctx.json([
@@ -437,7 +437,7 @@ describe('Real-time Departments Integration Tests', () => {
               {
                 id: 'my-dept-1',
                 name: 'Malaysia Emergency',
-                description: 'MY Emergency', 
+                description: 'MY Emergency',
                 doctor_count: 2,
                 country: 'Malaysia'
               }

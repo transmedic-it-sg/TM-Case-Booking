@@ -12,16 +12,16 @@ interface PushNotificationSettingsProps {
   embedded?: boolean; // If true, renders without modal wrapper
 }
 
-const PushNotificationSettings: React.FC<PushNotificationSettingsProps> = ({ 
-  onClose, 
-  embedded = false 
+const PushNotificationSettings: React.FC<PushNotificationSettingsProps> = ({
+  onClose,
+  embedded = false
 }) => {
   const [isSupported, setIsSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasTestedNotification, setHasTestedNotification] = useState(false);
-  
+
   const { showSuccess, showError, showWarning, showInfo } = useToast();
 
   // Check initial status
@@ -46,7 +46,7 @@ const PushNotificationSettings: React.FC<PushNotificationSettingsProps> = ({
   const checkNotificationStatus = () => {
     setIsSupported(isPushNotificationSupported());
     setPermission(getNotificationPermission());
-    
+
     const status = pushNotificationService.getSubscriptionStatus();
     setIsSubscribed(status);
   };
@@ -112,7 +112,7 @@ const PushNotificationSettings: React.FC<PushNotificationSettingsProps> = ({
 
   const getBrowserInstructions = () => {
     const userAgent = navigator.userAgent.toLowerCase();
-    
+
     if (userAgent.includes('chrome')) {
       return 'Chrome: Click the 🔒 icon in the address bar → Notifications → Allow';
     } else if (userAgent.includes('firefox')) {
@@ -149,7 +149,7 @@ const PushNotificationSettings: React.FC<PushNotificationSettingsProps> = ({
             <div className="setting-section">
               <div className="setting-item">
                 <span className="setting-label">Permission:</span>
-                <span 
+                <span
                   className="setting-value"
                   style={{ color: getPermissionStatusText().color }}
                 >

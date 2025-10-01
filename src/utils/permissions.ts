@@ -55,7 +55,7 @@ export const getUserPermissions = async (userId: string): Promise<Permission[]> 
       timestamp: Date.now(),
       userId
     });
-    
+
     // Clean up old user caches to prevent memory leaks
     const cutoffTime = Date.now() - (USER_CACHE_DURATION * 2);
     const cacheEntries = Array.from(userPermissionCaches.entries());
@@ -64,7 +64,7 @@ export const getUserPermissions = async (userId: string): Promise<Permission[]> 
         userPermissionCaches.delete(cacheUserId);
       }
     }
-    
+
     return permissions;
   } catch (error) {
     console.error('Error loading user permissions:', error);
@@ -80,9 +80,7 @@ export const saveRuntimePermissions = async (permissions: Permission[]): Promise
     // Clear cache first, then update with new permissions
     clearPermissionsCache();
     globalPermissionsCache = permissions;
-    globalPermissionsCacheTime = Date.now();
-    console.log('Permissions saved and cache updated');
-  } catch (error) {
+    globalPermissionsCacheTime = Date.now();} catch (error) {
     console.error('Error saving runtime permissions:', error);
     // Clear cache on error to force reload from Supabase
     clearPermissionsCache();
@@ -101,48 +99,39 @@ export const hasPermissionForUser = (roleId: string, actionId: string, userId: s
     permissionLog('Admin access granted', { role: roleId, action: actionId, userId });
     return true;
   }
-  
+
   // Use global cache for non-user-specific permissions
   const cacheToUse = globalPermissionsCache;
   const cacheTimeToUse = globalPermissionsCacheTime;
-  
+
   // Check cache validity with improved race condition handling
   if (!cacheToUse || (Date.now() - cacheTimeToUse >= CACHE_DURATION)) {
     console.warn(`🔄 Permission cache expired for ${roleId} - ${actionId} (user: ${userId}): Attempting refresh...`);
-    
+
     // For critical actions, allow access during cache refresh to prevent lockouts
     const criticalActions = ['view-cases', 'create-case', 'booking-calendar', 'logout'];
     if (criticalActions.includes(actionId)) {
       console.warn(`⚠️ Allowing critical action ${actionId} during cache refresh for user ${userId}`);
-      
+
       // Trigger async refresh but don't wait for it
       initializePermissions(false).catch(error => {
         console.error('❌ Failed to refresh permissions cache:', error);
       });
-      
+
       return true;
     }
-    
+
     // FAIL SECURE: Deny access for non-critical actions when permissions cannot be verified
     console.warn(`🔒 Permission DENIED for ${roleId} - ${actionId} (user: ${userId}): Cache unavailable and not a critical action`);
     return false;
   }
-  
+
   // Use cached database permissions for authorization
   const permission = cacheToUse.find(p => p.roleId === roleId && p.actionId === actionId);
-  const result = permission?.allowed || false;
-  
-  console.log('🔍 Permission lookup result:', {
-    roleId,
-    actionId,
-    userId,
-    permissionFound: !!permission,
-    permissionData: permission,
-    result,
-    cacheAge: Date.now() - cacheTimeToUse,
+  const result = permission?.allowed || false;- cacheTimeToUse,
     allPermissionsForRole: cacheToUse.filter(p => p.roleId === roleId).length
   });
-  
+
   return result;
 };
 
@@ -152,12 +141,12 @@ export const initializePermissions = async (forceRefresh: boolean = false): Prom
   if (initializationPromise && !forceRefresh) {
     return initializationPromise;
   }
-  
+
   // If forcing refresh, clear the existing promise
   if (forceRefresh) {
     initializationPromise = null;
   }
-  
+
   // Create new initialization promise
   initializationPromise = (async () => {
     try {
@@ -165,20 +154,16 @@ export const initializePermissions = async (forceRefresh: boolean = false): Prom
       if (forceRefresh) {
         clearPermissionsCache();
       }
-      
-      const permissions = await getRuntimePermissions();
-      console.log('✅ Permissions system initialized successfully');
-      console.log(`📊 Loaded ${permissions.length} permissions from database`);
-      console.log('🔍 Permission breakdown by role:', 
-        permissions.reduce((acc, p) => {
+
+      const permissions = await getRuntimePermissions();=> {
           acc[p.roleId] = (acc[p.roleId] || 0) + (p.allowed ? 1 : 0);
           return acc;
         }, {} as Record<string, number>)
       );
-      
+
       // Set up automatic cache refresh to prevent expiry issues
       schedulePermissionCacheRefresh();
-      
+
     } catch (error) {
       console.error('❌ Error initializing permissions system:', error);
       console.error('🚨 SECURITY WARNING: Permission system failed to initialize - access will be denied to all non-admin users');
@@ -190,7 +175,7 @@ export const initializePermissions = async (forceRefresh: boolean = false): Prom
       initializationPromise = null;
     }
   })();
-  
+
   return initializationPromise;
 };
 
@@ -202,15 +187,11 @@ const schedulePermissionCacheRefresh = () => {
   if (refreshTimer) {
     clearTimeout(refreshTimer);
   }
-  
+
   // Schedule refresh 5 minutes before expiry
   const refreshDelay = CACHE_DURATION - (5 * 60 * 1000);
-  refreshTimer = setTimeout(async () => {
-    console.log('🔄 Auto-refreshing permissions cache to prevent expiry...');
-    try {
-      await getRuntimePermissions();
-      console.log('✅ Permissions cache auto-refreshed successfully');
-      // Schedule next refresh
+  refreshTimer = setTimeout(async () => {try {
+      await getRuntimePermissions();// Schedule next refresh
       schedulePermissionCacheRefresh();
     } catch (error) {
       console.error('❌ Failed to auto-refresh permissions cache:', error);
@@ -233,7 +214,7 @@ export const clearPermissionsCache = (userId?: string): void => {
     userPermissionCaches.clear();
     logger.debug('All permission caches cleared');
   }
-  
+
   // Clear auto-refresh timer
   if (refreshTimer) {
     clearTimeout(refreshTimer);
@@ -277,12 +258,12 @@ export const PERMISSION_ACTIONS = {
   CANCEL_CASE: 'cancel-case',
   // Split Edit Sets into granular permissions
   EDIT_DOCTORS: 'edit-doctors',
-  EDIT_PROCEDURES: 'edit-procedures', 
+  EDIT_PROCEDURES: 'edit-procedures',
   EDIT_SURGERY_IMPLANTS: 'edit-surgery-implants',
   // Deprecated - keeping for backward compatibility
   EDIT_SETS: 'edit-sets',
   BOOKING_CALENDAR: 'booking-calendar',
-  
+
   // Status Transitions
   PROCESS_ORDER: 'process-order',
   ORDER_PROCESSED: 'order-processed',
@@ -294,7 +275,7 @@ export const PERMISSION_ACTIONS = {
   DELIVERED_OFFICE: 'delivered-office',
   TO_BE_BILLED: 'to-be-billed',
   CASE_CLOSED: 'case-closed',
-  
+
   // User Management
   CREATE_USER: 'create-user',
   EDIT_USER: 'edit-user',
@@ -304,7 +285,7 @@ export const PERMISSION_ACTIONS = {
   RESET_PASSWORD: 'reset-password',
   EDIT_COUNTRIES: 'edit-countries',
   GLOBAL_TABLES: 'global-tables',
-  
+
   // System Settings
   SYSTEM_SETTINGS: 'system-settings',
   EMAIL_CONFIG: 'email-config',
@@ -312,12 +293,12 @@ export const PERMISSION_ACTIONS = {
   BACKUP_RESTORE: 'backup-restore',
   AUDIT_LOGS: 'audit-logs',
   PERMISSION_MATRIX: 'permission-matrix',
-  
+
   // Data Operations
   EXPORT_DATA: 'export-data',
   IMPORT_DATA: 'import-data',
   VIEW_REPORTS: 'view-reports',
-  
+
   // File Operations
   UPLOAD_FILES: 'upload-files',
   DOWNLOAD_FILES: 'download-files',
@@ -331,17 +312,17 @@ export const canManageAttachments = (userId: string, userRole: string, caseSubmi
   if (userRole === 'admin') {
     return true;
   }
-  
+
   // Case creator can manage attachments
   if (userId === caseSubmittedBy) {
     return true;
   }
-  
+
   // Managers can manage attachments (manager role or users with MANAGE_ATTACHMENTS permission)
   if (userRole === 'manager' || hasPermission(userRole, PERMISSION_ACTIONS.MANAGE_ATTACHMENTS)) {
     return true;
   }
-  
+
   return false;
 };
 
@@ -351,11 +332,11 @@ export const canViewAttachments = (userId: string, userRole: string): boolean =>
   if (userRole === 'admin') {
     return true;
   }
-  
+
   // Users with download permission can view attachments
   if (hasPermission(userRole, PERMISSION_ACTIONS.DOWNLOAD_FILES)) {
     return true;
   }
-  
+
   return false;
 };

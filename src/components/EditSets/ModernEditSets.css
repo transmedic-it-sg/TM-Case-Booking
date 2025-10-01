@@ -39,6 +39,8 @@
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 24px;
+  position: relative;
+  overflow: visible; /* Allow dropdowns to overflow the container */
 }
 
 .two-column-dropdowns {
@@ -58,6 +60,15 @@
 .doctor-selection-dropdown,
 .procedure-selection-dropdown {
   min-width: 0; /* Prevents grid overflow */
+  position: relative;
+  z-index: 1; /* Base z-index */
+}
+
+/* Increase z-index when dropdown is focused/open */
+.department-selection-dropdown:focus-within,
+.doctor-selection-dropdown:focus-within,
+.procedure-selection-dropdown:focus-within {
+  z-index: 100;
 }
 
 /* Responsive adjustments */
@@ -72,15 +83,43 @@
   }
 }
 
+@media (max-width: 1200px) {
+  /* Adjust grid layouts for medium screens */
+  .modern-edit-sets [data-active-tab="doctors"] .data-list {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+
+  .modern-edit-sets [data-active-tab="procedures"] .data-list,
+  .surgery-implant-content .data-list {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .two-column-dropdowns,
   .three-column-dropdowns {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .tab-controls {
     padding: 16px;
+  }
+
+  /* Single column on mobile for all tabs */
+  .data-list {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .modern-edit-sets [data-active-tab="doctors"] .data-list,
+  .modern-edit-sets [data-active-tab="procedures"] .data-list,
+  .surgery-implant-content .data-list {
+    grid-template-columns: 1fr;
+  }
+
+  .data-item {
+    min-height: auto;
   }
 }
 
@@ -201,7 +240,7 @@
   background: var(--white);
   border-radius: 16px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
+  overflow: visible; /* Allow dropdowns to overflow */
 }
 
 /* Department Selection */
@@ -412,18 +451,38 @@
 
 .data-list {
   padding: 32px;
+  display: grid;
+  gap: 16px;
+  /* Default: Surgery Sets & Implant Boxes (5 columns) */
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+/* 3-column layout for Doctors tab */
+.modern-edit-sets [data-active-tab="doctors"] .data-list {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+/* 5-column layout for Procedures tab */
+.modern-edit-sets [data-active-tab="procedures"] .data-list {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+/* 5-column layout for Surgery & Implants tab */
+.modern-edit-sets [data-active-tab="surgery-implants"] .data-list,
+.surgery-implant-content .data-list {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 }
 
 .data-item {
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  align-items: center;
-  padding: 20px;
+  padding: 16px;
   border: 1px solid var(--border-light);
   border-radius: 12px;
-  margin-bottom: 12px;
   background: var(--white);
   transition: all 0.3s ease;
+  min-height: 140px;
 }
 
 .data-item:hover {
@@ -432,22 +491,38 @@
   transform: translateY(-1px);
 }
 
+.item-content {
+  flex: 1;
+  min-height: 80px;
+}
+
 .item-content h4 {
-  margin: 0 0 4px 0;
-  font-size: 1.1rem;
+  margin: 0 0 6px 0;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-primary);
+  line-height: 1.3;
+  word-break: break-word;
 }
 
 .item-content p {
-  margin: 0;
+  margin: 0 0 8px 0;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .item-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid #f3f4f6;
 }
 
 .edit-button,

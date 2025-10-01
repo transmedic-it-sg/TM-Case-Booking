@@ -29,22 +29,22 @@ interface FuzzySearchDropdownProps {
 const fuzzySearch = (query: string, text: string): number => {
   const queryLower = query.toLowerCase();
   const textLower = text.toLowerCase();
-  
+
   if (textLower.includes(queryLower)) {
     return textLower.indexOf(queryLower);
   }
-  
+
   // Character-by-character fuzzy matching
   let queryIndex = 0;
   let score = 0;
-  
+
   for (let i = 0; i < textLower.length && queryIndex < queryLower.length; i++) {
     if (textLower[i] === queryLower[queryIndex]) {
       queryIndex++;
       score += (textLower.length - i); // Prefer earlier matches
     }
   }
-  
+
   return queryIndex === queryLower.length ? score : -1;
 };
 
@@ -62,14 +62,14 @@ const FuzzySearchDropdown: React.FC<FuzzySearchDropdownProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(0);
-  
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Filter and sort options based on fuzzy search
   const filteredOptions = useMemo(() => {
     if (!searchQuery) return options;
-    
+
     const scored = options
       .map(option => ({
         option,
@@ -77,7 +77,7 @@ const FuzzySearchDropdown: React.FC<FuzzySearchDropdownProps> = ({
       }))
       .filter(item => item.score >= 0)
       .sort((a, b) => b.score - a.score);
-    
+
     return scored.map(item => item.option);
   }, [options, searchQuery]);
 
@@ -113,13 +113,13 @@ const FuzzySearchDropdown: React.FC<FuzzySearchDropdownProps> = ({
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setHighlightedIndex(prev => 
+        setHighlightedIndex(prev =>
           prev < filteredOptions.length - 1 ? prev + 1 : 0
         );
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setHighlightedIndex(prev => 
+        setHighlightedIndex(prev =>
           prev > 0 ? prev - 1 : filteredOptions.length - 1
         );
         break;
@@ -155,9 +155,9 @@ const FuzzySearchDropdown: React.FC<FuzzySearchDropdownProps> = ({
   return (
     <div className={`fuzzy-dropdown ${disabled ? 'disabled' : ''}`} ref={dropdownRef}>
       <label className="fuzzy-dropdown-label">{label}</label>
-      
+
       <div className={`fuzzy-dropdown-container ${isOpen ? 'open' : ''}`}>
-        <div 
+        <div
           className="fuzzy-dropdown-input-wrapper"
           onClick={() => !disabled && setIsOpen(!isOpen)}
         >
@@ -172,7 +172,7 @@ const FuzzySearchDropdown: React.FC<FuzzySearchDropdownProps> = ({
             disabled={disabled}
             readOnly={!isOpen}
           />
-          
+
           <div className="fuzzy-dropdown-icons">
             {clearable && value && !disabled && (
               <button

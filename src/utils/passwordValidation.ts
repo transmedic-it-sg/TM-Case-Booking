@@ -63,7 +63,7 @@ export const getPasswordRequirementsSync = (enforceComplexity: boolean = true): 
  * Validate password against requirements
  */
 export const validatePassword = (
-  password: string, 
+  password: string,
   requirements: PasswordRequirements = DEFAULT_REQUIREMENTS
 ): PasswordValidationResult => {
   const errors: string[] = [];
@@ -133,7 +133,7 @@ export const validatePassword = (
       'password', 'admin', 'user', 'login', 'welcome', 'test', 'temp', 'temporary',
       'transmedic', 'medical', 'hospital', 'doctor', 'nurse', 'patient'
     ];
-    
+
     const lowerPassword = password.toLowerCase();
     commonWords.forEach(word => {
       if (lowerPassword.includes(word)) {
@@ -172,7 +172,7 @@ export const generateSecurePassword = (requirements: PasswordRequirements = DEFA
   const lowercase = 'abcdefghijklmnopqrstuvwxyz';
   const numbers = '0123456789';
   const specialChars = '!@#$%^&*()_+-=[]{}|;:,.<>?';
-  
+
   let chars = '';
   let password = '';
 
@@ -181,17 +181,17 @@ export const generateSecurePassword = (requirements: PasswordRequirements = DEFA
     chars += uppercase;
     password += uppercase[Math.floor(Math.random() * uppercase.length)];
   }
-  
+
   if (requirements.requireLowercase) {
     chars += lowercase;
     password += lowercase[Math.floor(Math.random() * lowercase.length)];
   }
-  
+
   if (requirements.requireNumbers) {
     chars += numbers;
     password += numbers[Math.floor(Math.random() * numbers.length)];
   }
-  
+
   if (requirements.requireSpecialChars) {
     chars += specialChars;
     for (let i = 0; i < requirements.minSpecialChars; i++) {
@@ -218,21 +218,21 @@ export const generateSecurePassword = (requirements: PasswordRequirements = DEFA
  */
 export const getPasswordRequirementsText = (requirements: PasswordRequirements): string[] => {
   const texts: string[] = [];
-  
+
   texts.push(`At least ${requirements.minLength} characters long`);
-  
+
   if (requirements.requireUppercase) {
     texts.push('At least one uppercase letter (A-Z)');
   }
-  
+
   if (requirements.requireLowercase) {
     texts.push('At least one lowercase letter (a-z)');
   }
-  
+
   if (requirements.requireNumbers) {
     texts.push('At least one number (0-9)');
   }
-  
+
   if (requirements.requireSpecialChars) {
     texts.push(`At least ${requirements.minSpecialChars} special character(s) (!@#$%^&*)`);
   }

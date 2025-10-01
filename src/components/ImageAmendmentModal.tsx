@@ -43,12 +43,12 @@ const ImageAmendmentModal: React.FC<ImageAmendmentModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newImage) {
       setError('Please select a new image');
       return;
     }
-    
+
     if (!amendmentReason.trim()) {
       setError('Please provide a reason for the image amendment');
       return;
@@ -77,7 +77,7 @@ const ImageAmendmentModal: React.FC<ImageAmendmentModalProps> = ({
 
       // Update the specific attachment in the array
       const updatedAttachments = [...(statusHistory.attachments || [])];
-      
+
       // Create new image file data
       const newImageFile = {
         name: `amended_image_${Date.now()}.jpg`,
@@ -85,7 +85,7 @@ const ImageAmendmentModal: React.FC<ImageAmendmentModalProps> = ({
         size: Math.round(newImage.length * 0.75),
         data: newImage
       };
-      
+
       updatedAttachments[attachmentIndex] = JSON.stringify(newImageFile);
 
       // Update status history with new attachment
@@ -127,7 +127,7 @@ const ImageAmendmentModal: React.FC<ImageAmendmentModalProps> = ({
       // Close modal and refresh
       onClose();
       window.location.reload(); // Force refresh to show updated image
-      
+
     } catch (error) {
       console.error('Error amending image:', error);
       setError('Failed to amend image. Please try again.');
@@ -150,29 +150,29 @@ const ImageAmendmentModal: React.FC<ImageAmendmentModalProps> = ({
           <h3>Amend Image - {caseRef}</h3>
           <button className="close-button" onClick={handleClose}>✕</button>
         </div>
-        
+
         <div className="modal-body">
           <p><strong>Status:</strong> {statusType}</p>
           <p><strong>Image Position:</strong> #{attachmentIndex + 1}</p>
-          
+
           {error && (
             <div className="alert alert-danger">
               {error}
             </div>
           )}
-          
+
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="required">Current Image</label>
               <div className="current-image-preview">
-                <img 
-                  src={JSON.parse(currentImageData).data} 
-                  alt="Current attachment" 
+                <img
+                  src={JSON.parse(currentImageData).data}
+                  alt="Current attachment"
                   style={{ maxWidth: '200px', maxHeight: '150px', objectFit: 'cover' }}
                 />
               </div>
             </div>
-            
+
             <div className="form-group">
               <label className="required">New Image</label>
               <input
@@ -184,15 +184,15 @@ const ImageAmendmentModal: React.FC<ImageAmendmentModalProps> = ({
               />
               {newImage && (
                 <div className="new-image-preview">
-                  <img 
-                    src={newImage} 
-                    alt="New attachment" 
+                  <img
+                    src={newImage}
+                    alt="New attachment"
                     style={{ maxWidth: '200px', maxHeight: '150px', objectFit: 'cover' }}
                   />
                 </div>
               )}
             </div>
-            
+
             <div className="form-group">
               <label className="required">Reason for Amendment</label>
               <textarea
@@ -205,7 +205,7 @@ const ImageAmendmentModal: React.FC<ImageAmendmentModalProps> = ({
                 required
               />
             </div>
-            
+
             <div className="modal-footer">
               <button
                 type="button"

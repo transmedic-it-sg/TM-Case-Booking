@@ -14,9 +14,7 @@ import { getCurrentUserSync } from './authCompat';
  */
 
 // Get all cases - always fresh from database
-export const getCases = async (filters?: FilterOptions): Promise<CaseBooking[]> => {
-  console.log('🔄 Getting fresh cases from database...');
-  try {
+export const getCases = async (filters?: FilterOptions): Promise<CaseBooking[]> => {try {
     return await realtimeCaseService.getAllCases();
   } catch (error) {
     console.error('❌ Failed to get cases:', error);
@@ -25,9 +23,7 @@ export const getCases = async (filters?: FilterOptions): Promise<CaseBooking[]> 
 };
 
 // Save case - direct database operation
-export const saveCase = async (caseData: CaseBooking): Promise<CaseBooking | null> => {
-  console.log(`💾 Saving case ${caseData.caseReferenceNumber} to database...`);
-  try {
+export const saveCase = async (caseData: CaseBooking): Promise<CaseBooking | null> => {try {
     return await realtimeCaseService.saveCase(caseData);
   } catch (error) {
     console.error(`❌ Failed to save case ${caseData.caseReferenceNumber}:`, error);
@@ -41,9 +37,7 @@ export const updateCaseStatus = async (
   newStatus: string,
   details?: string,
   attachments?: string[]
-): Promise<boolean> => {
-  console.log(`🔄 Updating case ${caseId} status to ${newStatus}...`);
-  try {
+): Promise<boolean> => {try {
     return await realtimeCaseService.updateCaseStatus(caseId, newStatus as any, details, attachments);
   } catch (error) {
     console.error(`❌ Failed to update case ${caseId}:`, error);
@@ -52,9 +46,7 @@ export const updateCaseStatus = async (
 };
 
 // Delete case - direct database operation
-export const deleteCase = async (caseId: string): Promise<boolean> => {
-  console.log(`🗑️ Deleting case ${caseId} from database...`);
-  try {
+export const deleteCase = async (caseId: string): Promise<boolean> => {try {
     return await realtimeCaseService.deleteCase(caseId);
   } catch (error) {
     console.error(`❌ Failed to delete case ${caseId}:`, error);
@@ -63,9 +55,7 @@ export const deleteCase = async (caseId: string): Promise<boolean> => {
 };
 
 // Generate case reference number - direct database operation
-export const generateCaseReferenceNumber = async (country?: string): Promise<string> => {
-  console.log(`🔢 Generating case reference number for ${country || 'default'}...`);
-  try {
+export const generateCaseReferenceNumber = async (country?: string): Promise<string> => {try {
     return await realtimeCaseService.generateCaseReferenceNumber(country);
   } catch (error) {
     console.error('❌ Failed to generate reference number:', error);
@@ -78,27 +68,21 @@ export const generateCaseReferenceNumber = async (country?: string): Promise<str
  */
 
 // Get procedure types for department - direct database query
-export const getProcedureTypesForDepartment = async (department: string, country?: string): Promise<string[]> => {
-  console.log(`🔄 Getting procedure types for ${department} in ${country || 'default'}...`);
-  
-  try {
+export const getProcedureTypesForDepartment = async (department: string, country?: string): Promise<string[]> => {try {
     const { data, error } = await supabase
       .from('code_tables')
       .select('values')
       .eq('table_name', 'procedures')
       .eq('department', department);
-    
+
     if (error) throw error;
-    
+
     const procedures: string[] = [];
     data?.forEach(record => {
       if (Array.isArray(record.values)) {
         procedures.push(...record.values);
       }
-    });
-    
-    console.log(`✅ Found ${procedures.length} procedures for ${department}`);
-    return [...new Set(procedures)].sort(); // Remove duplicates and sort
+    });return [...new Set(procedures)].sort(); // Remove duplicates and sort
   } catch (error) {
     console.error(`❌ Failed to get procedures for ${department}:`, error);
     return []; // Return empty array on error - no localStorage fallback
@@ -106,43 +90,33 @@ export const getProcedureTypesForDepartment = async (department: string, country
 };
 
 // Get surgery sets - direct database query
-export const getSurgerySets = async (country: string): Promise<string[]> => {
-  console.log(`🔄 Getting surgery sets for ${country}...`);
-  
-  try {
+export const getSurgerySets = async (country: string): Promise<string[]> => {try {
     const { data, error } = await supabase
       .from('surgery_sets')
       .select('name')
       .eq('country', country)
       .eq('is_active', true);
-    
+
     if (error) throw error;
-    
-    const sets = data?.map(item => item.name) || [];
-    console.log(`✅ Found ${sets.length} surgery sets for ${country}`);
-    return sets.sort();
+
+    const sets = data?.map(item => item.name) || [];return sets.sort();
   } catch (error) {
     console.error(`❌ Failed to get surgery sets for ${country}:`, error);
     return []; // Return empty array on error - no localStorage fallback
   }
 };
 
-// Get implant boxes - direct database query  
-export const getImplantBoxes = async (country: string): Promise<string[]> => {
-  console.log(`🔄 Getting implant boxes for ${country}...`);
-  
-  try {
+// Get implant boxes - direct database query
+export const getImplantBoxes = async (country: string): Promise<string[]> => {try {
     const { data, error } = await supabase
       .from('implant_boxes')
       .select('name')
       .eq('country', country)
       .eq('is_active', true);
-    
+
     if (error) throw error;
-    
-    const boxes = data?.map(item => item.name) || [];
-    console.log(`✅ Found ${boxes.length} implant boxes for ${country}`);
-    return boxes.sort();
+
+    const boxes = data?.map(item => item.name) || [];return boxes.sort();
   } catch (error) {
     console.error(`❌ Failed to get implant boxes for ${country}:`, error);
     return []; // Return empty array on error - no localStorage fallback
@@ -157,15 +131,12 @@ export const getImplantBoxes = async (country: string): Promise<string[]> => {
 export const amendCase = async (
   caseId: string,
   amendmentData: Partial<CaseBooking>
-): Promise<boolean> => {
-  console.log(`✏️ Amending case ${caseId}...`);
-  
-  try {
+): Promise<boolean> => {try {
     const currentUser = getCurrentUserSync();
     if (!currentUser) {
       throw new Error('No current user found');
     }
-    
+
     return await realtimeCaseService.amendCase(caseId, amendmentData, {
       id: currentUser.id,
       name: currentUser.name
@@ -182,10 +153,7 @@ export const processCaseOrder = async (
   userId: string,
   details: string,
   attachments?: string[]
-): Promise<boolean> => {
-  console.log(`🔄 Processing order for case ${caseId}...`);
-  
-  try {
+): Promise<boolean> => {try {
     return await realtimeCaseService.updateCaseStatus(
       caseId,
       'Order Prepared' as any,
@@ -203,10 +171,7 @@ export const processCaseOrder = async (
  */
 
 // Get case statistics - direct database calculation
-export const getCaseStatistics = async () => {
-  console.log('📊 Getting fresh case statistics...');
-  
-  try {
+export const getCaseStatistics = async () => {try {
     return await realtimeCaseService.getCaseStatistics();
   } catch (error) {
     console.error('❌ Failed to get case statistics:', error);
@@ -215,10 +180,7 @@ export const getCaseStatistics = async () => {
 };
 
 // Search cases - direct database operation
-export const searchCases = async (searchTerm: string): Promise<CaseBooking[]> => {
-  console.log(`🔍 Searching cases for: ${searchTerm}...`);
-  
-  try {
+export const searchCases = async (searchTerm: string): Promise<CaseBooking[]> => {try {
     return await realtimeCaseService.searchCases(searchTerm);
   } catch (error) {
     console.error(`❌ Failed to search cases for "${searchTerm}":`, error);
@@ -255,10 +217,7 @@ export const getCaseById = async (caseId: string): Promise<CaseBooking | null> =
  * Legacy localStorage migration helper
  * ONLY used during transition period - will be removed
  */
-export const migrateLegacyData = async (): Promise<void> => {
-  console.log('🔄 Checking for legacy localStorage data to migrate...');
-  
-  try {
+export const migrateLegacyData = async (): Promise<void> => {try {
     // Check if there's any legacy data in localStorage
     const legacyKeys = [
       'case-booking-cases',
@@ -267,31 +226,21 @@ export const migrateLegacyData = async (): Promise<void> => {
       'surgery-sets',
       'implant-boxes'
     ];
-    
+
     let hasLegacyData = false;
     legacyKeys.forEach(key => {
-      if (localStorage.getItem(key)) {
-        hasLegacyData = true;
-        console.log(`⚠️ Found legacy data in localStorage: ${key}`);
-      }
+      if (false) // No longer using localStorage {
+        hasLegacyData = true;}
     });
-    
-    if (hasLegacyData) {
-      console.log('⚠️ Legacy localStorage data found - recommend manual migration');
-      console.log('💡 Use Supabase dashboard to import data, then clear localStorage');
-    } else {
-      console.log('✅ No legacy localStorage data found');
-    }
+
+    if (hasLegacyData) {} else {}
   } catch (error) {
     console.error('❌ Failed to check legacy data:', error);
   }
 };
 
 // Emergency localStorage cleanup - removes all cached data
-export const clearAllLocalStorageCache = (): void => {
-  console.log('🧹 Clearing all localStorage cache...');
-  
-  const cacheKeys = [
+export const clearAllLocalStorageCache = (): void => {const cacheKeys = [
     'case-booking-cases',
     'cases',
     'case-booking-counter',
@@ -302,15 +251,10 @@ export const clearAllLocalStorageCache = (): void => {
     'case-booking-custom-roles',
     'case-booking-custom-permissions'
   ];
-  
+
   cacheKeys.forEach(key => {
     try {
-      localStorage.removeItem(key);
-      console.log(`🗑️ Removed localStorage key: ${key}`);
-    } catch (error) {
+      localStorage.removeItem(key);} catch (error) {
       console.warn(`⚠️ Failed to remove localStorage key ${key}:`, error);
     }
-  });
-  
-  console.log('✅ localStorage cache cleared');
-};
+  });};

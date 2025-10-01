@@ -36,7 +36,7 @@ class PushNotificationService {
       const permission = await Notification.requestPermission();
       this.config.permission = permission;
       this.config.enabled = permission === 'granted';
-      
+
       return this.config.enabled;
     } catch (error) {
       console.error('Error requesting notification permission:', error);
@@ -55,7 +55,7 @@ class PushNotificationService {
         badge: '/favicon.ico',
         ...options
       });
-      
+
       return true;
     } catch (error) {
       console.error('Error showing notification:', error);
@@ -85,9 +85,7 @@ class PushNotificationService {
     try {
       const permission = await this.requestPermission();
       if (permission) {
-        // In a real implementation, you'd register a service worker and create subscription
-        console.log('Push subscription would be created here');
-        return true;
+        // In a real implementation, you'd register a service worker and create subscriptionreturn true;
       }
       return false;
     } catch (error) {
@@ -99,9 +97,7 @@ class PushNotificationService {
   async unsubscribeFromPush(): Promise<boolean> {
     try {
       this.config.enabled = false;
-      // In a real implementation, you'd unsubscribe from push service
-      console.log('Push subscription would be removed here');
-      return true;
+      // In a real implementation, you'd unsubscribe from push servicereturn true;
     } catch (error) {
       console.error('Push unsubscription failed:', error);
       return false;

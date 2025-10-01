@@ -38,14 +38,10 @@ class CRUDVerificationService {
       error,
       details
     });
-    
-    const status = success ? '✅' : '❌';
-    console.log(`${status} ${operation} ${table}: ${success ? 'PASSED' : `FAILED - ${error}`}`);
-  }
 
-  async verifyAllCRUDOperations(): Promise<VerificationReport> {
-    console.log('🧪 Starting comprehensive CRUD operations verification...');
-    this.results = [];
+    const status = success ? '✅' : '❌';}
+
+  async verifyAllCRUDOperations(): Promise<VerificationReport> {this.results = [];
 
     // Test all core tables
     await this.testCaseBookings();
@@ -62,10 +58,7 @@ class CRUDVerificationService {
     return this.generateReport();
   }
 
-  private async testCaseBookings(): Promise<void> {
-    console.log('📋 Testing Case Bookings CRUD...');
-
-    // CREATE
+  private async testCaseBookings(): Promise<void> {// CREATE
     try {
       const testCase = {
         case_reference_number: `TEST_${Date.now()}`,
@@ -100,10 +93,7 @@ class CRUDVerificationService {
     }
   }
 
-  private async testProfiles(): Promise<void> {
-    console.log('👤 Testing Profiles CRUD...');
-
-    // READ (existing profiles)
+  private async testProfiles(): Promise<void> {// READ (existing profiles)
     try {
       const { data: profiles, error } = await supabase
         .from('profiles')
@@ -155,10 +145,7 @@ class CRUDVerificationService {
     }
   }
 
-  private async testDepartments(): Promise<void> {
-    console.log('🏥 Testing Departments CRUD...');
-
-    // READ
+  private async testDepartments(): Promise<void> {// READ
     try {
       const { data: departments, error } = await supabase
         .from('departments')
@@ -205,10 +192,7 @@ class CRUDVerificationService {
     }
   }
 
-  private async testDoctors(): Promise<void> {
-    console.log('👩‍⚕️ Testing Doctors CRUD...');
-
-    // Get a department first
+  private async testDoctors(): Promise<void> {// Get a department first
     const { data: departments } = await supabase
       .from('departments')
       .select('id')
@@ -268,10 +252,7 @@ class CRUDVerificationService {
     }
   }
 
-  private async testProcedures(): Promise<void> {
-    console.log('🔬 Testing Doctor Procedures CRUD...');
-
-    // Get a doctor first
+  private async testProcedures(): Promise<void> {// Get a doctor first
     const { data: doctors } = await supabase
       .from('doctors')
       .select('id')
@@ -330,10 +311,7 @@ class CRUDVerificationService {
     }
   }
 
-  private async testSurgerySets(): Promise<void> {
-    console.log('🔧 Testing Surgery Sets CRUD...');
-
-    // READ
+  private async testSurgerySets(): Promise<void> {// READ
     try {
       const { data: sets, error } = await supabase
         .from('surgery_sets')
@@ -379,10 +357,7 @@ class CRUDVerificationService {
     }
   }
 
-  private async testImplantBoxes(): Promise<void> {
-    console.log('📦 Testing Implant Boxes CRUD...');
-
-    // READ
+  private async testImplantBoxes(): Promise<void> {// READ
     try {
       const { data: boxes, error } = await supabase
         .from('implant_boxes')
@@ -428,10 +403,7 @@ class CRUDVerificationService {
     }
   }
 
-  private async testSystemSettings(): Promise<void> {
-    console.log('⚙️ Testing System Settings CRUD...');
-
-    // READ
+  private async testSystemSettings(): Promise<void> {// READ
     try {
       const { data: settings, error } = await supabase
         .from('system_settings')
@@ -477,10 +449,7 @@ class CRUDVerificationService {
     }
   }
 
-  private async testPermissions(): Promise<void> {
-    console.log('🔐 Testing Permissions CRUD...');
-
-    // READ
+  private async testPermissions(): Promise<void> {// READ
     try {
       const { data: permissions, error } = await supabase
         .from('permissions')
@@ -526,10 +495,7 @@ class CRUDVerificationService {
     }
   }
 
-  private async testAuditLogs(): Promise<void> {
-    console.log('📊 Testing Audit Logs CRUD...');
-
-    // READ
+  private async testAuditLogs(): Promise<void> {// READ
     try {
       const { data: logs, error } = await supabase
         .from('audit_logs')
@@ -586,7 +552,7 @@ class CRUDVerificationService {
   private generateReport(): VerificationReport {
     const passed = this.results.filter(r => r.success).length;
     const failed = this.results.filter(r => !r.success).length;
-    
+
     const tables = [...new Set(this.results.map(r => r.table))];
     const operations = this.results.reduce((acc, r) => {
       acc[r.operation] = (acc[r.operation] || 0) + 1;
@@ -609,16 +575,9 @@ class CRUDVerificationService {
       }
     };
 
-    // Log summary
-    console.log('\n📋 CRUD Verification Report:');
-    console.log(`Total Tests: ${report.totalTests}`);
-    console.log(`✅ Passed: ${passed}`);
-    console.log(`❌ Failed: ${failed}`);
-    console.log(`Success Rate: ${((passed / report.totalTests) * 100).toFixed(1)}%`);
-    
-    if (criticalIssues.length > 0) {
-      console.log('\n🚨 Critical Issues:');
-      criticalIssues.forEach(issue => console.log(`  - ${issue}`));
+    // Log summary* 100).toFixed(1)}%`);
+
+    if (criticalIssues.length > 0) {criticalIssues.forEach(issue =>);
     }
 
     return report;

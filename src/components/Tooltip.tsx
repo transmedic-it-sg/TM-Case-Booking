@@ -14,7 +14,7 @@ const Tooltip: React.FC<TooltipProps> = ({ content, children, disabled = false }
   }
 
   return (
-    <div 
+    <div
       className="tooltip-wrapper"
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}

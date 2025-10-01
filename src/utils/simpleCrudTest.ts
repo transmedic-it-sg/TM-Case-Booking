@@ -13,18 +13,14 @@ interface TestResult {
 }
 
 export async function runSimpleCRUDTests(): Promise<TestResult[]> {
-  const results: TestResult[] = [];
-  
-  console.log('🧪 Running Simple CRUD Tests...');
-
-  // Test 1: System Settings (Simple table)
+  const results: TestResult[] = [];// Test 1: System Settings (Simple table)
   try {
     // READ
     const { data: settings, error: readError } = await supabase
       .from('system_settings')
       .select('*')
       .limit(1);
-    
+
     results.push({
       table: 'system_settings',
       operation: 'READ',
@@ -94,7 +90,7 @@ export async function runSimpleCRUDTests(): Promise<TestResult[]> {
       .from('profiles')
       .select('id, username, role')
       .limit(1);
-    
+
     results.push({
       table: 'profiles',
       operation: 'READ',
@@ -132,7 +128,7 @@ export async function runSimpleCRUDTests(): Promise<TestResult[]> {
       .from('departments')
       .select('*')
       .limit(5);
-    
+
     results.push({
       table: 'departments',
       operation: 'READ',
@@ -203,7 +199,7 @@ export async function runSimpleCRUDTests(): Promise<TestResult[]> {
       .from('surgery_sets')
       .select('*')
       .limit(5);
-    
+
     results.push({
       table: 'surgery_sets',
       operation: 'READ',
@@ -273,7 +269,7 @@ export async function runSimpleCRUDTests(): Promise<TestResult[]> {
       .from('case_bookings')
       .select('id, case_reference_number, status')
       .limit(5);
-    
+
     results.push({
       table: 'case_bookings',
       operation: 'READ',
@@ -345,34 +341,18 @@ export async function runSimpleCRUDTests(): Promise<TestResult[]> {
   // Generate summary
   const passed = results.filter(r => r.success).length;
   const failed = results.filter(r => !r.success).length;
-  const total = results.length;
-
-  console.log('\n📋 CRUD Test Results Summary:');
-  console.log('==============================');
-  console.log(`Total Tests: ${total}`);
-  console.log(`✅ Passed: ${passed}`);
-  console.log(`❌ Failed: ${failed}`);
-  console.log(`Success Rate: ${((passed / total) * 100).toFixed(1)}%`);
-
-  console.log('\n📊 Detailed Results:');
-  results.forEach(result => {
+  const total = results.length;* 100).toFixed(1)}%`);results.forEach(result => {
     const status = result.success ? '✅' : '❌';
-    const errorInfo = result.error ? ` (${result.error})` : '';
-    console.log(`${status} ${result.table} - ${result.operation}${errorInfo}`);
-  });
+    const errorInfo = result.error ? ` (${result.error})` : '';});
 
   // Check for critical failures
-  const criticalFailures = results.filter(r => 
-    !r.success && 
+  const criticalFailures = results.filter(r =>
+    !r.success &&
     (r.table === 'case_bookings' || r.table === 'profiles') &&
     r.operation === 'READ'
   );
 
-  if (criticalFailures.length > 0) {
-    console.log('\n🚨 CRITICAL FAILURES DETECTED:');
-    criticalFailures.forEach(failure => {
-      console.log(`❌ ${failure.table} ${failure.operation}: ${failure.error}`);
-    });
+  if (criticalFailures.length > 0) {criticalFailures.forEach(failure => {});
   }
 
   return results;

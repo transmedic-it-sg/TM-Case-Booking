@@ -19,27 +19,27 @@ interface UseRealtimeCasesOptions {
 }
 
 export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
-  const { 
-    autoRefresh = false, 
-    refreshInterval = 30000, 
+  const {
+    autoRefresh = false,
+    refreshInterval = 30000,
     enableRealTime = true,
     filters,
     enableTesting = true
   } = options;
-  
+
   // Real-time query for cases - always fresh data
-  const { 
-    data: cases = [], 
-    isLoading, 
-    error, 
+  const {
+    data: cases = [],
+    isLoading,
+    error,
     refetch,
     isError,
     isSuccess
   } = useRealtimeCasesQuery(filters);
-  
+
   // Optimistic mutations for instant UI updates
   const caseMutation = useOptimisticCaseMutation();
-  
+
   // Testing validation
   const testing = useTestingValidation({
     componentName: 'useRealtimeCases',
@@ -69,8 +69,7 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
   // Auto-refresh fallback (backup for when real-time doesn't work)
   useEffect(() => {
     if (autoRefresh && refreshInterval > 0 && !enableRealTime) {
-      const interval = setInterval(() => {
-        console.log('🔄 Auto-refresh triggered (fallback mode)');
+      const interval = setInterval(() => {');
         refetch();
       }, refreshInterval);
       return () => clearInterval(interval);
@@ -78,15 +77,10 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
   }, [autoRefresh, refreshInterval, enableRealTime, refetch]);
 
   // Force refresh function - bypasses all caching
-  const refreshCases = useCallback(async () => {
-    console.log('🔄 Force refreshing cases...');
-    setLocalError(null);
-    
+  const refreshCases = useCallback(async () => {setLocalError(null);
+
     try {
-      await refetch();
-      console.log('✅ Cases refreshed successfully');
-      
-      if (enableTesting) {
+      await refetch();if (enableTesting) {
         testing.validateCache();
       }
     } catch (error) {
@@ -102,25 +96,19 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
     newStatus: CaseStatus,
     details?: string,
     attachments?: string[]
-  ) => {
-    console.log(`🔄 Updating case ${caseId} to status ${newStatus}...`);
-    setLocalError(null);
-    
+  ) => {setLocalError(null);
+
     try {
       await caseMutation.mutateAsync({
         caseId,
         status: newStatus,
-        data: { 
-          processOrderDetails: details ? JSON.stringify({ details, attachments }) : undefined 
+        data: {
+          processOrderDetails: details ? JSON.stringify({ details, attachments }) : undefined
         }
-      });
-      
-      console.log(`✅ Case ${caseId} status updated to ${newStatus}`);
-      
-      if (enableTesting) {
+      });if (enableTesting) {
         testing.recordUpdate();
       }
-      
+
       return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update case status';
@@ -131,24 +119,19 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
   }, [caseMutation, enableTesting, testing]);
 
   // Save case with optimistic updates
-  const saveCase = useCallback(async (caseData: CaseBooking) => {
-    console.log(`💾 Saving case ${caseData.caseReferenceNumber}...`);
-    setLocalError(null);
-    
+  const saveCase = useCallback(async (caseData: CaseBooking) => {setLocalError(null);
+
     try {
       const savedCase = await realtimeCaseService.saveCase(caseData);
-      
-      if (savedCase) {
-        console.log(`✅ Case ${caseData.caseReferenceNumber} saved successfully`);
-        
-        // Trigger refresh to get updated data
+
+      if (savedCase) {// Trigger refresh to get updated data
         await refetch();
-        
+
         if (enableTesting) {
           testing.recordUpdate();
         }
       }
-      
+
       return savedCase;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to save case';
@@ -159,24 +142,19 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
   }, [refetch, enableTesting, testing]);
 
   // Delete case
-  const deleteCase = useCallback(async (caseId: string) => {
-    console.log(`🗑️ Deleting case ${caseId}...`);
-    setLocalError(null);
-    
+  const deleteCase = useCallback(async (caseId: string) => {setLocalError(null);
+
     try {
       const success = await realtimeCaseService.deleteCase(caseId);
-      
-      if (success) {
-        console.log(`✅ Case ${caseId} deleted successfully`);
-        
-        // Trigger refresh to get updated data
+
+      if (success) {// Trigger refresh to get updated data
         await refetch();
-        
+
         if (enableTesting) {
           testing.recordUpdate();
         }
       }
-      
+
       return success;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete case';
@@ -187,14 +165,10 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
   }, [refetch, enableTesting, testing]);
 
   // Generate case reference number
-  const generateCaseReferenceNumber = useCallback(async (country?: string) => {
-    console.log(`🔢 Generating case reference number for ${country || 'default'}...`);
-    setLocalError(null);
-    
+  const generateCaseReferenceNumber = useCallback(async (country?: string) => {setLocalError(null);
+
     try {
-      const referenceNumber = await realtimeCaseService.generateCaseReferenceNumber(country);
-      console.log(`✅ Generated reference number: ${referenceNumber}`);
-      return referenceNumber;
+      const referenceNumber = await realtimeCaseService.generateCaseReferenceNumber(country);return referenceNumber;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate reference number';
       setLocalError(errorMessage);
@@ -204,21 +178,14 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
   }, []);
 
   // Get case by ID
-  const getCaseById = useCallback(async (caseId: string) => {
-    console.log(`🔍 Getting case ${caseId}...`);
-    
-    // First try to find in current data
+  const getCaseById = useCallback(async (caseId: string) => {// First try to find in current data
     const existingCase = cases.find(c => c.id === caseId);
-    if (existingCase) {
-      console.log(`✅ Case ${caseId} found in current data`);
-      return existingCase;
+    if (existingCase) {return existingCase;
     }
-    
+
     // If not found, fetch fresh from database
     try {
-      const caseItem = await realtimeCaseService.getCaseById(caseId);
-      console.log(`✅ Case ${caseId} fetched from database`);
-      return caseItem;
+      const caseItem = await realtimeCaseService.getCaseById(caseId);return caseItem;
     } catch (error) {
       console.error(`❌ Failed to fetch case ${caseId}:`, error);
       return null;
@@ -226,13 +193,8 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
   }, [cases]);
 
   // Get statistics
-  const getStatistics = useCallback(async () => {
-    console.log('📊 Getting fresh case statistics...');
-    
-    try {
-      const stats = await realtimeCaseService.getCaseStatistics();
-      console.log('✅ Statistics retrieved:', stats);
-      return stats;
+  const getStatistics = useCallback(async () => {try {
+      const stats = await realtimeCaseService.getCaseStatistics();return stats;
     } catch (error) {
       console.error('❌ Failed to get statistics:', error);
       return { total: 0, byStatus: {} as any, byCountry: {} };
@@ -240,26 +202,13 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
   }, []);
 
   // Validate component functionality
-  const validateComponent = useCallback(async () => {
-    console.log('🧪 Validating useRealtimeCases functionality...');
-    
-    try {
+  const validateComponent = useCallback(async () => {try {
       // Test basic data loading
       const hasData = cases.length >= 0; // Even 0 is valid
       const isNotLoading = !isLoading;
       const hasNoErrors = !error && !localError;
-      
-      const isValid = hasData && isNotLoading && hasNoErrors;
-      
-      console.log(`🧪 Component validation result:`, {
-        hasData,
-        isNotLoading,
-        hasNoErrors,
-        isValid,
-        casesCount: cases.length
-      });
-      
-      return isValid;
+
+      const isValid = hasData && isNotLoading && hasNoErrors;return isValid;
     } catch (error) {
       console.error('❌ Component validation failed:', error);
       return false;
@@ -289,7 +238,7 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
     error: error || localError,
     isError,
     isSuccess,
-    
+
     // Actions
     refreshCases,
     updateCaseStatus,
@@ -298,15 +247,15 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
     generateCaseReferenceNumber,
     getCaseById,
     getStatistics,
-    
+
     // Testing
     validateComponent,
     getTestingReport,
-    
+
     // Status
     isMutating: caseMutation.isPending,
     lastUpdated: new Date(),
-    
+
     // Connection status (for RealtimeProvider compatibility)
     isConnected: isSuccess && !isError,
     reconnectAttempts: isError ? 1 : 0
@@ -377,7 +326,7 @@ export const useFilteredRealtimeCases = (filters: FilterOptions) => {
 export const useRealtimeCasesByStatus = (status: CaseStatus) => {
   const { cases, ...rest } = useRealtimeCases();
 
-  const statusCases = useState(() => 
+  const statusCases = useState(() =>
     cases.filter(caseItem => caseItem.status === status)
   )[0];
 
@@ -398,7 +347,7 @@ export const useRealtimeCaseById = (caseId: string) => {
     const fetchCase = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         const foundCase = await realtimeCaseService.getCaseById(caseId);
         setCaseItem(foundCase);

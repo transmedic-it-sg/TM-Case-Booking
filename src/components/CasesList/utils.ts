@@ -44,7 +44,7 @@ export const getTooltipMessage = (requiredRoles: string[], action: string): stri
   const roleNames = {
     'admin': 'System Administrator',
     'operations': 'Operations',
-    'operations-manager': 'Operations Manager', 
+    'operations-manager': 'Operations Manager',
     'sales': 'Sales',
     'sales-manager': 'Sales Manager',
     'driver': 'Driver'
@@ -54,7 +54,7 @@ export const getTooltipMessage = (requiredRoles: string[], action: string): stri
     .filter(role => role !== 'admin') // Remove admin from tooltip display
     .map(role => roleNames[role as keyof typeof roleNames] || role)
     .join(' or ');
-  
+
   return roleList ? `Only ${roleList} can ${action.toLowerCase()}` : `${action} available`;
 };
 

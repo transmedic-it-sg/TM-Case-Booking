@@ -93,16 +93,16 @@ export const isCacheOutdated = async (userCountry: string): Promise<{
   try {
     const currentVersions = await getCurrentCacheVersions(userCountry);
     const storedVersions = await getStoredCacheVersions();
-    
+
     const outdatedTypes: string[] = [];
     const changedVersions: CacheVersion[] = [];
 
     for (const version of currentVersions) {
       const { country, version_type, version_number } = version;
-      
+
       // Check if this version is newer than what we have stored
       const storedVersion = storedVersions[country]?.[version_type];
-      
+
       if (!storedVersion || storedVersion < version_number) {
         outdatedTypes.push(`${country}:${version_type}`);
         changedVersions.push(version);
@@ -135,11 +135,11 @@ export const updateStoredCacheVersions = async (userCountry: string): Promise<vo
     // Update versions for user's country and global
     for (const version of currentVersions) {
       const { country, version_type, version_number } = version;
-      
+
       if (!storedVersions[country]) {
         storedVersions[country] = {};
       }
-      
+
       storedVersions[country][version_type] = version_number;
     }
 
@@ -153,7 +153,7 @@ export const updateStoredCacheVersions = async (userCountry: string): Promise<vo
  * Force cache version update (call this when user performs actions that change data)
  */
 export const forceCacheVersionUpdate = async (
-  country: string, 
+  country: string,
   versionType: string,
   reason: string,
   updatedBy?: string
@@ -176,11 +176,7 @@ export const forceCacheVersionUpdate = async (
     if (error) {
       console.error('Error force updating cache version:', error);
       return; // Don't update local storage if server update failed
-    }
-
-    console.log(`✅ Cache version updated for ${country}:${versionType}`);
-
-    // Also update local storage immediately
+    }// Also update local storage immediately
     await updateStoredCacheVersions(country);
   } catch (error) {
     console.error('Error in forceCacheVersionUpdate:', error);
@@ -206,7 +202,7 @@ export const getTimeSinceLastCheck = async (): Promise<number> => {
   try {
     const lastCheck = await SafeStorage.getItem(LAST_CHECK_KEY);
     if (!lastCheck) return Infinity;
-    
+
     const checkTime = typeof lastCheck === 'string' ? parseInt(lastCheck) : lastCheck;
     return Date.now() - checkTime;
   } catch {
@@ -220,6 +216,6 @@ export const getTimeSinceLastCheck = async (): Promise<number> => {
 export const shouldCheckVersions = async (): Promise<boolean> => {
   const timeSinceLastCheck = await getTimeSinceLastCheck();
   const checkInterval = 60000; // 1 minute
-  
+
   return timeSinceLastCheck > checkInterval;
 };

@@ -113,7 +113,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   const { data: availableProcedureTypes = [] } = useRealtimeMasterDataQuery('procedures', userCountry);
 
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
-  
+
   // State for case quantities
   const [caseQuantities, setCaseQuantities] = useState<Record<string, number>>({});
 
@@ -126,29 +126,29 @@ const CaseCard: React.FC<CaseCardProps> = ({
           setAvailableDepartments(getDepartments());
           return;
         }
-        
+
         // Get departments for user's current country
         const userCountry = currentUser.selectedCountry || currentUser.countries?.[0];
         if (userCountry) {
           // Use the CORRECT code table service instead of the wrong departments table
           const { getDepartmentsForCountry } = await import('../../utils/supabaseCodeTableService');
           const countrySpecificDepts = await getDepartmentsForCountry(userCountry);
-          
+
           // Admin and IT users can access all departments for their country
           if (currentUser.role === 'admin' || currentUser.role === 'it') {
             setAvailableDepartments(countrySpecificDepts.sort());
             return;
           }
-          
+
           // Other users are restricted to their assigned departments
           const userDepartments = currentUser.departments || [];
-          
+
           // Handle both legacy and new country-specific department formats
           const userDepartmentNames = getDepartmentNamesForUser(userDepartments, [userCountry]);
           setAvailableDepartments(countrySpecificDepts.filter(dept => userDepartmentNames.includes(dept)).sort());
           return;
         }
-        
+
         // Fallback to global departments
         setAvailableDepartments(getDepartments());
       } catch (error) {
@@ -207,11 +207,11 @@ const CaseCard: React.FC<CaseCardProps> = ({
     return caseItem.statusHistory?.map(historyItem => {
       let parsedDetails = null;
       let parsedAttachments = [];
-      
+
       if (historyItem.details) {
         try {
           parsedDetails = JSON.parse(historyItem.details);
-          
+
           // Pre-parse attachments if they exist
           if (parsedDetails.attachments) {
             parsedAttachments = parsedDetails.attachments.map((attachment: string) => {
@@ -226,7 +226,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
           parsedDetails = null;
         }
       }
-      
+
       return {
         ...historyItem,
         parsedDetails,
@@ -239,7 +239,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   const currentAttachments = useMemo(() => {
     // Only show for specific statuses that don't have their own forms
     const statusesWithoutForms = ['Order Prepared', 'Order Processed', 'Sales Approval'];
-    
+
     if (!statusesWithoutForms.includes(caseItem.status)) {
       return [];
     }
@@ -321,17 +321,17 @@ const CaseCard: React.FC<CaseCardProps> = ({
   const canAmendCase = (caseItem: any): boolean => {
     const currentUser = getCurrentUserSync();
     if (!currentUser) return false;
-    
+
     // Admin can amend any case unlimited times
     if (currentUser.role === 'admin') return true;
-    
+
     // Check if user has amend permission using permission system
     const { hasPermission, PERMISSION_ACTIONS } = require('../../utils/permissions');
     const canAmend = hasPermission(currentUser.role, PERMISSION_ACTIONS.AMEND_CASE);
-    
+
     // Check if case hasn't been amended yet (for non-admin users)
     const notAmended = !caseItem.isAmended;
-    
+
     return canAmend && notAmended;
   };
 
@@ -339,7 +339,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   const getOriginalValueDisplay = (fieldName: string, currentValue: string | undefined, originalValue: string | undefined) => {
     // Check if case has original values and the specific field has an original value
     if (!caseItem.originalValues || !originalValue) return null;
-    
+
     // Ensure current value exists and is different from original
     if (currentValue && currentValue.trim() !== originalValue.trim()) {
       return (
@@ -353,7 +353,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   };
 
   return (
-    <div 
+    <div
       id={`case-${caseItem.id}`}
       className="case-card"
       data-case-id={caseItem.id}
@@ -366,7 +366,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
             <strong>{getUserName(caseItem.submittedBy)}</strong>
             <span className="case-reference">#{caseItem.caseReferenceNumber}</span>
             <div className="case-status">
-              <div 
+              <div
                 className="status-text"
                 style={{ backgroundColor: getStatusColor(caseItem.status) }}
               >
@@ -375,7 +375,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
               {getNextResponsibleRole(caseItem.status) && (
                 <div className="pending-indicator">
                   <span className="pending-icon">⏳</span>
-                  <span 
+                  <span
                   className="pending-text"
                   title="Click to view Role-Based Permission Matrix">
                     Awaiting: {getNextResponsibleRole(caseItem.status)}
@@ -464,8 +464,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
                     onClick={() => onToggleAmendmentHistory(caseItem.id)}
                     className="btn btn-outline-secondary btn-sm expand-amendment-button"
                   >
-                    {expandedAmendmentHistory.has(caseItem.id) 
-                      ? 'Hide Amendment History' 
+                    {expandedAmendmentHistory.has(caseItem.id)
+                      ? 'Hide Amendment History'
                       : 'View Amendment History'
                     }
                   </button>
@@ -482,13 +482,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                             <span>At: {formatDateTime(amendment.timestamp)}</span>
                           </div>
                         </div>
-                        
+
                         {amendment.reason && (
                           <div className="amendment-reason">
                             <strong>Reason:</strong> {amendment.reason}
                           </div>
                         )}
-                        
+
                         <div className="amendment-changes">
                           <strong>Changes:</strong>
                           <div className="changes-grid">
@@ -532,19 +532,19 @@ const CaseCard: React.FC<CaseCardProps> = ({
                       onClick={() => onToggleStatusHistory(caseItem.id)}
                       className="btn btn-outline-secondary btn-sm expand-history-button"
                     >
-                      {expandedStatusHistory.has(caseItem.id) 
-                        ? `Hide History (${caseItem.statusHistory.length - 1} previous)` 
+                      {expandedStatusHistory.has(caseItem.id)
+                        ? `Hide History (${caseItem.statusHistory.length - 1} previous)`
                         : `View History (${caseItem.statusHistory.length - 1} previous)`
                       }
                     </button>
                   )}
                 </div>
                 <div className="status-history">
-                  {expandedStatusHistory.has(caseItem.id) 
+                  {expandedStatusHistory.has(caseItem.id)
                     ? caseItem.statusHistory.map((historyItem, index) => (
                         <div key={index} className="status-history-item" style={{ borderLeftColor: getStatusColor(historyItem.status) }}>
                           <div className="status-history-header">
-                            <span 
+                            <span
                               className="history-status"
                               style={{ backgroundColor: getStatusColor(historyItem.status) }}
                             >
@@ -563,12 +563,12 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                       // Handle both old format (deliveryDetails/deliveryImage) and new format (comments/attachments) for Delivered (Hospital)
                                       const isOldFormat = parsedDetails.deliveryDetails;
                                       const comments = isOldFormat ? parsedDetails.deliveryDetails : parsedDetails.comments;
-                                      const attachments = isOldFormat ? 
+                                      const attachments = isOldFormat ?
                                         (parsedDetails.deliveryImage ? [JSON.stringify({
                                           name: 'delivery-image.png',
                                           type: 'image/png',
                                           data: parsedDetails.deliveryImage
-                                        })] : []) : 
+                                        })] : []) :
                                         (parsedDetails.attachments || []);
 
                                       return (
@@ -582,13 +582,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                                   try {
                                                     const fileData = JSON.parse(attachment);
                                                     const isImage = fileData.type.startsWith('image/');
-                                                    
+
                                                     return (
                                                       <div key={index} className="attachment-preview-item">
                                                         {isImage ? (
                                                           <div className="image-attachment">
-                                                            <img 
-                                                              src={fileData.data} 
+                                                            <img
+                                                              src={fileData.data}
                                                               alt={fileData.name}
                                                               className="attachment-thumbnail clickable-image"
                                                               style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
@@ -677,13 +677,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                                   try {
                                                     const fileData = JSON.parse(attachment);
                                                     const isImage = fileData.type.startsWith('image/');
-                                                    
+
                                                     return (
                                                       <div key={index} className="attachment-preview-item">
                                                         {isImage ? (
                                                           <div className="image-attachment">
-                                                            <img 
-                                                              src={fileData.data} 
+                                                            <img
+                                                              src={fileData.data}
                                                               alt={fileData.name}
                                                               className="attachment-thumbnail clickable-image"
                                                               style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
@@ -767,13 +767,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                                   try {
                                                     const fileData = JSON.parse(attachment);
                                                     const isImage = fileData.type.startsWith('image/');
-                                                    
+
                                                     return (
                                                       <div key={index} className="attachment-preview-item">
                                                         {isImage ? (
                                                           <div className="image-attachment">
-                                                            <img 
-                                                              src={fileData.data} 
+                                                            <img
+                                                              src={fileData.data}
                                                               alt={fileData.name}
                                                               className="attachment-thumbnail clickable-image"
                                                               style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
@@ -862,13 +862,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                                   try {
                                                     const fileData = JSON.parse(attachment);
                                                     const isImage = fileData.type.startsWith('image/');
-                                                    
+
                                                     return (
                                                       <div key={index} className="attachment-preview-item">
                                                         {isImage ? (
                                                           <div className="image-attachment">
-                                                            <img 
-                                                              src={fileData.data} 
+                                                            <img
+                                                              src={fileData.data}
                                                               alt={fileData.name}
                                                               className="attachment-thumbnail clickable-image"
                                                               style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
@@ -955,13 +955,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                                       try {
                                                         const fileData = JSON.parse(attachment);
                                                         const isImage = fileData.type.startsWith('image/');
-                                                        
+
                                                         return (
                                                           <div key={index} className="attachment-preview-item">
                                                             {isImage ? (
                                                               <div className="image-attachment">
-                                                                <img 
-                                                                  src={fileData.data} 
+                                                                <img
+                                                                  src={fileData.data}
                                                                   alt={fileData.name}
                                                                   className="attachment-thumbnail clickable-image"
                                                                   style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
@@ -1032,7 +1032,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                                 </div>
                                               ) : (
                                                 <span> {
-                                                  typeof value === 'object' ? 
+                                                  typeof value === 'object' ?
                                                     (Array.isArray(value) ? `${value.length} item(s)` : JSON.stringify(value)) :
                                                     String(value)
                                                 }</span>
@@ -1056,13 +1056,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                     try {
                                       const fileData = JSON.parse(attachment);
                                       const isImage = fileData.type?.startsWith('image/');
-                                      
+
                                       return (
                                         <div key={idx} className="attachment-preview-item">
                                           {isImage ? (
                                             <div className="image-attachment">
-                                              <img 
-                                                src={fileData.data} 
+                                              <img
+                                                src={fileData.data}
                                                 alt={fileData.name}
                                                 className="attachment-thumbnail clickable-image"
                                                 style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
@@ -1117,7 +1117,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                     : caseItem.statusHistory.slice(-1).map((historyItem, index) => (
                         <div key={index} className="status-history-item current-status" style={{ borderLeftColor: getStatusColor(historyItem.status) }}>
                           <div className="status-history-header">
-                            <span 
+                            <span
                               className="history-status current"
                               style={{ backgroundColor: getStatusColor(historyItem.status) }}
                             >
@@ -1136,12 +1136,12 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                       // Handle both old format (deliveryDetails/deliveryImage) and new format (comments/attachments) for Delivered (Hospital)
                                       const isOldFormat = parsedDetails.deliveryDetails;
                                       const comments = isOldFormat ? parsedDetails.deliveryDetails : parsedDetails.comments;
-                                      const attachments = isOldFormat ? 
+                                      const attachments = isOldFormat ?
                                         (parsedDetails.deliveryImage ? [JSON.stringify({
                                           name: 'delivery-image.png',
                                           type: 'image/png',
                                           data: parsedDetails.deliveryImage
-                                        })] : []) : 
+                                        })] : []) :
                                         (parsedDetails.attachments || []);
 
                                       return (
@@ -1155,13 +1155,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                                   try {
                                                     const fileData = JSON.parse(attachment);
                                                     const isImage = fileData.type.startsWith('image/');
-                                                    
+
                                                     return (
                                                       <div key={index} className="attachment-preview-item">
                                                         {isImage ? (
                                                           <div className="image-attachment">
-                                                            <img 
-                                                              src={fileData.data} 
+                                                            <img
+                                                              src={fileData.data}
                                                               alt={fileData.name}
                                                               className="attachment-thumbnail clickable-image"
                                                               style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
@@ -1250,13 +1250,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                                   try {
                                                     const fileData = JSON.parse(attachment);
                                                     const isImage = fileData.type.startsWith('image/');
-                                                    
+
                                                     return (
                                                       <div key={index} className="attachment-preview-item">
                                                         {isImage ? (
                                                           <div className="image-attachment">
-                                                            <img 
-                                                              src={fileData.data} 
+                                                            <img
+                                                              src={fileData.data}
                                                               alt={fileData.name}
                                                               className="attachment-thumbnail clickable-image"
                                                               style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
@@ -1340,13 +1340,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                                   try {
                                                     const fileData = JSON.parse(attachment);
                                                     const isImage = fileData.type.startsWith('image/');
-                                                    
+
                                                     return (
                                                       <div key={index} className="attachment-preview-item">
                                                         {isImage ? (
                                                           <div className="image-attachment">
-                                                            <img 
-                                                              src={fileData.data} 
+                                                            <img
+                                                              src={fileData.data}
                                                               alt={fileData.name}
                                                               className="attachment-thumbnail clickable-image"
                                                               style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
@@ -1435,13 +1435,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                                   try {
                                                     const fileData = JSON.parse(attachment);
                                                     const isImage = fileData.type.startsWith('image/');
-                                                    
+
                                                     return (
                                                       <div key={index} className="attachment-preview-item">
                                                         {isImage ? (
                                                           <div className="image-attachment">
-                                                            <img 
-                                                              src={fileData.data} 
+                                                            <img
+                                                              src={fileData.data}
                                                               alt={fileData.name}
                                                               className="attachment-thumbnail clickable-image"
                                                               style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
@@ -1528,13 +1528,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                                       try {
                                                         const fileData = JSON.parse(attachment);
                                                         const isImage = fileData.type.startsWith('image/');
-                                                        
+
                                                         return (
                                                           <div key={index} className="attachment-preview-item">
                                                             {isImage ? (
                                                               <div className="image-attachment">
-                                                                <img 
-                                                                  src={fileData.data} 
+                                                                <img
+                                                                  src={fileData.data}
                                                                   alt={fileData.name}
                                                                   className="attachment-thumbnail clickable-image"
                                                                   style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
@@ -1605,7 +1605,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                                 </div>
                                               ) : (
                                                 <span> {
-                                                  typeof value === 'object' ? 
+                                                  typeof value === 'object' ?
                                                     (Array.isArray(value) ? `${value.length} item(s)` : JSON.stringify(value)) :
                                                     String(value)
                                                 }</span>
@@ -1721,7 +1721,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 </div>
               </div>
               <div className="amendment-actions">
-                <button 
+                <button
                   onClick={() => {
                     if (!amendmentData.amendmentReason || !amendmentData.amendmentReason.trim()) {
                       alert('Amendment reason is required. Please provide a reason for this amendment.');
@@ -1733,7 +1733,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 >
                   Save Amendment
                 </button>
-                <button 
+                <button
                   onClick={onCancelAmendment}
                   className="btn btn-outline-secondary btn-md cancel-amendment-button"
                 >
@@ -1796,12 +1796,12 @@ const CaseCard: React.FC<CaseCardProps> = ({
                       try {
                         const fileData = JSON.parse(attachment);
                         const isImage = fileData.type.startsWith('image/');
-                        
+
                         return (
                           <div key={index} className="attachment-item">
                             {isImage ? (
-                              <img 
-                                src={fileData.data} 
+                              <img
+                                src={fileData.data}
                                 alt={fileData.name}
                                 className="attachment-thumbnail clickable-image"
                                 style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
@@ -1822,8 +1822,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
                               <div className="file-name" title={fileData.name}>{fileData.name.length > 20 ? fileData.name.substring(0, 20) + '...' : fileData.name}</div>
                               <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
                             </div>
-                            <button 
-                              className="remove-attachment" 
+                            <button
+                              className="remove-attachment"
                               onClick={() => {
                                 const updatedAttachments = processAttachments.filter((_, i) => i !== index);
                                 onProcessAttachmentsChange(updatedAttachments);
@@ -1848,14 +1848,14 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 )}
               </div>
               <div className="processing-actions">
-                <button 
+                <button
                   onClick={() => onSaveProcessDetails(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
                   disabled={!processDetails.trim()}
                 >
                   Complete Processing
                 </button>
-                <button 
+                <button
                   onClick={onCancelProcessing}
                   className="btn btn-outline-secondary btn-md cancel-button"
                 >
@@ -1918,12 +1918,12 @@ const CaseCard: React.FC<CaseCardProps> = ({
                       try {
                         const fileData = JSON.parse(attachment);
                         const isImage = fileData.type.startsWith('image/');
-                        
+
                         return (
                           <div key={index} className="attachment-item">
                             {isImage ? (
-                              <img 
-                                src={fileData.data} 
+                              <img
+                                src={fileData.data}
                                 alt={fileData.name}
                                 className="attachment-thumbnail clickable-image"
                                 style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
@@ -1959,8 +1959,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
                               <div className="file-name" title={fileData.name}>{fileData.name.length > 20 ? fileData.name.substring(0, 20) + '...' : fileData.name}</div>
                               <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
                             </div>
-                            <button 
-                              className="remove-attachment" 
+                            <button
+                              className="remove-attachment"
                               onClick={() => {
                                 const updatedAttachments = salesApprovalAttachments.filter((_, i) => i !== index);
                                 onSalesApprovalAttachmentsChange(updatedAttachments);
@@ -1985,13 +1985,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 )}
               </div>
               <div className="sales-approval-actions">
-                <button 
+                <button
                   onClick={() => onSaveSalesApproval(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
                 >
                   Submit for Sales Approval
                 </button>
-                <button 
+                <button
                   onClick={onCancelSalesApproval}
                   className="btn btn-outline-secondary btn-md cancel-button"
                 >
@@ -2016,13 +2016,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 />
               </div>
               <div className="hospital-delivery-actions">
-                <button 
+                <button
                   onClick={() => onSaveHospitalDelivery(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
                 >
                   Mark as Pending Delivery
                 </button>
-                <button 
+                <button
                   onClick={onCancelHospitalDelivery}
                   className="btn btn-outline-secondary btn-md cancel-button"
                 >
@@ -2068,14 +2068,14 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 )}
               </div>
               <div className="received-actions">
-                <button 
+                <button
                   onClick={() => onSaveOrderReceived(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
                   disabled={!receivedDetails.trim()}
                 >
                   Confirm Received
                 </button>
-                <button 
+                <button
                   onClick={onCancelReceived}
                   className="btn btn-outline-secondary btn-md cancel-button"
                 >
@@ -2156,14 +2156,14 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 />
               </div>
               <div className="completed-actions">
-                <button 
+                <button
                   onClick={() => onSaveCaseCompleted(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
                   disabled={!orderSummary.trim() || !doNumber.trim()}
                 >
                   Complete Case
                 </button>
-                <button 
+                <button
                   onClick={onCancelCompleted}
                   className="btn btn-outline-secondary btn-md cancel-button"
                 >
@@ -2255,13 +2255,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 />
               </div>
               <div className="pending-office-actions">
-                <button 
+                <button
                   onClick={() => onSavePendingOffice(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
                 >
                   Mark as Pending Delivery (Office)
                 </button>
-                <button 
+                <button
                   onClick={onCancelPendingOffice}
                   className="btn btn-outline-secondary btn-md cancel-button"
                 >
@@ -2286,13 +2286,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 />
               </div>
               <div className="office-delivery-actions">
-                <button 
+                <button
                   onClick={() => onSaveOfficeDelivery(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
                 >
                   Mark as Delivered (Office)
                 </button>
-                <button 
+                <button
                   onClick={onCancelOfficeDelivery}
                   className="btn btn-outline-secondary btn-md cancel-button"
                 >
@@ -2314,8 +2314,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   return (
                     <div key={index} className="attachment-preview-item">
                       {isImage ? (
-                        <img 
-                          src={fileData.data} 
+                        <img
+                          src={fileData.data}
                           alt={fileData.name}
                           className="attachment-preview-image clickable-image"
                           style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
@@ -2362,7 +2362,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                         )}
                       </div>
                       <div className="attachment-actions">
-                        <button 
+                        <button
                           className="attachment-action-btn download"
                           onClick={() => {
                             const link = document.createElement('a');
@@ -2374,7 +2374,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                         >
                           ⬇️
                         </button>
-                        <button 
+                        <button
                           className="attachment-action-btn view"
                           onClick={() => {
                             window.open(fileData.data, '_blank');

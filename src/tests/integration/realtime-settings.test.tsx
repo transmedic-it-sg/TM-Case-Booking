@@ -14,10 +14,10 @@ import { RealtimeProvider } from '../../components/RealtimeProvider';
 
 // Test component that uses the real-time settings hook
 const TestSettingsComponent: React.FC = () => {
-  const { 
+  const {
     settings,
-    isLoading, 
-    error, 
+    isLoading,
+    error,
     updateSetting,
     resetSettings,
     validateComponent,
@@ -64,7 +64,7 @@ const TestSettingsComponent: React.FC = () => {
       <div data-testid="mutating">{isMutating ? 'Mutating' : 'Not Mutating'}</div>
       <div data-testid="error">{error ? (error instanceof Error ? error.message : String(error)) : 'No Error'}</div>
       <div data-testid="settings-data">{JSON.stringify(settings)}</div>
-      
+
       <div data-testid="sound-enabled">
         {settings?.soundEnabled ? 'Sound On' : 'Sound Off'}
       </div>
@@ -77,35 +77,35 @@ const TestSettingsComponent: React.FC = () => {
       <div data-testid="theme">
         Theme: {settings?.theme || 'light'}
       </div>
-      
+
       <button data-testid="validate-btn" onClick={handleValidation}>
         Validate Component
       </button>
-      
+
       <button data-testid="toggle-sound-btn" onClick={handleToggleSound}>
         Toggle Sound
       </button>
-      
+
       <button data-testid="update-volume-btn" onClick={handleUpdateVolume}>
         Update Volume
       </button>
-      
+
       <button data-testid="toggle-notifications-btn" onClick={handleToggleNotifications}>
         Toggle Notifications
       </button>
-      
+
       <button data-testid="update-theme-btn" onClick={handleUpdateTheme}>
         Update Theme
       </button>
-      
+
       <button data-testid="reset-settings-btn" onClick={handleResetSettings}>
         Reset Settings
       </button>
-      
+
       <div data-testid="validation-result">
         {validationResult !== null ? (validationResult ? 'VALID' : 'INVALID') : 'NOT_TESTED'}
       </div>
-      
+
       <div data-testid="test-report">{testReport}</div>
     </div>
   );
@@ -114,7 +114,7 @@ const TestSettingsComponent: React.FC = () => {
 // Test wrapper with providers
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = createTestQueryClient();
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <RealtimeProvider>
@@ -128,7 +128,7 @@ describe('Real-time Settings Integration Tests', () => {
   beforeEach(() => {
     // Reset any previous state
     jest.clearAllMocks();
-    
+
     // Setup default settings response
     server.use(
       rest.get('*/rest/v1/user_settings*', (req, res, ctx) => {
@@ -174,7 +174,7 @@ describe('Real-time Settings Integration Tests', () => {
 
     // Should have settings data
     expect(screen.getByTestId('error')).toHaveTextContent('No Error');
-    
+
     // Verify the actual settings data
     expect(screen.getByTestId('sound-enabled')).toHaveTextContent('Sound On');
     expect(screen.getByTestId('sound-volume')).toHaveTextContent('Volume: 0.5');
@@ -186,7 +186,7 @@ describe('Real-time Settings Integration Tests', () => {
     // Mock localStorage to verify it's not used
     const localStorageSetItem = jest.spyOn(Storage.prototype, 'setItem');
     const localStorageGetItem = jest.spyOn(Storage.prototype, 'getItem');
-    
+
     render(
       <TestWrapper>
         <TestSettingsComponent />
@@ -208,10 +208,10 @@ describe('Real-time Settings Integration Tests', () => {
 
     // Verify localStorage was not used for settings storage
     // (It might be used for other purposes, but not for the main settings)
-    const settingsRelatedCalls = localStorageSetItem.mock.calls.filter(call => 
+    const settingsRelatedCalls = localStorageSetItem.mock.calls.filter(call =>
       call[0].includes('sound') || call[0].includes('notifications') || call[0].includes('theme')
     );
-    
+
     expect(settingsRelatedCalls.length).toBeLessThanOrEqual(1); // Minimal localStorage usage
   });
 
@@ -256,7 +256,7 @@ describe('Real-time Settings Integration Tests', () => {
           })
         );
       }),
-      
+
       rest.post('*/rest/v1/user_settings/reset*', (req, res, ctx) => {
         resetCalled = true;
         return res(
@@ -307,22 +307,22 @@ describe('Real-time Settings Integration Tests', () => {
     server.use(
       rest.patch('*/rest/v1/user_settings*', (req, res, ctx) => {
         const body = req.body as any;
-        
+
         if ('soundVolume' in body) {
           volumeUpdated = true;
           return res(ctx.json({ soundVolume: 0.8 }));
         }
-        
+
         if ('theme' in body) {
           themeUpdated = true;
           return res(ctx.json({ theme: 'dark' }));
         }
-        
+
         if ('notificationsEnabled' in body) {
           notificationsUpdated = true;
           return res(ctx.json({ notificationsEnabled: true }));
         }
-        
+
         return res(ctx.json({}));
       })
     );
@@ -413,7 +413,7 @@ describe('Real-time Settings Integration Tests', () => {
     server.use(
       rest.patch('*/rest/v1/user_settings*', (req, res, ctx) => {
         const userAgent = req.headers.get('user-agent');
-        
+
         if (userAgent?.includes('Device1')) {
           firstDeviceUpdate = true;
           return res(
@@ -479,18 +479,18 @@ describe('Real-time Settings Integration Tests', () => {
     // Verify settings follow expected schema
     const settingsData = screen.getByTestId('settings-data').textContent;
     const settings = JSON.parse(settingsData || '{}');
-    
+
     // Validate sound volume is between 0 and 1
     expect(settings.soundVolume).toBeGreaterThanOrEqual(0);
     expect(settings.soundVolume).toBeLessThanOrEqual(1);
-    
+
     // Validate boolean fields
     expect(typeof settings.soundEnabled).toBe('boolean');
     expect(typeof settings.notificationsEnabled).toBe('boolean');
-    
+
     // Validate theme options
     expect(['light', 'dark', 'auto']).toContain(settings.theme);
-    
+
     // Validate refresh interval (should be >= 5 seconds)
     expect(settings.refreshInterval).toBeGreaterThanOrEqual(5);
   });

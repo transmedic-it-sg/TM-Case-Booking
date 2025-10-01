@@ -1,9 +1,9 @@
 /**
  * Comprehensive Edit Sets Component - Independent CRUD Functionality
  * Each tab has its own dropdown selectors and CRUD operations
- * 
+ *
  * Doctor Tab: Department dropdown → Manage Doctors CRUD
- * Procedure Types Tab: Department + Doctor dropdowns → Manage Procedure Types CRUD  
+ * Procedure Types Tab: Department + Doctor dropdowns → Manage Procedure Types CRUD
  * Surgery & Implants Tab: Department + Doctor + Procedure Type dropdowns → Manage Surgery/Implants CRUD
  */
 
@@ -100,11 +100,11 @@ const ComprehensiveEditSets: React.FC = () => {
   const [selectedDepartmentForSurgery, setSelectedDepartmentForSurgery] = useState('');
   const [selectedDoctorForSurgery, setSelectedDoctorForSurgery] = useState('');
   const [selectedProcedureForSurgery, setSelectedProcedureForSurgery] = useState('');
-  const [surgeryFormData, setSurgeryFormData] = useState({ 
-    surgerySetName: '', 
-    implantBoxName: '', 
-    isEditing: false, 
-    editId: '' 
+  const [surgeryFormData, setSurgeryFormData] = useState({
+    surgerySetName: '',
+    implantBoxName: '',
+    isEditing: false,
+    editId: ''
   });
 
   // Load departments on component mount
@@ -126,7 +126,7 @@ const ComprehensiveEditSets: React.FC = () => {
     }
   }, [selectedDepartmentForProcedures]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load surgery-specific doctors  
+  // Load surgery-specific doctors
   useEffect(() => {
     if (selectedDepartmentForSurgery) {
       loadDoctorsForDepartment(selectedDepartmentForSurgery, 'surgery');
@@ -186,12 +186,12 @@ const ComprehensiveEditSets: React.FC = () => {
         .order('name');
 
       if (error) throw error;
-      
+
       if (context === 'procedures') {
         // Store for procedure type dropdown
         setDoctors(data || []);
       } else if (context === 'surgery') {
-        // Store for surgery dropdown  
+        // Store for surgery dropdown
         setDoctors(data || []);
       } else {
         // Default doctor tab
@@ -250,7 +250,7 @@ const ComprehensiveEditSets: React.FC = () => {
 
     try {
       setIsLoading(true);
-      
+
       if (doctorFormData.isEditing) {
         const { error } = await supabase
           .from('doctors')
@@ -314,7 +314,7 @@ const ComprehensiveEditSets: React.FC = () => {
 
     try {
       setIsLoading(true);
-      
+
       if (procedureFormData.isEditing) {
         const { error } = await supabase
           .from('doctor_procedures')
@@ -374,12 +374,12 @@ const ComprehensiveEditSets: React.FC = () => {
   // CRUD operations for Doctor Procedure Sets
   const handleSurgerySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!surgeryFormData.surgerySetName.trim() && !surgeryFormData.implantBoxName.trim()) || 
+    if ((!surgeryFormData.surgerySetName.trim() && !surgeryFormData.implantBoxName.trim()) ||
         !selectedDoctorForSurgery || !selectedProcedureForSurgery) return;
 
     try {
       setIsLoading(true);
-      
+
       // For new items, we need to create surgery_set or implant_box first if they don't exist
       let surgerySetId = null;
       let implantBoxId = null;
@@ -437,7 +437,7 @@ const ComprehensiveEditSets: React.FC = () => {
           implantBoxId = newBox.id;
         }
       }
-      
+
       if (surgeryFormData.isEditing) {
         const { error } = await supabase
           .from('doctor_procedure_sets')
@@ -502,7 +502,7 @@ const ComprehensiveEditSets: React.FC = () => {
     <div className="tab-content">
       <div className="form-section">
         <h3>Manage Doctors</h3>
-        
+
         <div className="form-group">
           <label htmlFor="department-select">Select Department:</label>
           <select
@@ -536,9 +536,9 @@ const ComprehensiveEditSets: React.FC = () => {
               {doctorFormData.isEditing ? 'Update Doctor' : 'Add Doctor'}
             </button>
             {doctorFormData.isEditing && (
-              <button 
-                type="button" 
-                className="btn btn-secondary" 
+              <button
+                type="button"
+                className="btn btn-secondary"
                 onClick={() => setDoctorFormData({ name: '', isEditing: false, editId: '' })}
               >
                 Cancel
@@ -587,7 +587,7 @@ const ComprehensiveEditSets: React.FC = () => {
     <div className="tab-content">
       <div className="form-section">
         <h3>Manage Procedure Types</h3>
-        
+
         <div className="form-group">
           <label htmlFor="procedure-department-select">Select Department:</label>
           <select
@@ -641,9 +641,9 @@ const ComprehensiveEditSets: React.FC = () => {
               {procedureFormData.isEditing ? 'Update Procedure Type' : 'Add Procedure Type'}
             </button>
             {procedureFormData.isEditing && (
-              <button 
-                type="button" 
-                className="btn btn-secondary" 
+              <button
+                type="button"
+                className="btn btn-secondary"
                 onClick={() => setProcedureFormData({ procedureType: '', isEditing: false, editId: '' })}
               >
                 Cancel
@@ -692,7 +692,7 @@ const ComprehensiveEditSets: React.FC = () => {
     <div className="tab-content">
       <div className="form-section">
         <h3>Manage Surgery Sets & Implant Boxes</h3>
-        
+
         <div className="form-group">
           <label htmlFor="surgery-department-select">Select Department:</label>
           <select
@@ -779,9 +779,9 @@ const ComprehensiveEditSets: React.FC = () => {
               {surgeryFormData.isEditing ? 'Update Surgery/Implant' : 'Add Surgery/Implant'}
             </button>
             {surgeryFormData.isEditing && (
-              <button 
-                type="button" 
-                className="btn btn-secondary" 
+              <button
+                type="button"
+                className="btn btn-secondary"
                 onClick={() => setSurgeryFormData({ surgerySetName: '', implantBoxName: '', isEditing: false, editId: '' })}
               >
                 Cancel
@@ -858,7 +858,7 @@ const ComprehensiveEditSets: React.FC = () => {
 
       <div className="edit-sets-content">
         {isLoading && <div className="loading-spinner">Loading...</div>}
-        
+
         {activeTab === TABS.DOCTORS && renderDoctorsTab()}
         {activeTab === TABS.PROCEDURES && renderProceduresTab()}
         {activeTab === TABS.SURGERY_IMPLANTS && renderSurgeryImplantsTab()}

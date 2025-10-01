@@ -30,7 +30,7 @@ class ConstantsService {
 
   async getHospitals(country: string): Promise<string[]> {
     const cacheKey = `hospitals_${country}`;
-    
+
     if (!this.isExpired(cacheKey)) {
       return this.cache.get(cacheKey) || [];
     }
@@ -57,7 +57,7 @@ class ConstantsService {
 
   async getDepartments(country: string): Promise<string[]> {
     const cacheKey = `departments_${country}`;
-    
+
     if (!this.isExpired(cacheKey)) {
       return this.cache.get(cacheKey) || [];
     }
@@ -83,7 +83,7 @@ class ConstantsService {
 
   async getCountries(): Promise<string[]> {
     const cacheKey = 'countries_all';
-    
+
     if (!this.isExpired(cacheKey)) {
       return this.cache.get(cacheKey) || [];
     }

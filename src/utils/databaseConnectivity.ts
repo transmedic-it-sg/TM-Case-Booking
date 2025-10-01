@@ -20,7 +20,7 @@ export interface DatabaseStatusDisplay {
  */
 export const testConnectionWithTimeout = async (timeout: number = 3000): Promise<DatabaseConnectionInfo> => {
   const startTime = Date.now();
-  
+
   try {
     // Create a timeout promise
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -59,7 +59,7 @@ export const testConnectionWithTimeout = async (timeout: number = 3000): Promise
   } catch (error) {
     const responseTime = Date.now() - startTime;
     console.error('Database connection error:', error);
-    
+
     return {
       status: 'disconnected',
       lastChecked: new Date(),
@@ -82,7 +82,7 @@ export const getConnectionStatusDisplay = (info: DatabaseConnectionInfo): Databa
         icon: '🟢',
         description: 'Successfully connected to Supabase database. All features are available.'
       };
-    
+
     case 'disconnected':
       return {
         text: 'Disconnected',
@@ -90,7 +90,7 @@ export const getConnectionStatusDisplay = (info: DatabaseConnectionInfo): Databa
         icon: '🔴',
         description: 'Unable to connect to Supabase database. Using local storage fallback mode.'
       };
-    
+
     case 'checking':
       return {
         text: 'Checking...',
@@ -98,7 +98,7 @@ export const getConnectionStatusDisplay = (info: DatabaseConnectionInfo): Databa
         icon: '🟡',
         description: 'Testing database connection...'
       };
-    
+
     case 'fallback':
       return {
         text: 'Offline Mode',
@@ -106,7 +106,7 @@ export const getConnectionStatusDisplay = (info: DatabaseConnectionInfo): Databa
         icon: '📴',
         description: 'Operating in offline mode using local storage. Data will sync when connection is restored.'
       };
-    
+
     default:
       return {
         text: 'Unknown',

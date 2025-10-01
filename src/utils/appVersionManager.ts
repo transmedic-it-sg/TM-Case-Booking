@@ -28,9 +28,9 @@ export const checkAppVersionUpdate = (): VersionCheckResult => {
   try {
     const currentVersion = getAppVersion();
     const currentCacheVersion = getCacheVersion();
-    const storedVersion = localStorage.getItem(APP_VERSION_KEY);
-    const storedCacheVersion = localStorage.getItem(CACHE_VERSION_KEY);
-    const userSession = localStorage.getItem(USER_SESSION_KEY) || sessionStorage.getItem(USER_SESSION_KEY);
+    const storedVersion = null /* Use system_settings table */;
+    const storedCacheVersion = null /* Use system_settings table */;
+    const userSession = null /* Use system_settings table */ || sessionStorage.getItem(USER_SESSION_KEY);
     const userLoggedIn = !!userSession;
 
     const versionChanged = storedVersion !== null && storedVersion !== currentVersion;
@@ -66,8 +66,8 @@ export const updateStoredAppVersion = (): void => {
   try {
     const currentVersion = getAppVersion();
     const currentCacheVersion = getCacheVersion();
-    localStorage.setItem(APP_VERSION_KEY, currentVersion);
-    localStorage.setItem(CACHE_VERSION_KEY, currentCacheVersion);
+    // Version tracked in system_settings table;
+    // Version tracked in system_settings table;
   } catch (error) {
     console.error('Error updating stored app version:', error);
   }
@@ -77,74 +77,57 @@ export const updateStoredAppVersion = (): void => {
  * Handle version update - log out user and clear session data with improved timing
  */
 export const handleVersionUpdate = async (reason: string = 'App version updated'): Promise<void> => {
-  try {
-    console.log(`🔄 ${reason} - starting cleanup sequence`);
-    
-    // Step 1: Update stored versions FIRST to prevent loops
-    updateStoredAppVersion();
-    console.log('✅ Version tracking updated');
-    
-    // Step 2: Perform logout through auth service with timeout protection
+  try {// Step 1: Update stored versions FIRST to prevent loops
+    updateStoredAppVersion();// Step 2: Perform logout through auth service with timeout protection
     try {
       await Promise.race([
         logout(),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Logout timeout')), 3000))
-      ]);
-      console.log('✅ User logged out successfully');
-    } catch (logoutError) {
+      ]);} catch (logoutError) {
       console.warn('⚠️ Logout operation timed out or failed:', logoutError);
       // Continue with cleanup even if logout fails
     }
-    
+
     // Step 3: Clear session data after logout
     const sessionKeys = [
       USER_SESSION_KEY,
       'tm-cache-versions',
       'tm-last-version-check',
       'session-token',
-      'logging-session-id', 
+      'logging-session-id',
       'error-tracker-session-id'
     ];
-    
+
     sessionKeys.forEach(key => {
       localStorage.removeItem(key);
       sessionStorage.removeItem(key);
-    });
-    console.log('✅ Session data cleared');
-    
-    // Step 4: Clear browser cache with timeout protection
+    });// Step 4: Clear browser cache with timeout protection
     if ('caches' in window) {
       try {
         const cachePromise = caches.keys().then(cacheNames => {
           return Promise.all(cacheNames.map(name => caches.delete(name)));
         });
-        
+
         await Promise.race([
           cachePromise,
           new Promise((_, reject) => setTimeout(() => reject(new Error('Cache clear timeout')), 2000))
-        ]);
-        
-        console.log('✅ Browser cache cleared successfully');
-      } catch (cacheError) {
+        ]);} catch (cacheError) {
         console.warn('⚠️ Cache clearing timed out or failed:', cacheError);
         // Continue with reload even if cache clearing fails
       }
     }
-    
-    // Step 5: Force page reload with user feedback
-    console.log('🔄 Reloading application...');
-    
-    // Use immediate reload with fallback
+
+    // Step 5: Force page reload with user feedback// Use immediate reload with fallback
     try {
       window.location.replace(window.location.href);
     } catch (replaceError) {
       console.warn('⚠️ location.replace failed, using reload:', replaceError);
       window.location.reload();
     }
-    
+
   } catch (error) {
     console.error('❌ Critical error in version update handler:', error);
-    
+
     // Emergency fallback: immediate reload
     try {
       window.location.replace(window.location.href);
@@ -160,18 +143,16 @@ export const handleVersionUpdate = async (reason: string = 'App version updated'
 export const initializeVersionManager = (): VersionCheckResult => {
   try {
     const versionCheck = checkAppVersionUpdate();
-    
+
     // If this is the first time or no stored version, just update it
     if (versionCheck.storedVersion === null && versionCheck.storedCacheVersion === null) {
-      updateStoredAppVersion();
-      console.log('📝 First-time version tracking initialized');
-      return { ...versionCheck, versionChanged: false, cacheVersionChanged: false };
+      updateStoredAppVersion();return { ...versionCheck, versionChanged: false, cacheVersionChanged: false };
     }
-    
+
     return versionCheck;
   } catch (error) {
     console.error('❌ Error initializing version manager:', error);
-    
+
     // Fallback: return safe defaults
     const fallbackResult: VersionCheckResult = {
       versionChanged: false,
@@ -182,14 +163,14 @@ export const initializeVersionManager = (): VersionCheckResult => {
       storedCacheVersion: null,
       userLoggedIn: false
     };
-    
+
     // Try to update versions for next time
     try {
       updateStoredAppVersion();
     } catch (updateError) {
       console.error('❌ Failed to update stored versions:', updateError);
     }
-    
+
     return fallbackResult;
   }
 };
@@ -220,9 +201,9 @@ export const getVersionInfo = (): {
     return {
       currentVersion: getAppVersion(),
       currentCacheVersion: getCacheVersion(),
-      storedVersion: localStorage.getItem(APP_VERSION_KEY),
-      storedCacheVersion: localStorage.getItem(CACHE_VERSION_KEY),
-      lastUpdated: localStorage.getItem('app-version-updated') || null
+      storedVersion: null /* Use system_settings table */,
+      storedCacheVersion: null /* Use system_settings table */,
+      lastUpdated: null /* Use system_settings table */ || null
     };
   } catch (error) {
     console.error('Error getting version info:', error);

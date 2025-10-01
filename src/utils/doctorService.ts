@@ -75,9 +75,9 @@ export const getDoctorsForCountry = async (country: string): Promise<Doctor[]> =
     }));
 
   } catch (error) {
-    logger.error('Exception in getDoctorsForCountry', { 
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    logger.error('Exception in getDoctorsForCountry', {
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return [];
   }
@@ -113,10 +113,10 @@ export const getProceduresForDoctor = async (doctorId: string, country: string):
     }));
 
   } catch (error) {
-    logger.error('Exception in getProceduresForDoctor', { 
-      doctorId, 
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    logger.error('Exception in getProceduresForDoctor', {
+      doctorId,
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return [];
   }
@@ -126,8 +126,8 @@ export const getProceduresForDoctor = async (doctorId: string, country: string):
  * Get surgery sets and implant boxes for doctor-procedure combination
  */
 export const getSetsForDoctorProcedure = async (
-  doctorId: string, 
-  procedureType: string, 
+  doctorId: string,
+  procedureType: string,
   country: string
 ): Promise<ProcedureSet[]> => {
   try {
@@ -143,11 +143,11 @@ export const getSetsForDoctorProcedure = async (
     });
 
     if (error) {
-      logger.error('Error fetching sets for doctor procedure', { 
-        doctorId, 
-        procedureType, 
-        country, 
-        error: error.message 
+      logger.error('Error fetching sets for doctor procedure', {
+        doctorId,
+        procedureType,
+        country,
+        error: error.message
       });
       return [];
     }
@@ -159,7 +159,7 @@ export const getSetsForDoctorProcedure = async (
 
     // Process the data from the database function
     const procedureSets: ProcedureSet[] = [];
-    
+
     data.forEach((set: any) => {
       // Add surgery set if present
       if (set.surgery_set_id && set.surgery_set_name) {
@@ -169,7 +169,7 @@ export const getSetsForDoctorProcedure = async (
           item_name: set.surgery_set_name
         });
       }
-      
+
       // Add implant box if present
       if (set.implant_box_id && set.implant_box_name) {
         procedureSets.push({
@@ -181,18 +181,18 @@ export const getSetsForDoctorProcedure = async (
     });
 
     // Remove duplicates
-    const uniqueSets = procedureSets.filter((set, index, self) => 
+    const uniqueSets = procedureSets.filter((set, index, self) =>
       index === self.findIndex(s => s.item_id === set.item_id && s.item_type === set.item_type)
     );
 
     return uniqueSets;
 
   } catch (error) {
-    logger.error('Exception in getSetsForDoctorProcedure', { 
-      doctorId, 
-      procedureType, 
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    logger.error('Exception in getSetsForDoctorProcedure', {
+      doctorId,
+      procedureType,
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return [];
   }
@@ -202,7 +202,7 @@ export const getSetsForDoctorProcedure = async (
  * Get daily usage data for calendar view with error handling
  */
 export const getDailyUsageForDate = async (
-  usageDate: string, 
+  usageDate: string,
   country: string
 ): Promise<DailyUsage[]> => {
   try {
@@ -217,10 +217,10 @@ export const getDailyUsageForDate = async (
     });
 
     if (error) {
-      logger.error('Error fetching daily usage', { 
-        usageDate, 
-        country, 
-        error: error.message 
+      logger.error('Error fetching daily usage', {
+        usageDate,
+        country,
+        error: error.message
       });
       return [];
     }
@@ -232,20 +232,20 @@ export const getDailyUsageForDate = async (
 
     // Group data by department and aggregate
     const departmentMap = new Map<string, { surgery_sets: number; implant_boxes: number; items: any[] }>();
-    
+
     data.forEach((usage: any) => {
       const dept = usage.department || 'Unknown';
       if (!departmentMap.has(dept)) {
         departmentMap.set(dept, { surgery_sets: 0, implant_boxes: 0, items: [] });
       }
-      
+
       const deptData = departmentMap.get(dept)!;
       if (usage.item_type === 'surgery_set') {
         deptData.surgery_sets += usage.total_quantity;
       } else if (usage.item_type === 'implant_box') {
         deptData.implant_boxes += usage.total_quantity;
       }
-      
+
       deptData.items.push({
         item_type: usage.item_type,
         item_name: usage.item_name,
@@ -268,10 +268,10 @@ export const getDailyUsageForDate = async (
     return result;
 
   } catch (error) {
-    logger.error('Exception in getDailyUsageForDate', { 
-      usageDate, 
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    logger.error('Exception in getDailyUsageForDate', {
+      usageDate,
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return [];
   }
@@ -281,7 +281,7 @@ export const getDailyUsageForDate = async (
  * Save case quantities with comprehensive error handling
  */
 export const saveCaseQuantities = async (
-  caseBookingId: string, 
+  caseBookingId: string,
   quantities: CaseQuantity[]
 ): Promise<boolean> => {
   try {
@@ -291,9 +291,9 @@ export const saveCaseQuantities = async (
     }
 
     // Validate quantity data
-    const validQuantities = quantities.filter(q => 
-      q.item_type && 
-      q.item_name && 
+    const validQuantities = quantities.filter(q =>
+      q.item_type &&
+      q.item_name &&
       q.quantity > 0 &&
       ['surgery_set', 'implant_box'].includes(q.item_type)
     );
@@ -318,19 +318,19 @@ export const saveCaseQuantities = async (
     });
 
     if (error) {
-      logger.error('Error saving case quantities', { 
-        caseBookingId, 
-        quantitiesCount: validQuantities.length, 
-        error: error.message 
+      logger.error('Error saving case quantities', {
+        caseBookingId,
+        quantitiesCount: validQuantities.length,
+        error: error.message
       });
       return false;
     }
 
     const success = data === true;
     if (success) {
-      logger.info('Successfully saved case quantities', { 
-        caseBookingId, 
-        quantitiesCount: validQuantities.length 
+      logger.info('Successfully saved case quantities', {
+        caseBookingId,
+        quantitiesCount: validQuantities.length
       });
     } else {
       logger.warn('Failed to save case quantities', { caseBookingId });
@@ -339,10 +339,10 @@ export const saveCaseQuantities = async (
     return success;
 
   } catch (error) {
-    logger.error('Exception in saveCaseQuantities', { 
-      caseBookingId, 
-      quantitiesCount: quantities?.length, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    logger.error('Exception in saveCaseQuantities', {
+      caseBookingId,
+      quantitiesCount: quantities?.length,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return false;
   }
@@ -352,8 +352,8 @@ export const saveCaseQuantities = async (
  * Create a new doctor with error handling
  */
 export const createDoctor = async (
-  name: string, 
-  country: string, 
+  name: string,
+  country: string,
   specialties: string[] = []
 ): Promise<Doctor | null> => {
   try {
@@ -379,7 +379,7 @@ export const createDoctor = async (
         logger.info('Doctor already exists', { name, country });
         throw new Error(`Doctor "${name}" already exists in ${country}. Please use a different name.`);
       }
-      
+
       logger.error('Error creating doctor', { name, country, error: error.message });
       throw new Error(`Failed to create doctor: ${error.message}`);
     }
@@ -399,10 +399,10 @@ export const createDoctor = async (
     };
 
   } catch (error) {
-    logger.error('Exception in createDoctor', { 
-      name, 
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    logger.error('Exception in createDoctor', {
+      name,
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return null;
   }
@@ -412,8 +412,8 @@ export const createDoctor = async (
  * Add procedure to a doctor with error handling
  */
 export const addProcedureToDoctor = async (
-  doctorId: string, 
-  procedureType: string, 
+  doctorId: string,
+  procedureType: string,
   country: string
 ): Promise<boolean> => {
   try {
@@ -437,7 +437,7 @@ export const addProcedureToDoctor = async (
         logger.info('Procedure already exists for doctor', { doctorId, procedureType, country });
         return true; // Consider it successful if it already exists
       }
-      
+
       logger.error('Error adding procedure to doctor', { doctorId, procedureType, country, error: error.message });
       return false;
     }
@@ -446,11 +446,11 @@ export const addProcedureToDoctor = async (
     return true;
 
   } catch (error) {
-    logger.error('Exception in addProcedureToDoctor', { 
-      doctorId, 
-      procedureType, 
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    logger.error('Exception in addProcedureToDoctor', {
+      doctorId,
+      procedureType,
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return false;
   }
@@ -489,12 +489,12 @@ export const updateDoctorProcedure = async (
     return true;
 
   } catch (error) {
-    logger.error('Exception in updateDoctorProcedure', { 
-      doctorId, 
-      oldProcedureType, 
+    logger.error('Exception in updateDoctorProcedure', {
+      doctorId,
+      oldProcedureType,
       newProcedureType,
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return false;
   }
@@ -530,11 +530,11 @@ export const deleteDoctorProcedure = async (
     return true;
 
   } catch (error) {
-    logger.error('Exception in deleteDoctorProcedure', { 
-      doctorId, 
+    logger.error('Exception in deleteDoctorProcedure', {
+      doctorId,
       procedureType,
-      country, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      country,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
     return false;
   }

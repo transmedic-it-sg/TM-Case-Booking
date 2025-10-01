@@ -1,7 +1,7 @@
 /**
  * Real-time Provider - Enterprise Solution for Live Data
  * Eliminates manual cache clearing for 50-100 concurrent users
- * 
+ *
  * Features:
  * - Automatic real-time subscriptions for all data tables
  * - Connection health monitoring with visual indicators
@@ -43,10 +43,10 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const casesRealtime = useRealtimeCases();
   const usersRealtime = useRealtimeUsers();
   const masterDataRealtime = useRealtimeMasterData();
-  
+
   // Force refresh function
   const forceRefreshAll = useForceRefreshAll();
-  
+
   // Track last activity for connection health with debouncing
   const [lastActivity, setLastActivity] = useState<Date | null>(null);
   const [debouncedConnectionStatus, setDebouncedConnectionStatus] = useState({
@@ -90,25 +90,17 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   }, [overallConnected, totalReconnectAttempts]);
 
   // Log connection status changes
-  useEffect(() => {
-    console.log('📡 Real-time connection status:', {
-      cases: casesRealtime.isConnected,
-      users: usersRealtime.isConnected,
-      masterData: masterDataRealtime.isConnected,
-      overall: overallConnected,
-      reconnectAttempts: totalReconnectAttempts
-    });
-  }, [casesRealtime.isConnected, usersRealtime.isConnected, masterDataRealtime.isConnected, overallConnected, totalReconnectAttempts]);
+  useEffect(() => {}, [casesRealtime.isConnected, usersRealtime.isConnected, masterDataRealtime.isConnected, overallConnected, totalReconnectAttempts]);
 
   // Auto force refresh if connections are down for too long (NO STORAGE)
   const lastRefreshRef = useRef<number>(0);
   useEffect(() => {
     if (!overallConnected && totalReconnectAttempts > 20) { // Increased threshold
       console.warn('🚨 Too many reconnect attempts - forcing cache refresh');
-      
+
       // Throttle force refresh to once every 60 seconds (memory only)
       const now = Date.now();
-      
+
       if ((now - lastRefreshRef.current) > 60000) {
         lastRefreshRef.current = now;
         forceRefreshAll();
@@ -144,15 +136,11 @@ const RealtimeStatusIndicator: React.FC = () => {
   // Show indicator logic - immediate hide when connected, delayed show when disconnected
   useEffect(() => {
     if (overallConnected) {
-      // Hide immediately when connected
-      console.log('✅ All real-time connections restored - hiding indicator');
-      setShowIndicator(false);
+      // Hide immediately when connectedsetShowIndicator(false);
     } else {
       // Only show indicator after significant disconnection (15+ failed attempts)
       // to avoid showing during normal startup and brief disconnections
-      if (reconnectAttempts > 15) {
-        console.log('⚠️ Showing reconnection indicator - attempts:', reconnectAttempts);
-        setShowIndicator(true);
+      if (reconnectAttempts > 15) {setShowIndicator(true);
       }
     }
   }, [overallConnected, reconnectAttempts]);
@@ -216,7 +204,7 @@ const RealtimeStatusIndicator: React.FC = () => {
  */
 export const useConnectionHealth = () => {
   const { overallConnected, reconnectAttempts, lastActivity, forceRefreshAll } = useRealtime();
-  
+
   const healthStatus = React.useMemo(() => {
     if (overallConnected && reconnectAttempts === 0) {
       return 'excellent';

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { User } from '../types';
 import { getCurrentUser } from '../utils/authCompat';
 import { useRealtimeUsers } from '../hooks/useRealtimeUsers';
-import { 
+import {
   checkUsernameAvailable
 } from '../utils/supabaseUserService';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -23,17 +23,17 @@ import '../assets/components/UserManagement.css';
 
 const UserManagement: React.FC = () => {
   const currentUser = getCurrentUser();
-  
+
   const [activeTab, setActiveTab] = useState<'users' | 'roles'>('users');
-  
+
   // Filter states - declared before real-time hook
   const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>('');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  
+
   // REAL-TIME USERS HOOK - Always fresh data, no cache issues, comprehensive testing
-  const { 
+  const {
     users,
     isLoading: usersLoading,
     error: usersError,
@@ -52,7 +52,7 @@ const UserManagement: React.FC = () => {
     filters: {
       country: selectedCountryFilter,
       role: selectedRoleFilter,
-      status: selectedStatusFilter === 'enabled' ? 'enabled' : 
+      status: selectedStatusFilter === 'enabled' ? 'enabled' :
               selectedStatusFilter === 'disabled' ? 'disabled' : 'all',
       search: searchQuery
     }
@@ -90,7 +90,7 @@ const UserManagement: React.FC = () => {
   const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
   const [tempPassword, setTempPassword] = useState('');
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
-  
+
   // Confirmation modal states
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -101,14 +101,14 @@ const UserManagement: React.FC = () => {
     type: null,
     user: null
   });
-  
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 12; // 3 users per row × 4 rows = 12 users per page
   // Removed expandedBadges and columnWidths - simplified table design
   // Removed availableDepartments since we now use CountryGroupedDepartments exclusively
   const canCreateUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CREATE_USER) : false;
-  
+
   // Ref for the add user form to handle click outside
   const addUserFormRef = useRef<HTMLDivElement>(null);
   const canEditUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_USER) : false;
@@ -116,7 +116,7 @@ const UserManagement: React.FC = () => {
   const canDeleteUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.DELETE_USER) : false;
   const canEnableDisableUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.ENABLE_DISABLE_USER) : false;
   const canResetPassword = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.RESET_PASSWORD) : false;
-  
+
   const { addNotification } = useNotifications();
   const { showSuccess, showError } = useToast();
   const { playSound } = useSound();
@@ -141,12 +141,10 @@ const UserManagement: React.FC = () => {
   // ALL useEffect hooks MUST be called before any conditional returns
   useEffect(() => {
     // Users now loaded automatically by useRealtimeUsers hook
-    
+
     // Load countries directly from code_tables to avoid fake data detection
     const loadCountries = async () => {
-      try {
-        console.log('Loading countries directly from code_tables...');
-        const { supabase } = await import('../lib/supabase');
+      try {const { supabase } = await import('../lib/supabase');
         const { data, error } = await supabase
           .from('code_tables')
           .select('display_name')
@@ -162,9 +160,7 @@ const UserManagement: React.FC = () => {
         }
 
         if (data && data.length > 0) {
-          const countryNames = data.map((item: any) => item.display_name);
-          console.log('✅ Loaded countries from code_tables:', countryNames);
-          setAvailableCountries(countryNames);
+          const countryNames = data.map((item: any) => item.display_name);setAvailableCountries(countryNames);
         } else {
           console.warn('No countries found in code_tables');
           setAvailableCountries([]);
@@ -175,11 +171,11 @@ const UserManagement: React.FC = () => {
       }
     };
     loadCountries();
-    
+
     // Load available roles
     loadAvailableRoles();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  
+
   // Filter changes now handled automatically by useRealtimeUsers hook
   // No manual reload needed
 
@@ -226,8 +222,8 @@ const UserManagement: React.FC = () => {
     }));
 
     // Filter roles based on current user's permissions
-    const filteredRoles = currentUser?.role === 'admin' 
-      ? roleOptions 
+    const filteredRoles = currentUser?.role === 'admin'
+      ? roleOptions
       : roleOptions.filter(role => role.value !== 'admin');
 
     setAvailableRoles(filteredRoles);
@@ -238,11 +234,10 @@ const UserManagement: React.FC = () => {
     loadAvailableRoles();
   };
 
-
   // Helper function to format departments with country prefixes
   const formatDepartmentsWithCountry = (departments: string[], countries: string[]): string[] => {
     if (!departments || !countries) return [];
-    
+
     return departments.map(dept => {
       // Check if department has country prefix (new format)
       if (dept.includes(':')) {
@@ -279,13 +274,13 @@ const UserManagement: React.FC = () => {
       enabled: user.enabled !== undefined ? user.enabled : true
     });
     setShowAddUser(true);
-    
+
     // Scroll to the form after a brief delay to ensure it's rendered
     setTimeout(() => {
       const formElement = document.querySelector('.add-user-form');
       if (formElement) {
-        formElement.scrollIntoView({ 
-          behavior: 'smooth', 
+        formElement.scrollIntoView({
+          behavior: 'smooth',
           block: 'start',
           inline: 'nearest'
         });
@@ -308,7 +303,7 @@ const UserManagement: React.FC = () => {
     // Validate password using the system settings
     const requirements = getPasswordRequirementsSync(true); // Use complex requirements for admin resets
     const validation = validatePassword(tempPassword, requirements);
-    
+
     if (!validation.isValid) {
       setError(`Password validation failed: ${validation.errors.join(', ')}`);
       return;
@@ -317,7 +312,7 @@ const UserManagement: React.FC = () => {
     try {
       await resetUserPassword(resetPasswordUser.id, tempPassword);
       // Real-time hook handles success automatically
-      
+
       // Audit log for password reset
       try {
           if (currentUser) {
@@ -331,12 +326,12 @@ const UserManagement: React.FC = () => {
         } catch (auditError) {
           console.error('Failed to log password reset audit:', auditError);
         }
-        
+
         setShowResetPasswordModal(false);
         setResetPasswordUser(null);
         setTempPassword('');
         setError('');
-        
+
         playSound.success();
         showSuccess('Password Reset', `Password has been reset for ${resetPasswordUser.name}. They will be required to change it on next login.`);
         addNotification({
@@ -356,7 +351,7 @@ const UserManagement: React.FC = () => {
       setError('You do not have permission to delete users');
       return;
     }
-    
+
     const userToDelete = users.find(u => u.id === userId);
     if (userToDelete) {
       setConfirmModal({
@@ -373,7 +368,7 @@ const UserManagement: React.FC = () => {
       try {
         await deleteUser(userToDelete.id);
         // Real-time hook automatically updates the users list
-          
+
           // Audit log for user deletion
           try {
             if (currentUser && userToDelete) {
@@ -387,7 +382,7 @@ const UserManagement: React.FC = () => {
           } catch (auditError) {
             console.error('Failed to log user deletion audit:', auditError);
           }
-          
+
           playSound.delete();
           showSuccess('User Deleted', `User "${userToDelete?.name}" has been successfully removed from the system.`);
           addNotification({
@@ -410,12 +405,12 @@ const UserManagement: React.FC = () => {
       setError('You do not have permission to enable/disable users');
       return;
     }
-    
+
     const userToToggle = users.find(u => u.id === userId);
     if (!userToToggle) return;
-    
+
     const newStatus = !currentStatus;
-    
+
     setConfirmModal({
       isOpen: true,
       type: newStatus ? 'enable' : 'disable',
@@ -429,11 +424,11 @@ const UserManagement: React.FC = () => {
       const newStatus = confirmModal.type === 'enable';
       const currentStatus = !newStatus; // Previous status is opposite of new status
       const action = newStatus ? 'enabled' : 'disabled';
-      
+
       try {
         await toggleUser(userToToggle.id);
         // Real-time hook automatically updates the users list
-          
+
           // Audit log for user status change
           try {
             if (currentUser) {
@@ -452,7 +447,7 @@ const UserManagement: React.FC = () => {
           } catch (auditError) {
             console.error('Failed to log user status change audit:', auditError);
           }
-          
+
           playSound.success();
           showSuccess('User Status Updated', `User "${userToToggle.name}" has been ${action}.`);
           addNotification({
@@ -478,7 +473,7 @@ const UserManagement: React.FC = () => {
       setError('You do not have permission to create users');
       return;
     }
-    
+
     if (editingUser && !canEditUsers) {
       setError('You do not have permission to edit users');
       return;
@@ -490,36 +485,36 @@ const UserManagement: React.FC = () => {
       setError('Username and full name are required');
       return;
     }
-    
+
     // Password validation for new users
     if (!editingUser && currentUser?.role === 'admin') {
       if (!newUser.password) {
         setError('Password is required for new users');
         return;
       }
-      
+
       // Validate password complexity
       const requirements = getPasswordRequirementsSync(true);
       const validation = validatePassword(newUser.password, requirements);
-      
+
       if (!validation.isValid) {
         setError(`Password validation failed: ${validation.errors.join(', ')}`);
         return;
       }
     }
-    
+
     // For non-admin users, set a secure default password if creating new user
     if (!editingUser && currentUser?.role !== 'admin' && !newUser.password) {
       // Generate a secure temporary password
       const tempPassword = 'TempMedic2025!';
       setNewUser(prev => ({ ...prev, password: tempPassword }));
     }
-    
+
     // For existing users with password change, validate the new password
     if (editingUser && newUser.password && currentUser?.role === 'admin') {
       const requirements = getPasswordRequirementsSync(true);
       const validation = validatePassword(newUser.password, requirements);
-      
+
       if (!validation.isValid) {
         setError(`Password validation failed: ${validation.errors.join(', ')}`);
         return;
@@ -552,7 +547,7 @@ const UserManagement: React.FC = () => {
         const updateData: Partial<User> = newUser.password ? newUser : updateDataWithoutPassword;
         await updateUser(editingUser, updateData);
         // Real-time hook automatically updates the users list
-          
+
           // Audit log for user update
           try {
             if (currentUser) {
@@ -560,7 +555,7 @@ const UserManagement: React.FC = () => {
               const changes = [];
               if (newUser.password) changes.push('password');
               changes.push('profile updated');
-              
+
               await auditUserUpdated(
                 currentUser.name,
                 currentUser.id,
@@ -572,7 +567,7 @@ const UserManagement: React.FC = () => {
           } catch (auditError) {
             console.error('Failed to log user update audit:', auditError);
           }
-          
+
           playSound.success();
           showSuccess('User Updated', `${newUser.name}'s account has been successfully updated.`);
           addNotification({
@@ -583,17 +578,17 @@ const UserManagement: React.FC = () => {
       } else {
         // Add new user
         // For admin users created by admin, assign all countries and no departments
-        const userDataToSave = currentUser?.role === 'admin' && newUser.role === 'admin' 
-          ? { 
-              ...newUser, 
-              countries: availableCountries, 
+        const userDataToSave = currentUser?.role === 'admin' && newUser.role === 'admin'
+          ? {
+              ...newUser,
+              countries: availableCountries,
               departments: [] // Admin users don't need department restrictions
             }
           : newUser;
-          
+
         await addUser(userDataToSave);
         // Real-time hook automatically updates the users list
-          
+
           // Audit log for user creation
           try {
             if (currentUser) {
@@ -609,7 +604,7 @@ const UserManagement: React.FC = () => {
           } catch (auditError) {
             console.error('Failed to log user creation audit:', auditError);
           }
-          
+
           playSound.success();
           showSuccess('User Created', `Welcome ${userDataToSave.name}! New user account has been created successfully.`);
           addNotification({
@@ -618,7 +613,7 @@ const UserManagement: React.FC = () => {
             type: 'success'
           });
       }
-      
+
       // Reset form
       setNewUser({
         username: '',
@@ -643,7 +638,7 @@ const UserManagement: React.FC = () => {
 
   // Check if user has permission to view users (this check is also done in App.tsx)
   const canViewUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.VIEW_USERS) : false;
-  
+
   if (!canViewUsers) {
     return (
       <div className="permission-denied">
@@ -669,13 +664,12 @@ const UserManagement: React.FC = () => {
   const totalUsers = users.length; // Already filtered by real-time hook
   const totalPages = Math.ceil(totalUsers / usersPerPage);
 
-
   // Removed totalUsers as it's no longer displayed in table footer
-  
+
   // Helper function to group departments by country for popup display
   const groupDepartmentsByCountry = (formattedDepartments: string[]): { [country: string]: string[] } => {
     const grouped: { [country: string]: string[] } = {};
-    
+
     formattedDepartments.forEach(dept => {
       if (dept.includes(' - ')) {
         const [country, departmentName] = dept.split(' - ');
@@ -691,7 +685,7 @@ const UserManagement: React.FC = () => {
         grouped['Unknown'].push(dept);
       }
     });
-    
+
     return grouped;
   };
 
@@ -860,14 +854,14 @@ const UserManagement: React.FC = () => {
                         onChange={(values) => {
                           // Get valid departments for the selected countries
                           const validDepartmentsForCountries = newUser.departments || [];
-                          
+
                           // Filter out departments that don't exist in the selected countries
-                          const validDepartments = newUser.departments.filter(dept => 
+                          const validDepartments = newUser.departments.filter(dept =>
                             validDepartmentsForCountries.includes(dept)
                           );
-                          
-                          setNewUser(prev => ({ 
-                            ...prev, 
+
+                          setNewUser(prev => ({
+                            ...prev,
                             countries: values,
                             departments: validDepartments
                           }));
@@ -892,8 +886,8 @@ const UserManagement: React.FC = () => {
                       </label>
                     </div>
                     <small className="form-helper-text">
-                      {newUser.enabled 
-                        ? 'User can log in and access the system' 
+                      {newUser.enabled
+                        ? 'User can log in and access the system'
                         : 'User cannot log in (account disabled)'
                       }
                     </small>
@@ -917,7 +911,7 @@ const UserManagement: React.FC = () => {
                     />
                   </div>
                 )}
-                
+
                 {/* Show message when user cannot edit countries (departments are still editable) */}
                 {newUser.role !== 'admin' && !canEditCountries && (
                   <div className="form-group">
@@ -958,7 +952,7 @@ const UserManagement: React.FC = () => {
               <div className="filters-title">
                 <h3>🔍 Advanced Filters</h3>
                 <span className="active-filters-count">
-                  {(searchQuery || selectedRoleFilter || selectedCountryFilter || selectedStatusFilter) && 
+                  {(searchQuery || selectedRoleFilter || selectedCountryFilter || selectedStatusFilter) &&
                     `(${[searchQuery, selectedRoleFilter, selectedCountryFilter, selectedStatusFilter].filter(Boolean).length} active)`}
                 </span>
               </div>
@@ -966,7 +960,7 @@ const UserManagement: React.FC = () => {
                 {showFilters ? '▲' : '▼'}
               </button>
             </div>
-            
+
             {showFilters && (
               <div className="filters-content">
                 <div className="filters-grid">
@@ -1010,7 +1004,7 @@ const UserManagement: React.FC = () => {
                           <span className="filter-icon">🎭</span>
                         </div>
                       </div>
-                      
+
                       <div className="modern-filter-group">
                         <label>Status</label>
                         <div className="filter-input-wrapper">
@@ -1026,7 +1020,7 @@ const UserManagement: React.FC = () => {
                           <span className="filter-icon">📊</span>
                         </div>
                       </div>
-                      
+
                       <div className="modern-filter-group">
                         <label>Country</label>
                         <div className="filter-input-wrapper">
@@ -1053,7 +1047,7 @@ const UserManagement: React.FC = () => {
                     Showing {users.length} users
                   </div>
                   <div className="filter-buttons">
-                    <button 
+                    <button
                       onClick={() => {
                         setTempFilters({searchQuery: '', selectedRoleFilter: '', selectedStatusFilter: '', selectedCountryFilter: ''});
                         setSearchQuery('');
@@ -1067,7 +1061,7 @@ const UserManagement: React.FC = () => {
                     >
                       🗑️ Clear All
                     </button>
-                    <button 
+                    <button
                       onClick={() => {
                         setSearchQuery(tempFilters.searchQuery);
                         setSelectedRoleFilter(tempFilters.selectedRoleFilter);
@@ -1085,7 +1079,7 @@ const UserManagement: React.FC = () => {
                 {/* Quick Filter Presets */}
                 <div className="quick-filters">
                   <span className="quick-filters-label">Quick Filters:</span>
-                  <button 
+                  <button
                     onClick={() => {
                       setTempFilters(prev => ({...prev, selectedRoleFilter: 'admin'}));
                     }}
@@ -1093,7 +1087,7 @@ const UserManagement: React.FC = () => {
                   >
                     👑 Admin Users
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       setTempFilters(prev => ({...prev, selectedStatusFilter: 'enabled'}));
                     }}
@@ -1101,7 +1095,7 @@ const UserManagement: React.FC = () => {
                   >
                     ✅ Enabled Only
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       setTempFilters(prev => ({...prev, selectedStatusFilter: 'disabled'}));
                     }}
@@ -1128,14 +1122,12 @@ const UserManagement: React.FC = () => {
                 >
                   🔄 {usersLoading ? 'Loading...' : 'Refresh'}
                 </button>
-                
+
                 {/* Testing button for development */}
                 {process.env.NODE_ENV === 'development' && (
                   <button
                     onClick={async () => {
-                      const result = await validateComponent();
-                      console.log('🧪 UserManagement validation result:', result);
-                      console.log('📋 Testing report:', getTestingReport());
+                      const result = await validateComponent(););
                     }}
                     className="test-btn"
                     title="Validate real-time functionality"
@@ -1143,7 +1135,7 @@ const UserManagement: React.FC = () => {
                     🧪 Test
                   </button>
                 )}
-                
+
                 {canCreateUsers && (
                   <button
                     onClick={() => showAddUser ? handleCancelEdit() : setShowAddUser(true)}
@@ -1156,7 +1148,7 @@ const UserManagement: React.FC = () => {
                 )}
               </div>
             </div>
-            
+
             {/* Real-time error display */}
             {usersError && (
               <div className="alert alert-danger" role="alert">
@@ -1166,7 +1158,7 @@ const UserManagement: React.FC = () => {
                 </button>
               </div>
             )}
-            
+
             {/* Loading indicator for real-time data */}
             {usersLoading && (
               <div className="loading-indicator text-center p-3">
@@ -1176,7 +1168,7 @@ const UserManagement: React.FC = () => {
                 <p className="mt-2 mb-0">Loading fresh user data...</p>
               </div>
             )}
-            
+
             {/* Users Grid */}
             <div className="users-grid">
               {getCurrentPageUsers().map(user => {
@@ -1195,20 +1187,20 @@ const UserManagement: React.FC = () => {
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="user-details">
                       <div className="user-role">
                         <div className="role-icon"></div>
                         {user.role.replace(/-/g, ' ').toUpperCase()}
                       </div>
-                      
+
                       {user.email && (
                         <div className="user-email">
                           <span>✉️</span>
                           {user.email}
                         </div>
                       )}
-                      
+
                       {/* Only show assignments for non-admin users */}
                       {user.role !== 'admin' && (
                         <div className="user-assignments">
@@ -1224,7 +1216,7 @@ const UserManagement: React.FC = () => {
                                     </span>
                                   ))}
                                   {user.countries.length > 2 && (
-                                    <span 
+                                    <span
                                       className="assignment-badge badge-more"
                                       onClick={() => handleShowMore('countries', user.countries!, user.name)}
                                       title="Show all countries"
@@ -1238,7 +1230,7 @@ const UserManagement: React.FC = () => {
                               )}
                             </div>
                           </div>
-                          
+
                           {/* Departments */}
                           <div className="assignment-row">
                             <span className="assignment-label">Departments:</span>
@@ -1246,8 +1238,8 @@ const UserManagement: React.FC = () => {
                               {user.departments && user.departments.length > 0 ? (
                                 <div className="badge-container">
                                   {formatDepartmentsWithCountry(user.departments, user.countries || []).slice(0, 1).map((dept, index) => (
-                                    <span 
-                                      key={index} 
+                                    <span
+                                      key={index}
                                       className={`assignment-badge ${!(user.countries && user.countries.length > 0) ? 'badge-warning' : ''}`}
                                       title={!(user.countries && user.countries.length > 0) ? 'Department without country assigned' : dept}
                                     >
@@ -1255,7 +1247,7 @@ const UserManagement: React.FC = () => {
                                     </span>
                                   ))}
                                   {user.departments.length > 1 && (
-                                    <span 
+                                    <span
                                       className="assignment-badge badge-more"
                                       onClick={() => handleShowMore('departments', formatDepartmentsWithCountry(user.departments!, user.countries || []), user.name)}
                                       title="Show all departments"
@@ -1271,7 +1263,7 @@ const UserManagement: React.FC = () => {
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Show global access indicator for admin users */}
                       {user.role === 'admin' && (
                         <div className="admin-access-indicator">
@@ -1286,13 +1278,13 @@ const UserManagement: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    
+
                     {/* User Actions */}
                     {user.username !== 'Admin' && (
                       <div className="user-actions">
                         {canEditUsers && (
-                          <button 
-                            className="action-btn edit" 
+                          <button
+                            className="action-btn edit"
                             onClick={() => handleEditUser(user)}
                             title="Edit User"
                           >
@@ -1300,8 +1292,8 @@ const UserManagement: React.FC = () => {
                           </button>
                         )}
                         {canResetPassword && (
-                          <button 
-                            className="action-btn reset" 
+                          <button
+                            className="action-btn reset"
                             onClick={() => handleResetPassword(user)}
                             title="Reset Password"
                           >
@@ -1309,7 +1301,7 @@ const UserManagement: React.FC = () => {
                           </button>
                         )}
                         {canEnableDisableUsers && (
-                          <button 
+                          <button
                             className="action-btn toggle"
                             onClick={() => handleToggleUserStatus(user.id, userEnabled)}
                             title={userEnabled ? 'Disable User' : 'Enable User'}
@@ -1318,7 +1310,7 @@ const UserManagement: React.FC = () => {
                           </button>
                         )}
                         {canDeleteUsers && (
-                          <button 
+                          <button
                             className="action-btn delete"
                             onClick={() => handleDeleteUser(user.id)}
                             title="Delete User"
@@ -1332,7 +1324,7 @@ const UserManagement: React.FC = () => {
                 );
               })}
             </div>
-            
+
             {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="pagination-container">
@@ -1348,15 +1340,15 @@ const UserManagement: React.FC = () => {
                   >
                     ← Previous
                   </button>
-                  
+
                   <div className="pagination-pages">
                     {[...Array(totalPages)].map((_, index) => {
                       const pageNumber = index + 1;
                       // Show first, last, current, and adjacent pages
-                      const showPage = pageNumber === 1 || 
-                                     pageNumber === totalPages || 
+                      const showPage = pageNumber === 1 ||
+                                     pageNumber === totalPages ||
                                      (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1);
-                      
+
                       if (!showPage && pageNumber === 2 && currentPage > 3) {
                         return <span key={pageNumber} className="pagination-ellipsis">...</span>;
                       }
@@ -1364,7 +1356,7 @@ const UserManagement: React.FC = () => {
                         return <span key={pageNumber} className="pagination-ellipsis">...</span>;
                       }
                       if (!showPage) return null;
-                      
+
                       return (
                         <button
                           key={pageNumber}
@@ -1376,7 +1368,7 @@ const UserManagement: React.FC = () => {
                       );
                     })}
                   </div>
-                  
+
                   <button
                     className="pagination-btn next"
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
@@ -1415,10 +1407,10 @@ const UserManagement: React.FC = () => {
                 // Group departments by country
                 Object.entries(groupDepartmentsByCountry(popupData.items)).map(([country, departments]) => (
                   <div key={country} style={{ marginBottom: '1.5rem' }}>
-                    <h4 style={{ 
-                      color: 'var(--primary-color)', 
-                      fontSize: '1.1rem', 
-                      fontWeight: '700', 
+                    <h4 style={{
+                      color: 'var(--primary-color)',
+                      fontSize: '1.1rem',
+                      fontWeight: '700',
                       marginBottom: '0.75rem',
                       borderBottom: '2px solid #e0f7f7',
                       paddingBottom: '0.5rem'
@@ -1427,8 +1419,8 @@ const UserManagement: React.FC = () => {
                     </h4>
                     <div className="popup-badge-grid">
                       {departments.map((dept, index) => (
-                        <span 
-                          key={index} 
+                        <span
+                          key={index}
                           className="badge badge-department"
                           title={dept}
                         >
@@ -1442,8 +1434,8 @@ const UserManagement: React.FC = () => {
                 // Regular display for countries
                 <div className="popup-badge-grid">
                   {popupData.items.map((item, index) => (
-                    <span 
-                      key={index} 
+                    <span
+                      key={index}
                       className="badge badge-country"
                       title={item}
                     >
@@ -1463,8 +1455,8 @@ const UserManagement: React.FC = () => {
       {/* Reset Password Modal */}
       {showResetPasswordModal && resetPasswordUser && (
         <div className="modal-overlay" onClick={() => setShowResetPasswordModal(false)}>
-          <div 
-            className="modal-content reset-password-modal" 
+          <div
+            className="modal-content reset-password-modal"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
               if (e.key === 'Escape') {
@@ -1475,8 +1467,8 @@ const UserManagement: React.FC = () => {
           >
             <div className="modal-header">
               <h2 className="modal-title">🔑 Reset Password</h2>
-              <button 
-                className="close-btn" 
+              <button
+                className="close-btn"
                 onClick={() => setShowResetPasswordModal(false)}
                 aria-label="Close modal"
               >
@@ -1491,7 +1483,7 @@ const UserManagement: React.FC = () => {
                     <span className="warning-text">The user will be required to change this password on their next login.</span>
                   </div>
                 </div>
-                
+
                 <PasswordInput
                   id="tempPassword"
                   value={tempPassword}
@@ -1503,18 +1495,18 @@ const UserManagement: React.FC = () => {
                   showRequirements={true}
                   showGenerateButton={true}
                 />
-                
+
                 {error && <div className="error-message">{error}</div>}
               </div>
               <div className="modal-footer">
-                <button 
-                  className="btn btn-secondary btn-md" 
+                <button
+                  className="btn btn-secondary btn-md"
                   onClick={() => setShowResetPasswordModal(false)}
                 >
                   Cancel
                 </button>
-                <button 
-                  className="btn btn-warning btn-md" 
+                <button
+                  className="btn btn-warning btn-md"
                   onClick={handleConfirmResetPassword}
                   disabled={!tempPassword || tempPassword.length < 6}
                 >
@@ -1535,7 +1527,7 @@ const UserManagement: React.FC = () => {
           confirmModal.type === 'enable' ? '✅ Enable User' : ''
         }
         message={
-          confirmModal.type === 'delete' 
+          confirmModal.type === 'delete'
             ? `Are you sure you want to delete user "${confirmModal.user?.name}" (${confirmModal.user?.username})?\n\nThis action cannot be undone and will permanently remove all user data.`
             : confirmModal.type === 'disable'
             ? `Are you sure you want to disable user "${confirmModal.user?.name}" (${confirmModal.user?.username})?\n\nThis will prevent them from logging into the system.`
@@ -1551,8 +1543,8 @@ const UserManagement: React.FC = () => {
             style: 'secondary'
           },
           {
-            label: confirmModal.type === 'delete' ? 'Delete User' : 
-                   confirmModal.type === 'disable' ? 'Disable User' : 
+            label: confirmModal.type === 'delete' ? 'Delete User' :
+                   confirmModal.type === 'disable' ? 'Disable User' :
                    confirmModal.type === 'enable' ? 'Enable User' : 'Confirm',
             onClick: confirmModal.type === 'delete' ? confirmDeleteUser : confirmToggleUserStatus,
             style: confirmModal.type === 'delete' ? 'danger' : 'primary'

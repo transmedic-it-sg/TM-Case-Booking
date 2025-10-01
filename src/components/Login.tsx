@@ -32,7 +32,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
     };
     loadCountries();
-    
+
     // Load remembered credentials from secure storage
     const loadSavedCredentials = async () => {
       try {
@@ -53,7 +53,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         }
       }
     };
-    
+
     loadSavedCredentials();
   }, []);
 
@@ -70,7 +70,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
+
     // Check if country is not selected first
     if (!country) {
       setError('Please select a country');
@@ -124,9 +124,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="login-left">
           <div className="login-branding">
             <div className="brand-logo">
-              <img 
-                src="https://www.transmedicgroup.com/wp-content/themes/transmedic/transmedic_assets/images/logo/logo-v5-transmedic-header-small.svg" 
-                alt="Transmedic Logo" 
+              <img
+                src="https://www.transmedicgroup.com/wp-content/themes/transmedic/transmedic_assets/images/logo/logo-v5-transmedic-header-small.svg"
+                alt="Transmedic Logo"
                 className="logo-image"
               />
             </div>
@@ -233,8 +233,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
               )}
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className={`btn btn-primary btn-lg full-width-button ${isLoading ? 'loading' : ''}`}
                 disabled={isLoading}
               >

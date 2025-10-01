@@ -23,7 +23,7 @@ export const useCurrentUser = () => {
         setLoading(false);
       }
     };
-    
+
     loadUser();
   }, []);
 

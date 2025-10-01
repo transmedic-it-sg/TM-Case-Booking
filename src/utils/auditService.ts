@@ -23,7 +23,7 @@ export interface AuditLogEntry {
   department?: string;
 }
 
-export type AuditCategory = 
+export type AuditCategory =
   | 'Authentication'
   | 'User Management'
   | 'Case Management'
@@ -94,19 +94,19 @@ export const addAuditLog = async (
 
     if (error) {
       // Only fall back to localStorage if it's a network issue or table doesn't exist
-      if (error.message && (error.message.includes('Failed to fetch') || 
-          error.message.includes('network') || 
+      if (error.message && (error.message.includes('Failed to fetch') ||
+          error.message.includes('network') ||
           error.message.includes('does not exist'))) {
         console.warn('Network error or table missing, falling back to localStorage');
-        
+
         // Fallback to localStorage
         const existingLogs = await getAuditLogsFromLocalStorage();
         const updatedLogs = [auditEntry, ...existingLogs];
-        
+
         // Keep only the latest 1000 audit entries to prevent localStorage bloat
         const trimmedLogs = updatedLogs.slice(0, 1000);
-        
-        localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify(trimmedLogs));
+
+        // Audit logs in audit_logs table);
       } else {
         throw error;
       }
@@ -131,8 +131,8 @@ export const getAuditLogs = async (): Promise<AuditLogEntry[]> => {
 
     if (error) {
       // Only fall back to localStorage if it's a network issue or table doesn't exist
-      if (error.message && (error.message.includes('Failed to fetch') || 
-          error.message.includes('network') || 
+      if (error.message && (error.message.includes('Failed to fetch') ||
+          error.message.includes('network') ||
           error.message.includes('does not exist'))) {
         console.warn('Network error or table missing, falling back to localStorage');
         return await getAuditLogsFromLocalStorage();
@@ -170,7 +170,7 @@ export const getAuditLogs = async (): Promise<AuditLogEntry[]> => {
  */
 const getAuditLogsFromLocalStorage = async (): Promise<AuditLogEntry[]> => {
   try {
-    const logs = localStorage.getItem(AUDIT_LOGS_KEY);
+    const logs = null /* Use Supabase audit_logs table */;
     if (logs) {
       return JSON.parse(logs);
     }
@@ -196,7 +196,7 @@ export const getFilteredAuditLogs = async (filters: {
   department?: string;
 }): Promise<AuditLogEntry[]> => {
   const allLogs = await getAuditLogs();
-  
+
   return allLogs.filter(log => {
     if (filters.userId && log.userId !== filters.userId) return false;
     if (filters.userRole && log.userRole !== filters.userRole) return false;
@@ -205,15 +205,15 @@ export const getFilteredAuditLogs = async (filters: {
     if (filters.status && log.status !== filters.status) return false;
     if (filters.country && log.country !== filters.country) return false;
     if (filters.department && log.department !== filters.department) return false;
-    
+
     if (filters.dateFrom) {
       if (new Date(log.timestamp) < new Date(filters.dateFrom)) return false;
     }
-    
+
     if (filters.dateTo) {
       if (new Date(log.timestamp) > new Date(filters.dateTo + 'T23:59:59')) return false;
     }
-    
+
     return true;
   });
 };
@@ -226,55 +226,46 @@ export const clearOldAuditLogs = async (): Promise<number> => {
     // Get system configuration for audit log retention
     const config = await getSystemConfig();
     const retentionDays = config.auditLogRetention || 90; // Default to 90 days if not configured
-    
+
     // Calculate cutoff date based on configured retention period
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-    const cutoffDateString = cutoffDate.toISOString();
-    
-    console.log(`Clearing audit logs older than ${retentionDays} days (${cutoffDateString})`);
-    
+    const cutoffDateString = cutoffDate.toISOString();`);
+
     // Delete from Supabase
     const { data: logsToDelete, error: selectError } = await supabase
       .from('audit_logs')
       .select('id')
       .lt('timestamp', cutoffDateString);
-    
+
     if (selectError) {
       console.error('Error finding old audit logs:', selectError);
       throw selectError;
     }
-    
+
     const deletedCount = logsToDelete?.length || 0;
-    
+
     if (deletedCount > 0) {
       const { error: deleteError } = await supabase
         .from('audit_logs')
         .delete()
         .lt('timestamp', cutoffDateString);
-      
+
       if (deleteError) {
         console.error('Error deleting old audit logs:', deleteError);
         throw deleteError;
-      }
-      
-      console.log(`Successfully cleared ${deletedCount} old audit logs from Supabase`);
-    } else {
-      console.log('No old audit logs found to clear');
-    }
-    
+      }} else {}
+
     // Also clear from localStorage as backup
     try {
       const localLogs = await getAuditLogsFromLocalStorage();
-      const filteredLocalLogs = localLogs.filter(log => 
+      const filteredLocalLogs = localLogs.filter(log =>
         new Date(log.timestamp) > cutoffDate
       );
-      localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify(filteredLocalLogs));
-      console.log('Also cleared old logs from localStorage');
-    } catch (localError) {
+      // Audit logs in audit_logs table);} catch (localError) {
       console.warn('Could not clear localStorage audit logs:', localError);
     }
-    
+
     return deletedCount;
   } catch (error) {
     console.error('Failed to clear old audit logs:', error);
@@ -306,12 +297,12 @@ const getClientIP = async (): Promise<string> => {
 // Authentication audit logs
 export const auditLogin = async (user: string, userId: string, userRole: string, country?: string) => {
   await addAuditLog(
-    user, 
-    userId, 
-    userRole, 
-    'User Login', 
-    'Authentication', 
-    'Authentication System', 
+    user,
+    userId,
+    userRole,
+    'User Login',
+    'Authentication',
+    'Authentication System',
     `User ${user} logged in successfully`,
     'success',
     { loginMethod: 'username/password' },
@@ -321,12 +312,12 @@ export const auditLogin = async (user: string, userId: string, userRole: string,
 
 export const auditLogout = async (user: string, userId: string, userRole: string, country?: string) => {
   await addAuditLog(
-    user, 
-    userId, 
-    userRole, 
-    'User Logout', 
-    'Authentication', 
-    'Authentication System', 
+    user,
+    userId,
+    userRole,
+    'User Logout',
+    'Authentication',
+    'Authentication System',
     `User ${user} logged out`,
     'success',
     {},
@@ -336,12 +327,12 @@ export const auditLogout = async (user: string, userId: string, userRole: string
 
 export const auditFailedLogin = async (username: string, reason: string) => {
   await addAuditLog(
-    username, 
-    'unknown', 
-    'unknown', 
-    'Failed Login', 
-    'Security', 
-    'Authentication System', 
+    username,
+    'unknown',
+    'unknown',
+    'Failed Login',
+    'Security',
+    'Authentication System',
     `Failed login attempt for ${username}: ${reason}`,
     'error',
     { failureReason: reason }
@@ -351,12 +342,12 @@ export const auditFailedLogin = async (username: string, reason: string) => {
 // Case management audit logs
 export const auditCaseCreated = async (user: string, userId: string, userRole: string, caseId: string, caseRef: string, country?: string, department?: string) => {
   await addAuditLog(
-    user, 
-    userId, 
-    userRole, 
-    'Case Created', 
-    'Case Management', 
-    caseRef, 
+    user,
+    userId,
+    userRole,
+    'Case Created',
+    'Case Management',
+    caseRef,
     `Case ${caseRef} created by ${user}`,
     'success',
     { caseId },
@@ -367,12 +358,12 @@ export const auditCaseCreated = async (user: string, userId: string, userRole: s
 
 export const auditCaseStatusChange = async (user: string, userId: string, userRole: string, caseRef: string, oldStatus: string, newStatus: string, country?: string, department?: string) => {
   await addAuditLog(
-    user, 
-    userId, 
-    userRole, 
-    'Status Changed', 
-    'Status Change', 
-    caseRef, 
+    user,
+    userId,
+    userRole,
+    'Status Changed',
+    'Status Change',
+    caseRef,
     `Case ${caseRef} status changed from ${oldStatus} to ${newStatus}`,
     'success',
     { oldStatus, newStatus },
@@ -383,12 +374,12 @@ export const auditCaseStatusChange = async (user: string, userId: string, userRo
 
 export const auditCaseAmended = async (user: string, userId: string, userRole: string, caseRef: string, changes: string[], country?: string, department?: string) => {
   await addAuditLog(
-    user, 
-    userId, 
-    userRole, 
-    'Case Amended', 
-    'Case Management', 
-    caseRef, 
+    user,
+    userId,
+    userRole,
+    'Case Amended',
+    'Case Management',
+    caseRef,
     `Case ${caseRef} amended: ${changes.join(', ')}`,
     'success',
     { changes },
@@ -399,12 +390,12 @@ export const auditCaseAmended = async (user: string, userId: string, userRole: s
 
 export const auditCaseDeleted = async (user: string, userId: string, userRole: string, caseRef: string, country?: string, department?: string) => {
   await addAuditLog(
-    user, 
-    userId, 
-    userRole, 
-    'Case Deleted', 
-    'Case Management', 
-    caseRef, 
+    user,
+    userId,
+    userRole,
+    'Case Deleted',
+    'Case Management',
+    caseRef,
     `Case ${caseRef} deleted by ${user}`,
     'warning',
     {},
@@ -416,12 +407,12 @@ export const auditCaseDeleted = async (user: string, userId: string, userRole: s
 // User management audit logs
 export const auditUserCreated = async (actor: string, actorId: string, actorRole: string, targetUser: string, targetRole: string, targetCountries: string[]) => {
   await addAuditLog(
-    actor, 
-    actorId, 
-    actorRole, 
-    'User Created', 
-    'User Management', 
-    targetUser, 
+    actor,
+    actorId,
+    actorRole,
+    'User Created',
+    'User Management',
+    targetUser,
     `User ${targetUser} created with role ${targetRole}`,
     'success',
     { targetRole, targetCountries }
@@ -430,12 +421,12 @@ export const auditUserCreated = async (actor: string, actorId: string, actorRole
 
 export const auditUserUpdated = async (actor: string, actorId: string, actorRole: string, targetUser: string, changes: string[]) => {
   await addAuditLog(
-    actor, 
-    actorId, 
-    actorRole, 
-    'User Updated', 
-    'User Management', 
-    targetUser, 
+    actor,
+    actorId,
+    actorRole,
+    'User Updated',
+    'User Management',
+    targetUser,
     `User ${targetUser} updated: ${changes.join(', ')}`,
     'success',
     { changes }
@@ -444,12 +435,12 @@ export const auditUserUpdated = async (actor: string, actorId: string, actorRole
 
 export const auditUserDeleted = async (actor: string, actorId: string, actorRole: string, targetUser: string) => {
   await addAuditLog(
-    actor, 
-    actorId, 
-    actorRole, 
-    'User Deleted', 
-    'User Management', 
-    targetUser, 
+    actor,
+    actorId,
+    actorRole,
+    'User Deleted',
+    'User Management',
+    targetUser,
     `User ${targetUser} deleted by ${actor}`,
     'warning'
   );
@@ -457,12 +448,12 @@ export const auditUserDeleted = async (actor: string, actorId: string, actorRole
 
 export const auditPasswordReset = async (actor: string, actorId: string, actorRole: string, targetUser: string) => {
   await addAuditLog(
-    actor, 
-    actorId, 
-    actorRole, 
-    'Password Reset', 
-    'Security', 
-    targetUser, 
+    actor,
+    actorId,
+    actorRole,
+    'Password Reset',
+    'Security',
+    targetUser,
     `Password reset for user ${targetUser} by ${actor}`,
     'warning'
   );
@@ -471,12 +462,12 @@ export const auditPasswordReset = async (actor: string, actorId: string, actorRo
 // Permission audit logs
 export const auditPermissionChange = async (actor: string, actorId: string, actorRole: string, targetRole: string, permission: string, granted: boolean) => {
   await addAuditLog(
-    actor, 
-    actorId, 
-    actorRole, 
-    'Permission Changed', 
-    'Permission', 
-    targetRole, 
+    actor,
+    actorId,
+    actorRole,
+    'Permission Changed',
+    'Permission',
+    targetRole,
     `Permission ${permission} ${granted ? 'granted to' : 'revoked from'} role ${targetRole}`,
     'success',
     { permission, granted }
@@ -486,12 +477,12 @@ export const auditPermissionChange = async (actor: string, actorId: string, acto
 // Data export audit logs
 export const auditDataExport = async (user: string, userId: string, userRole: string, dataType: string, filters: any, recordCount: number, country?: string) => {
   await addAuditLog(
-    user, 
-    userId, 
-    userRole, 
-    'Data Export', 
-    'Data Export', 
-    dataType, 
+    user,
+    userId,
+    userRole,
+    'Data Export',
+    'Data Export',
+    dataType,
     `${user} exported ${recordCount} records of ${dataType}`,
     'success',
     { filters, recordCount },
@@ -502,12 +493,12 @@ export const auditDataExport = async (user: string, userId: string, userRole: st
 // Code table audit logs
 export const auditCodeTableChange = async (user: string, userId: string, userRole: string, table: string, action: string, details: string, country?: string) => {
   await addAuditLog(
-    user, 
-    userId, 
-    userRole, 
-    `Code Table ${action}`, 
-    'Code Table', 
-    table, 
+    user,
+    userId,
+    userRole,
+    `Code Table ${action}`,
+    'Code Table',
+    table,
     details,
     'success',
     { table, action },
@@ -517,12 +508,12 @@ export const auditCodeTableChange = async (user: string, userId: string, userRol
 
 // Attachment management audit logs
 export const auditAttachmentChange = async (
-  user: string, 
-  userId: string, 
-  userRole: string, 
-  caseId: string, 
-  action: 'add' | 'delete' | 'replace', 
-  fileName: string, 
+  user: string,
+  userId: string,
+  userRole: string,
+  caseId: string,
+  action: 'add' | 'delete' | 'replace',
+  fileName: string,
   country: string
 ) => {
   const actionMap = {
@@ -532,12 +523,12 @@ export const auditAttachmentChange = async (
   };
 
   await addAuditLog(
-    user, 
-    userId, 
-    userRole, 
-    actionMap[action], 
-    'Attachment Management', 
-    caseId, 
+    user,
+    userId,
+    userRole,
+    actionMap[action],
+    'Attachment Management',
+    caseId,
     `${actionMap[action]}: ${fileName}`,
     'success',
     { action, fileName, caseId },

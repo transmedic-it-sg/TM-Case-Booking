@@ -93,7 +93,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
         }
       ];
     }
-    
+
     return [
       {
         label: 'OK',
@@ -107,8 +107,8 @@ const CustomModal: React.FC<CustomModalProps> = ({
 
   return (
     <div className="custom-modal-overlay" onClick={onClose}>
-      <div 
-        className={`custom-modal custom-modal-${type}`} 
+      <div
+        className={`custom-modal custom-modal-${type}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="custom-modal-header">
@@ -116,7 +116,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
             {getIcon()}
           </div>
           <h3 className="custom-modal-title">{title}</h3>
-          <button 
+          <button
             className="custom-modal-close"
             onClick={onClose}
             aria-label="Close modal"
@@ -124,11 +124,11 @@ const CustomModal: React.FC<CustomModalProps> = ({
             ×
           </button>
         </div>
-        
+
         <div className="custom-modal-body">
           <p className="custom-modal-message">{message}</p>
         </div>
-        
+
         <div className="custom-modal-footer">
           {modalActions.map((action, index) => (
             <button

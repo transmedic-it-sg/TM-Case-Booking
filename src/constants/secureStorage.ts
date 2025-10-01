@@ -13,40 +13,40 @@ export const STORAGE_KEYS = {
   USERS: 'users',
   REMEMBER_ME: 'rememberMe',
   LAST_LOGIN: 'lastLogin',
-  
+
   // Case Data
   CASES: 'cases',
   CASE_REFERENCE_COUNTER: 'caseReferenceCounter',
   CASE_DRAFTS: 'caseDrafts',
-  
+
   // Application State
   USER_PREFERENCES: 'userPreferences',
   SELECTED_COUNTRY: 'selectedCountry',
   FILTER_PREFERENCES: 'filterPreferences',
   COLUMN_PREFERENCES: 'columnPreferences',
-  
+
   // System Data
   NOTIFICATIONS: 'notifications',
   AUDIT_LOGS: 'auditLogs',
   SYSTEM_SETTINGS: 'systemSettings',
-  
+
   // Code Tables
   HOSPITALS: 'hospitals',
   DEPARTMENTS: 'departments',
   PROCEDURE_TYPES: 'procedureTypes',
   SURGERY_SETS: 'surgerySets',
   IMPLANT_BOXES: 'implantBoxes',
-  
+
   // UI State
   EXPANDED_CASES: 'expandedCases',
   COLLAPSED_SECTIONS: 'collapsedSections',
   SIDEBAR_STATE: 'sidebarState',
   THEME_PREFERENCE: 'themePreference',
-  
+
   // Cache
   DATA_CACHE: 'dataCache',
   CACHE_TIMESTAMPS: 'cacheTimestamps',
-  
+
   // Temporary Data
   TEMP_ATTACHMENTS: 'tempAttachments',
   FORM_AUTOSAVE: 'formAutosave',
@@ -61,16 +61,16 @@ export type StorageValue = typeof STORAGE_KEYS[StorageKey];
 export const TTL_CONFIG = {
   // Session data - short term
   SESSION: 24 * 60 * 60 * 1000, // 24 hours
-  
+
   // User data - medium term
   USER_DATA: 7 * 24 * 60 * 60 * 1000, // 7 days
-  
+
   // Application data - long term
   APP_DATA: 30 * 24 * 60 * 60 * 1000, // 30 days
-  
+
   // Temporary data - very short
   TEMP_DATA: 60 * 60 * 1000, // 1 hour
-  
+
   // System settings - very long
   SYSTEM_DATA: 90 * 24 * 60 * 60 * 1000, // 90 days
 } as const;
@@ -216,10 +216,7 @@ export class SecureStorageManager {
         console.error(`Failed to migrate key "${key}":`, error);
         failed.push(key);
       }
-    }
-
-    console.log(`Migration complete: ${migrated.length} migrated, ${failed.length} failed`);
-    if (failed.length > 0) {
+    }if (failed.length > 0) {
       console.warn('Failed to migrate keys:', failed);
     }
   }
@@ -229,7 +226,7 @@ export class SecureStorageManager {
    */
   static async batchGet<T>(keys: string[]): Promise<Record<string, T | null>> {
     const results: Record<string, T | null> = {};
-    
+
     await Promise.all(
       keys.map(async (key) => {
         results[key] = await this.get<T>(key);

@@ -83,11 +83,11 @@ const Reports: React.FC = () => {
           dynamicConstantsService.getCountries(),
           dynamicConstantsService.getCaseStatuses()
         ]);
-        
+
         // Get departments from all countries using standardized code table
         const { getDepartmentsForCountry } = await import('../utils/supabaseCodeTableService');
         const allDepartments = new Set<string>();
-        
+
         // Collect departments from all countries
         for (const country of countries) {
           try {
@@ -97,7 +97,7 @@ const Reports: React.FC = () => {
             console.warn(`Failed to load departments for ${country}:`, error);
           }
         }
-        
+
         setGlobalCountries(countries);
         setGlobalDepartments(Array.from(allDepartments).sort());
         setCaseStatuses(statuses);
@@ -109,7 +109,7 @@ const Reports: React.FC = () => {
         setCaseStatuses([]);
       }
     };
-    
+
     loadConstants();
   }, []);
 
@@ -172,10 +172,10 @@ const Reports: React.FC = () => {
   // Generate report data
   const reportData: ReportData = useMemo(() => {
     const totalCases = filteredCases.length;
-    
+
     // Status breakdown - use dynamic case statuses with fallback
     const statusBreakdown: Record<CaseStatus, number> = {} as Record<CaseStatus, number>;
-    const allStatuses = caseStatuses.length > 0 
+    const allStatuses = caseStatuses.length > 0
       ? caseStatuses.map(s => s.status || s.display_name) as CaseStatus[]
       : [
           'Case Booked', 'Order Preparation', 'Order Prepared',
@@ -183,7 +183,7 @@ const Reports: React.FC = () => {
           'Case Completed', 'Pending Delivery (Office)', 'Delivered (Office)',
           'To be billed', 'Case Closed', 'Case Cancelled'
         ] as CaseStatus[];
-    
+
     allStatuses.forEach(status => {
       statusBreakdown[status] = filteredCases.filter(c => c.status === status).length;
     });
@@ -206,7 +206,7 @@ const Reports: React.FC = () => {
       const date = new Date();
       date.setMonth(date.getMonth() - i);
       const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-      monthlyTrends[monthYear] = filteredCases.filter(c => 
+      monthlyTrends[monthYear] = filteredCases.filter(c =>
         c.dateOfSurgery.startsWith(monthYear)
       ).length;
     }
@@ -223,7 +223,7 @@ const Reports: React.FC = () => {
       .slice(0, 10);
 
     // Calculate metrics
-    const completedCases = filteredCases.filter(c => 
+    const completedCases = filteredCases.filter(c =>
       ['Case Completed', 'Delivered (Office)', 'To be billed', 'Case Closed'].includes(c.status)
     ).length;
     const completionRate = totalCases > 0 ? (completedCases / totalCases) * 100 : 0;
@@ -261,10 +261,10 @@ const Reports: React.FC = () => {
   }, [cases, getUserName]);
 
   const availableCountries = useMemo(() => {
-    const userCountries = currentUser?.role === 'admin' || currentUser?.role === 'it' 
-      ? globalCountries 
+    const userCountries = currentUser?.role === 'admin' || currentUser?.role === 'it'
+      ? globalCountries
       : (currentUser?.countries || []);
-    return Array.from(new Set(cases.map(c => c.country).filter(country => 
+    return Array.from(new Set(cases.map(c => c.country).filter(country =>
       userCountries.includes(country)
     ))).sort();
   }, [cases, currentUser, globalCountries]);
@@ -273,7 +273,7 @@ const Reports: React.FC = () => {
     const userDepartments = currentUser?.role === 'admin' || currentUser?.role === 'it'
       ? globalDepartments
       : (currentUser?.departments || []);
-    return Array.from(new Set(cases.map(c => c.department).filter(dept => 
+    return Array.from(new Set(cases.map(c => c.department).filter(dept =>
       userDepartments.includes(dept)
     ))).sort();
   }, [cases, currentUser, globalDepartments]);
@@ -317,7 +317,7 @@ const Reports: React.FC = () => {
       'Procedure Type', 'Procedure Name', 'Doctor', 'Status',
       'Country', 'Submitted By', 'Submitted At'
     ];
-    
+
     const rows = filteredCases.map(c => [
       c.caseReferenceNumber,
       c.hospital,
@@ -332,7 +332,7 @@ const Reports: React.FC = () => {
       formatDate(new Date(c.submittedAt))
     ]);
 
-    return [headers, ...rows].map(row => 
+    return [headers, ...rows].map(row =>
       row.map(field => `"${field}"`).join(',')
     ).join('\n');
   };
@@ -362,7 +362,7 @@ const Reports: React.FC = () => {
         </div>
         <div className="reports-actions">
           {hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.EXPORT_DATA) && (
-            <button 
+            <button
               onClick={exportReport}
               className="btn btn-outline-primary"
               title="Export to CSV"
@@ -370,7 +370,7 @@ const Reports: React.FC = () => {
               📤 Export
             </button>
           )}
-          <button 
+          <button
             onClick={printReport}
             className="btn btn-outline-secondary"
             title="Print Report"
@@ -386,7 +386,7 @@ const Reports: React.FC = () => {
           <div className="filters-title">
             <h3>🔍 Advanced Filters</h3>
             <span className="active-filters-count">
-              {Object.values(tempFilters).filter(value => value && value !== 'overview').length > 0 && 
+              {Object.values(tempFilters).filter(value => value && value !== 'overview').length > 0 &&
                 `(${Object.values(tempFilters).filter(value => value && value !== 'overview').length} active)`}
             </span>
           </div>
@@ -394,7 +394,7 @@ const Reports: React.FC = () => {
             {showFilters ? '▲' : '▼'}
           </button>
         </div>
-        
+
         {showFilters && (
           <div className="filters-content">
             <div className="filters-grid">
@@ -550,14 +550,14 @@ const Reports: React.FC = () => {
                 Showing {filteredCases.length} of {cases.length} cases
               </div>
               <div className="filter-buttons">
-                <button 
+                <button
                   onClick={clearFilters}
                   className="btn btn-outline-secondary btn-md modern-clear-button"
                   disabled={Object.values(tempFilters).filter(value => value && value !== 'overview').length === 0}
                 >
                   🗑️ Clear All
                 </button>
-                <button 
+                <button
                   onClick={applyFilters}
                   className="btn btn-primary btn-md modern-apply-button"
                 >
@@ -569,25 +569,25 @@ const Reports: React.FC = () => {
             {/* Quick Filter Presets */}
             <div className="quick-filters">
               <span className="quick-filters-label">Quick Filters:</span>
-              <button 
+              <button
                 onClick={() => handleFilterChange('reportType', 'overview')}
                 className="btn btn-outline-secondary btn-sm quick-filter-button"
               >
                 📊 Overview
               </button>
-              <button 
+              <button
                 onClick={() => handleFilterChange('reportType', 'workflow')}
                 className="btn btn-outline-secondary btn-sm quick-filter-button"
               >
                 ⚡ Workflow
               </button>
-              <button 
+              <button
                 onClick={() => handleFilterChange('reportType', 'performance')}
                 className="btn btn-outline-secondary btn-sm quick-filter-button"
               >
                 📈 Performance
               </button>
-              <button 
+              <button
                 onClick={() => {
                   const today = new Date().toISOString().split('T')[0];
                   handleFilterChange('dateFrom', today);
@@ -632,7 +632,7 @@ const OverviewDashboard: React.FC<{ data: ReportData }> = ({ data }) => (
           <div className="metric-label">Total Cases</div>
         </div>
       </div>
-      
+
       <div className="metric-card success">
         <div className="metric-icon">✅</div>
         <div className="metric-content">
@@ -640,7 +640,7 @@ const OverviewDashboard: React.FC<{ data: ReportData }> = ({ data }) => (
           <div className="metric-label">Completion Rate</div>
         </div>
       </div>
-      
+
       <div className="metric-card warning">
         <div className="metric-icon">⚡</div>
         <div className="metric-content">
@@ -648,7 +648,7 @@ const OverviewDashboard: React.FC<{ data: ReportData }> = ({ data }) => (
           <div className="metric-label">Urgent Cases</div>
         </div>
       </div>
-      
+
       <div className="metric-card info">
         <div className="metric-icon">⏱️</div>
         <div className="metric-content">
@@ -665,7 +665,7 @@ const OverviewDashboard: React.FC<{ data: ReportData }> = ({ data }) => (
           {Object.entries(data.statusBreakdown).map(([status, count]) => (
             count > 0 && (
               <div key={status} className="status-item">
-                <div 
+                <div
                   className="status-indicator"
                   style={{ backgroundColor: getStatusColor(status as CaseStatus) }}
                 ></div>
@@ -685,9 +685,9 @@ const OverviewDashboard: React.FC<{ data: ReportData }> = ({ data }) => (
               <div key={country} className="country-item">
                 <span className="country-name">{country}</span>
                 <div className="country-bar">
-                  <div 
+                  <div
                     className="country-bar-fill"
-                    style={{ 
+                    style={{
                       width: `${(count / data.totalCases) * 100}%`,
                       backgroundColor: '#20b2aa'
                     }}
@@ -713,7 +713,7 @@ const WorkflowAnalysis: React.FC<{ data: ReportData }> = ({ data }) => (
         <div className="stage-count">{data.statusBreakdown['Case Booked']}</div>
         <div className="stage-description">New cases awaiting processing</div>
       </div>
-      
+
       <div className="workflow-stage">
         <h4>📋 Order Processing</h4>
         <div className="stage-count">
@@ -721,7 +721,7 @@ const WorkflowAnalysis: React.FC<{ data: ReportData }> = ({ data }) => (
         </div>
         <div className="stage-description">Cases being prepared</div>
       </div>
-      
+
       <div className="workflow-stage">
         <h4>🚚 Delivery</h4>
         <div className="stage-count">
@@ -729,7 +729,7 @@ const WorkflowAnalysis: React.FC<{ data: ReportData }> = ({ data }) => (
         </div>
         <div className="stage-description">Hospital delivery process</div>
       </div>
-      
+
       <div className="workflow-stage">
         <h4>✅ Completion</h4>
         <div className="stage-count">
@@ -745,7 +745,7 @@ const WorkflowAnalysis: React.FC<{ data: ReportData }> = ({ data }) => (
 const PerformanceMetrics: React.FC<{ data: ReportData }> = ({ data }) => (
   <div className="performance-metrics">
     <h3>📈 Performance Analytics</h3>
-    
+
     <div className="performance-section">
       <h4>🏆 Top Performers</h4>
       <div className="top-submitters">
@@ -766,9 +766,9 @@ const PerformanceMetrics: React.FC<{ data: ReportData }> = ({ data }) => (
           <div key={month} className="month-item">
             <div className="month-name">{month}</div>
             <div className="month-bar">
-              <div 
+              <div
                 className="month-bar-fill"
-                style={{ 
+                style={{
                   height: `${Math.max((count / Math.max(...Object.values(data.monthlyTrends))) * 100, 5)}%`,
                   backgroundColor: '#20b2aa'
                 }}
@@ -814,9 +814,9 @@ const DetailedReport: React.FC<{ cases: CaseBooking[]; getUserName: (userId: str
                 </div>
               </td>
               <td>
-                <span 
+                <span
                   className="status-badge"
-                  style={{ 
+                  style={{
                     backgroundColor: getStatusColor(caseItem.status),
                     color: 'white',
                     padding: '4px 8px',

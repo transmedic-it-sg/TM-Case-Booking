@@ -1,7 +1,7 @@
 // Import countries from centralized utility
 import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
 
-export type CaseStatus = 
+export type CaseStatus =
   | 'Case Booked'
   | 'Order Preparation'
   | 'Order Prepared'
@@ -23,7 +23,7 @@ export const COUNTRIES = SUPPORTED_COUNTRIES;
 export const PROCEDURE_TYPES = [
   'Knee',
   'Head',
-  'Hip', 
+  'Hip',
   'Hands',
   'Neck',
   'Spine'
@@ -31,7 +31,7 @@ export const PROCEDURE_TYPES = [
 
 export const SURGERY_SETS = [
   'Spine Surgery Set A',
-  'Spine Surgery Set B', 
+  'Spine Surgery Set B',
   'Joint Replacement Set',
   'Sports Medicine Set',
   'Orthobiologics Set',
@@ -43,7 +43,7 @@ export const IMPLANT_BOXES = [
   'Spine Implant Box 1',
   'Spine Implant Box 2',
   'Hip Implant Box',
-  'Knee Implant Box', 
+  'Knee Implant Box',
   'Shoulder Implant Box',
   'Sports Med Implant Box',
   'Biologics Box'

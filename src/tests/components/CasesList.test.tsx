@@ -73,7 +73,7 @@ const mockCases = [
 // Test wrapper with all providers
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = createTestQueryClient();
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <RealtimeProvider>
@@ -94,7 +94,7 @@ describe('CasesList Component Integration Tests', () => {
       rest.get('*/rest/v1/case_bookings*', (req, res, ctx) => {
         return res(ctx.json(mockCases));
       }),
-      
+
       rest.patch('*/rest/v1/case_bookings*', (req, res, ctx) => {
         return res(
           ctx.json({
@@ -110,7 +110,7 @@ describe('CasesList Component Integration Tests', () => {
   test('should render cases list with real-time data', async () => {
     render(
       <TestWrapper>
-        <CasesList 
+        <CasesList
           currentUser={mockCurrentUser}
           onProcessCase={() => {}}
           highlightedCaseId={null}
@@ -139,7 +139,7 @@ describe('CasesList Component Integration Tests', () => {
   test('should display real-time connection status', async () => {
     render(
       <TestWrapper>
-        <CasesList 
+        <CasesList
           currentUser={mockCurrentUser}
           onProcessCase={() => {}}
           highlightedCaseId={null}
@@ -159,7 +159,7 @@ describe('CasesList Component Integration Tests', () => {
 
   test('should handle refresh button correctly', async () => {
     let refreshCount = 0;
-    
+
     server.use(
       rest.get('*/rest/v1/case_bookings*', (req, res, ctx) => {
         refreshCount++;
@@ -169,7 +169,7 @@ describe('CasesList Component Integration Tests', () => {
 
     render(
       <TestWrapper>
-        <CasesList 
+        <CasesList
           currentUser={mockCurrentUser}
           onProcessCase={() => {}}
           highlightedCaseId={null}
@@ -216,7 +216,7 @@ describe('CasesList Component Integration Tests', () => {
 
     render(
       <TestWrapper>
-        <CasesList 
+        <CasesList
           currentUser={mockCurrentUser}
           onProcessCase={() => {}}
           highlightedCaseId={null}
@@ -234,7 +234,7 @@ describe('CasesList Component Integration Tests', () => {
     // Find and click a status update button (this depends on your UI)
     // For example, if there's a "Process Order" button
     const processButtons = screen.getAllByRole('button');
-    const processButton = processButtons.find(btn => 
+    const processButton = processButtons.find(btn =>
       btn.textContent?.includes('Process') || btn.textContent?.includes('Update')
     );
 
@@ -251,7 +251,7 @@ describe('CasesList Component Integration Tests', () => {
   test('should filter cases correctly', async () => {
     render(
       <TestWrapper>
-        <CasesList 
+        <CasesList
           currentUser={mockCurrentUser}
           onProcessCase={() => {}}
           highlightedCaseId={null}
@@ -294,7 +294,7 @@ describe('CasesList Component Integration Tests', () => {
 
     render(
       <TestWrapper>
-        <CasesList 
+        <CasesList
           currentUser={mockCurrentUser}
           onProcessCase={() => {}}
           highlightedCaseId={null}
@@ -318,7 +318,7 @@ describe('CasesList Component Integration Tests', () => {
 
     render(
       <TestWrapper>
-        <CasesList 
+        <CasesList
           currentUser={mockCurrentUser}
           onProcessCase={() => {}}
           highlightedCaseId={null}
@@ -351,7 +351,7 @@ describe('CasesList Component Integration Tests', () => {
 
   test('should demonstrate no caching behavior', async () => {
     let callCount = 0;
-    
+
     // Track API calls
     server.use(
       rest.get('*/rest/v1/case_bookings*', (req, res, ctx) => {
@@ -368,7 +368,7 @@ describe('CasesList Component Integration Tests', () => {
 
     render(
       <TestWrapper>
-        <CasesList 
+        <CasesList
           currentUser={mockCurrentUser}
           onProcessCase={() => {}}
           highlightedCaseId={null}
@@ -382,21 +382,21 @@ describe('CasesList Component Integration Tests', () => {
     await waitFor(() => {
       expect(screen.getByText('TC-2025-001')).toBeInTheDocument();
     });
-    
+
     expect(callCount).toBe(1);
 
     // Trigger multiple refreshes
     const refreshButton = screen.getByRole('button', { name: /refresh/i });
-    
+
     fireEvent.click(refreshButton);
     await waitFor(() => expect(callCount).toBe(2));
-    
+
     fireEvent.click(refreshButton);
     await waitFor(() => expect(callCount).toBe(3));
 
     // Each refresh should make a new API call (no caching)
     expect(callCount).toBe(3);
-    
+
     // Should show the latest data
     expect(screen.getByText('TC-2025-003')).toBeInTheDocument();
   });

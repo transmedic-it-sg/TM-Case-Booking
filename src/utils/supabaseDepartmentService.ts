@@ -62,8 +62,8 @@ class SupabaseDepartmentService {
   }
 
   async addProcedureTypeToDepartment(
-    departmentId: string, 
-    procedureType: string, 
+    departmentId: string,
+    procedureType: string,
     country: string
   ): Promise<boolean> {
     try {
@@ -86,8 +86,8 @@ class SupabaseDepartmentService {
   }
 
   async removeProcedureTypeFromDepartment(
-    departmentId: string, 
-    procedureType: string, 
+    departmentId: string,
+    procedureType: string,
     country: string
   ): Promise<boolean> {
     try {
@@ -181,11 +181,11 @@ class SupabaseDepartmentService {
 const service = new SupabaseDepartmentService();
 
 export const getDepartments = (country: string) => service.getDepartments(country);
-export const getProcedureTypesForDepartment = (departmentId: string, country: string) => 
+export const getProcedureTypesForDepartment = (departmentId: string, country: string) =>
   service.getProcedureTypesForDepartment(departmentId, country);
-export const addProcedureTypeToDepartment = (departmentId: string, procedureType: string, country: string) => 
+export const addProcedureTypeToDepartment = (departmentId: string, procedureType: string, country: string) =>
   service.addProcedureTypeToDepartment(departmentId, procedureType, country);
-export const removeProcedureTypeFromDepartment = (departmentId: string, procedureType: string, country: string) => 
+export const removeProcedureTypeFromDepartment = (departmentId: string, procedureType: string, country: string) =>
   service.removeProcedureTypeFromDepartment(departmentId, procedureType, country);
 export const getSurgerySets = (country: string) => service.getSurgerySets(country);
 export const getImplantBoxes = (country: string) => service.getImplantBoxes(country);
@@ -194,7 +194,7 @@ export const addImplantBox = (name: string, country: string) => service.addImpla
 
 // Additional function for backward compatibility
 export const getProcedureTypesForDepartmentIncludingInactive = async (
-  departmentId: string, 
+  departmentId: string,
   country: string
 ): Promise<string[]> => {
   try {

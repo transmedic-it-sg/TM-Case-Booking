@@ -80,7 +80,7 @@ export interface CaseCardActions {
   onToBeBilled: (caseId: string) => void;
 }
 
-export interface CaseCardProps extends 
+export interface CaseCardProps extends
   CaseCardData,
   CaseCardState,
   AmendmentState,

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  DatabaseConnectionInfo, 
+import {
+  DatabaseConnectionInfo,
   testConnectionWithTimeout,
-  getConnectionStatusDisplay 
+  getConnectionStatusDisplay
 } from '../utils/databaseConnectivity';
 
 // Connection check settings
@@ -20,7 +20,7 @@ export const useDatabaseConnection = () => {
   const forceCheck = useCallback(async () => {
     setIsVisible(true);
     setConnectionInfo(prev => ({ ...prev, status: 'checking' }));
-    
+
     try {
       const result = await testConnectionWithTimeout(CONNECTION_TIMEOUT);
       setConnectionInfo(result);
@@ -44,9 +44,7 @@ export const useDatabaseConnection = () => {
   const displayInfo = getConnectionStatusDisplay(connectionInfo);
 
   // Initialize with optimistic connection status
-  useEffect(() => {
-    console.log('Database connection monitoring initialized');
-    // Set optimistic connection status to prevent UI issues
+  useEffect(() => {// Set optimistic connection status to prevent UI issues
     setConnectionInfo({
       status: 'connected',
       lastChecked: new Date(),

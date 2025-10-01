@@ -7,7 +7,7 @@ import { User } from '../types';
 export const categorizeCodeTables = (tables: CodeTable[]) => {
   const countryBased: CodeTable[] = [];
   const global: CodeTable[] = [];
-  
+
   tables.forEach(table => {
     if (table.id === 'countries') {
       // Countries is global
@@ -20,7 +20,7 @@ export const categorizeCodeTables = (tables: CodeTable[]) => {
       countryBased.push(table);
     }
   });
-  
+
   return { countryBased, global };
 };
 
@@ -29,12 +29,12 @@ export const categorizeCodeTables = (tables: CodeTable[]) => {
  */
 export const getFilteredTablesForUser = (tables: CodeTable[], currentUser: User | null): CodeTable[] => {
   if (!currentUser) return tables;
-  
+
   // Admin and IT can see and modify all tables
   if (currentUser.role === 'admin' || currentUser.role === 'it') {
     return tables;
   }
-  
+
   // For other users, filter based on their assigned countries (VIEW ONLY)
   return tables.map(table => {
     if (table.id === 'countries' && currentUser.countries && currentUser.countries.length > 0) {
@@ -53,28 +53,28 @@ export const getFilteredTablesForUser = (tables: CodeTable[], currentUser: User 
  */
 export const validateCodeTableItem = (itemName: string, currentTable: CodeTable | undefined): string[] => {
   const errors: string[] = [];
-  
+
   if (!itemName.trim()) {
     errors.push('Item name is required');
   }
-  
+
   if (!currentTable) {
     errors.push('No table selected');
     return errors;
   }
-  
+
   if (currentTable.items.includes(itemName.trim())) {
     errors.push('This item already exists in the table');
   }
-  
+
   if (itemName.trim().length < 1) {
     errors.push('Item name must be at least 1 character');
   }
-  
+
   if (itemName.trim().length > 100) {
     errors.push('Item name must be less than 100 characters');
   }
-  
+
   return errors;
 };
 
@@ -83,12 +83,12 @@ export const validateCodeTableItem = (itemName: string, currentTable: CodeTable 
  */
 export const getUserAccessibleCountries = (availableCountries: string[], currentUser: User | null): string[] => {
   if (!currentUser) return [];
-  
+
   // Admin and IT can access all countries
   if (currentUser.role === 'admin' || currentUser.role === 'it') {
     return availableCountries;
   }
-  
+
   // Other users can only access their assigned countries
   return availableCountries.filter(country => currentUser.countries?.includes(country));
 };
@@ -104,9 +104,9 @@ export const requiresDoubleConfirmation = (selectedCategory: 'global' | 'country
  * Generate confirmation messages for item deletion
  */
 export const getDeleteConfirmationMessages = (
-  itemName: string, 
-  tableName: string, 
-  isGlobal: boolean, 
+  itemName: string,
+  tableName: string,
+  isGlobal: boolean,
   selectedCountry?: string
 ) => {
   if (isGlobal) {

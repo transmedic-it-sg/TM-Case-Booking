@@ -86,10 +86,10 @@ export const useModal = () => {
         },
         autoClose: false
       });
-      
+
       // Handle cancel/close as false
       const originalClose = closeModal;
-      
+
       // Override the close function temporarily
       setModal(prev => ({ ...prev, onConfirm: () => { resolve(true); originalClose(); } }));
     });

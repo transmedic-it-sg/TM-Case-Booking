@@ -34,7 +34,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
             <button
               onClick={() => onStatusChange(caseItem.id, 'Order Preparation')}
               className={`case-action-button process-order-button ${
-                !hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.PROCESS_ORDER) 
+                !hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.PROCESS_ORDER)
                   ? 'disabled' : ''
               }`}
               disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.PROCESS_ORDER)}
@@ -43,7 +43,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
             </button>
           </Tooltip>
         )}
-        
+
         {caseItem.status === 'Order Preparation' && (
           <Tooltip
             content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.ORDER_PROCESSED) ? 'Mark as Order Processed' : 'You do not have permission to mark orders as processed'}
@@ -52,7 +52,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
             <button
               onClick={() => onOrderProcessed(caseItem.id)}
               className={`case-action-button process-button ${
-                !hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.ORDER_PROCESSED) 
+                !hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.ORDER_PROCESSED)
                   ? 'disabled' : ''
               }`}
               disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.ORDER_PROCESSED)}
@@ -61,8 +61,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
             </button>
           </Tooltip>
         )}
-        
-        
+
         {caseItem.status === 'Order Prepared' && (
           <Tooltip
             content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.SALES_APPROVAL) ? 'Submit for Sales Approval' : 'You do not have permission to submit for sales approval'}
@@ -96,7 +95,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
             </button>
           </Tooltip>
         )}
-        
+
         {caseItem.status === 'Pending Delivery (Hospital)' && (
           <Tooltip
             content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.DELIVERED_HOSPITAL) ? 'Mark as Delivered to Hospital' : 'You do not have permission to mark as delivered to hospital'}
@@ -113,7 +112,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
             </button>
           </Tooltip>
         )}
-        
+
         {caseItem.status === 'Delivered (Hospital)' && (
           <Tooltip
             content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CASE_COMPLETED) ? 'Mark as Case Completed' : 'You do not have permission to mark cases as completed'}
@@ -130,7 +129,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
             </button>
           </Tooltip>
         )}
-        
+
         {caseItem.status === 'Case Completed' && (
           <Tooltip
             content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.PENDING_DELIVERY_OFFICE) ? 'Mark as Pending Delivery to Office' : 'You do not have permission to mark as pending delivery to office'}
@@ -147,7 +146,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
             </button>
           </Tooltip>
         )}
-        
+
         {caseItem.status === 'Pending Delivery (Office)' && (
           <Tooltip
             content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.DELIVERED_OFFICE) ? 'Mark as Delivered to Office' : 'You do not have permission to mark as delivered to office'}
@@ -164,7 +163,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
             </button>
           </Tooltip>
         )}
-        
+
         {caseItem.status === 'Delivered (Office)' && (
           <Tooltip
             content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.TO_BE_BILLED) ? 'Mark as To be Billed' : 'You do not have permission to mark as to be billed'}
@@ -181,7 +180,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
             </button>
           </Tooltip>
         )}
-        
+
         {caseItem.status === 'To be billed' && (
           <Tooltip
             content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CASE_CLOSED) ? 'Mark as Case Closed' : 'You do not have permission to mark as case closed'}
@@ -200,16 +199,14 @@ const CaseActions: React.FC<CaseActionsProps> = ({
         )}
       </div>
       )}
-      
+
       {canAmendCase(caseItem) && caseItem.status !== 'Case Cancelled' && (
         <Tooltip
           content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.AMEND_CASE) ? 'Amend Case' : 'You do not have permission to amend cases'}
           disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.AMEND_CASE)}
         >
           <button
-            onClick={() => {
-              console.log('🔍 Amend Case button clicked for case:', caseItem.id);
-              onAmendCase(caseItem);
+            onClick={() => {onAmendCase(caseItem);
             }}
             className="case-action-button amend-button"
           >
@@ -217,7 +214,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
           </button>
         </Tooltip>
       )}
-      
+
       {hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.DELETE_CASE) && caseItem.status !== 'Case Cancelled' && (
         <Tooltip
           content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.DELETE_CASE) ? 'Delete Case' : 'You do not have permission to delete cases'}
@@ -231,7 +228,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
           </button>
         </Tooltip>
       )}
-      
+
       {/* Cancel Case button - only show for specific statuses */}
       {(['Case Booked', 'Order Preparation', 'Order Prepared', 'Sales Approval', 'Pending Delivery (Hospital)', 'Delivered (Hospital)'].includes(caseItem.status)) && hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE) && (
         <Tooltip

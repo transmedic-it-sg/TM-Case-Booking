@@ -33,7 +33,6 @@ const CaseDetails: React.FC<CaseDetailsProps> = ({
 
   const { getUserName } = useUserNames(userIds);
 
-
   if (!isExpanded) return null;
 
   return (

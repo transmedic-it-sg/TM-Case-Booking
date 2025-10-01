@@ -10,14 +10,14 @@
  */
 export const normalizeDepartmentName = (department: string): string => {
   if (!department) return '';
-  
+
   // Check if department has country prefix (contains colon)
   if (department.includes(':')) {
     const parts = department.split(':');
     // Return the part after the colon (department name)
     return parts.length > 1 ? parts[1].trim() : department;
   }
-  
+
   return department.trim();
 };
 
@@ -28,14 +28,14 @@ export const normalizeDepartmentName = (department: string): string => {
  * @returns true if user has access to the department
  */
 export const userHasDepartmentAccess = (
-  userDepartments: string[] | undefined, 
+  userDepartments: string[] | undefined,
   targetDepartment: string
 ): boolean => {
   if (!userDepartments || userDepartments.length === 0) return false;
   if (!targetDepartment) return false;
-  
+
   const normalizedTarget = normalizeDepartmentName(targetDepartment);
-  
+
   return userDepartments.some(userDept => {
     const normalizedUserDept = normalizeDepartmentName(userDept);
     return normalizedUserDept === normalizedTarget;
@@ -54,8 +54,8 @@ export const userHasAnyDepartmentAccess = (
 ): boolean => {
   if (!userDepartments || userDepartments.length === 0) return false;
   if (!targetDepartments || targetDepartments.length === 0) return true; // No filter means allow all
-  
-  return targetDepartments.some(targetDept => 
+
+  return targetDepartments.some(targetDept =>
     userHasDepartmentAccess(userDepartments, targetDept)
   );
 };
@@ -72,7 +72,7 @@ export const filterDepartmentsByCountry = (
 ): string[] => {
   if (!departments || departments.length === 0) return [];
   if (!country) return departments;
-  
+
   return departments.filter(dept => {
     if (dept.includes(':')) {
       const [deptCountry] = dept.split(':');
@@ -90,7 +90,7 @@ export const filterDepartmentsByCountry = (
  */
 export const getNormalizedDepartmentNames = (departments: string[]): string[] => {
   if (!departments || departments.length === 0) return [];
-  
+
   return departments.map(dept => normalizeDepartmentName(dept));
 };
 
@@ -98,15 +98,15 @@ export const getNormalizedDepartmentNames = (departments: string[]): string[] =>
  * Check if two department names refer to the same department
  * (handles country prefix differences)
  * @param dept1 - First department name
- * @param dept2 - Second department name  
+ * @param dept2 - Second department name
  * @returns true if they refer to the same department
  */
 export const departmentsMatch = (dept1: string, dept2: string): boolean => {
   if (!dept1 || !dept2) return false;
-  
+
   const normalized1 = normalizeDepartmentName(dept1);
   const normalized2 = normalizeDepartmentName(dept2);
-  
+
   return normalized1 === normalized2;
 };
 
@@ -122,18 +122,18 @@ export const validateDepartmentFormat = (department: string): {
   if (!department || typeof department !== 'string') {
     return { isValid: false, error: 'Department name is required' };
   }
-  
+
   const trimmed = department.trim();
   if (trimmed.length === 0) {
     return { isValid: false, error: 'Department name cannot be empty' };
   }
-  
+
   // Check for multiple colons (only one colon allowed for country:department format)
   const colonCount = (trimmed.match(/:/g) || []).length;
   if (colonCount > 1) {
     return { isValid: false, error: 'Department name format invalid: only one colon allowed for country:department format' };
   }
-  
+
   // If it has a colon, validate both parts exist
   if (colonCount === 1) {
     const [country, dept] = trimmed.split(':');
@@ -141,7 +141,7 @@ export const validateDepartmentFormat = (department: string): {
       return { isValid: false, error: 'Both country and department parts must be non-empty in country:department format' };
     }
   }
-  
+
   return { isValid: true };
 };
 
@@ -156,9 +156,9 @@ export const addCountryPrefixToDepartment = (
   country: string
 ): string => {
   if (!department || !country) return department;
-  
+
   // If already has country prefix, return as-is
   if (department.includes(':')) return department;
-  
+
   return `${country}:${department}`;
 };

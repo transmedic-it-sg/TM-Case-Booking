@@ -1,7 +1,7 @@
 /**
  * Comprehensive Testing Framework for Real-time Overhaul
  * Ensures functionality verification after each component conversion
- * 
+ *
  * Features:
  * - Real-time subscription testing
  * - React Query state validation
@@ -43,13 +43,10 @@ class TestingFramework {
   async testRealtimeSubscription(table: string): Promise<TestResult> {
     const startTime = Date.now();
     const testName = `Realtime Subscription - ${table}`;
-    
-    try {
-      console.log(`🧪 Testing real-time subscription for ${table}...`);
-      
-      let messageReceived = false; // eslint-disable-line @typescript-eslint/no-unused-vars
+
+    try {let messageReceived = false; // eslint-disable-line @typescript-eslint/no-unused-vars
       let subscriptionError = null;
-      
+
       const channel = supabase
         .channel(`test_${table}_${Date.now()}`)
         .on(
@@ -60,42 +57,38 @@ class TestingFramework {
             table: table
           },
           (payload) => {
-            messageReceived = true;
-            console.log(`✅ Real-time message received for ${table}:`, payload);
-          }
+            messageReceived = true;}
         )
-        .subscribe((status) => {
-          console.log(`📡 Subscription status for ${table}:`, status);
-          if (status === 'CHANNEL_ERROR') {
+        .subscribe((status) => {if (status === 'CHANNEL_ERROR') {
             subscriptionError = 'Channel subscription failed';
           }
         });
 
       // Wait for subscription to establish
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // Test with a simple query to trigger real-time update
       const testQuery = await supabase.from(table).select('*').limit(1);
-      
+
       const duration = Date.now() - startTime;
       const passed = !subscriptionError && testQuery.error === null;
-      
+
       const result: TestResult = {
         component: table,
         test: testName,
         passed,
-        details: passed 
+        details: passed
           ? `Subscription established successfully in ${duration}ms`
           : `Failed: ${subscriptionError || testQuery.error?.message}`,
         timestamp: new Date(),
         duration
       };
-      
+
       this.results.push(result);
-      
+
       // Cleanup
       supabase.removeChannel(channel);
-      
+
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -107,7 +100,7 @@ class TestingFramework {
         timestamp: new Date(),
         duration
       };
-      
+
       this.results.push(result);
       return result;
     }
@@ -119,37 +112,36 @@ class TestingFramework {
   async testReactQueryIntegration(queryKey: string[], queryFn: () => Promise<any>): Promise<TestResult> {
     const startTime = Date.now();
     const testName = `React Query - ${queryKey.join('.')}`;
-    
-    try {
-      console.log(`🧪 Testing React Query integration for ${queryKey.join('.')}...`);
-      
+
+    try {}...`);
+
       if (!this.queryClient) {
         throw new Error('QueryClient not provided to testing framework');
       }
-      
+
       // Test query execution
       const result = await queryFn();
-      
+
       // Test cache behavior
       const cacheData = this.queryClient.getQueryData(queryKey); // eslint-disable-line @typescript-eslint/no-unused-vars
-      
+
       // Test invalidation
       this.queryClient.invalidateQueries({ queryKey });
-      
+
       const duration = Date.now() - startTime;
       const passed = result !== undefined && result !== null;
-      
+
       const testResult: TestResult = {
         component: queryKey.join('.'),
         test: testName,
         passed,
-        details: passed 
+        details: passed
           ? `Query executed successfully, returned ${Array.isArray(result) ? result.length : typeof result} data in ${duration}ms`
           : 'Query returned null or undefined',
         timestamp: new Date(),
         duration
       };
-      
+
       this.results.push(testResult);
       return testResult;
     } catch (error) {
@@ -162,7 +154,7 @@ class TestingFramework {
         timestamp: new Date(),
         duration
       };
-      
+
       this.results.push(testResult);
       return testResult;
     }
@@ -171,44 +163,37 @@ class TestingFramework {
   /**
    * Test database connection and basic queries
    */
-  async testDatabaseConnection(): Promise<ConnectionTest> {
-    console.log('🧪 Testing database connection...');
-    
-    const tests: ConnectionTest = {
+  async testDatabaseConnection(): Promise<ConnectionTest> {const tests: ConnectionTest = {
       realtime: false,
       database: false,
       query: false,
       latency: 0
     };
-    
+
     const startTime = Date.now();
-    
+
     try {
       // Test basic database connection
       const { data, error } = await supabase.from('case_bookings').select('count').limit(1);
       tests.database = !error;
       tests.query = data !== null;
-      
+
       // Test realtime connection
       const channel = supabase.channel('test_connection');
       channel.subscribe((status) => {
         tests.realtime = status === 'SUBSCRIBED';
       });
-      
+
       // Wait for connection
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       tests.latency = Date.now() - startTime;
-      
+
       // Cleanup
-      supabase.removeChannel(channel);
-      
-      console.log('📊 Connection test results:', tests);
-      
-    } catch (error) {
+      supabase.removeChannel(channel);} catch (error) {
       console.error('❌ Database connection test failed:', error);
     }
-    
+
     return tests;
   }
 
@@ -216,29 +201,26 @@ class TestingFramework {
    * Test component rendering with real-time data
    */
   async testComponentWithRealtime(
-    componentName: string, 
+    componentName: string,
     testFunction: () => Promise<boolean>
   ): Promise<TestResult> {
     const startTime = Date.now();
     const testName = `Component Test - ${componentName}`;
-    
-    try {
-      console.log(`🧪 Testing component ${componentName}...`);
-      
-      const passed = await testFunction();
+
+    try {const passed = await testFunction();
       const duration = Date.now() - startTime;
-      
+
       const result: TestResult = {
         component: componentName,
         test: testName,
         passed,
-        details: passed 
+        details: passed
           ? `Component test passed in ${duration}ms`
           : `Component test failed after ${duration}ms`,
         timestamp: new Date(),
         duration
       };
-      
+
       this.results.push(result);
       return result;
     } catch (error) {
@@ -251,7 +233,7 @@ class TestingFramework {
         timestamp: new Date(),
         duration
       };
-      
+
       this.results.push(result);
       return result;
     }
@@ -262,18 +244,13 @@ class TestingFramework {
    */
   monitorPerformance(componentName: string) {
     const startTime = performance.now();
-    let updateCount = 0;
-    
-    console.log(`📊 Starting performance monitoring for ${componentName}...`);
-    
-    return {
+    let updateCount = 0;return {
       recordUpdate: () => {
         updateCount++;
         const currentTime = performance.now();
-        const elapsedTime = currentTime - startTime;
-        console.log(`⚡ ${componentName} update #${updateCount} at ${elapsedTime.toFixed(2)}ms`);
+        const elapsedTime = currentTime - startTime;}ms`);
       },
-      
+
       getMetrics: () => {
         const totalTime = performance.now() - startTime;
         return {
@@ -295,14 +272,14 @@ class TestingFramework {
     const passed = this.results.filter(r => r.passed).length;
     const failed = total - passed;
     const successRate = total > 0 ? (passed / total * 100).toFixed(1) : '0';
-    
+
     let report = `\n📋 REAL-TIME TESTING REPORT\n`;
     report += `=================================\n`;
     report += `Total Tests: ${total}\n`;
     report += `Passed: ${passed} ✅\n`;
     report += `Failed: ${failed} ❌\n`;
     report += `Success Rate: ${successRate}%\n\n`;
-    
+
     if (failed > 0) {
       report += `❌ FAILED TESTS:\n`;
       this.results
@@ -313,7 +290,7 @@ class TestingFramework {
           report += `    Duration: ${result.duration}ms\n\n`;
         });
     }
-    
+
     if (passed > 0) {
       report += `✅ PASSED TESTS:\n`;
       this.results
@@ -322,7 +299,7 @@ class TestingFramework {
           report += `  • ${result.component} - ${result.test} (${result.duration}ms)\n`;
         });
     }
-    
+
     return report;
   }
 
@@ -330,36 +307,25 @@ class TestingFramework {
    * Clear test results
    */
   clearResults(): void {
-    this.results = [];
-    console.log('🧹 Test results cleared');
-  }
+    this.results = [];}
 
   /**
    * Quick validation helper for development
    */
   static quickValidation = {
-    realtimeConnection: () => {
-      console.log('🔍 Quick real-time connection check...');
-      const channel = supabase.channel('quick_test');
+    realtimeConnection: () => {const channel = supabase.channel('quick_test');
       let connected = false;
-      
+
       channel.subscribe((status) => {
-        connected = status === 'SUBSCRIBED';
-        console.log(`📡 Quick test status: ${status} ${connected ? '✅' : '⏳'}`);
-      });
-      
+        connected = status === 'SUBSCRIBED';});
+
       setTimeout(() => {
-        supabase.removeChannel(channel);
-        console.log(`🏁 Quick test complete: ${connected ? 'CONNECTED' : 'FAILED'}`);
-      }, 3000);
+        supabase.removeChannel(channel);}, 3000);
     },
-    
+
     cacheStatus: (queryClient: QueryClient) => {
       const cache = queryClient.getQueryCache();
-      const queries = cache.getAll();
-      console.log(`💾 Cache status: ${queries.length} queries cached`);
-      queries.forEach(query => {
-        console.log(`  • ${JSON.stringify(query.queryKey)}: ${query.state.status}`);
+      const queries = cache.getAll();queries.forEach(query => {}: ${query.state.status}`);
       });
     }
   };

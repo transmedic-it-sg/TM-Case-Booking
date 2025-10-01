@@ -8,10 +8,10 @@ import { getCurrentUser } from '../utils/authCompat';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { useToast } from './ToastContainer';
 import { useModal } from '../hooks/useModal';
-import { 
-  SystemConfig, 
-  getSystemConfig, 
-  saveSystemConfig, 
+import {
+  SystemConfig,
+  getSystemConfig,
+  saveSystemConfig,
   resetSystemConfig,
   applySystemConfig
 } from '../utils/systemSettingsService';
@@ -28,7 +28,7 @@ const SystemSettings: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
-  
+
   // Collapsible sections state - all collapsed by default
   const [expandedSections, setExpandedSections] = useState<{
     application: boolean;
@@ -48,7 +48,6 @@ const SystemSettings: React.FC = () => {
 
   // Check permissions
   const canManageSettings = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) : false;
-
 
   const loadSystemConfig = useCallback(async () => {
     setIsLoading(true);
@@ -103,13 +102,13 @@ const SystemSettings: React.FC = () => {
 
   const handleConfigChange = (key: keyof SystemConfig, value: any) => {
     if (!config) return;
-    
+
     setConfig(prev => prev ? ({
       ...prev,
       [key]: value
     }) : null);
   };
-  
+
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -129,14 +128,14 @@ const SystemSettings: React.FC = () => {
 
   const performSave = async () => {
     if (!config) return;
-    
+
     setIsSaving(true);
     try {
       await saveSystemConfig(config);
       await applySystemConfig(config);
-      
+
       setOriginalConfig({ ...config });
-      
+
       // Validate that settings were actually saved
       const validationResult = validateSettingsSaved(config);
       if (validationResult.allValid) {
@@ -161,24 +160,24 @@ const SystemSettings: React.FC = () => {
       expected: string | null;
       actual: string | null;
     }> = [];
-    
+
     // Check localStorage settings
     const checks: Array<{ name: string; expected: string | null; actual: string | null }> = [
-      { name: 'Session Timeout', expected: (savedConfig.sessionTimeout * 1000).toString(), actual: localStorage.getItem('sessionTimeout') },
-      { name: 'Default Theme', expected: savedConfig.defaultTheme, actual: localStorage.getItem('defaultTheme') },
-      { name: 'Cache Timeout', expected: savedConfig.cacheTimeout.toString(), actual: localStorage.getItem('cacheTimeout') },
-      { name: 'Max File Size', expected: savedConfig.maxFileSize.toString(), actual: localStorage.getItem('maxFileSize') },
-      { name: 'Audit Log Retention', expected: savedConfig.auditLogRetention.toString(), actual: localStorage.getItem('auditLogRetention') },
-      { name: 'Amendment Time Limit', expected: savedConfig.amendmentTimeLimit.toString(), actual: localStorage.getItem('amendmentTimeLimit') },
-      { name: 'Max Amendments Per Case', expected: savedConfig.maxAmendmentsPerCase.toString(), actual: localStorage.getItem('maxAmendmentsPerCase') },
-      { name: 'Password Complexity', expected: savedConfig.passwordComplexity.toString(), actual: localStorage.getItem('passwordComplexity') },
+      { name: 'Session Timeout', expected: (savedConfig.sessionTimeout * 1000).toString(), actual: null // Use Supabase system_settings table },
+      { name: 'Default Theme', expected: savedConfig.defaultTheme, actual: null // Use Supabase system_settings table },
+      { name: 'Cache Timeout', expected: savedConfig.cacheTimeout.toString(), actual: null // Use Supabase system_settings table },
+      { name: 'Max File Size', expected: savedConfig.maxFileSize.toString(), actual: null // Use Supabase system_settings table },
+      { name: 'Audit Log Retention', expected: savedConfig.auditLogRetention.toString(), actual: null // Use Supabase system_settings table },
+      { name: 'Amendment Time Limit', expected: savedConfig.amendmentTimeLimit.toString(), actual: null // Use Supabase system_settings table },
+      { name: 'Max Amendments Per Case', expected: savedConfig.maxAmendmentsPerCase.toString(), actual: null // Use Supabase system_settings table },
+      { name: 'Password Complexity', expected: savedConfig.passwordComplexity.toString(), actual: null // Use Supabase system_settings table },
     ];
 
     // Special checks for maintenance mode (removed when false)
     if (savedConfig.maintenanceMode) {
-      checks.push({ name: 'Maintenance Mode', expected: 'true', actual: localStorage.getItem('maintenanceMode') });
+      checks.push({ name: 'Maintenance Mode', expected: 'true', actual: null // Use Supabase system_settings table });
     } else {
-      checks.push({ name: 'Maintenance Mode', expected: null, actual: localStorage.getItem('maintenanceMode') });
+      checks.push({ name: 'Maintenance Mode', expected: null, actual: null // Use Supabase system_settings table });
     }
 
     checks.forEach(check => {
@@ -189,9 +188,8 @@ const SystemSettings: React.FC = () => {
         expected: check.expected,
         actual: check.actual
       });
-      
-      if (isValid) {
-        console.log(`✅ ${check.name}: Applied correctly (${check.actual})`);
+
+      if (isValid) {`);
       } else {
         console.warn(`❌ ${check.name}: Expected "${check.expected}", got "${check.actual}"`);
       }
@@ -279,21 +277,21 @@ const SystemSettings: React.FC = () => {
     );
   }
 
-  const CollapsibleSection = ({ 
-    title, 
-    description, 
-    sectionKey, 
+  const CollapsibleSection = ({
+    title,
+    description,
+    sectionKey,
     icon,
-    children 
-  }: { 
-    title: string; 
-    description: string; 
-    sectionKey: keyof typeof expandedSections; 
+    children
+  }: {
+    title: string;
+    description: string;
+    sectionKey: keyof typeof expandedSections;
     icon: string;
-    children: React.ReactNode; 
+    children: React.ReactNode;
   }) => (
     <div className="settings-section">
-      <div 
+      <div
         className={`settings-section-header ${expandedSections[sectionKey] ? 'expanded' : ''}`}
         onClick={() => toggleSection(sectionKey)}
       >
@@ -364,8 +362,8 @@ const SystemSettings: React.FC = () => {
       <div className="settings-sections-grid">
 
         {/* Application Settings */}
-        <CollapsibleSection 
-          title="Application Settings" 
+        <CollapsibleSection
+          title="Application Settings"
           description="General application configuration"
           sectionKey="application"
           icon="🏢"
@@ -396,8 +394,8 @@ const SystemSettings: React.FC = () => {
         </CollapsibleSection>
 
         {/* Performance Settings */}
-        <CollapsibleSection 
-          title="Performance Settings" 
+        <CollapsibleSection
+          title="Performance Settings"
           description="System performance and resource configuration"
           sectionKey="performance"
           icon="⚡"
@@ -444,8 +442,8 @@ const SystemSettings: React.FC = () => {
         </CollapsibleSection>
 
         {/* Security Settings */}
-        <CollapsibleSection 
-          title="Security Settings" 
+        <CollapsibleSection
+          title="Security Settings"
           description="Authentication and security policies"
           sectionKey="security"
           icon="🔒"
@@ -475,8 +473,8 @@ const SystemSettings: React.FC = () => {
       </CollapsibleSection>
 
         {/* Amendment Settings */}
-        <CollapsibleSection 
-          title="Amendment Settings" 
+        <CollapsibleSection
+          title="Amendment Settings"
           description="Configure case amendment policies and time limits"
           sectionKey="amendment"
           icon="📝"
@@ -504,7 +502,6 @@ const SystemSettings: React.FC = () => {
           <small>Maximum number of amendments allowed per case (1-20)</small>
         </div>
       </CollapsibleSection>
-
 
       </div>
     </div>

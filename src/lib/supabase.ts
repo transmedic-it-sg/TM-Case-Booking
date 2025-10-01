@@ -5,8 +5,8 @@ const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'http://localhost:5432
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'fake-key-for-localhost' // Fallback key
 
 // Check if Supabase is properly configured
-const isSupabaseConfigured = 
-  process.env.REACT_APP_SUPABASE_URL && 
+const isSupabaseConfigured =
+  process.env.REACT_APP_SUPABASE_URL &&
   process.env.REACT_APP_SUPABASE_ANON_KEY &&
   !process.env.REACT_APP_SUPABASE_URL.includes('your-project-id')
 
@@ -450,18 +450,18 @@ export const getCurrentUser = async () => {
 export const getCurrentProfile = async () => {
   const user = await getCurrentUser()
   if (!user) return null
-  
+
   const { data: profile, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
-    
+
   if (error) {
     console.error('Error fetching profile:', error)
     return null
   }
-  
+
   return profile
 }
 

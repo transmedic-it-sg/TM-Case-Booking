@@ -7,10 +7,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { User } from '../types';
-import { 
-  getSupabaseUsers, 
-  addSupabaseUser, 
-  updateSupabaseUser, 
+import {
+  getSupabaseUsers,
+  addSupabaseUser,
+  updateSupabaseUser,
   deleteSupabaseUser,
   toggleUserEnabled,
   resetSupabaseUserPassword
@@ -33,29 +33,28 @@ interface UseRealtimeUsersOptions {
 const useRealtimeUsersQuery = (filters?: UseRealtimeUsersOptions['filters']) => {
   return useQuery({
     queryKey: ['realtime-users', filters],
-    queryFn: async () => {
-      console.log('🔄 Fetching fresh users from database (no cache)...');
+    queryFn: async () => {...');
       const users = await getSupabaseUsers();
-      
+
       // Apply filters on fresh data
       let filteredUsers = users;
-      
+
       if (filters?.country) {
-        filteredUsers = filteredUsers.filter(user => 
-          user.countries?.includes(filters.country!) || 
+        filteredUsers = filteredUsers.filter(user =>
+          user.countries?.includes(filters.country!) ||
           user.selectedCountry === filters.country
         );
       }
-      
+
       if (filters?.role) {
         filteredUsers = filteredUsers.filter(user => user.role === filters.role);
       }
-      
+
       if (filters?.status !== 'all') {
         const isEnabled = filters?.status === 'enabled';
         filteredUsers = filteredUsers.filter(user => user.enabled === isEnabled);
       }
-      
+
       if (filters?.search) {
         const searchTerm = filters.search.toLowerCase();
         filteredUsers = filteredUsers.filter(user =>
@@ -63,10 +62,7 @@ const useRealtimeUsersQuery = (filters?: UseRealtimeUsersOptions['filters']) => 
           user.username.toLowerCase().includes(searchTerm) ||
           user.email?.toLowerCase().includes(searchTerm)
         );
-      }
-      
-      console.log(`✅ Fresh users loaded: ${filteredUsers.length} users from database`);
-      return filteredUsers;
+      }return filteredUsers;
     },
     staleTime: 0, // Always consider data stale
     gcTime: 0, // Don't cache
@@ -80,7 +76,7 @@ const useRealtimeUsersQuery = (filters?: UseRealtimeUsersOptions['filters']) => 
 const useOptimisticUserMutation = () => {
   const queryClient = useQueryClient();
   const { addNotification } = useNotifications();
-  
+
   return useMutation({
     mutationFn: async (action: {
       type: 'add' | 'update' | 'delete' | 'toggle' | 'resetPassword';
@@ -108,16 +104,16 @@ const useOptimisticUserMutation = () => {
     onSuccess: async (result, action) => {
       // Invalidate and refetch user data
       queryClient.invalidateQueries({ queryKey: ['realtime-users'] });
-      
+
       // Show success notification
       const actionText = {
         add: 'User created successfully',
-        update: 'User updated successfully', 
+        update: 'User updated successfully',
         delete: 'User deleted successfully',
         toggle: 'User status updated successfully',
         resetPassword: 'Password reset successfully'
       }[action.type];
-      
+
       await addNotification({
         title: 'User Management',
         message: actionText,
@@ -126,7 +122,7 @@ const useOptimisticUserMutation = () => {
     },
     onError: async (error, action) => {
       console.error(`❌ Failed to ${action.type} user:`, error);
-      
+
       await addNotification({
         title: 'User Management Error',
         message: `Failed to ${action.type} user: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -137,60 +133,56 @@ const useOptimisticUserMutation = () => {
 };
 
 export const useRealtimeUsers = (options: UseRealtimeUsersOptions = {}) => {
-  const { 
+  const {
     enableRealTime = true, // eslint-disable-line @typescript-eslint/no-unused-vars
     enableTesting = false,
-    filters 
+    filters
   } = options;
-  
+
   const [localError, setLocalError] = useState<string | null>(null);
-  
+
   // Real-time users query
-  const { 
-    data: users = [], 
-    isLoading, 
-    error, 
-    isError, 
-    isSuccess, 
-    refetch 
+  const {
+    data: users = [],
+    isLoading,
+    error,
+    isError,
+    isSuccess,
+    refetch
   } = useRealtimeUsersQuery(filters);
-  
+
   // User mutations
   const userMutation = useOptimisticUserMutation();
-  
+
   // Testing validation
   const testing = useTestingValidation({
     componentName: 'useRealtimeUsers',
     enableTesting
   });
-  
+
   // Refresh users - forces fresh data fetch
-  const refreshUsers = useCallback(async () => {
-    console.log('🔄 Manually refreshing users...');
-    setLocalError(null);
-    
+  const refreshUsers = useCallback(async () => {setLocalError(null);
+
     if (enableTesting) {
       testing.recordUpdate();
     }
-    
+
     return refetch();
   }, [refetch, enableTesting, testing]);
-  
+
   // Add user
-  const addUser = useCallback(async (userData: Partial<User>) => {
-    console.log(`👤 Adding user ${userData.username}...`);
-    setLocalError(null);
-    
+  const addUser = useCallback(async (userData: Partial<User>) => {setLocalError(null);
+
     try {
-      const result = await userMutation.mutateAsync({ 
-        type: 'add', 
-        user: userData 
+      const result = await userMutation.mutateAsync({
+        type: 'add',
+        user: userData
       });
-      
+
       if (enableTesting) {
         testing.recordUpdate();
       }
-      
+
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to add user';
@@ -199,23 +191,21 @@ export const useRealtimeUsers = (options: UseRealtimeUsersOptions = {}) => {
       throw error;
     }
   }, [userMutation, enableTesting, testing]);
-  
+
   // Update user
-  const updateUser = useCallback(async (userId: string, userData: Partial<User>) => {
-    console.log(`👤 Updating user ${userId}...`);
-    setLocalError(null);
-    
+  const updateUser = useCallback(async (userId: string, userData: Partial<User>) => {setLocalError(null);
+
     try {
-      const result = await userMutation.mutateAsync({ 
-        type: 'update', 
-        userId, 
-        user: userData 
+      const result = await userMutation.mutateAsync({
+        type: 'update',
+        userId,
+        user: userData
       });
-      
+
       if (enableTesting) {
         testing.recordUpdate();
       }
-      
+
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update user';
@@ -224,22 +214,20 @@ export const useRealtimeUsers = (options: UseRealtimeUsersOptions = {}) => {
       throw error;
     }
   }, [userMutation, enableTesting, testing]);
-  
+
   // Delete user
-  const deleteUser = useCallback(async (userId: string) => {
-    console.log(`🗑️ Deleting user ${userId}...`);
-    setLocalError(null);
-    
+  const deleteUser = useCallback(async (userId: string) => {setLocalError(null);
+
     try {
-      const result = await userMutation.mutateAsync({ 
-        type: 'delete', 
-        userId 
+      const result = await userMutation.mutateAsync({
+        type: 'delete',
+        userId
       });
-      
+
       if (enableTesting) {
         testing.recordUpdate();
       }
-      
+
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete user';
@@ -248,22 +236,20 @@ export const useRealtimeUsers = (options: UseRealtimeUsersOptions = {}) => {
       throw error;
     }
   }, [userMutation, enableTesting, testing]);
-  
+
   // Toggle user enabled/disabled
-  const toggleUser = useCallback(async (userId: string) => {
-    console.log(`🔄 Toggling user ${userId} status...`);
-    setLocalError(null);
-    
+  const toggleUser = useCallback(async (userId: string) => {setLocalError(null);
+
     try {
-      const result = await userMutation.mutateAsync({ 
-        type: 'toggle', 
-        userId 
+      const result = await userMutation.mutateAsync({
+        type: 'toggle',
+        userId
       });
-      
+
       if (enableTesting) {
         testing.recordUpdate();
       }
-      
+
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to toggle user';
@@ -272,23 +258,22 @@ export const useRealtimeUsers = (options: UseRealtimeUsersOptions = {}) => {
       throw error;
     }
   }, [userMutation, enableTesting, testing]);
-  
+
   // Reset user password
-  const resetUserPassword = useCallback(async (userId: string, newPassword: string) => {
-    console.log(`🔑 Resetting password for user ${userId}...`); // Password details not logged for security
+  const resetUserPassword = useCallback(async (userId: string, newPassword: string) => {// Password details not logged for security
     setLocalError(null);
-    
+
     try {
-      const result = await userMutation.mutateAsync({ 
-        type: 'resetPassword', 
-        userId, 
-        newPassword 
+      const result = await userMutation.mutateAsync({
+        type: 'resetPassword',
+        userId,
+        newPassword
       });
-      
+
       if (enableTesting) {
         testing.recordUpdate();
       }
-      
+
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to reset password';
@@ -297,41 +282,35 @@ export const useRealtimeUsers = (options: UseRealtimeUsersOptions = {}) => {
       throw error;
     }
   }, [userMutation, enableTesting, testing]);
-  
+
   // Component validation for testing
   const validateComponent = useCallback(async (): Promise<boolean> => {
-    if (!enableTesting) return true;
-    
-    console.log('🧪 Validating useRealtimeUsers component...');
-    
-    try {
+    if (!enableTesting) return true;try {
       // Test data fetching
       const testUsers = await refetch();
       if (!Array.isArray(testUsers.data)) {
         throw new Error('Users data is not an array');
       }
-      
+
       // Test functionality
-      testing.recordValidation(true);
-      console.log('✅ useRealtimeUsers validation passed');
-      return true;
+      testing.recordValidation(true);return true;
     } catch (error) {
       testing.recordValidation(false, error instanceof Error ? error.message : 'Validation failed');
       console.error('❌ useRealtimeUsers validation failed:', error);
       return false;
     }
   }, [refetch, enableTesting, testing]);
-  
+
   // Get testing report
   const getTestingReport = useCallback(() => {
     if (!enableTesting) return 'Testing disabled';
-    
+
     if (testing) {
       return testing.generateReport();
     }
     return 'Testing not available';
   }, [enableTesting, testing]);
-  
+
   // Return hook interface
   return {
     // Data
@@ -340,7 +319,7 @@ export const useRealtimeUsers = (options: UseRealtimeUsersOptions = {}) => {
     error: error || localError,
     isError,
     isSuccess,
-    
+
     // Actions
     refreshUsers,
     addUser,
@@ -348,11 +327,11 @@ export const useRealtimeUsers = (options: UseRealtimeUsersOptions = {}) => {
     deleteUser,
     toggleUser,
     resetUserPassword,
-    
+
     // Testing
     validateComponent,
     getTestingReport,
-    
+
     // Status
     isMutating: userMutation.isPending,
     lastUpdated: new Date()

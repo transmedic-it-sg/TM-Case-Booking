@@ -100,24 +100,19 @@ const Settings: React.FC = () => {
     showSuccess('Sound Test', 'This is how notifications will sound');
   };
 
-  const resetSettings = async () => {
-    console.log('🔄 Resetting all settings to defaults...');
-    
-    try {
+  const resetSettings = async () => {try {
       // Reset sound settings
       setVolume(0.5);
       setTempVolume(0.5);
       if (!isEnabled) {
         toggleSound();
       }
-      
+
       // Reset all real-time settings to defaults
       await resetRealtimeSettings();
-      
+
       playSound.success();
-      showSuccess('Settings Reset', 'All settings have been restored to defaults');
-      console.log('✅ Settings reset successfully');
-    } catch (error) {
+      showSuccess('Settings Reset', 'All settings have been restored to defaults');} catch (error) {
       console.error('❌ Failed to reset settings:', error);
       showSuccess('Error', 'Failed to reset settings. Please try again.');
     }
@@ -138,21 +133,16 @@ const Settings: React.FC = () => {
       try {
         const permission = await Notification.requestPermission();
         setNotificationPermission(permission);
-        
+
         if (permission === 'granted') {
-          try {
-            console.log('🔔 Enabling notifications after permission granted...');
-            await updateSetting('notificationsEnabled', true);
+          try {await updateSetting('notificationsEnabled', true);
             showSuccess('Notifications Enabled', 'You will now receive browser notifications');
-            
+
             // Show a test notification
             new Notification('Case Booking System', {
               body: 'Notifications are now enabled!',
               icon: '/favicon.ico'
-            });
-            
-            console.log('✅ Notifications enabled successfully');
-          } catch (error) {
+            });} catch (error) {
             console.error('❌ Failed to enable notifications:', error);
             showSuccess('Error', 'Failed to save notification settings');
           }
@@ -165,11 +155,9 @@ const Settings: React.FC = () => {
       }
     } else if (notificationPermission === 'granted') {
       const newState = !notificationsEnabled;
-      
-      try {
-        console.log(`🔔 ${newState ? 'Enabling' : 'Disabling'} notifications...`);
-        await updateSetting('notificationsEnabled', newState);
-        
+
+      try {await updateSetting('notificationsEnabled', newState);
+
         if (newState) {
           showSuccess('Notifications Enabled', 'You will now receive browser notifications');
           // Show a test notification
@@ -179,15 +167,12 @@ const Settings: React.FC = () => {
           });
         } else {
           showSuccess('Notifications Disabled', 'Browser notifications have been disabled');
-        }
-        
-        console.log('✅ Notification setting updated successfully');
-      } catch (error) {
+        }} catch (error) {
         console.error('❌ Failed to update notification setting:', error);
         showSuccess('Error', 'Failed to update notification settings');
       }
     }
-    
+
     playSound.click();
   };
 
@@ -207,7 +192,7 @@ const Settings: React.FC = () => {
       icon: '/favicon.ico',
       tag: 'test-notification'
     });
-    
+
     playSound.notification();
     showSuccess('Test Sent', 'Test notification has been sent');
   };
@@ -229,7 +214,6 @@ const Settings: React.FC = () => {
     return 'btn btn-primary btn-sm';
   };
 
-
   // Load notification settings and check browser support
   useEffect(() => {
     // Check if notifications are supported
@@ -238,7 +222,6 @@ const Settings: React.FC = () => {
       // Note: notificationsEnabled now comes from real-time settings hook
     }
   }, []);
-
 
   return (
     <div className="settings-container" ref={settingsRef}>
@@ -267,7 +250,7 @@ const Settings: React.FC = () => {
             {/* Sound Settings Section */}
             <div className="settings-section">
               <h4>🔊 Sound Settings</h4>
-              
+
               <div className="settings-item">
                 <div className="settings-item-info">
                   <label>Enable Sounds</label>
@@ -319,7 +302,7 @@ const Settings: React.FC = () => {
             {/* Notification Settings Section */}
             <div className="settings-section">
               <h4>🔔 Notification Settings</h4>
-              
+
               <div className="settings-item">
                 <div className="settings-item-info">
                   <label>Browser Notifications</label>
@@ -337,7 +320,7 @@ const Settings: React.FC = () => {
                   </button>
                 </div>
               </div>
-              
+
               {notificationsEnabled && notificationPermission === 'granted' && (
               <>
                 <div className="settings-item">
@@ -356,7 +339,7 @@ const Settings: React.FC = () => {
                 </div>
               </>
               )}
-              
+
               {notificationPermission === 'denied' && (
                 <div className="settings-item">
                   <div className="notification-blocked-info">
@@ -374,7 +357,7 @@ const Settings: React.FC = () => {
             {/* App Information Section */}
             <div className="settings-section">
               <h4>ℹ️ Application Info</h4>
-              
+
               <div className="settings-item">
                 <div className="app-info">
                   <div className="info-row">
@@ -400,7 +383,7 @@ const Settings: React.FC = () => {
             {/* Actions Section */}
             <div className="settings-section">
               <h4>🔧 Actions</h4>
-              
+
               <div className="settings-actions">
                 <button
                   onClick={resetSettings}

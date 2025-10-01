@@ -6,7 +6,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
-import { 
+import {
   getDepartmentsForCountry,
   getDoctorsForDepartment,
   addDoctorToDepartment,
@@ -26,19 +26,14 @@ interface UseRealtimeDepartmentsOptions {
 const useRealtimeDepartmentsQuery = (country?: string) => {
   return useQuery({
     queryKey: ['realtime-departments', country], // FIXED: Stable key without Date.now()
-    queryFn: async () => {
-      console.log(`🔄 Fetching fresh departments for ${country || 'all countries'}...`);
-      const departments = await getDepartmentsForCountry(country || '');
-      
+    queryFn: async () => {const departments = await getDepartmentsForCountry(country || '');
+
       // Validate that departments have country field
       departments.forEach(dept => {
         if (!dept.country) {
           console.error(`❌ Department ${dept.name} missing country field!`, dept);
         }
-      });
-      
-      console.log(`✅ Fresh departments loaded: ${departments.length} departments`);
-      return departments;
+      });return departments;
     },
     enabled: !!country, // Only run if country is provided
     staleTime: 1000 * 60, // Consider data fresh for 1 minute to reduce loops
@@ -57,17 +52,12 @@ const useRealtimeDoctorsQuery = (department?: Department) => {
     queryKey: ['realtime-doctors', department?.id], // FIXED: Simplified stable key
     queryFn: async () => {
       if (!department) return [];
-      
+
       // Validate department has country before proceeding
       if (!department.country) {
         console.error(`❌ Cannot fetch doctors: Department ${department.name} missing country field`);
         throw new Error(`Department ${department.name} is missing country information`);
-      }
-      
-      console.log(`🔄 Fetching fresh doctors for department ${department.name} in ${department.country}...`);
-      const doctors = await getDoctorsForDepartment(department.name, department.country);
-      console.log(`✅ Fresh doctors loaded: ${doctors.length} doctors for ${department.name}`);
-      return doctors;
+      }const doctors = await getDoctorsForDepartment(department.name, department.country);return doctors;
     },
     enabled: !!department && !!department.country, // Only run if department has country
     staleTime: 1000 * 30, // Consider data fresh for 30 seconds to reduce loops
@@ -84,7 +74,7 @@ const useRealtimeDoctorsQuery = (department?: Department) => {
 const useOptimisticDepartmentMutation = () => {
   const queryClient = useQueryClient();
   const { addNotification } = useNotifications();
-  
+
   return useMutation({
     mutationFn: async (action: {
       type: 'addDoctor' | 'removeDoctor';
@@ -110,13 +100,13 @@ const useOptimisticDepartmentMutation = () => {
       // Invalidate and refetch department/doctor data
       queryClient.invalidateQueries({ queryKey: ['realtime-departments'] });
       queryClient.invalidateQueries({ queryKey: ['realtime-doctors'] });
-      
+
       // Show success notification
       const actionText = {
         addDoctor: 'Doctor added successfully',
         removeDoctor: 'Doctor removed successfully'
       }[action.type];
-      
+
       addNotification({
         title: 'Department Management',
         message: actionText,
@@ -125,7 +115,7 @@ const useOptimisticDepartmentMutation = () => {
     },
     onError: (error, action) => {
       console.error(`❌ Failed to ${action.type}:`, error);
-      
+
       addNotification({
         title: 'Department Management Error',
         message: `Failed to ${action.type}: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -136,106 +126,97 @@ const useOptimisticDepartmentMutation = () => {
 };
 
 export const useRealtimeDepartments = (options: UseRealtimeDepartmentsOptions = {}) => {
-  const { 
+  const {
     country,
-    enableTesting = false 
+    enableTesting = false
   } = options;
-  
+
   const [localError, setLocalError] = useState<string | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
-  
+
   // Real-time departments query
-  const { 
-    data: departments = [], 
-    isLoading: departmentsLoading, 
-    error: departmentsError, 
-    refetch: refetchDepartments 
+  const {
+    data: departments = [],
+    isLoading: departmentsLoading,
+    error: departmentsError,
+    refetch: refetchDepartments
   } = useRealtimeDepartmentsQuery(country);
-  
+
   // Real-time doctors query for selected department
-  const { 
-    data: doctors = [], 
-    isLoading: doctorsLoading, 
-    error: doctorsError, 
-    refetch: refetchDoctors 
+  const {
+    data: doctors = [],
+    isLoading: doctorsLoading,
+    error: doctorsError,
+    refetch: refetchDoctors
   } = useRealtimeDoctorsQuery(selectedDepartment || undefined);
-  
+
   // Department/doctor mutations
   const departmentMutation = useOptimisticDepartmentMutation();
-  
+
   // Testing validation
   const testing = useTestingValidation({
     componentName: 'useRealtimeDepartments',
     enableTesting
   });
-  
+
   // Combined loading state
   const isLoading = departmentsLoading || doctorsLoading;
   const error = departmentsError || doctorsError || localError;
-  
+
   // Refresh departments - forces fresh data fetch
-  const refreshDepartments = useCallback(async () => {
-    console.log('🔄 Manually refreshing departments...');
-    setLocalError(null);
-    
+  const refreshDepartments = useCallback(async () => {setLocalError(null);
+
     if (enableTesting) {
       testing.recordUpdate();
     }
-    
+
     await refetchDepartments();
     if (selectedDepartment) {
       await refetchDoctors();
     }
   }, [refetchDepartments, refetchDoctors, selectedDepartment, enableTesting, testing]);
-  
+
   // Query client for cache operations
   const queryClient = useQueryClient();
-  
+
   // Force clear all department/doctor caches
-  const clearCache = useCallback(() => {
-    console.log('🧹 Clearing department/doctor cache...');
-    queryClient.removeQueries({ queryKey: ['realtime-departments'] });
+  const clearCache = useCallback(() => {queryClient.removeQueries({ queryKey: ['realtime-departments'] });
     queryClient.removeQueries({ queryKey: ['realtime-doctors'] });
     setSelectedDepartment(null);
     setLocalError(null);
   }, [queryClient]);
-  
+
   // Select department and load its doctors
-  const selectDepartment = useCallback(async (department: Department | null) => {
-    console.log(`🏥 Selecting department: ${department?.name || 'none'}`);
-    
-    // Critical validation: Ensure department has country field
+  const selectDepartment = useCallback(async (department: Department | null) => {// Critical validation: Ensure department has country field
     if (department && !department.country) {
       console.error(`❌ CRITICAL: Department ${department.name} missing country field!`, department);
       setLocalError(`Department ${department.name} is missing country information. Please refresh the page.`);
       return;
     }
-    
+
     setSelectedDepartment(department);
     setLocalError(null);
-    
+
     if (enableTesting && department) {
       testing.recordUpdate();
     }
   }, [enableTesting, testing]);
-  
+
   // Add doctor to department
-  const addDoctor = useCallback(async (departmentId: string, doctorName: string, country: string) => {
-    console.log(`👨‍⚕️ Adding doctor ${doctorName} to department ${departmentId}...`);
-    setLocalError(null);
-    
+  const addDoctor = useCallback(async (departmentId: string, doctorName: string, country: string) => {setLocalError(null);
+
     try {
-      const result = await departmentMutation.mutateAsync({ 
-        type: 'addDoctor', 
+      const result = await departmentMutation.mutateAsync({
+        type: 'addDoctor',
         departmentId,
         doctorName,
         country
       });
-      
+
       if (enableTesting) {
         testing.recordUpdate();
       }
-      
+
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to add doctor';
@@ -244,22 +225,20 @@ export const useRealtimeDepartments = (options: UseRealtimeDepartmentsOptions = 
       throw error;
     }
   }, [departmentMutation, enableTesting, testing]);
-  
+
   // Remove doctor from system
-  const removeDoctor = useCallback(async (doctorId: string) => {
-    console.log(`🗑️ Removing doctor ${doctorId}...`);
-    setLocalError(null);
-    
+  const removeDoctor = useCallback(async (doctorId: string) => {setLocalError(null);
+
     try {
-      const result = await departmentMutation.mutateAsync({ 
-        type: 'removeDoctor', 
-        doctorId 
+      const result = await departmentMutation.mutateAsync({
+        type: 'removeDoctor',
+        doctorId
       });
-      
+
       if (enableTesting) {
         testing.recordUpdate();
       }
-      
+
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to remove doctor';
@@ -268,41 +247,35 @@ export const useRealtimeDepartments = (options: UseRealtimeDepartmentsOptions = 
       throw error;
     }
   }, [departmentMutation, enableTesting, testing]);
-  
+
   // Component validation for testing
   const validateComponent = useCallback(async (): Promise<boolean> => {
-    if (!enableTesting) return true;
-    
-    console.log('🧪 Validating useRealtimeDepartments component...');
-    
-    try {
+    if (!enableTesting) return true;try {
       // Test departments fetching
       const testDepartments = await refetchDepartments();
       if (!Array.isArray(testDepartments.data)) {
         throw new Error('Departments data is not an array');
       }
-      
+
       // Test functionality
-      testing.recordValidation(true);
-      console.log('✅ useRealtimeDepartments validation passed');
-      return true;
+      testing.recordValidation(true);return true;
     } catch (error) {
       testing.recordValidation(false, error instanceof Error ? error.message : 'Validation failed');
       console.error('❌ useRealtimeDepartments validation failed:', error);
       return false;
     }
   }, [refetchDepartments, enableTesting, testing]);
-  
+
   // Get testing report
   const getTestingReport = useCallback(() => {
     if (!enableTesting) return 'Testing disabled';
-    
+
     if (testing) {
       return testing.generateReport();
     }
     return 'Testing not available';
   }, [enableTesting, testing]);
-  
+
   // Return hook interface
   return {
     // Data
@@ -311,18 +284,18 @@ export const useRealtimeDepartments = (options: UseRealtimeDepartmentsOptions = 
     doctors,
     isLoading,
     error,
-    
+
     // Actions
     refreshDepartments,
     selectDepartment,
     addDoctor,
     removeDoctor,
     clearCache,
-    
+
     // Testing
     validateComponent,
     getTestingReport,
-    
+
     // Status
     isMutating: departmentMutation.isPending,
     lastUpdated: new Date()

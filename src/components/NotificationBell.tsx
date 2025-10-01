@@ -12,7 +12,7 @@ const NotificationBell: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotification } = useNotifications();
   const { playSound } = useSound();
   const bellRef = useRef<HTMLDivElement>(null);
-  
+
   // All users can access notification settings
   const currentUser = getCurrentUser();
   const canViewNotifications = !!currentUser;
@@ -46,7 +46,7 @@ const NotificationBell: React.FC = () => {
   const handleBellClick = () => {
     setIsOpen(!isOpen);
     playSound.click();
-    
+
     // Mark all notifications as read when opening
     if (!isOpen && unreadCount > 0) {
       markAllAsRead();
@@ -68,16 +68,16 @@ const NotificationBell: React.FC = () => {
     const now = new Date();
     const notificationTime = new Date(timestamp);
     const diffInMinutes = Math.floor((now.getTime() - notificationTime.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours}h ago`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays}d ago`;
-    
+
     return formatDate(notificationTime);
   }, []);
 
@@ -90,8 +90,8 @@ const NotificationBell: React.FC = () => {
     }
   }, []);
 
-  const recentNotifications = useMemo(() => 
-    notifications.slice(0, 10), 
+  const recentNotifications = useMemo(() =>
+    notifications.slice(0, 10),
     [notifications]
   );
 

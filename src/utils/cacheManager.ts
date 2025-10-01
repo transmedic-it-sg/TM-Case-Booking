@@ -4,8 +4,6 @@
  * Based on 2024 standards for data consistency and cache invalidation
  */
 
-// import { createClient } from '@supabase/supabase-js'; // Not used directly here
-
 interface CacheEntry {
   data: any;
   timestamp: number;
@@ -45,23 +43,19 @@ class EnterpriseCache {
       // Subscribe to all table changes for automatic invalidation
       const subscription = this.supabase
         .channel('cache-invalidation-' + Date.now()) // Unique channel name
-        .on('postgres_changes', 
+        .on('postgres_changes',
           { event: '*', schema: 'public' },
           (payload: any) => {
             try {
               const table = payload?.table;
               const operation = payload?.eventType;
-              
+
               if (!table || !operation) {
                 console.warn('Invalid real-time payload received:', payload);
                 return;
-              }
-              
-              console.log(`🔄 Real-time cache invalidation: ${table} ${operation}`);
-              
-              // Invalidate all cache entries tagged with this table
+              }// Invalidate all cache entries tagged with this table
               this.invalidateByTag(table);
-              
+
               // Notify all subscribers of data change
               this.notifySubscribers(`table:${table}`, {
                 operation,
@@ -74,9 +68,7 @@ class EnterpriseCache {
           }
         )
         .subscribe((status: string) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('✅ Real-time cache invalidation active');
-          } else if (status === 'CHANNEL_ERROR') {
+          if (status === 'SUBSCRIBED') {} else if (status === 'CHANNEL_ERROR') {
             console.error('❌ Real-time subscription error');
             // Attempt reconnection after delay
             setTimeout(() => this.setupRealtimeInvalidation(), 5000);
@@ -96,9 +88,7 @@ class EnterpriseCache {
   private setupServiceWorkerSync() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data.type === 'CACHE_UPDATED') {
-          console.log('🔄 Service Worker detected update, invalidating cache');
-          this.clearAll();
+        if (event.data.type === 'CACHE_UPDATED') {this.clearAll();
           window.location.reload();
         }
       });
@@ -118,7 +108,7 @@ class EnterpriseCache {
     if (!key || typeof key !== 'string') {
       throw new Error('Cache key must be a non-empty string');
     }
-    
+
     if (key.length > 1000) {
       throw new Error('Cache key too long (max 1000 characters)');
     }
@@ -167,7 +157,7 @@ class EnterpriseCache {
    */
   invalidateByTag(tag: string): void {
     const keysToDelete: string[] = [];
-    
+
     // Convert iterator to array to avoid TypeScript issues
     const entries = Array.from(this.cache.entries());
     for (const [key, entry] of entries) {
@@ -177,8 +167,7 @@ class EnterpriseCache {
     }
 
     keysToDelete.forEach(key => {
-      this.cache.delete(key);
-      console.log(`🗑️ Cache invalidated: ${key} (tag: ${tag})`);
+      this.cache.delete(key);`);
     });
 
     // Notify subscribers
@@ -192,7 +181,7 @@ class EnterpriseCache {
     if (!this.subscribers.has(pattern)) {
       this.subscribers.set(pattern, new Set());
     }
-    
+
     this.subscribers.get(pattern)!.add(callback);
 
     // Return unsubscribe function
@@ -220,7 +209,7 @@ class EnterpriseCache {
   /**
    * Optimistic update with rollback capability
    */
-  optimisticUpdate(key: string, updateFn: (current: any) => any, 
+  optimisticUpdate(key: string, updateFn: (current: any) => any,
                   asyncOperation: () => Promise<any>): Promise<any> {
     if (!this.config.enableOptimisticUpdates) {
       return asyncOperation();
@@ -228,7 +217,7 @@ class EnterpriseCache {
 
     const originalData = this.get(key);
     const optimisticData = updateFn(originalData);
-    
+
     // Apply optimistic update immediately
     this.set(key, optimisticData, { tags: ['optimistic'] });
 
@@ -272,9 +261,7 @@ class EnterpriseCache {
    * Clear all cache entries
    */
   clearAll(): void {
-    this.cache.clear();
-    console.log('🧹 All cache cleared');
-  }
+    this.cache.clear();}
 
   /**
    * Get cache statistics for monitoring
@@ -326,18 +313,15 @@ class EnterpriseCache {
         }
       });
       this.realtimeSubscriptions.clear();
-      
+
       // Clear all subscribers
       this.subscribers.forEach((callbacks, pattern) => {
         callbacks.clear();
       });
       this.subscribers.clear();
-      
+
       // Clear cache data
-      this.cache.clear();
-      
-      console.log('✅ Enterprise cache destroyed and cleaned up');
-    } catch (error) {
+      this.cache.clear();} catch (error) {
       console.error('Error during cache cleanup:', error);
     }
   }
@@ -351,13 +335,13 @@ export const initializeCache = (supabaseClient: any): EnterpriseCache => {
   if (!supabaseClient) {
     throw new Error('Supabase client is required for cache initialization');
   }
-  
+
   // Prevent multiple initialization
   if (cacheInstance) {
     console.warn('Cache already initialized, returning existing instance');
     return cacheInstance;
   }
-  
+
   try {
     const config: CacheConfig = {
       defaultTTL: 5 * 60 * 1000, // 5 minutes
@@ -365,10 +349,8 @@ export const initializeCache = (supabaseClient: any): EnterpriseCache => {
       enableRealtime: true,
       enableOptimisticUpdates: true
     };
-    
-    cacheInstance = new EnterpriseCache(config, supabaseClient);
-    console.log('✅ Enterprise cache initialized successfully');
-    return cacheInstance;
+
+    cacheInstance = new EnterpriseCache(config, supabaseClient);return cacheInstance;
   } catch (error) {
     console.error('❌ Failed to initialize enterprise cache:', error);
     throw error;
@@ -391,9 +373,7 @@ export const getSafeCacheInstance = (): EnterpriseCache | null => {
 export const destroyCache = (): void => {
   if (cacheInstance) {
     cacheInstance.destroy();
-    cacheInstance = null;
-    console.log('✅ Cache instance destroyed');
-  }
+    cacheInstance = null;}
 };
 
 export { EnterpriseCache };

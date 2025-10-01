@@ -51,8 +51,7 @@ class RealtimeDebugger {
 
     // Log to console in development
     if (process.env.NODE_ENV === 'development') {
-      const emoji = this.getEventEmoji(type);
-      console.log(`${emoji} [${type.toUpperCase()}]`, {
+      const emoji = this.getEventEmoji(type);}]`, {
         table: data.table,
         message: data.message,
         reconnectAttempt: data.reconnectAttempt,
@@ -65,10 +64,10 @@ class RealtimeDebugger {
     const connections = this.events.filter(e => e.type === 'connection');
     const disconnections = this.events.filter(e => e.type === 'disconnection');
     const errors = this.events.filter(e => e.type === 'error');
-    
+
     // Calculate average connection time
     const connectionTimes = connections.map(c => c.timestamp.getTime());
-    const avgConnectionTime = connectionTimes.length > 1 
+    const avgConnectionTime = connectionTimes.length > 1
       ? (connectionTimes[connectionTimes.length - 1] - connectionTimes[0]) / connectionTimes.length
       : 0;
 
@@ -83,7 +82,7 @@ class RealtimeDebugger {
       .map(e => e.data.memoryUsage);
 
     // Health check
-    const recentErrors = errors.filter(e => 
+    const recentErrors = errors.filter(e =>
       Date.now() - e.timestamp.getTime() < 60000 // Last minute
     );
     const isHealthy = recentErrors.length < 5 && reconnectionRate < 2;
@@ -130,7 +129,7 @@ class RealtimeDebugger {
 • Memory Trend: ${this.getMemoryTrend(metrics.memoryUsage)}
 
 📋 RECENT EVENTS (Last 10)
-${recentEvents.map(e => 
+${recentEvents.map(e =>
   `• ${this.getEventEmoji(e.type)} [${e.timestamp.toLocaleTimeString()}] ${e.type.toUpperCase()} ${e.table || ''} ${e.message || ''}`
 ).join('\n')}
 
@@ -152,10 +151,10 @@ ${this.generateRecommendations(metrics, hasInfiniteLoop)}
 
   private getMemoryTrend(memoryUsage: number[]): string {
     if (memoryUsage.length < 2) return 'Unknown';
-    
+
     const recent = memoryUsage.slice(-5);
     const trend = recent[recent.length - 1] - recent[0];
-    
+
     if (trend > 5 * 1024 * 1024) return '📈 INCREASING (Potential Leak)';
     if (trend < -1 * 1024 * 1024) return '📉 DECREASING';
     return '📊 STABLE';
@@ -227,13 +226,12 @@ export const realtimeDebugger = RealtimeDebugger.getInstance();
 if (process.env.NODE_ENV === 'development') {
   // Expose to window for manual debugging
   (window as any).realtimeDebugger = realtimeDebugger;
-  
+
   // Auto-generate reports every 60 seconds
   setInterval(() => {
     const metrics = realtimeDebugger.getConnectionMetrics();
     if (!metrics.isHealthy) {
-      console.warn('🚨 REAL-TIME HEALTH CHECK FAILED');
-      console.log(realtimeDebugger.generateReport());
+      console.warn('🚨 REAL-TIME HEALTH CHECK FAILED'););
     }
   }, 60000);
 }
