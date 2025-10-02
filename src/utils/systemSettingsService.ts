@@ -59,19 +59,24 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // No settings found, use localStorage or defaultsreturn localConfig;
+        // No settings found, use localStorage or defaults
+        return localConfig;
       }
       if (error.code === '42P01') {
-        // Table doesn't existreturn localConfig;
-      }
-      if (error.code === '401' || error.message.includes('permission denied')) {return localConfig;
-      }
-      if (error.code === '406' || error.message.includes('Not Acceptable')) {');
+        // Table doesn't exist
         return localConfig;
-      }return localConfig;
+      }
+      if (error.code === '401' || error.message.includes('permission denied')) {
+        return localConfig;
+      }
+      if (error.code === '406' || error.message.includes('Not Acceptable')) {
+        return localConfig;
+      }
+      return localConfig;
     }
 
-    if (!data || data.length === 0) {return localConfig;
+    if (!data || data.length === 0) {
+      return localConfig;
     }
 
     // Transform key-value pairs to config object
@@ -144,7 +149,7 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
         console.warn(`⚠️ Failed to save setting ${mapping.key} to Supabase:`, error.message);
       }
     }} catch (error) {
-    console.error('⚠️ Error saving system configuration to Supabase:', error);');
+    console.error('⚠️ Error saving system configuration to Supabase:', error);
     // Don't throw error since localStorage save was successful
   }
 };
@@ -359,21 +364,28 @@ export const applySystemConfig = async (config: SystemConfig): Promise<void> => 
         root.style.setProperty('--text-color', '#333333');
         root.style.setProperty('--card-background', '#ffffff');
         root.style.setProperty('--border-color', '#e9ecef');
-      }}
+      }
+    }
 
     // Apply cache timeout
     await SafeStorage.setItem('cacheTimeout', config.cacheTimeout.toString(), {
       tags: ['cache-config', 'system'],
       ttl: 90 * 24 * 60 * 60 * 1000
-    });// Apply max file size
+    });
+    
+    // Apply max file size
     await SafeStorage.setItem('maxFileSize', config.maxFileSize.toString(), {
       tags: ['file-config', 'system'],
       ttl: 90 * 24 * 60 * 60 * 1000
-    });// Apply audit log retention
+    });
+    
+    // Apply audit log retention
     await SafeStorage.setItem('auditLogRetention', config.auditLogRetention.toString(), {
       tags: ['audit-config', 'system'],
       ttl: 90 * 24 * 60 * 60 * 1000
-    });// Apply amendment settings
+    });
+    
+    // Apply amendment settings
     await SafeStorage.setItem('amendmentTimeLimit', config.amendmentTimeLimit.toString(), {
       tags: ['amendment-config', 'system'],
       ttl: 90 * 24 * 60 * 60 * 1000
@@ -381,11 +393,14 @@ export const applySystemConfig = async (config: SystemConfig): Promise<void> => 
     await SafeStorage.setItem('maxAmendmentsPerCase', config.maxAmendmentsPerCase.toString(), {
       tags: ['amendment-config', 'system'],
       ttl: 90 * 24 * 60 * 60 * 1000
-    });// Apply security settings
+    });
+    
+    // Apply security settings
     await SafeStorage.setItem('passwordComplexity', config.passwordComplexity.toString(), {
       tags: ['security-config', 'system'],
       ttl: 90 * 24 * 60 * 60 * 1000
-    });} catch (error) {
+    });
+  } catch (error) {
     console.error('Error applying system configuration:', error);
     throw error;
   }

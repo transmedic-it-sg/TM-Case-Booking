@@ -66,8 +66,7 @@ export const useCacheVersionManager = () => {
 
         if (popupShownForVersion === stableVersionSignature) {
           return false; // Already shown popup for this exact version set
-        })
-        });
+        }
 
         setState(prev => ({
           ...prev,
@@ -184,8 +183,8 @@ export const useCacheVersionManager = () => {
       const relevantOutdatedTypes = outdatedTypes.filter(type => type.includes(dataType));
       const relevantChangedVersions = changedVersions.filter(v => v.version_type === dataType);
 
-      if (relevantOutdatedTypes.length > 0) {)
-        });
+      if (relevantOutdatedTypes.length > 0) {
+        console.log('Cache is outdated for specific data types:', relevantOutdatedTypes);
 
         setState(prev => ({
           ...prev,

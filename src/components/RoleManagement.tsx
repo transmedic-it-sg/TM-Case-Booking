@@ -162,7 +162,8 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
 
   const handlePermissionChange = (actionId: string, roleId: string, allowed: boolean) => {
     // This would update the permissions for the specific role
-    // For now, this is handled by the PermissionMatrix component itself};
+    // For now, this is handled by the PermissionMatrix component itself
+  };
 
   const closePermissionMatrix = () => {
     setShowPermissionMatrix(false);

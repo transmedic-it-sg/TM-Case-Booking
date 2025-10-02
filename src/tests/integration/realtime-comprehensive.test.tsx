@@ -43,7 +43,8 @@ const ComprehensiveRealtimeComponent: React.FC = () => {
     settings: null
   });
 
-  const runComprehensiveValidation = async () => {try {
+  const runComprehensiveValidation = async () => {
+    try {
       const results = {
         cases: await cases.validateComponent(),
         users: await users.validateComponent(),
@@ -54,7 +55,8 @@ const ComprehensiveRealtimeComponent: React.FC = () => {
 
       setTestResults(results);
 
-      const allValid = Object.values(results).every(result => result === true);return allValid;
+      const allValid = Object.values(results).every(result => result === true);
+      return allValid;
     } catch (error) {
       console.error('🧪 Comprehensive validation failed:', error);
       return false;
@@ -497,7 +499,8 @@ describe('Comprehensive Real-time System Integration Tests', () => {
 
     // Performance assertions
     expect(loadTime).toBeLessThan(30000); // Should load within 30 seconds
-    expect(requestCount).toBeGreaterThan(40); // Each instance makes multiple requests});
+    expect(requestCount).toBeGreaterThan(40); // Each instance makes multiple requests
+  });
 
   test('should validate real-time subscriptions are working', async () => {
     // This test would require actual Supabase real-time subscriptions

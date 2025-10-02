@@ -259,7 +259,9 @@ export const lookupOperations = {
 
 export const auditOperations = {
   logAction: async (action: string, details: any) => {
-    // Legacy audit logging - could implement actual logging here}
+    // Legacy audit logging - could implement actual logging here
+    console.log('Audit log:', { action, details });
+  }
 };
 
 export const subscriptions = {

@@ -20,7 +20,9 @@ const HybridLogin: React.FC<HybridLoginProps> = ({ onLogin }) => {
     const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
     if (supabaseUrl && supabaseKey && supabaseUrl !== 'your-supabase-project-url') {
-      setUseSupabase(true);} else {');
+      setUseSupabase(true);
+    } else {
+      setUseSupabase(false);
     }
   }, []);
 

@@ -310,7 +310,9 @@ export const useOptimisticCaseMutation = () => {
       console.error('Case mutation failed:', error);
     },
     onSuccess: () => {
-      // The real-time subscription will automatically update the cache},
+      // The real-time subscription will automatically update the cache
+      console.log('Case mutation succeeded');
+    },
   });
 };
 
@@ -320,7 +322,8 @@ export const useOptimisticCaseMutation = () => {
 export const useForceRefreshAll = () => {
   const queryClient = useQueryClient();
 
-  return useCallback(() => {// Invalidate all queries
+  return useCallback(() => {
+    // Invalidate all queries
     queryClient.invalidateQueries();
 
     // Clear query cache entirely

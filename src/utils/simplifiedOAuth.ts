@@ -25,7 +25,11 @@ const getRedirectUri = (): string => {
   const origin = window.location.origin;
 
   // Log the current environment for debugging (only once)
-  if (!environmentLogged) {|| window.location.hostname.includes('vercel.com'),
+  if (!environmentLogged) {
+    console.log('OAuth Environment:', {
+      origin,
+      hostname: window.location.hostname,
+      isVercel: window.location.hostname.includes('vercel.com'),
       isProd: process.env.NODE_ENV === 'production'
     });
 
@@ -150,15 +154,22 @@ class SimplifiedOAuthManager {
       scope: this.config.config.scopes.join(' '),
       redirect_uri: this.config.config.redirectUri,
       state: state || `${this.provider}_${Date.now()}`
-    };+ '...',
+    };
+
+    console.log('Auth URL params:', {
+      clientId: this.config.config.clientId.substring(0, 8) + '...',
       redirectUri: this.config.config.redirectUri,
       scopes: this.config.config.scopes
     });
 
     // Add PKCE for Microsoft (required) and Google (recommended)
-    if (this.provider === 'microsoft' || this.provider === 'google') {this.pkceChallenge = await generatePKCEChallenge();
+    if (this.provider === 'microsoft' || this.provider === 'google') {
+      this.pkceChallenge = await generatePKCEChallenge();
       params.code_challenge = this.pkceChallenge.codeChallenge;
-      params.code_challenge_method = 'S256';+ '...',
+      params.code_challenge_method = 'S256';
+      
+      console.log('PKCE Challenge:', {
+        challenge: this.pkceChallenge.codeChallenge.substring(0, 8) + '...',
         method: 'S256'
       });
     }
@@ -166,9 +177,13 @@ class SimplifiedOAuthManager {
     // Provider-specific parameters
     if (this.provider === 'google') {
       params.access_type = 'offline'; // For refresh tokens
-      params.prompt = 'consent'; // Force consent to get refresh token}
+      params.prompt = 'consent'; // Force consent to get refresh token
+    }
 
-    const authUrl = `${this.config.authUrl}?${new URLSearchParams(params).toString()}`;return authUrl;
+    const authUrl = `${this.config.authUrl}?${new URLSearchParams(params).toString()}`;
+    
+    console.log('Generated auth URL for', this.provider);
+    return authUrl;
   }
 
   /**
@@ -185,7 +200,10 @@ class SimplifiedOAuthManager {
       grant_type: 'authorization_code',
       redirect_uri: this.config.config.redirectUri,
       code_verifier: this.pkceChallenge.codeVerifier // PKCE code verifier
-    });+ '...',
+    });
+
+    console.log('Token exchange request:', {
+      clientId: this.config.config.clientId.substring(0, 8) + '...',
       hasCode: !!code,
       codeLength: code.length
     });
@@ -583,9 +601,12 @@ export const authenticateWithPopup = async (
 ): Promise<{ tokens: AuthTokens; userInfo: UserInfo }> => {const oauth = createOAuthManager(provider);
 
   try {
-    // Generate auth URL with PKCE (async operation)const authUrl = await oauth.getAuthUrl(`${country}_${Date.now()}`);+ '...');
+    // Generate auth URL with PKCE (async operation)
+    const authUrl = await oauth.getAuthUrl(`${country}_${Date.now()}`);
+    console.log(`[OAuth] Opening popup for ${provider}:`, authUrl.substring(0, 50) + '...');
 
-    return new Promise((resolve, reject) => {const popup = window.open(
+    return new Promise((resolve, reject) => {
+      const popup = window.open(
         authUrl,
         'oauth_auth',
         'width=500,height=600,scrollbars=yes,resizable=yes'

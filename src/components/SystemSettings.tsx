@@ -163,21 +163,21 @@ const SystemSettings: React.FC = () => {
 
     // Check localStorage settings
     const checks: Array<{ name: string; expected: string | null; actual: string | null }> = [
-      { name: 'Session Timeout', expected: (savedConfig.sessionTimeout * 1000).toString(), actual: null // Use Supabase system_settings table },
-      { name: 'Default Theme', expected: savedConfig.defaultTheme, actual: null // Use Supabase system_settings table },
-      { name: 'Cache Timeout', expected: savedConfig.cacheTimeout.toString(), actual: null // Use Supabase system_settings table },
-      { name: 'Max File Size', expected: savedConfig.maxFileSize.toString(), actual: null // Use Supabase system_settings table },
-      { name: 'Audit Log Retention', expected: savedConfig.auditLogRetention.toString(), actual: null // Use Supabase system_settings table },
-      { name: 'Amendment Time Limit', expected: savedConfig.amendmentTimeLimit.toString(), actual: null // Use Supabase system_settings table },
-      { name: 'Max Amendments Per Case', expected: savedConfig.maxAmendmentsPerCase.toString(), actual: null // Use Supabase system_settings table },
-      { name: 'Password Complexity', expected: savedConfig.passwordComplexity.toString(), actual: null // Use Supabase system_settings table },
+      { name: 'Session Timeout', expected: (savedConfig.sessionTimeout * 1000).toString(), actual: null }, // Use Supabase system_settings table
+      { name: 'Default Theme', expected: savedConfig.defaultTheme, actual: null }, // Use Supabase system_settings table
+      { name: 'Cache Timeout', expected: savedConfig.cacheTimeout.toString(), actual: null }, // Use Supabase system_settings table
+      { name: 'Max File Size', expected: savedConfig.maxFileSize.toString(), actual: null }, // Use Supabase system_settings table
+      { name: 'Audit Log Retention', expected: savedConfig.auditLogRetention.toString(), actual: null }, // Use Supabase system_settings table
+      { name: 'Amendment Time Limit', expected: savedConfig.amendmentTimeLimit.toString(), actual: null }, // Use Supabase system_settings table
+      { name: 'Max Amendments Per Case', expected: savedConfig.maxAmendmentsPerCase.toString(), actual: null }, // Use Supabase system_settings table
+      { name: 'Password Complexity', expected: savedConfig.passwordComplexity.toString(), actual: null }, // Use Supabase system_settings table
     ];
 
     // Special checks for maintenance mode (removed when false)
     if (savedConfig.maintenanceMode) {
-      checks.push({ name: 'Maintenance Mode', expected: 'true', actual: null // Use Supabase system_settings table });
+      checks.push({ name: 'Maintenance Mode', expected: 'true', actual: null }); // Use Supabase system_settings table
     } else {
-      checks.push({ name: 'Maintenance Mode', expected: null, actual: null // Use Supabase system_settings table });
+      checks.push({ name: 'Maintenance Mode', expected: null, actual: null }); // Use Supabase system_settings table
     }
 
     checks.forEach(check => {
@@ -189,7 +189,8 @@ const SystemSettings: React.FC = () => {
         actual: check.actual
       });
 
-      if (isValid) {`);
+      if (isValid) {
+        console.log(`✅ ${check.name}: Valid`);
       } else {
         console.warn(`❌ ${check.name}: Expected "${check.expected}", got "${check.actual}"`);
       }

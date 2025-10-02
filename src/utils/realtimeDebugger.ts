@@ -51,7 +51,8 @@ class RealtimeDebugger {
 
     // Log to console in development
     if (process.env.NODE_ENV === 'development') {
-      const emoji = this.getEventEmoji(type);}]`, {
+      const emoji = this.getEventEmoji(type);
+      console.log(`${emoji} [${type.toUpperCase()}]`, {
         table: data.table,
         message: data.message,
         reconnectAttempt: data.reconnectAttempt,
@@ -231,7 +232,7 @@ if (process.env.NODE_ENV === 'development') {
   setInterval(() => {
     const metrics = realtimeDebugger.getConnectionMetrics();
     if (!metrics.isHealthy) {
-      console.warn('🚨 REAL-TIME HEALTH CHECK FAILED'););
+      console.warn('🚨 REAL-TIME HEALTH CHECK FAILED');
     }
   }, 60000);
 }

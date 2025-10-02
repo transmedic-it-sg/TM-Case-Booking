@@ -167,7 +167,7 @@ class EnterpriseCache {
     }
 
     keysToDelete.forEach(key => {
-      this.cache.delete(key);`);
+      this.cache.delete(key);
     });
 
     // Notify subscribers
@@ -321,7 +321,8 @@ class EnterpriseCache {
       this.subscribers.clear();
 
       // Clear cache data
-      this.cache.clear();} catch (error) {
+      this.cache.clear();
+    } catch (error) {
       console.error('Error during cache cleanup:', error);
     }
   }
@@ -373,7 +374,8 @@ export const getSafeCacheInstance = (): EnterpriseCache | null => {
 export const destroyCache = (): void => {
   if (cacheInstance) {
     cacheInstance.destroy();
-    cacheInstance = null;}
+    cacheInstance = null;
+  }
 };
 
 export { EnterpriseCache };

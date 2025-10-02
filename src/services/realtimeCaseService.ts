@@ -42,13 +42,15 @@ class RealtimeCaseService {
    * Get all cases - ALWAYS FRESH from database
    * NO CACHING - every call hits Supabase directly
    */
-  async getAllCases(): Promise<CaseBooking[]> {...');
+  async getAllCases(): Promise<CaseBooking[]> {
+    console.log('Getting all cases from database...');
 
     try {
       // Always check database first - no cache considerations
       const casesExist = await checkCasesExist();
 
-      if (!casesExist) {await migrateCasesFromLocalStorage();
+      if (!casesExist) {
+        await migrateCasesFromLocalStorage();
       }
 
       // Get current user to filter by country if not admin

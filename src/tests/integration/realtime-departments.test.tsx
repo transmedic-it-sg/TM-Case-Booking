@@ -64,7 +64,7 @@ const TestDepartmentsComponent: React.FC = () => {
     <div>
       <div data-testid="loading">{isLoading ? 'Loading' : 'Loaded'}</div>
       <div data-testid="mutating">{isMutating ? 'Mutating' : 'Not Mutating'}</div>
-      <div data-testid="error">{error ? (error instanceof Error ? error.message : String(error)) : 'No Error'}</div>
+      <div data-testid="error">{error ? (error instanceof Error ? error.message : JSON.stringify(error)) : 'No Error'}</div>
       <div data-testid="departments-count">{departments.length}</div>
       <div data-testid="doctors-count">{doctors.length}</div>
       <div data-testid="selected-department">

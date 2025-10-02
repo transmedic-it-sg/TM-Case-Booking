@@ -97,7 +97,8 @@ class PushNotificationService {
   async unsubscribeFromPush(): Promise<boolean> {
     try {
       this.config.enabled = false;
-      // In a real implementation, you'd unsubscribe from push servicereturn true;
+      // In a real implementation, you'd unsubscribe from push service
+      return true;
     } catch (error) {
       console.error('Push unsubscription failed:', error);
       return false;

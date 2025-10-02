@@ -106,7 +106,8 @@ export const addAuditLog = async (
         // Keep only the latest 1000 audit entries to prevent localStorage bloat
         const trimmedLogs = updatedLogs.slice(0, 1000);
 
-        // Audit logs in audit_logs table);
+        // Store logs in localStorage (fallback only)
+        localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify(trimmedLogs));
       } else {
         throw error;
       }
@@ -170,7 +171,7 @@ export const getAuditLogs = async (): Promise<AuditLogEntry[]> => {
  */
 const getAuditLogsFromLocalStorage = async (): Promise<AuditLogEntry[]> => {
   try {
-    const logs = null /* Use Supabase audit_logs table */;
+    const logs = localStorage.getItem(AUDIT_LOGS_KEY);
     if (logs) {
       return JSON.parse(logs);
     }
@@ -230,7 +231,7 @@ export const clearOldAuditLogs = async (): Promise<number> => {
     // Calculate cutoff date based on configured retention period
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-    const cutoffDateString = cutoffDate.toISOString();`);
+    const cutoffDateString = cutoffDate.toISOString();
 
     // Delete from Supabase
     const { data: logsToDelete, error: selectError } = await supabase
@@ -254,7 +255,8 @@ export const clearOldAuditLogs = async (): Promise<number> => {
       if (deleteError) {
         console.error('Error deleting old audit logs:', deleteError);
         throw deleteError;
-      }} else {}
+      }
+    }
 
     // Also clear from localStorage as backup
     try {
@@ -262,7 +264,9 @@ export const clearOldAuditLogs = async (): Promise<number> => {
       const filteredLocalLogs = localLogs.filter(log =>
         new Date(log.timestamp) > cutoffDate
       );
-      // Audit logs in audit_logs table);} catch (localError) {
+      // Store filtered logs back to localStorage (if needed)
+      // Note: We're using Supabase primarily, localStorage is just fallback
+    } catch (localError) {
       console.warn('Could not clear localStorage audit logs:', localError);
     }
 

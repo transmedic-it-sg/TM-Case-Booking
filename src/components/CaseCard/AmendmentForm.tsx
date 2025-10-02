@@ -169,7 +169,10 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     }
   };
 
-  // Debug logging to track modal renderingreturn (
+  // Debug logging to track modal rendering
+  console.log('Rendering AmendmentForm modal');
+  
+  return (
     <div className="amendment-form-overlay">
       <div className="amendment-form-modal">
         <form onSubmit={handleSubmit} className="amendment-form">

@@ -163,7 +163,8 @@ const PermissionMatrixPage: React.FC = () => {
             </button>
             <button
               className="btn btn-outline-secondary btn-sm"
-              onClick={() => {);
+              onClick={() => {
+                // Show testing report functionality
               }}
               disabled={isLoading || isMutating}
               style={{ padding: '5px 10px', fontSize: '12px' }}
@@ -207,14 +208,18 @@ const PermissionMatrixPage: React.FC = () => {
           </div>
         </div>
         <div className="role-definitions">
-          {roles.map(role => (
-            <div key={role.id} className="role-definition">
-              <div className="role-badge" style={{ backgroundColor: role.color }}>
-                {role.displayName}
+          {roles && Array.isArray(roles) && roles.length > 0 && roles.map(role => {
+            // Type assertion for role object
+            const roleObj = role as { id: string; color: string; displayName: string; description: string };
+            return roleObj && roleObj.id ? (
+              <div key={roleObj.id} className="role-definition">
+                <div className="role-badge" style={{ backgroundColor: roleObj.color }}>
+                  {roleObj.displayName}
+                </div>
+                <p>{roleObj.description}</p>
               </div>
-              <p>{role.description}</p>
-            </div>
-          ))}
+            ) : null;
+          })}
         </div>
 
         <div className="system-notes">

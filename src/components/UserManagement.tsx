@@ -1127,7 +1127,8 @@ const UserManagement: React.FC = () => {
                 {process.env.NODE_ENV === 'development' && (
                   <button
                     onClick={async () => {
-                      const result = await validateComponent(););
+                      const result = await validateComponent();
+                      console.log('Validation result:', result);
                     }}
                     className="test-btn"
                     title="Validate real-time functionality"

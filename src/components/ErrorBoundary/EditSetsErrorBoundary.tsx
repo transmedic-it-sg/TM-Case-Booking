@@ -115,7 +115,9 @@ const EditSetsErrorBoundary: React.FC<{
       )}
       onError={handleError}
       onReset={() => {
-        // Clear any error state, reset forms, etc.}}
+        // Clear any error state, reset forms, etc.
+        console.log('Error boundary reset');
+      }}
     >
       {children}
     </ErrorBoundary>

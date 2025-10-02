@@ -125,7 +125,9 @@ export const useRealtimeData = (configs: RealtimeConfig[]) => {
           }
         )
         .subscribe((status) => {
-          if (isCleanupRef.current) return; // Ignore status updates during cleanupif (status === 'SUBSCRIBED') {
+          if (isCleanupRef.current) return; // Ignore status updates during cleanup
+          
+          if (status === 'SUBSCRIBED') {
             realtimeDebugger.logEvent('connection', {
               table: config.table,
               message: 'Successfully subscribed'

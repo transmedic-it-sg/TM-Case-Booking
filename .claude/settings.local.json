@@ -75,7 +75,11 @@
       "Bash(claude mcp:*)",
       "Bash(npx ts-node:*)",
       "Bash(npx typescript:*)",
-      "Bash(node_modules/.bin/tsc:*)"
+      "Bash(node_modules/.bin/tsc:*)",
+      "Bash(git config:*)",
+      "Bash(npx vercel:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(git cherry-pick:*)"
     ],
     "deny": [],
     "ask": [],

@@ -10,13 +10,37 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { createTestQueryClient, server } from '../setup';
 import { rest } from 'msw';
 import CasesList from '../../components/CasesList';
-import { RealtimeProvider } from '../../components/RealtimeProvider';
 import { NotificationProvider } from '../../contexts/NotificationContext';
 import { SoundProvider } from '../../contexts/SoundContext';
 
+// Mock the useRealtime hook
+jest.mock('../../components/RealtimeProvider', () => ({
+  useRealtime: () => ({
+    casesConnected: true,
+    usersConnected: true,
+    masterDataConnected: true,
+    connectionQuality: 'excellent',
+    overallStatus: 'connected',
+    forceRefreshAll: jest.fn(),
+    lastRefresh: new Date(),
+    errors: [],
+    refreshes: 0
+  }),
+  RealtimeProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
+}));
+
+// Mock RealtimeProvider for testing
+const MockRealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <div data-testid="mock-realtime-provider">
+      {children}
+    </div>
+  );
+};
+
 // Mock user data
 const mockCurrentUser = {
-  id: 'test-user-1',
+  id: '550e8400-e29b-41d4-a716-446655440000',
   username: 'testuser',
   password: 'test-password',
   name: 'Test User',
@@ -31,7 +55,7 @@ const mockCurrentUser = {
 // Mock cases data
 const mockCases = [
   {
-    id: 'case-1',
+    id: '550e8400-e29b-41d4-a716-446655440001',
     caseReferenceNumber: 'TC-2025-001',
     hospital: 'Singapore General Hospital',
     department: 'Cardiology',
@@ -50,7 +74,7 @@ const mockCases = [
     updated_at: new Date().toISOString()
   },
   {
-    id: 'case-2',
+    id: '550e8400-e29b-41d4-a716-446655440002',
     caseReferenceNumber: 'TC-2025-002',
     hospital: 'Mount Elizabeth Hospital',
     department: 'Orthopedics',
@@ -76,13 +100,9 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <RealtimeProvider>
-        <SoundProvider>
-          <NotificationProvider>
-            {children}
-          </NotificationProvider>
-        </SoundProvider>
-      </RealtimeProvider>
+      <MockRealtimeProvider>
+        {children}
+      </MockRealtimeProvider>
     </QueryClientProvider>
   );
 };

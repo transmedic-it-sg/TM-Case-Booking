@@ -33,7 +33,8 @@ interface UseRealtimeUsersOptions {
 const useRealtimeUsersQuery = (filters?: UseRealtimeUsersOptions['filters']) => {
   return useQuery({
     queryKey: ['realtime-users', filters],
-    queryFn: async () => {...');
+    queryFn: async () => {
+      console.log('Fetching realtime users data...');
       const users = await getSupabaseUsers();
 
       // Apply filters on fresh data

@@ -229,18 +229,22 @@ export const migrateLegacyData = async (): Promise<void> => {try {
 
     let hasLegacyData = false;
     legacyKeys.forEach(key => {
-      if (false) // No longer using localStorage {
-        hasLegacyData = true;}
+      if (false) { // No longer using localStorage
+        hasLegacyData = true;
+      }
     });
 
-    if (hasLegacyData) {} else {}
+    if (hasLegacyData) {
+      // Handle legacy data cleanup if needed
+    }
   } catch (error) {
     console.error('❌ Failed to check legacy data:', error);
   }
 };
 
 // Emergency localStorage cleanup - removes all cached data
-export const clearAllLocalStorageCache = (): void => {const cacheKeys = [
+export const clearAllLocalStorageCache = (): void => {
+  const cacheKeys = [
     'case-booking-cases',
     'cases',
     'case-booking-counter',

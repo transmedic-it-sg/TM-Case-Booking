@@ -592,14 +592,14 @@ Best regards,
         providers: {
           google: {
             provider: 'google',
-            isAuthenticated: googleValid,
+            isAuthenticated: googleValid ?? false,
             tokens: updatedGoogleTokens || undefined,
             userInfo: googleUserInfo || undefined,
             fromName: existingConfig?.providers?.google?.fromName || 'Case Booking System'
           },
           microsoft: {
             provider: 'microsoft',
-            isAuthenticated: microsoftValid,
+            isAuthenticated: microsoftValid ?? false,
             tokens: updatedMicrosoftTokens || undefined,
             userInfo: microsoftUserInfo || undefined,
             fromName: existingConfig?.providers?.microsoft?.fromName || 'Case Booking System'
@@ -690,12 +690,15 @@ Best regards,
     setIsAuthenticating(prev => ({ ...prev, [provider]: true }));
     setAuthError('');
 
-    try {+ '...' : process.env.REACT_APP_GOOGLE_CLIENT_ID?.substring(0, 8) + '...',
-        redirectUri: `${window.location.origin}/auth/callback`,
-        currentOrigin: window.location.origin
-      });
+    try {
+      console.log('Starting OAuth authentication for:', provider);
+      console.log('Client ID:', clientId?.substring(0, 8) + '...');
+      console.log('Redirect URI:', `${window.location.origin}/auth/callback`);
+      console.log('Current Origin:', window.location.origin);
 
-      const { tokens, userInfo } = await authenticateWithPopup(provider, selectedCountry);// Update configuration
+      const { tokens, userInfo } = await authenticateWithPopup(provider, selectedCountry);
+      
+      // Update configuration
       const updatedConfigs = {
         ...emailConfigs,
         [selectedCountry]: {

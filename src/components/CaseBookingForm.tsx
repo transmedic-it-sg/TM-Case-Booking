@@ -41,11 +41,13 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
   // Real-time master data queries - always fresh data
 
   // Debug user country for hospitals loading issue
-  const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];const { data: departments = [] } = useRealtimeMasterDataQuery('departments', userCountry);
+  const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
+  const { data: departments = [] } = useRealtimeMasterDataQuery('departments', userCountry);
   const { data: hospitals = [] } = useRealtimeMasterDataQuery('hospitals', userCountry);
   const { data: procedures = [] } = useRealtimeMasterDataQuery('procedures', userCountry);
 
-  // Debug query resultsconst getDefaultDate = () => {
+  // Debug query results
+  const getDefaultDate = () => {
     return addDaysForInput(3);
   };
 
@@ -108,7 +110,8 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
       // Clear the pre-fill data from localStorage
       localStorage.removeItem('calendar_prefill_date');
-      localStorage.removeItem('calendar_prefill_department');}
+      localStorage.removeItem('calendar_prefill_department');
+    }
   }, []);
 
   // Load hospitals and doctors when component mounts
@@ -149,9 +152,10 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           hospitalTable = countryTables.find(table => table.id === 'hospitals');
         }
 
-        const hospitals = hospitalTable?.items || [];// Hospitals loaded via real-time query above
+        const hospitals = hospitalTable?.items || []; // Hospitals loaded via real-time query above
 
-        // Doctors will be loaded when department is selectedsetAvailableDoctors([]);
+        // Doctors will be loaded when department is selected
+        setAvailableDoctors([]);
 
       } catch (error) {
         console.error('Error loading initial data:', error);
@@ -181,7 +185,8 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       try {
         setIsLoadingDoctors(true);
         const normalizedCountry = normalizeCountry(userCountry);
-        const doctors = await getDoctorsForDepartment(formData.department, normalizedCountry);setAvailableDoctors(doctors);
+        const doctors = await getDoctorsForDepartment(formData.department, normalizedCountry);
+        setAvailableDoctors(doctors);
 
         // Clear doctor selection when department changes
         setFormData(prev => ({ ...prev, doctorId: '', doctorName: '' }));
@@ -214,7 +219,8 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       try {
         setIsLoadingProcedures(true);
         const normalizedCountry = normalizeCountry(userCountry);
-        const procedures = await getProceduresForDoctor(formData.doctorId, normalizedCountry);setAvailableDoctorProcedures(procedures);
+        const procedures = await getProceduresForDoctor(formData.doctorId, normalizedCountry);
+        setAvailableDoctorProcedures(procedures);
 
         // Clear procedure selection and downstream data when doctor changes
         setFormData(prev => ({ ...prev, procedureType: '', surgerySetSelection: [], implantBox: [], quantities: {} }));
@@ -247,7 +253,8 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       try {
         setIsLoadingSets(true);
         const normalizedCountry = normalizeCountry(userCountry);
-        const sets = await getSetsForDoctorProcedure(formData.doctorId, formData.procedureType, normalizedCountry);setAvailableProcedureSets(sets);
+        const sets = await getSetsForDoctorProcedure(formData.doctorId, formData.procedureType, normalizedCountry);
+        setAvailableProcedureSets(sets);
 
         // Clear set selections and quantities when doctor/procedure changes
         setFormData(prev => ({ ...prev, surgerySetSelection: [], implantBox: [], quantities: {} }));
@@ -283,7 +290,8 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               // Procedures now loaded via real-time query above - no manual fetching needed
 
               if (isActive) {
-                // Procedures now loaded via real-time query - no manual setting needed(departmentProcedureTypes.sort());
+                // Procedures now loaded via real-time query - no manual setting needed
+                // (departmentProcedureTypes.sort());
               }
 
               // Surgery Sets and Implant Boxes are now loaded independently
@@ -292,23 +300,27 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               console.error('Error loading department data:', error);
               // Fallback to empty data
               if (isActive) {
-                // Procedures now loaded via real-time query - no manual setting needed([]);
+                // Procedures now loaded via real-time query - no manual setting needed
+                // ([]);
               }
             }
           } else {
             if (isActive) {
-              // Procedures now loaded via real-time query - no manual setting needed([]);
+              // Procedures now loaded via real-time query - no manual setting needed
+              // ([]);
             }
           }
         } else {
           if (isActive) {
-            // Procedures now loaded via real-time query - no manual setting needed([]);
+            // Procedures now loaded via real-time query - no manual setting needed
+            // ([]);
           }
         }
       } else {
         // Clear data when no department selected
         if (isActive) {
-          // Procedures now loaded via real-time query - no manual setting needed([]);
+          // Procedures now loaded via real-time query - no manual setting needed
+          // ([]);
         }
       }
     };
@@ -570,7 +582,8 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         console.error('Failed to log case creation audit:', error);
       }
 
-      // Enhanced email notification temporarily disabled during TypeScript cleanupshowSuccess('Case Submitted Successfully!', `Case ${newCase.caseReferenceNumber} has been submitted successfully.`);
+      // Enhanced email notification temporarily disabled during TypeScript cleanup
+      showSuccess('Case Submitted Successfully!', `Case ${newCase.caseReferenceNumber} has been submitted successfully.`);
 
       setFormData({
         hospital: '',
@@ -919,7 +932,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           />
         </div>
 
-          <div className="form-actions">
+        <div className="form-actions">
             <button
               type="button"
               onClick={handleClearForm}

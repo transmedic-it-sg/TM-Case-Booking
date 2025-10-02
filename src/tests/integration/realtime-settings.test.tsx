@@ -62,7 +62,7 @@ const TestSettingsComponent: React.FC = () => {
     <div>
       <div data-testid="loading">{isLoading ? 'Loading' : 'Loaded'}</div>
       <div data-testid="mutating">{isMutating ? 'Mutating' : 'Not Mutating'}</div>
-      <div data-testid="error">{error ? (error instanceof Error ? error.message : String(error)) : 'No Error'}</div>
+      <div data-testid="error">{error ? (error instanceof Error ? error.message : JSON.stringify(error)) : 'No Error'}</div>
       <div data-testid="settings-data">{JSON.stringify(settings)}</div>
 
       <div data-testid="sound-enabled">
@@ -135,8 +135,8 @@ describe('Real-time Settings Integration Tests', () => {
         return res(
           ctx.json([
             {
-              id: 'setting-1',
-              userId: 'test-user-1',
+              id: '550e8400-e29b-41d4-a716-446655440001',
+              userId: '550e8400-e29b-41d4-a716-446655440000',
               soundEnabled: true,
               soundVolume: 0.5,
               notificationsEnabled: false,
@@ -250,7 +250,7 @@ describe('Real-time Settings Integration Tests', () => {
         updateCalled = true;
         return res(
           ctx.json({
-            id: 'setting-1',
+            id: '550e8400-e29b-41d4-a716-446655440001',
             soundEnabled: false,
             updated_at: new Date().toISOString()
           })
@@ -261,7 +261,7 @@ describe('Real-time Settings Integration Tests', () => {
         resetCalled = true;
         return res(
           ctx.json({
-            id: 'setting-1',
+            id: '550e8400-e29b-41d4-a716-446655440001',
             soundEnabled: true,
             soundVolume: 0.5,
             notificationsEnabled: false,
@@ -418,7 +418,7 @@ describe('Real-time Settings Integration Tests', () => {
           firstDeviceUpdate = true;
           return res(
             ctx.json({
-              id: 'setting-1',
+              id: '550e8400-e29b-41d4-a716-446655440001',
               soundEnabled: false,
               sync_source: 'Device1',
               updated_at: new Date().toISOString()
@@ -428,7 +428,7 @@ describe('Real-time Settings Integration Tests', () => {
           secondDeviceUpdate = true;
           return res(
             ctx.json({
-              id: 'setting-1',
+              id: '550e8400-e29b-41d4-a716-446655440001',
               theme: 'dark',
               sync_source: 'Device2',
               updated_at: new Date().toISOString()

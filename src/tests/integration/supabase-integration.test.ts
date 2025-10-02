@@ -48,7 +48,8 @@ describe('Supabase Integration Tests', () => {
       // Each call should take reasonable time (hitting database)
       expect(time1).toBeGreaterThan(10); // Not cached/mocked
       expect(time2 - time1).toBeGreaterThan(10); // Second call also hits DB
-      expect(time3 - time2).toBeGreaterThan(10); // Third call also hits DB}, 15000);
+      expect(time3 - time2).toBeGreaterThan(10); // Third call also hits DB
+    }, 15000);
   });
 
   describe('Real-time Subscription Tests', () => {
@@ -140,7 +141,7 @@ describe('Supabase Integration Tests', () => {
 
       // Average time per call should be reasonable
       const avgTimePerCall = totalTime / concurrentCalls;
-      expect(avgTimePerCall).toBeLessThan(2000); // Should average less than 2 seconds per call`);
+      expect(avgTimePerCall).toBeLessThan(2000); // Should average less than 2 seconds per call
     }, 30000);
 
     test('should maintain performance under load', async () => {
@@ -157,13 +158,16 @@ describe('Supabase Integration Tests', () => {
 
       expect(metrics.totalUpdates).toBe(5);
       expect(metrics.averageUpdateTime).toBeLessThan(2000); // Average should be reasonable
-      expect(metrics.updatesPerSecond).toBeGreaterThan(0);}, 15000);
+      expect(metrics.updatesPerSecond).toBeGreaterThan(0);
+    }, 15000);
   });
 
   describe('Comprehensive Validation', () => {
     test('should pass complete overhaul validation', async () => {
       const validationResult = await validator.validateCompleteOverhaul();
-      const report = validator.generateReport(validationResult);// Should have minimal critical issues
+      const report = validator.generateReport(validationResult);
+      
+      // Should have minimal critical issues
       expect(validationResult.criticalIssues.length).toBeLessThanOrEqual(2); // Allow for minor issues
 
       // Key components should pass

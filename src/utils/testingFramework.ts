@@ -113,7 +113,8 @@ class TestingFramework {
     const startTime = Date.now();
     const testName = `React Query - ${queryKey.join('.')}`;
 
-    try {}...`);
+    try {
+      console.log(`Testing React Query integration for ${queryKey.join('...')}`);
 
       if (!this.queryClient) {
         throw new Error('QueryClient not provided to testing framework');
@@ -207,7 +208,9 @@ class TestingFramework {
     const startTime = Date.now();
     const testName = `Component Test - ${componentName}`;
 
-    try {const passed = await testFunction();
+    try {
+      console.log(`Testing component: ${componentName}`);
+      const passed = await testFunction();
       const duration = Date.now() - startTime;
 
       const result: TestResult = {
@@ -244,11 +247,14 @@ class TestingFramework {
    */
   monitorPerformance(componentName: string) {
     const startTime = performance.now();
-    let updateCount = 0;return {
+    let updateCount = 0;
+    
+    return {
       recordUpdate: () => {
         updateCount++;
         const currentTime = performance.now();
-        const elapsedTime = currentTime - startTime;}ms`);
+        const elapsedTime = currentTime - startTime;
+        console.log(`Update ${updateCount} recorded at ${elapsedTime.toFixed(2)}ms`);
       },
 
       getMetrics: () => {
@@ -320,12 +326,15 @@ class TestingFramework {
         connected = status === 'SUBSCRIBED';});
 
       setTimeout(() => {
-        supabase.removeChannel(channel);}, 3000);
+        supabase.removeChannel(channel);
+      }, 3000);
     },
 
     cacheStatus: (queryClient: QueryClient) => {
       const cache = queryClient.getQueryCache();
-      const queries = cache.getAll();queries.forEach(query => {}: ${query.state.status}`);
+      const queries = cache.getAll();
+      queries.forEach(query => {
+        console.log(`Query ${query.queryHash}: ${query.state.status}`);
       });
     }
   };

@@ -13,11 +13,13 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 export const getCachedUsers = async (): Promise<User[]> => {
   const now = Date.now();
 
-  if (usersCache && (now - cacheTimestamp < CACHE_DURATION)) {');
+  if (usersCache && (now - cacheTimestamp < CACHE_DURATION)) {
     return usersCache;
-  }try {
+  }
+  
+  try {
     usersCache = await getUsers();
-    cacheTimestamp = now;));
+    cacheTimestamp = now;
     return usersCache;
   } catch (error) {
     console.error('❌ Error loading users for lookup:', error);
@@ -77,8 +79,11 @@ export const getUserNamesByIds = async (userIds: string[]): Promise<Record<strin
     if (result[userId] === userId && userId.includes('-')) {
       // Create a short readable identifier from UUID
       const shortId = userId.substring(0, 8);
-      result[userId] = `User ${shortId}`;}
-  });return result;
+      result[userId] = `User ${shortId}`;
+    }
+  });
+  
+  return result;
 };
 
 /**

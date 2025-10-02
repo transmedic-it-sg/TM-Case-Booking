@@ -69,7 +69,8 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
   // Auto-refresh fallback (backup for when real-time doesn't work)
   useEffect(() => {
     if (autoRefresh && refreshInterval > 0 && !enableRealTime) {
-      const interval = setInterval(() => {');
+      const interval = setInterval(() => {
+        console.log('Auto-refreshing cases data');
         refetch();
       }, refreshInterval);
       return () => clearInterval(interval);

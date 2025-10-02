@@ -60,12 +60,14 @@ class Logger {
   }
 
   debug(message: string, data?: any): void {
-    if (this.shouldLog('debug')) {: '');
+    if (this.shouldLog('debug')) {
+      console.debug(`🐛 ${message}`, data ? this.sanitizeData(data) : '');
     }
   }
 
   info(message: string, data?: any): void {
-    if (this.shouldLog('info')) {: '');
+    if (this.shouldLog('info')) {
+      console.info(`ℹ️ ${message}`, data ? this.sanitizeData(data) : '');
     }
   }
 

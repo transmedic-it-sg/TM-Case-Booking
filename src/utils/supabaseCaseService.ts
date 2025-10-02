@@ -919,7 +919,8 @@ export const amendSupabaseCase = async (
     if (historyError) {
       console.error('Error creating amendment history:', historyError);
 
-      // Try alternative approach - use upsert instead of insertconst { error: upsertError } = await supabase
+      // Try alternative approach - use upsert instead of insert
+      const { error: upsertError } = await supabase
         .from('amendment_history')
         .upsert([{
           ...historyEntry,
@@ -929,8 +930,11 @@ export const amendSupabaseCase = async (
       if (upsertError) {
         console.error('Upsert also failed:', upsertError);
         throw historyError; // Throw original error
-      } else {}
-    }} catch (error) {
+      } else {
+        console.log('Amendment history saved via upsert');
+      }
+    }
+  } catch (error) {
     console.error('Error in amendSupabaseCase:', error);
     throw error;
   }

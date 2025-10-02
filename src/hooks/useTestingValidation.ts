@@ -46,16 +46,19 @@ export const useTestingValidation = (config: ValidationConfig) => {
   };
 
   // Test real-time subscription
-  const testRealtimeSubscription = async (table: string) => {return await testingFramework.current.testRealtimeSubscription(table);
+  const testRealtimeSubscription = async (table: string) => {
+    return await testingFramework.current.testRealtimeSubscription(table);
   };
 
   // Test React Query integration
-  const testQueryIntegration = async (queryKey: string[], queryFn: () => Promise<any>) => {} in ${config.componentName}`);
+  const testQueryIntegration = async (queryKey: string[], queryFn: () => Promise<any>) => {
+    console.log(`Testing query integration in ${config.componentName}`);
     return await testingFramework.current.testReactQueryIntegration(queryKey, queryFn);
   };
 
   // Validate component state
-  const validateComponent = async (testFn: () => Promise<boolean>) => {return await testingFramework.current.testComponentWithRealtime(config.componentName, testFn);
+  const validateComponent = async (testFn: () => Promise<boolean>) => {
+    return await testingFramework.current.testComponentWithRealtime(config.componentName, testFn);
   };
 
   // Quick cache validation
@@ -70,7 +73,9 @@ export const useTestingValidation = (config: ValidationConfig) => {
 
   // Record validation result
   const recordValidation = (success: boolean, error?: string) => {
-    if (success) {} else {
+    if (success) {
+      console.log(`✅ Validation passed for ${config.componentName}`);
+    } else {
       console.error(`❌ Validation failed for ${config.componentName}: ${error}`);
     }
   };

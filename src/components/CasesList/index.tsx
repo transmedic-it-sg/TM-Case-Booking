@@ -200,7 +200,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       };
 
       setFilters(defaultFilters);
-      setTempFilters(defaultFilters);}
+      setTempFilters(defaultFilters);
+    }
   }, [cases, filters]); // Re-run when cases change or filters are cleared
 
   useEffect(() => {
@@ -380,8 +381,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
   const handleAmendCase = (caseItem: CaseBooking) => {
     // Prevent multiple clicks from opening multiple amendment forms
-    if (amendingCase) {return;
-    }// First, smoothly scroll to the case card
+    if (amendingCase) {
+      return;
+    }
+    
+    // First, smoothly scroll to the case card
     const caseElement = document.querySelector(`[data-case-id="${caseItem.id}"]`);
     if (caseElement) {
       caseElement.scrollIntoView({
@@ -403,7 +407,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
           timeOfProcedure: caseItem.timeOfProcedure,
           specialInstruction: caseItem.specialInstruction,
           amendmentReason: ''
-        });}, 300);
+        });
+      }, 300);
     } else {
       // If element not found, proceed without scrolling
       setAmendingCase(caseItem.id);
@@ -417,7 +422,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         timeOfProcedure: caseItem.timeOfProcedure,
         specialInstruction: caseItem.specialInstruction,
         amendmentReason: ''
-      });}
+      });
+    }
   };
 
   const handleSaveAmendment = async (amendmentFormData: any) => {
@@ -1062,7 +1068,9 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
           {/* Testing validation button (development only) */}
           {process.env.NODE_ENV === 'development' && (
             <button
-              onClick={() => {validateComponent().then(isValid => {);
+              onClick={() => {
+                validateComponent().then(isValid => {
+                  console.log('Component validation result:', isValid);
                 });
               }}
               className="btn btn-outline-info btn-sm"

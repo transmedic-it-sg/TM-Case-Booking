@@ -27,7 +27,9 @@ interface UseRealtimePermissionsOptions {
 const useRealtimePermissionsQuery = () => {
   return useQuery({
     queryKey: ['realtime-permissions'],
-    queryFn: async () => {const permissions = await getSupabasePermissions();return permissions;
+    queryFn: async () => {
+      const permissions = await getSupabasePermissions();
+      return permissions;
     },
     staleTime: 1000 * 30, // Consider data fresh for 30 seconds to reduce loops
     gcTime: 1000 * 60 * 5, // Cache for 5 minutes
@@ -41,7 +43,9 @@ const useRealtimePermissionsQuery = () => {
 const useRealtimeRolesQuery = () => {
   return useQuery({
     queryKey: ['realtime-roles'],
-    queryFn: async () => {const roles = getAllMatrixRoles(); // This includes both static and custom rolesreturn roles;
+    queryFn: async () => {
+      const roles = getAllMatrixRoles(); // This includes both static and custom roles
+      return roles;
     },
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes (roles don't change often)
     gcTime: 1000 * 60 * 10, // Cache for 10 minutes
@@ -55,7 +59,9 @@ const useRealtimeRolesQuery = () => {
 const useRealtimePermissionActionsQuery = () => {
   return useQuery({
     queryKey: ['realtime-permission-actions'],
-    queryFn: async () => {const actions = permissionActions;return actions;
+    queryFn: async () => {
+      const actions = permissionActions;
+      return actions;
     },
     staleTime: 1000 * 60 * 10, // Consider data fresh for 10 minutes (static data)
     gcTime: 1000 * 60 * 30, // Cache for 30 minutes (static data)
@@ -81,8 +87,8 @@ const useOptimisticPermissionMutation = () => {
       switch (action.type) {
         case 'update':
           return await updateSupabasePermission(
-            action.actionId!,
             action.roleId!,
+            action.actionId!,
             action.allowed!
           );
         case 'save':
@@ -170,7 +176,8 @@ export const useRealtimePermissions = (options: UseRealtimePermissionsOptions = 
   const error = permissionsError || rolesError || actionsError || localError;
 
   // Refresh permissions - forces fresh data fetch
-  const refreshPermissions = useCallback(async () => {setLocalError(null);
+  const refreshPermissions = useCallback(async () => {
+    setLocalError(null);
 
     if (enableTesting) {
       testing.recordUpdate();
@@ -184,7 +191,8 @@ export const useRealtimePermissions = (options: UseRealtimePermissionsOptions = 
   }, [refetchPermissions, refetchRoles, refetchActions, enableTesting, testing]);
 
   // Update single permission
-  const updatePermission = useCallback(async (actionId: string, roleId: string, allowed: boolean) => {setLocalError(null);
+  const updatePermission = useCallback(async (actionId: string, roleId: string, allowed: boolean) => {
+    setLocalError(null);
 
     try {
       const result = await permissionMutation.mutateAsync({
@@ -208,7 +216,8 @@ export const useRealtimePermissions = (options: UseRealtimePermissionsOptions = 
   }, [permissionMutation, enableTesting, testing]);
 
   // Save all permissions
-  const savePermissions = useCallback(async (updatedPermissions: Permission[]) => {setLocalError(null);
+  const savePermissions = useCallback(async (updatedPermissions: Permission[]) => {
+    setLocalError(null);
 
     try {
       const result = await permissionMutation.mutateAsync({
@@ -230,7 +239,8 @@ export const useRealtimePermissions = (options: UseRealtimePermissionsOptions = 
   }, [permissionMutation, enableTesting, testing]);
 
   // Reset permissions to defaults
-  const resetPermissions = useCallback(async () => {setLocalError(null);
+  const resetPermissions = useCallback(async () => {
+    setLocalError(null);
 
     try {
       const result = await permissionMutation.mutateAsync({
@@ -251,7 +261,8 @@ export const useRealtimePermissions = (options: UseRealtimePermissionsOptions = 
   }, [permissionMutation, enableTesting, testing]);
 
   // Toggle editing mode
-  const toggleEditing = useCallback(() => {setIsEditing(!isEditing);
+  const toggleEditing = useCallback(() => {
+    setIsEditing(!isEditing);
     setLocalError(null);
   }, [isEditing]);
 
@@ -263,7 +274,9 @@ export const useRealtimePermissions = (options: UseRealtimePermissionsOptions = 
 
   // Component validation for testing
   const validateComponent = useCallback(async (): Promise<boolean> => {
-    if (!enableTesting) return true;try {
+    if (!enableTesting) return true;
+
+    try {
       // Test permissions fetching
       const testPermissions = await refetchPermissions();
       if (!Array.isArray(testPermissions.data)) {
@@ -283,7 +296,8 @@ export const useRealtimePermissions = (options: UseRealtimePermissionsOptions = 
       }
 
       // Test functionality
-      testing.recordValidation(true);return true;
+      testing.recordValidation(true);
+      return true;
     } catch (error) {
       testing.recordValidation(false, error instanceof Error ? error.message : 'Validation failed');
       console.error('❌ useRealtimePermissions validation failed:', error);

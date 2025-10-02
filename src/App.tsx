@@ -91,12 +91,16 @@ const AppContent: React.FC = () => {
   // App version management with logout on version change - DYNAMIC VERSION TRACKING
   useEffect(() => {
     // Prevent double initialization in React Strict Mode
-    if (window.versionCheckInProgress) {return;
+    if (window.versionCheckInProgress) {
+      return;
     }
 
     window.versionCheckInProgress = true;
 
-    const versionCheck = initializeVersionManager();// Debug logging with current version// If app version or cache version changed, handle it
+    const versionCheck = initializeVersionManager();
+    
+    // Debug logging with current version
+    // If app version or cache version changed, handle it
     const anyVersionChanged = versionCheck.versionChanged || versionCheck.cacheVersionChanged;
 
     if (anyVersionChanged) {
@@ -110,8 +114,12 @@ const AppContent: React.FC = () => {
         changes.push(`Cache version: ${versionCheck.storedCacheVersion} → ${versionCheck.currentCacheVersion}`);
       }
 
-      updateMessage += changes.join(', ') + ' - clearing cache';// CRITICAL FIX: Update stored versions FIRST to prevent infinite loop
-      updateStoredAppVersion();if (versionCheck.userLoggedIn) {
+      updateMessage += changes.join(', ') + ' - clearing cache';
+      
+      // CRITICAL FIX: Update stored versions FIRST to prevent infinite loop
+      updateStoredAppVersion();
+      
+      if (versionCheck.userLoggedIn) {
         // Show popup for logged users
         setVersionUpdateInfo({
           currentVersion: `${versionCheck.currentVersion} (Cache: ${versionCheck.currentCacheVersion})`,
@@ -152,8 +160,11 @@ const AppContent: React.FC = () => {
       try {
         const existingUser = await UserService.getCurrentUser();
         if (existingUser && !user) {
-          setUser(existingUser);}
-      } catch (error) {}
+          setUser(existingUser);
+        }
+      } catch (error) {
+        // No existing user session found
+      }
     };
 
     initializeUserService();
@@ -465,7 +476,8 @@ const AppContent: React.FC = () => {
     // Clear UserService cache
     await UserService.logout();
 
-    // Clear permissions cache on logout to prevent stale permissions for next userconst { clearPermissionsCache } = await import('./utils/permissions');
+    // Clear permissions cache on logout to prevent stale permissions for next user
+    const { clearPermissionsCache } = await import('./utils/permissions');
     clearPermissionsCache();
 
     setUser(null);
@@ -535,7 +547,8 @@ const AppContent: React.FC = () => {
 
       // Navigate to cases view and highlight the specific case
       setHighlightedCaseId(caseId);
-      setActivePage('cases');} catch (error) {
+      setActivePage('cases');
+    } catch (error) {
       console.error('Error navigating to case from calendar:', error);
       // Still try to navigate to the cases page
       setHighlightedCaseId(caseId);
@@ -581,7 +594,8 @@ const AppContent: React.FC = () => {
 
     await logout();
 
-    // Clear permissions cache on maintenance mode logoutconst { clearPermissionsCache } = await import('./utils/permissions');
+    // Clear permissions cache on maintenance mode logout
+    const { clearPermissionsCache } = await import('./utils/permissions');
     clearPermissionsCache();
 
     setUser(null);

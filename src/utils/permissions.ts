@@ -128,7 +128,12 @@ export const hasPermissionForUser = (roleId: string, actionId: string, userId: s
 
   // Use cached database permissions for authorization
   const permission = cacheToUse.find(p => p.roleId === roleId && p.actionId === actionId);
-  const result = permission?.allowed || false;- cacheTimeToUse,
+  const result = permission?.allowed || false;
+
+  // Log permission check result for debugging
+  console.debug(`🔒 Permission check for ${roleId} - ${actionId}: ${result ? 'ALLOWED' : 'DENIED'}`, {
+    userId,
+    cacheTime: cacheTimeToUse,
     allPermissionsForRole: cacheToUse.filter(p => p.roleId === roleId).length
   });
 
@@ -155,7 +160,9 @@ export const initializePermissions = async (forceRefresh: boolean = false): Prom
         clearPermissionsCache();
       }
 
-      const permissions = await getRuntimePermissions();=> {
+      const permissions = await getRuntimePermissions();
+      
+      console.debug('📊 Permissions loaded:', permissions.reduce((acc, p) => {
           acc[p.roleId] = (acc[p.roleId] || 0) + (p.allowed ? 1 : 0);
           return acc;
         }, {} as Record<string, number>)
