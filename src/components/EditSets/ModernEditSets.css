@@ -36,9 +36,9 @@
 .tab-controls {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 24px;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
   position: relative;
   overflow: visible; /* Allow dropdowns to overflow the container */
 }
@@ -46,13 +46,13 @@
 .two-column-dropdowns {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 16px;
 }
 
 .three-column-dropdowns {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 20px;
+  gap: 16px;
 }
 
 /* Dropdown containers */
@@ -132,37 +132,13 @@
   min-height: 100vh;
 }
 
-/* Header Styling */
-.edit-sets-header {
-  text-align: center;
-  margin-bottom: 32px;
-  padding: 24px;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-  border-radius: var(--border-radius-large);
-  color: var(--white);
-  box-shadow: var(--shadow-medium);
-}
-
-.edit-sets-header h1 {
-  margin: 0 0 8px 0;
-  font-size: 2.5rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.edit-sets-header p {
-  margin: 0;
-  font-size: 1.1rem;
-  opacity: 0.9;
-  font-weight: 400;
-}
 
 /* Step Indicator */
 .edit-sets-steps {
   display: flex;
   gap: 16px;
   margin-bottom: 32px;
-  padding: 0 8px;
+  padding: 3 8px;
   overflow-x: auto;
   scroll-behavior: smooth;
 }
@@ -450,39 +426,39 @@
 }
 
 .data-list {
-  padding: 32px;
+  padding: 16px;
   display: grid;
-  gap: 16px;
+  gap: 12px;
   /* Default: Surgery Sets & Implant Boxes (5 columns) */
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 }
 
 /* 3-column layout for Doctors tab */
 .modern-edit-sets [data-active-tab="doctors"] .data-list {
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 }
 
 /* 5-column layout for Procedures tab */
 .modern-edit-sets [data-active-tab="procedures"] .data-list {
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 }
 
 /* 5-column layout for Surgery & Implants tab */
 .modern-edit-sets [data-active-tab="surgery-implants"] .data-list,
 .surgery-implant-content .data-list {
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 }
 
 .data-item {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 16px;
+  padding: 12px;
   border: 1px solid var(--border-light);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--white);
   transition: all 0.3s ease;
-  min-height: 140px;
+  min-height: 100px;
 }
 
 .data-item:hover {
@@ -493,7 +469,7 @@
 
 .item-content {
   flex: 1;
-  min-height: 80px;
+  min-height: 60px;
 }
 
 .item-content h4 {
@@ -637,14 +613,6 @@
     padding: 16px;
   }
   
-  .edit-sets-header {
-    padding: 20px;
-    margin-bottom: 24px;
-  }
-  
-  .edit-sets-header h1 {
-    font-size: 2rem;
-  }
   
   .edit-sets-steps {
     flex-direction: column;
@@ -861,7 +829,7 @@
 }
 
 .draggable-item .drag-hint {
-  opacity: 0;
+  opacity: 0.6;
   transition: opacity 0.3s ease;
 }
 
@@ -869,9 +837,93 @@
   opacity: 1;
 }
 
+/* Always show drag hint on mobile/touch devices */
+@media (max-width: 768px), (hover: none) {
+  .draggable-item .drag-hint {
+    opacity: 1;
+  }
+}
+
 /* Adjust data-item for numbering */
 .data-list .draggable-item {
   margin-left: 25px;
+}
+
+/* Selection Guide Styles */
+.selection-guide {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  padding: 32px;
+}
+
+.guide-content {
+  max-width: 500px;
+  text-align: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 32px;
+}
+
+.guide-content h3 {
+  margin: 0 0 16px 0;
+  color: #1e293b;
+  font-size: 1.25rem;
+}
+
+.guide-content p {
+  margin: 0 0 24px 0;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.selection-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--white);
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.checklist-item.completed {
+  border-color: #22c55e;
+  background: #f0fdf4;
+}
+
+.checklist-item.pending {
+  border-color: #e2e8f0;
+  background: var(--white);
+}
+
+.checklist-item .checkbox {
+  font-size: 1.1rem;
+}
+
+.checklist-item span:last-child {
+  font-weight: 500;
+  color: #374151;
+}
+
+.checklist-item.completed span:last-child {
+  color: #166534;
+}
+
+.guide-note {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-style: italic;
 }
 
 /* Print Styles */
@@ -881,11 +933,6 @@
     padding: 0;
   }
   
-  .edit-sets-header {
-    background: none;
-    color: black;
-    box-shadow: none;
-  }
   
   .step {
     border: 1px solid #000;

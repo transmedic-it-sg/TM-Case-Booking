@@ -235,11 +235,39 @@ export const getSetsForDoctorProcedure = async (
       return [];
     }
 
-    return data.map((set: any) => ({
-      item_type: set.item_type,
-      item_id: set.item_id,
-      item_name: set.item_name
-    }));
+    const results: ProcedureSet[] = [];
+    const addedItems = new Set<string>(); // Track added items to prevent duplicates
+    
+    // Transform the RPC response to match our expected interface
+    data.forEach((row: any) => {
+      // Add surgery set if it exists and not already added
+      if (row.surgery_set_id && row.surgery_set_name) {
+        const surgeryKey = `surgery_set:${row.surgery_set_id}`;
+        if (!addedItems.has(surgeryKey)) {
+          results.push({
+            item_type: 'surgery_set',
+            item_id: row.surgery_set_id,
+            item_name: row.surgery_set_name
+          });
+          addedItems.add(surgeryKey);
+        }
+      }
+      
+      // Add implant box if it exists and not already added
+      if (row.implant_box_id && row.implant_box_name) {
+        const implantKey = `implant_box:${row.implant_box_id}`;
+        if (!addedItems.has(implantKey)) {
+          results.push({
+            item_type: 'implant_box',
+            item_id: row.implant_box_id,
+            item_name: row.implant_box_name
+          });
+          addedItems.add(implantKey);
+        }
+      }
+    });
+    
+    return results;
 
   } catch (error) {
     logger.error('Exception in getSetsForDoctorProcedure', {

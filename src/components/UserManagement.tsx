@@ -1116,26 +1116,13 @@ const UserManagement: React.FC = () => {
                 {/* Real-time refresh button */}
                 <button
                   onClick={refreshUsers}
-                  className="refresh-btn"
+                  className="btn btn-outline-secondary btn-md refresh-button"
                   disabled={usersLoading || isMutating}
                   title="Refresh users data"
                 >
-                  🔄 {usersLoading ? 'Loading...' : 'Refresh'}
+                  {usersLoading ? '⏳ Loading...' : '↻ Refresh'}
                 </button>
 
-                {/* Testing button for development */}
-                {process.env.NODE_ENV === 'development' && (
-                  <button
-                    onClick={async () => {
-                      const result = await validateComponent();
-                      console.log('Validation result:', result);
-                    }}
-                    className="test-btn"
-                    title="Validate real-time functionality"
-                  >
-                    🧪 Test
-                  </button>
-                )}
 
                 {canCreateUsers && (
                   <button

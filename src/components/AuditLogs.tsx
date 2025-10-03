@@ -564,9 +564,9 @@ const AuditLogs: React.FC = () => {
                 </button>
                 <button
                   onClick={loadAuditLogs}
-                  className="btn btn-outline-secondary btn-md"
+                  className="btn btn-outline-secondary btn-md refresh-button"
                 >
-                  🔄 Refresh
+                  ↻ Refresh
                 </button>
                 {hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.EXPORT_DATA) && (
                   <button

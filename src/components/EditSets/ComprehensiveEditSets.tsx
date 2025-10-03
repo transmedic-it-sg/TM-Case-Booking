@@ -830,10 +830,6 @@ const ComprehensiveEditSets: React.FC = () => {
 
   return (
     <div className="modern-edit-sets">
-      <div className="edit-sets-header">
-        <h1>📋 Edit Sets Management</h1>
-        <p>Manage doctors, procedure types, and surgery/implant sets for {userCountry}</p>
-      </div>
 
       <div className="edit-sets-tabs">
         <button

@@ -3,7 +3,6 @@ import { CaseBooking, CaseStatus, StatusHistory, AmendmentHistory } from '../typ
 import { normalizeCountry, getLegacyCountryCode } from './countryUtils';
 
 // Interface for Supabase case data
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface SupabaseCase {
   id: string;
   case_reference_number: string;
@@ -32,7 +31,6 @@ interface SupabaseCase {
 }
 
 // Interface for case status history (matching database schema)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface SupabaseCaseStatusHistory {
   id: string;
   case_id: string;
@@ -44,7 +42,6 @@ interface SupabaseCaseStatusHistory {
 }
 
 // Interface for amendment history (matching current database schema)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface SupabaseCaseAmendmentHistory {
   id: string;
   amended_by: string;
@@ -128,7 +125,6 @@ export const generateCaseReferenceNumber = async (country: string): Promise<stri
 /**
  * Get status history for a specific case
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getStatusHistoryForCase = async (caseId: string): Promise<StatusHistory[]> => {
   try {
     const { data, error } = await supabase
@@ -158,7 +154,6 @@ const getStatusHistoryForCase = async (caseId: string): Promise<StatusHistory[]>
 /**
  * Get amendment history for a specific case
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getAmendmentHistoryForCase = async (caseId: string): Promise<AmendmentHistory[]> => {
   try {
     const { data, error } = await supabase

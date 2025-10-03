@@ -3,7 +3,7 @@
  * Reusable dropdown with fuzzy search functionality for Edit Sets
  */
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import './FuzzySearchDropdown.css';
 
 interface DropdownOption {
@@ -25,27 +25,39 @@ interface FuzzySearchDropdownProps {
   emptyMessage?: string;
 }
 
-// Simple fuzzy search function
-const fuzzySearch = (query: string, text: string): number => {
+// Optimized search function with early returns and better scoring
+const optimizedSearch = (query: string, text: string): number => {
   const queryLower = query.toLowerCase();
   const textLower = text.toLowerCase();
 
-  if (textLower.includes(queryLower)) {
-    return textLower.indexOf(queryLower);
-  }
+  // Exact match gets highest priority
+  if (textLower === queryLower) return 1000;
+  
+  // Starts with query gets high priority
+  if (textLower.startsWith(queryLower)) return 500 + (100 - queryLower.length);
+  
+  // Contains query gets medium priority
+  const containsIndex = textLower.indexOf(queryLower);
+  if (containsIndex !== -1) return 200 - containsIndex;
 
-  // Character-by-character fuzzy matching
-  let queryIndex = 0;
-  let score = 0;
-
-  for (let i = 0; i < textLower.length && queryIndex < queryLower.length; i++) {
-    if (textLower[i] === queryLower[queryIndex]) {
-      queryIndex++;
-      score += (textLower.length - i); // Prefer earlier matches
+  // Simple fuzzy match for remaining cases (limited to short queries for performance)
+  if (queryLower.length <= 3) {
+    let queryIndex = 0;
+    let lastMatchIndex = -1;
+    
+    for (let i = 0; i < textLower.length && queryIndex < queryLower.length; i++) {
+      if (textLower[i] === queryLower[queryIndex]) {
+        queryIndex++;
+        lastMatchIndex = i;
+      }
+    }
+    
+    if (queryIndex === queryLower.length) {
+      return 50 - lastMatchIndex; // Prefer earlier character matches
     }
   }
 
-  return queryIndex === queryLower.length ? score : -1;
+  return -1; // No match
 };
 
 const FuzzySearchDropdown: React.FC<FuzzySearchDropdownProps> = ({
@@ -61,25 +73,45 @@ const FuzzySearchDropdown: React.FC<FuzzySearchDropdownProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout>();
 
-  // Filter and sort options based on fuzzy search
+  // Debounce search query to reduce computation
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    debounceTimerRef.current = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 150);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  // Filter and sort options based on optimized search
   const filteredOptions = useMemo(() => {
-    if (!searchQuery) return options;
+    if (!debouncedQuery.trim()) return options.slice(0, 100); // Limit initial results for performance
 
     const scored = options
       .map(option => ({
         option,
-        score: fuzzySearch(searchQuery, option.name + ' ' + (option.description || ''))
+        score: optimizedSearch(debouncedQuery, option.name + ' ' + (option.description || ''))
       }))
       .filter(item => item.score >= 0)
-      .sort((a, b) => b.score - a.score);
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 50); // Limit results to prevent lag
 
     return scored.map(item => item.option);
-  }, [options, searchQuery]);
+  }, [options, debouncedQuery]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -137,18 +169,20 @@ const FuzzySearchDropdown: React.FC<FuzzySearchDropdownProps> = ({
     }
   };
 
-  const handleSelect = (option: DropdownOption) => {
+  const handleSelect = useCallback((option: DropdownOption) => {
     onChange(option);
     setIsOpen(false);
     setSearchQuery('');
+    setDebouncedQuery('');
     inputRef.current?.blur();
-  };
+  }, [onChange]);
 
-  const handleClear = (e: React.MouseEvent) => {
+  const handleClear = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     onChange(null);
     setSearchQuery('');
-  };
+    setDebouncedQuery('');
+  }, [onChange]);
 
   const displayValue = value ? value.name : '';
 

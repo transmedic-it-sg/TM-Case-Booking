@@ -986,21 +986,6 @@ body {
   margin: 0 auto;
 }
 
-.edit-sets-header {
-  margin-bottom: 32px;
-  text-align: center;
-}
-
-.edit-sets-header h2 {
-  font-size: 28px;
-  color: var(--text-primary);
-  margin-bottom: 8px;
-}
-
-.edit-sets-header p {
-  color: #ffffff;
-  font-size: 16px;
-}
 
 .sets-grid {
   display: grid;

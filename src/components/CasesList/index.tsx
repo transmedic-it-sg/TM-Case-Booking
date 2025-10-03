@@ -202,7 +202,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setFilters(defaultFilters);
       setTempFilters(defaultFilters);
     }
-  }, [cases, filters]); // Re-run when cases change or filters are cleared
+  }, [cases]); // Only depend on cases, not filters to prevent infinite loop
 
   useEffect(() => {
     const currentUser = getCurrentUserSync();
@@ -247,7 +247,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
 
     setFilteredCases(filteredResults);
-  }, [cases, filters, filterCases]);
+  }, [cases, filters]); // Remove filterCases from dependencies to prevent infinite loop
 
   // Handle highlighted case from calendar
   useEffect(() => {
@@ -477,7 +477,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         caseItem?.department
       );
     } catch (error) {
-      console.error('Failed to amend case:', error);
+      // Failed to amend case
       // Add error notification with specific messages
       let errorMessage = 'Unknown error';
       if (error instanceof Error) {
@@ -546,7 +546,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       // Email notifications are now handled automatically by the Email Notification Rules system
       // in the updateCaseStatus function - no hardcoded logic needed here
     } catch (error) {
-      console.error('Failed to update case status:', error);
+      // Failed to update case status
     }
   };
 
@@ -608,7 +608,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
       // Email notifications are handled automatically by the Email Notification Rules system
     } catch (error) {
-      console.error('Failed to update case status to Sales Approval:', error);
+      // Failed to update case status to Sales Approval
       addNotification({
         title: 'Error',
         message: 'Failed to submit case for sales approval',
@@ -666,7 +666,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         type: 'success'
       });
     } catch (error) {
-      console.error('Failed to update case status:', error);
+      // Failed to update case status
     }
   };
 
@@ -726,7 +726,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         type: 'success'
       });
     } catch (error) {
-      console.error('Failed to update case status:', error);
+      // Failed to update case status
     }
   };
 
@@ -775,7 +775,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         type: 'success'
       });
     } catch (error) {
-      console.error('Failed to update case status:', error);
+      // Failed to update case status
     }
   };
 
@@ -805,7 +805,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         type: 'success'
       });
     } catch (error) {
-      console.error('Failed to update case status:', error);
+      // Failed to update case status
     }
   };
 
@@ -835,7 +835,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         type: 'success'
       });
     } catch (error) {
-      console.error('Failed to update case status:', error);
+      // Failed to update case status
     }
   };
 
@@ -878,7 +878,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         type: 'success'
       });
     } catch (error) {
-      console.error('Failed to update case status:', error);
+      // Failed to update case status
     }
   };
 
@@ -928,7 +928,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         type: 'success'
       });
     } catch (error) {
-      console.error('Failed to update case status:', error);
+      // Failed to update case status
     }
   };
 
@@ -968,7 +968,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
           type: 'warning'
         });
       } catch (error) {
-        console.error('Failed to cancel case:', error);
+        // Failed to cancel case
       }
     }, 'Cancel Case');
   };
@@ -1015,7 +1015,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
           setShowSuccessPopup(true);
         }
       } catch (error) {
-        console.error('Delete failed:', error);
+        // Delete failed
         // Show error notification
         addNotification({
           title: 'Delete Failed',
@@ -1065,20 +1065,6 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
              isConnected ? '↻ Refresh' : '⚠️ Force Refresh'}
           </button>
 
-          {/* Testing validation button (development only) */}
-          {process.env.NODE_ENV === 'development' && (
-            <button
-              onClick={() => {
-                validateComponent().then(isValid => {
-                  console.log('Component validation result:', isValid);
-                });
-              }}
-              className="btn btn-outline-info btn-sm"
-              title="Run component validation tests"
-            >
-              🧪 Test
-            </button>
-          )}
         </div>
       </div>
 
@@ -1292,7 +1278,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         const caseToAmend = cases.find(c => c.id === amendingCase);
         if (!caseToAmend) {
           // Case not found, close the amendment modal
-          console.warn(`Case with ID ${amendingCase} not found, closing amendment modal`);
+          // Case not found, closing amendment modal
           setAmendingCase(null);
           setAmendmentData({});
           return null;

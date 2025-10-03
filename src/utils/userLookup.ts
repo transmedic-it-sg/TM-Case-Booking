@@ -48,7 +48,9 @@ export const getUserNamesByIds = async (userIds: string[]): Promise<Record<strin
     const user = users.find(u => u.id === userId);
     result[userId] = user ? user.name : userId;
 
-    if (!user && userId.includes('-')) {}
+    if (!user && userId.includes('-')) {
+      // UUID not found in cache, will be looked up from Supabase below
+    }
   });
 
   // For any UUIDs that weren't found, try direct Supabase lookup

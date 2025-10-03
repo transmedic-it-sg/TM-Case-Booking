@@ -79,7 +79,10 @@
       "Bash(git config:*)",
       "Bash(npx vercel:*)",
       "Bash(cmd.exe:*)",
-      "Bash(git cherry-pick:*)"
+      "Bash(git cherry-pick:*)",
+      "Bash(PORT=3005 npm start)",
+      "Bash(PORT=3006 npm start)",
+      "Bash(PORT=3007 npm start)"
     ],
     "deny": [],
     "ask": [],

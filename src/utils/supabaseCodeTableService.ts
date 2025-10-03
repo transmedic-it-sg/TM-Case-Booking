@@ -249,16 +249,6 @@ export const addSupabaseCodeTableItem = async (
     if (error) {
       console.error('Error adding code table item:', error);
       return false;
-    }// Update cache version to notify other users
-    try {
-      const { forceCacheVersionUpdate } = await import('./cacheVersionService');
-      await forceCacheVersionUpdate(
-        normalizedCountry,
-        tableType,
-        `Added ${tableType}: ${item}`,
-        'system' // Could be enhanced with actual user info
-      );} catch (cacheError) {
-      console.error('Failed to update cache version:', cacheError);
     }
 
     // Clear cache to ensure UI updates immediately
@@ -322,16 +312,6 @@ export const updateSupabaseCodeTableItem = async (
     if (error) {
       console.error('Error updating code table item:', error);
       return false;
-    }// Update cache version to notify other users
-    try {
-      const { forceCacheVersionUpdate } = await import('./cacheVersionService');
-      await forceCacheVersionUpdate(
-        normalizedCountry,
-        tableType,
-        `Updated ${tableType}: ${oldItem} → ${newItem}`,
-        'system' // Could be enhanced with actual user info
-      );} catch (cacheError) {
-      console.error('Failed to update cache version:', cacheError);
     }
 
     // Clear cache to ensure UI updates immediately
@@ -391,16 +371,6 @@ export const removeSupabaseCodeTableItem = async (
     if (result.error) {
       console.error('Error removing code table item:', result.error);
       return false;
-    }// Update cache version to notify other users
-    try {
-      const { forceCacheVersionUpdate } = await import('./cacheVersionService');
-      await forceCacheVersionUpdate(
-        normalizedCountry,
-        tableType,
-        `Removed ${tableType}: ${item}`,
-        'system' // Could be enhanced with actual user info
-      );} catch (cacheError) {
-      console.error('Failed to update cache version:', cacheError);
     }
 
     // Clear cache to ensure UI updates immediately

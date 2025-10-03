@@ -77,9 +77,15 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
   const [isLoadingProcedures, setIsLoadingProcedures] = useState(false);
   const [isLoadingSets, setIsLoadingSets] = useState(false);
 
-  // Helper function to format doctor display name
+  // Helper function to format doctor display name consistently
   const formatDoctorDisplayName = (doctor: DepartmentDoctor): string => {
-    return `Dr. ${doctor.name}`;
+    if (!doctor.name) return '';
+    const trimmed = doctor.name.trim();
+    // If name already starts with "Dr" or "Dr.", don't add another "Dr."
+    if (trimmed.toLowerCase().startsWith('dr')) {
+      return trimmed;
+    }
+    return `Dr. ${trimmed}`;
   };
 
   // Helper function to get current doctor display value
@@ -143,7 +149,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             try {
               await addSupabaseCodeTableItem('hospitals', hospital, normalizedCountry);
             } catch (error) {
-              console.error('Error seeding hospital:', hospital, error);
+              // Error seeding hospital - continue with others
             }
           }
 
@@ -158,8 +164,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         setAvailableDoctors([]);
 
       } catch (error) {
-        console.error('Error loading initial data:', error);
-        // Hospitals loaded via real-time query above
+        // Error loading initial data - hospitals loaded via real-time query above
         setAvailableDoctors([]);
       } finally {
         setIsLoadingDoctors(false);
@@ -192,7 +197,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         setFormData(prev => ({ ...prev, doctorId: '', doctorName: '' }));
 
       } catch (error) {
-        console.error('Error loading doctors for department:', error);
+        // Error loading doctors for department
         setAvailableDoctors([]);
       } finally {
         setIsLoadingDoctors(false);
@@ -227,7 +232,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         setAvailableProcedureSets([]);
 
       } catch (error) {
-        console.error('Error loading doctor procedures:', error);
+        // Error loading doctor procedures
         setAvailableDoctorProcedures([]);
       } finally {
         setIsLoadingProcedures(false);
@@ -260,7 +265,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         setFormData(prev => ({ ...prev, surgerySetSelection: [], implantBox: [], quantities: {} }));
 
       } catch (error) {
-        console.error('Error loading doctor procedure sets:', error);
+        // Error loading doctor procedure sets
         setAvailableProcedureSets([]);
       } finally {
         setIsLoadingSets(false);
@@ -297,7 +302,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               // Surgery Sets and Implant Boxes are now loaded independently
 
             } catch (error) {
-              console.error('Error loading department data:', error);
+              // Error loading department data
               // Fallback to empty data
               if (isActive) {
                 // Procedures now loaded via real-time query - no manual setting needed
@@ -338,8 +343,8 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
   // Clear procedure type when department changes to ensure compatibility
   useEffect(() => {
-    if (formData.department && formData.procedureType) {
-      const isCurrentProcedureTypeValid = filteredProcedureTypes.includes(formData.procedureType);
+    if (formData.department && formData.procedureType && procedures.length > 0) {
+      const isCurrentProcedureTypeValid = procedures.includes(formData.procedureType);
       if (!isCurrentProcedureTypeValid) {
         setFormData(prev => ({
           ...prev,
@@ -349,7 +354,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         }));
       }
     }
-  }, [formData.department, formData.procedureType, filteredProcedureTypes]);
+  }, [formData.department, formData.procedureType, procedures.length]); // Only depend on length to avoid frequent re-runs
 
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
 
@@ -386,14 +391,14 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             }
           }
         } catch (error) {
-          console.error('Error loading departments from Supabase:', error);
+          // Error loading departments from Supabase
           // Try alternative service as fallback - no hardcoded data
           try {
             const { getDepartments } = await import('../services/constantsService');
             const fallbackDepartments = await getDepartments(userCountry);
             setAvailableDepartments(fallbackDepartments.sort());
           } catch (fallbackError) {
-            console.error('All department loading methods failed:', fallbackError);
+            // All department loading methods failed
             setAvailableDepartments([]); // Empty array if all fails - forces user to contact support
           }
         }
@@ -404,7 +409,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           const departments = await getDepartments(userCountry);
           setAvailableDepartments(departments.sort());
         } catch (error) {
-          console.error('Error loading departments for country:', error);
+          // Error loading departments for country
           setAvailableDepartments([]);
         }
       }
@@ -557,11 +562,11 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             // Use the actual case ID from the saved case
             const quantitiesSaved = await saveCaseQuantities(savedCase.id, quantities);
             if (!quantitiesSaved) {
-              console.warn('Failed to save case quantities, but case was created successfully');
+              // Failed to save case quantities, but case was created successfully
             }
           }
         } catch (error) {
-          console.error('Error saving case quantities:', error);
+          // Error saving case quantities
           // Don't fail the entire operation for quantity saving issues
         }
       }
@@ -579,7 +584,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           newCase.department
         );
       } catch (error) {
-        console.error('Failed to log case creation audit:', error);
+        // Failed to log case creation audit
       }
 
       // Enhanced email notification temporarily disabled during TypeScript cleanup
@@ -606,7 +611,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
       onCaseSubmitted();
     } catch (error: any) {
-      console.error('Error saving case:', error);
+      // Error saving case
       showError('Failed to save case. Please try again.');
       return;
     }

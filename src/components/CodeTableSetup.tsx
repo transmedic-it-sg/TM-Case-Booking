@@ -6,7 +6,6 @@ import { useSound } from '../contexts/SoundContext';
 import { COUNTRIES } from '../types';
 import {
   getSupabaseCodeTables,
-  saveSupabaseCodeTables,
   addSupabaseCodeTableItem,
   updateSupabaseCodeTableItem,
   removeSupabaseCodeTableItem,
@@ -20,7 +19,6 @@ import {
 import CustomModal from './CustomModal';
 import SearchableDropdown from './SearchableDropdown';
 import { useModal } from '../hooks/useModal';
-import { useCacheVersionManager } from '../hooks/useCacheVersionManager';
 
 interface CodeTableSetupProps {}
 
@@ -42,7 +40,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
 
   const { showSuccess } = useToast();
   const { playSound } = useSound();
-  const { checkCacheForDataType } = useCacheVersionManager();
 
   const currentUser = getCurrentUserSync();
   const canManageCodeTables = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) : false;
@@ -72,10 +69,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       setIsLoading(true);
 
       try {
-        // Check cache for Code Tables when component mounts
-        await checkCacheForDataType('countries');
-        await checkCacheForDataType('departments');
-        await checkCacheForDataType('hospitals');
         // Load global tables from Supabase to get available countries
         const globalTablesData = await getSupabaseCodeTables(); // No country parameter for global
         let countriesTable = globalTablesData.find(t => t.id === 'countries');

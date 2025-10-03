@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import '../assets/components/SearchableDropdown.css';
 
 interface DropdownOption {
@@ -33,38 +33,30 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Normalize options to consistent format
-  const normalizedOptions: DropdownOption[] = options.map(option =>
-    typeof option === 'string'
-      ? { value: option, label: option }
-      : option
-  );
+  // Normalize options to consistent format (memoized)
+  const normalizedOptions: DropdownOption[] = useMemo(() =>
+    options.map(option =>
+      typeof option === 'string'
+        ? { value: option, label: option }
+        : option
+    ), [options]);
 
-  // Filter options based on search term (improved fuzzy search)
-  const filteredOptions = normalizedOptions.filter(option => {
-    const optionLower = option.label.toLowerCase();
+  // Filter options based on search term (optimized and memoized)
+  const filteredOptions = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return normalizedOptions.slice(0, 100); // Limit initial results
+    }
+
     const termLower = searchTerm.toLowerCase();
-
-    // Exact substring match (highest priority)
-    if (optionLower.includes(termLower)) {
-      return true;
-    }
-
-    // Sequential character matching (fuzzy search)
-    let optionIndex = 0;
-    for (let termIndex = 0; termIndex < termLower.length; termIndex++) {
-      const char = termLower[termIndex];
-      const foundIndex = optionLower.indexOf(char, optionIndex);
-
-      if (foundIndex === -1) {
-        return false; // Character not found in remaining string
-      }
-
-      optionIndex = foundIndex + 1;
-    }
-
-    return true;
-  });
+    
+    return normalizedOptions
+      .filter(option => {
+        const optionLower = option.label.toLowerCase();
+        // Simple contains check for performance
+        return optionLower.includes(termLower);
+      })
+      .slice(0, 50); // Limit filtered results
+  }, [normalizedOptions, searchTerm]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

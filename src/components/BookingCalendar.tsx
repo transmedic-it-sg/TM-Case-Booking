@@ -12,6 +12,17 @@ import { getDailyUsageForDate, type DailyUsage } from '../utils/doctorService';
 import { normalizeCountry } from '../utils/countryUtils';
 import '../assets/components/BookingCalendar.css';
 
+// Helper function to format doctor names consistently
+const formatDoctorName = (name?: string): string => {
+  if (!name) return 'No doctor assigned';
+  const trimmed = name.trim();
+  // If name already starts with "Dr" or "Dr.", don't add another "Dr."
+  if (trimmed.toLowerCase().startsWith('dr')) {
+    return trimmed;
+  }
+  return `Dr. ${trimmed}`;
+};
+
 interface BookingCalendarProps {
   onCaseClick?: (caseId: string) => void;
   onDateClick?: (date: Date, department: string) => void;
@@ -86,7 +97,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
             setSelectedDepartment(availableDepartments[0]);
           }
         } catch (error) {
-          console.error('Error loading departments from Supabase code tables:', error);
+          // Error loading departments from Supabase code tables
           // Try alternative service - no hardcoded data
           try {
             const { getDepartments } = await import('../services/constantsService');
@@ -96,7 +107,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
               setSelectedDepartment(fallbackDepartments[0]);
             }
           } catch (fallbackError) {
-            console.error('All department loading failed:', fallbackError);
+            // All department loading failed - set empty departments
             setDepartments([]);
           }
         }
@@ -114,7 +125,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
             setSelectedDepartment(departments[0]);
           }
         } catch (error) {
-          console.error('Error loading departments:', error);
+          // Error loading departments - set empty departments
           setDepartments([]);
         }
       };
@@ -171,7 +182,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
               }
             })
             .catch(error => {
-              console.warn(`Error loading usage for ${currentDateStr}:`, error);
+              // Error loading usage data - will show empty usage
             });
 
           loadPromises.push(loadPromise);
@@ -181,7 +192,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
         await Promise.all(loadPromises);setUsageData(allUsageData);
 
       } catch (error) {
-        console.error('Error loading usage data:', error);
+        // Error loading usage data - set empty usage
         setUsageData([]);
       } finally {
         setIsLoadingUsage(false);
@@ -367,7 +378,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
                     <div className="mobile-case-procedure">{caseItem.procedureType}</div>
                     <div className="mobile-case-hospital">{caseItem.hospital}</div>
                     <div className="mobile-case-doctor">
-                      {caseItem.doctorName ? `Dr. ${caseItem.doctorName}` : 'No doctor assigned'}
+                      {formatDoctorName(caseItem.doctorName)}
                     </div>
                   </div>
                 </div>
@@ -485,7 +496,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
                         backgroundColor: getStatusColor(caseItem.status),
                         color: 'white'
                       }}
-                      title={`${caseItem.caseReferenceNumber} - ${caseItem.procedureType} at ${caseItem.hospital} - ${caseItem.doctorName ? `Dr. ${caseItem.doctorName}` : 'No doctor'} - Status: ${caseItem.status}`}
+                      title={`${caseItem.caseReferenceNumber} - ${caseItem.procedureType} at ${caseItem.hospital} - ${formatDoctorName(caseItem.doctorName) || 'No doctor'} - Status: ${caseItem.status}`}
                       onClick={() => onCaseClick?.(caseItem.id)}
                     >
                       <div className="booking-time" style={{color: 'white', fontWeight: 'bold'}}>{caseItem.timeOfProcedure || 'TBD'}</div>
@@ -841,7 +852,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
                       </div>
                       <div className="more-case-details">
                         <span style={{color: 'white'}}>
-                          {caseItem.doctorName ? `Dr. ${caseItem.doctorName}` : 'TBD'}
+                          {formatDoctorName(caseItem.doctorName) || 'TBD'}
                         </span>
                         <span className="case-ref" style={{color: 'white', opacity: 0.9}}>{caseItem.caseReferenceNumber}</span>
                       </div>

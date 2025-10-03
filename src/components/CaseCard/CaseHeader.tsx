@@ -7,6 +7,17 @@ import React from 'react';
 import { CaseHeaderProps } from './types';
 import { useCaseData } from './hooks/useCaseData';
 
+// Helper function to format doctor names consistently
+const formatDoctorName = (name: string): string => {
+  if (!name || name === 'Not specified') return name;
+  const trimmed = name.trim();
+  // If name already starts with "Dr" or "Dr.", don't add another "Dr."
+  if (trimmed.toLowerCase().startsWith('dr')) {
+    return trimmed;
+  }
+  return `Dr. ${trimmed}`;
+};
+
 const CaseHeader: React.FC<CaseHeaderProps> = ({
   caseItem,
   currentUser,
@@ -39,7 +50,7 @@ const CaseHeader: React.FC<CaseHeaderProps> = ({
           <div className="case-basic-info">
             <span className="hospital-name">{displayHospital}</span>
             <span className="doctor-name">
-              {displayDoctor && displayDoctor !== 'Not specified' ? `Dr. ${displayDoctor}` : displayDoctor}
+              {formatDoctorName(displayDoctor)}
             </span>
           </div>
         </div>

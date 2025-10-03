@@ -177,7 +177,6 @@ const getSettingDescription = (key: string): string => {
 /**
  * Create default system configuration
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const createDefaultSystemConfig = async (): Promise<SystemConfig> => {
   try {
     await saveSystemConfig(DEFAULT_CONFIG);

@@ -202,7 +202,6 @@ const CaseCard: React.FC<CaseCardProps> = ({
   // No need for component-level initialization
 
   // Memoize status history parsing to prevent expensive JSON.parse operations during rendering
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const parsedStatusHistory = useMemo(() => {
     return caseItem.statusHistory?.map(historyItem => {
       let parsedDetails = null;
@@ -263,51 +262,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
   }, [caseItem.status, parsedStatusHistory]);
 
   // Memoize attachment parsing for forms to prevent repeated JSON.parse operations
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const parsedProcessAttachments = useMemo(() => {
-    return processAttachments.map(attachment => {
-      try {
-        return JSON.parse(attachment);
-      } catch {
-        return null;
-      }
-    }).filter(Boolean);
-  }, [processAttachments]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const parsedHospitalDeliveryAttachments = useMemo(() => {
-    return hospitalDeliveryAttachments.map(attachment => {
-      try {
-        return JSON.parse(attachment);
-      } catch {
-        return null;
-      }
-    }).filter(Boolean);
-  }, [hospitalDeliveryAttachments]);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const parsedPendingOfficeAttachments = useMemo(() => {
-    return pendingOfficeAttachments.map(attachment => {
-      try {
-        return JSON.parse(attachment);
-      } catch {
-        return null;
-      }
-    }).filter(Boolean);
-  }, [pendingOfficeAttachments]);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const parsedOfficeDeliveryAttachments = useMemo(() => {
-    return officeDeliveryAttachments.map(attachment => {
-      try {
-        return JSON.parse(attachment);
-      } catch {
-        return null;
-      }
-    }).filter(Boolean);
-  }, [officeDeliveryAttachments]);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  
   const parsedAttachments = useMemo(() => {
     return attachments.map(attachment => {
       try {

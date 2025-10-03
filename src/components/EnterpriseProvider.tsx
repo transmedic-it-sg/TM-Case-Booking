@@ -358,7 +358,7 @@ export const CacheMonitor: React.FC = () => {
             cursor: 'pointer'
           }}
         >
-          🔄 Refresh
+          ↻ Refresh
         </button>
         <button
           onClick={clearAllCache}

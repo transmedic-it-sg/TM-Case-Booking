@@ -31,7 +31,6 @@ import { ToastProvider, useToast } from './components/ToastContainer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RealtimeProvider } from './components/RealtimeProvider';
 import { getSystemConfig } from './utils/systemSettingsService';
-import { useCacheVersionManager } from './hooks/useCacheVersionManager';
 import { SafeStorage } from './utils/secureDataManager';
 import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
@@ -40,7 +39,6 @@ import VersionUpdatePopup from './components/VersionUpdatePopup';
 import StatusLegend from './components/StatusLegend';
 import MobileNavigation from './components/MobileNavigation';
 import MobileHeader from './components/MobileHeader';
-import CacheVersionMismatchPopup from './components/CacheVersionMismatchPopup';
 import MaintenanceMode from './components/MaintenanceMode';
 import DatabaseConnectionStatus from './components/DatabaseConnectionStatus';
 import './assets/components/App.css';
@@ -79,14 +77,6 @@ const AppContent: React.FC = () => {
   const { addNotification } = useNotifications();
   const { showSuccess, showError, showWarning, showInfo } = useToast();
 
-  // Cache version management - Re-enabled with improved UX
-  const {
-    showMismatchPopup,
-    outdatedTypes,
-    changedVersions,
-    forceLogout
-    // manualVersionCheck - removed unused variable
-  } = useCacheVersionManager();
 
   // App version management with logout on version change - DYNAMIC VERSION TRACKING
   useEffect(() => {
@@ -101,7 +91,7 @@ const AppContent: React.FC = () => {
     
     // Debug logging with current version
     // If app version or cache version changed, handle it
-    const anyVersionChanged = versionCheck.versionChanged || versionCheck.cacheVersionChanged;
+    const anyVersionChanged = versionCheck.versionChanged;
 
     if (anyVersionChanged) {
       let updateMessage = '🔄 ';
@@ -109,9 +99,6 @@ const AppContent: React.FC = () => {
 
       if (versionCheck.versionChanged) {
         changes.push(`App version: ${versionCheck.storedVersion} → ${versionCheck.currentVersion}`);
-      }
-      if (versionCheck.cacheVersionChanged) {
-        changes.push(`Cache version: ${versionCheck.storedCacheVersion} → ${versionCheck.currentCacheVersion}`);
       }
 
       updateMessage += changes.join(', ') + ' - clearing cache';
@@ -122,8 +109,8 @@ const AppContent: React.FC = () => {
       if (versionCheck.userLoggedIn) {
         // Show popup for logged users
         setVersionUpdateInfo({
-          currentVersion: `${versionCheck.currentVersion} (Cache: ${versionCheck.currentCacheVersion})`,
-          previousVersion: `${versionCheck.storedVersion || 'Unknown'} (Cache: ${versionCheck.storedCacheVersion || 'Unknown'})`
+          currentVersion: versionCheck.currentVersion,
+          previousVersion: versionCheck.storedVersion || 'Unknown'
         });
         setShowVersionUpdatePopup(true);
       } else {
@@ -182,7 +169,9 @@ const AppContent: React.FC = () => {
       try {
         const config = await getSystemConfig();
         setMaintenanceModeActive(config.maintenanceMode);
-      } catch (error) {}
+      } catch (error) {
+        console.debug('Failed to check maintenance mode:', error);
+      }
     };
 
     checkMaintenanceMode();
@@ -498,7 +487,7 @@ const AppContent: React.FC = () => {
 
   const handleVersionUpdateConfirm = async () => {
     setShowVersionUpdatePopup(false);
-    await handleVersionUpdate('App or cache version updated');
+    await handleVersionUpdate();
   };
 
   const handleCaseSubmitted = () => {
@@ -1035,13 +1024,6 @@ const AppContent: React.FC = () => {
         userName={user?.name}
       />
 
-      {/* Cache Version Mismatch Popup */}
-      <CacheVersionMismatchPopup
-        isOpen={showMismatchPopup}
-        outdatedTypes={outdatedTypes}
-        changedVersions={changedVersions}
-        onForceLogout={forceLogout}
-      />
 
       {showVersionUpdatePopup && (
         <VersionUpdatePopup

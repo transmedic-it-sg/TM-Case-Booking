@@ -23,6 +23,17 @@ import { supabase } from '../../lib/supabase';
 import { normalizeCountry } from '../../utils/countryUtils';
 import './ModernEditSets.css';
 
+// Helper function to format doctor names consistently
+const formatDoctorName = (name: string): string => {
+  if (!name) return '';
+  const trimmed = name.trim();
+  // If name already starts with "Dr" or "Dr.", don't add another "Dr."
+  if (trimmed.toLowerCase().startsWith('dr')) {
+    return trimmed;
+  }
+  return `Dr. ${trimmed}`;
+};
+
 // Enhanced TypeScript interfaces with UX metadata
 interface UIStep {
   id: string;
@@ -138,8 +149,8 @@ const ModernEditSets: React.FC = () => {
     departments,
     selectedDepartment,
     selectDepartment,
-    addDoctor: _realtimeAddDoctor, // eslint-disable-line @typescript-eslint/no-unused-vars
-    removeDoctor: _realtimeRemoveDoctor, // eslint-disable-line @typescript-eslint/no-unused-vars
+    addDoctor: _realtimeAddDoctor,
+    removeDoctor: _realtimeRemoveDoctor,
     isLoading: departmentsLoading,
     error: departmentsError
   } = useRealtimeDepartments({
@@ -150,7 +161,7 @@ const ModernEditSets: React.FC = () => {
   // Error handling with user-friendly messages
   const handleError = useCallback((error: unknown, context: string) => {
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-    console.error(`Edit Sets Error [${context}]:`, error);
+    // Edit Sets Error - shown in toast notification
     showError('Error', `${context}: ${errorMessage}`);
     playSound?.error();
   }, [showError, playSound]);
@@ -512,22 +523,42 @@ const ModernEditSets: React.FC = () => {
       const [removed] = reordered.splice(draggedIndex, 1);
       reordered.splice(targetIndex, 0, removed);
 
+      // Update sort orders for database persistence
+      const updatedItems = reordered.map((item, index) => ({
+        ...item,
+        sort_order: index + 1
+      }));
+
+      // Update state immediately for smooth UX
       if (surgeryImplantMode === 'surgery') {
-        setSurgerySets(reordered);
+        setSurgerySets(updatedItems);
       } else {
-        setImplantBoxes(reordered);
+        setImplantBoxes(updatedItems);
       }
 
-      showSuccess('Success', `${surgeryImplantMode === 'surgery' ? 'Surgery set' : 'Implant box'} order updated`);
+      // Update database with new sort orders
+      const tableName = surgeryImplantMode === 'surgery' ? 'surgery_sets' : 'implant_boxes';
+      const updatePromises = updatedItems.map(item =>
+        supabase
+          .from(tableName)
+          .update({ sort_order: item.sort_order })
+          .eq('id', item.id)
+      );
+
+      await Promise.all(updatePromises);
+
+      showSuccess('Success', `${surgeryImplantMode === 'surgery' ? 'Surgery set' : 'Implant box'} order updated and saved`);
       playSound?.success();
 
     } catch (error) {
       handleError(error, `Failed to reorder ${surgeryImplantMode === 'surgery' ? 'surgery sets' : 'implant boxes'}`);
+      // On error, the data will be automatically reloaded by the useEffect hooks
+      // when the dependencies change, so no manual reload needed here
     } finally {
       setIsDragging(false);
       setDraggedSurgeryImplant(null);
     }
-  }, [draggedSurgeryImplant, surgerySets, implantBoxes, surgeryImplantMode, showSuccess, playSound, handleError]);
+  }, [draggedSurgeryImplant, surgerySets, implantBoxes, surgeryImplantMode, showSuccess, playSound, handleError, selectedProcedure]);
 
   // Add surgery set or implant box
   const handleAddSurgeryImplantItem = useCallback(async () => {
@@ -536,11 +567,26 @@ const ModernEditSets: React.FC = () => {
     setIsSubmitting(true);
     try {
       const tableName = surgeryImplantMode === 'surgery' ? 'surgery_sets' : 'implant_boxes';
+      let nameToUse = newItemName.trim();
+
+      // Check if name already exists for this country
+      const existingCheck = await supabase
+        .from(tableName)
+        .select('id, name')
+        .eq('name', nameToUse)
+        .eq('country', normalizedCountry);
+
+      if (existingCheck.data && existingCheck.data.length > 0) {
+        // Generate unique name by appending doctor name and procedure
+        const doctorName = selectedDoctor?.name || 'Unknown';
+        const procedureType = selectedProcedure.procedure_type;
+        nameToUse = `${nameToUse} (${doctorName} - ${procedureType})`;
+      }
 
       const result = await supabase
         .from(tableName)
         .insert({
-          name: newItemName.trim(),
+          name: nameToUse,
           doctor_id: selectedProcedure.doctor_id,
           procedure_type: selectedProcedure.procedure_type,
           country: normalizedCountry,
@@ -552,7 +598,7 @@ const ModernEditSets: React.FC = () => {
       if (result?.error) throw result.error;
 
       const itemType = surgeryImplantMode === 'surgery' ? 'Surgery Set' : 'Implant Box';
-      showSuccess('Success', `${itemType} "${newItemName}" has been added successfully`);
+      showSuccess('Success', `${itemType} "${nameToUse}" has been added successfully`);
       playSound?.success();
       setNewItemName('');
       setShowAddForm(false);
@@ -641,6 +687,57 @@ const ModernEditSets: React.FC = () => {
       setIsSubmitting(false);
     }
   }, [surgeryImplantMode, showSuccess, playSound, handleError]);
+
+  // Move item left or right by one position
+  const handleMoveItem = useCallback(async (item: ProcedureRecord, direction: 'left' | 'right') => {
+    if (activeTab !== TABS.PROCEDURES) return;
+
+    try {
+      const currentProcedures = [...procedures];
+      const currentIndex = currentProcedures.findIndex(p => p.id === item.id);
+      
+      if (currentIndex === -1) return;
+      
+      const newIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1;
+      
+      if (newIndex < 0 || newIndex >= currentProcedures.length) return;
+
+      // Swap items
+      [currentProcedures[currentIndex], currentProcedures[newIndex]] = 
+      [currentProcedures[newIndex], currentProcedures[currentIndex]];
+
+      // Update sort orders
+      const updatedProcedures = currentProcedures.map((proc, index) => ({
+        ...proc,
+        sort_order: index + 1
+      }));
+
+      // Update state immediately for smooth UX
+      setProcedures(updatedProcedures);
+
+      // Update database
+      const updatePromises = updatedProcedures.map(proc =>
+        supabase
+          .from('doctor_procedures')
+          .update({ sort_order: proc.sort_order })
+          .eq('id', proc.id)
+      );
+
+      await Promise.all(updatePromises);
+
+      showSuccess('Success', `Moved ${item.procedure_type} ${direction}`);
+      playSound?.success();
+
+    } catch (error) {
+      handleError(error, 'Failed to move procedure');
+      // Reload procedures to restore correct order
+      if (selectedDoctor) {
+        const currentDoctor = selectedDoctor;
+        setSelectedDoctor(null);
+        setTimeout(() => setSelectedDoctor(currentDoctor), 100);
+      }
+    }
+  }, [activeTab, procedures, showSuccess, playSound, handleError, selectedDoctor]);
 
   // Edit doctor or procedure
   const handleEditDataItem = useCallback(async (item: any) => {
@@ -758,7 +855,7 @@ const ModernEditSets: React.FC = () => {
       </div>
       <div className="mode-info">
         <h3>
-          {selectedProcedure?.procedure_type} - {selectedDoctor?.name ? `Dr. ${selectedDoctor.name}` : 'No doctor'}
+          {selectedProcedure?.procedure_type} - {selectedDoctor?.name ? formatDoctorName(selectedDoctor.name) : 'No doctor'}
         </h3>
         <p>
           {surgeryImplantMode === 'surgery'
@@ -1069,7 +1166,7 @@ const ModernEditSets: React.FC = () => {
             <div className="item-content">
               {activeTab === TABS.DOCTORS && (
                 <>
-                  <h4>Dr. {item.name}</h4>
+                  <h4>{formatDoctorName(item.name)}</h4>
                   <div className="drag-hint">
                     <span className="drag-icon">⋮⋮</span>
                     <span className="drag-text">Drag to reorder</span>
@@ -1098,6 +1195,35 @@ const ModernEditSets: React.FC = () => {
             </div>
 
             <div className="item-actions">
+              {/* Move buttons for procedures */}
+              {activeTab === TABS.PROCEDURES && (
+                <>
+                  <button
+                    className="move-button move-left"
+                    aria-label={`Move ${item.procedure_type} left`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMoveItem(item, 'left');
+                    }}
+                    disabled={isSubmitting || index === 0}
+                    title="Move left"
+                  >
+                    ←
+                  </button>
+                  <button
+                    className="move-button move-right"
+                    aria-label={`Move ${item.procedure_type} right`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMoveItem(item, 'right');
+                    }}
+                    disabled={isSubmitting || index === filteredData.length - 1}
+                    title="Move right"
+                  >
+                    →
+                  </button>
+                </>
+              )}
               <button
                 className="edit-button"
                 aria-label={`Edit ${item.name || item.procedure_type}`}
@@ -1173,7 +1299,7 @@ const ModernEditSets: React.FC = () => {
   const renderDoctorDropdown = () => {
     const doctorOptions = doctors.map(doctor => ({
       id: doctor.id,
-      name: doctor.name ? `Dr. ${doctor.name}` : doctor.name,
+      name: formatDoctorName(doctor.name),
       description: ''
     }));
 
@@ -1183,7 +1309,7 @@ const ModernEditSets: React.FC = () => {
           options={doctorOptions}
           value={selectedDoctor ? {
             id: selectedDoctor.id,
-            name: selectedDoctor.name ? `Dr. ${selectedDoctor.name}` : selectedDoctor.name,
+            name: formatDoctorName(selectedDoctor.name),
             description: ''
           } : null}
           onChange={(option) => {
@@ -1215,7 +1341,7 @@ const ModernEditSets: React.FC = () => {
     const procedureOptions = procedures.map(procedure => ({
       id: procedure.id,
       name: procedure.procedure_type,
-      description: selectedDoctor?.name ? `Dr. ${selectedDoctor.name}` : 'Unknown'
+      description: selectedDoctor?.name ? formatDoctorName(selectedDoctor.name) : 'Unknown'
     }));
 
     return (
@@ -1225,7 +1351,7 @@ const ModernEditSets: React.FC = () => {
           value={selectedProcedure ? {
             id: selectedProcedure.id,
             name: selectedProcedure.procedure_type,
-            description: selectedDoctor?.name ? `Dr. ${selectedDoctor.name}` : 'Unknown'
+            description: selectedDoctor?.name ? formatDoctorName(selectedDoctor.name) : 'Unknown'
           } : null}
           onChange={(option) => {
             if (option) {
@@ -1251,10 +1377,6 @@ const ModernEditSets: React.FC = () => {
   return (
     <EditSetsErrorBoundary componentName="Modern Edit Sets" userAction="managing edit sets">
       <div className="modern-edit-sets" data-active-tab={activeTab}>
-        <header className="edit-sets-header">
-          <h1>Edit Sets Management</h1>
-          <p>Manage doctors, procedures, and surgery sets for {normalizedCountry}</p>
-        </header>
 
         {renderStepIndicator()}
 
@@ -1265,12 +1387,28 @@ const ModernEditSets: React.FC = () => {
               <div className="tab-controls">
                 {renderDepartmentSelection()}
               </div>
-              {selectedDepartment && (
+              {selectedDepartment ? (
                 <section className="edit-sets-content">
                   {renderControls()}
                   {renderAddForm()}
                   {renderDataList()}
                 </section>
+              ) : (
+                <div className="selection-guide">
+                  <div className="guide-content">
+                    <h3>👩‍⚕️ Doctor Management</h3>
+                    <p>Please complete the following steps to manage doctors:</p>
+                    <div className="selection-checklist">
+                      <div className={`checklist-item ${selectedDepartment ? 'completed' : 'pending'}`}>
+                        <span className="checkbox">{selectedDepartment ? '✅' : '⬜'}</span>
+                        <span>Select a Department</span>
+                      </div>
+                    </div>
+                    <p className="guide-note">
+                      Once you select a department, you can add, edit, and organize doctors for that department.
+                    </p>
+                  </div>
+                </div>
               )}
             </>
           )}
@@ -1282,12 +1420,32 @@ const ModernEditSets: React.FC = () => {
                 {renderDepartmentSelection()}
                 {renderDoctorDropdown()}
               </div>
-              {selectedDepartment && selectedDoctor && (
+              {selectedDepartment && selectedDoctor ? (
                 <section className="edit-sets-content">
                   {renderControls()}
                   {renderAddForm()}
                   {renderDataList()}
                 </section>
+              ) : (
+                <div className="selection-guide">
+                  <div className="guide-content">
+                    <h3>🏥 Procedure Types Management</h3>
+                    <p>Please complete the following steps to manage procedure types:</p>
+                    <div className="selection-checklist">
+                      <div className={`checklist-item ${selectedDepartment ? 'completed' : 'pending'}`}>
+                        <span className="checkbox">{selectedDepartment ? '✅' : '⬜'}</span>
+                        <span>Select a Department</span>
+                      </div>
+                      <div className={`checklist-item ${selectedDoctor ? 'completed' : 'pending'}`}>
+                        <span className="checkbox">{selectedDoctor ? '✅' : '⬜'}</span>
+                        <span>Select a Doctor</span>
+                      </div>
+                    </div>
+                    <p className="guide-note">
+                      Once you select a department and doctor, you can add, edit, and organize procedure types for that doctor.
+                    </p>
+                  </div>
+                </div>
               )}
             </>
           )}
@@ -1300,11 +1458,35 @@ const ModernEditSets: React.FC = () => {
                 {renderDoctorDropdown()}
                 {renderProcedureDropdown()}
               </div>
-              {selectedDepartment && selectedDoctor && selectedProcedure && (
+              {selectedDepartment && selectedDoctor && selectedProcedure ? (
                 <section className="surgery-implant-management">
                   {renderSurgeryImplantModeSelector()}
                   {renderSurgeryImplantContent()}
                 </section>
+              ) : (
+                <div className="selection-guide">
+                  <div className="guide-content">
+                    <h3>🔧 Surgery Sets & Implant Boxes Management</h3>
+                    <p>Please complete the following steps to manage surgery sets and implant boxes:</p>
+                    <div className="selection-checklist">
+                      <div className={`checklist-item ${selectedDepartment ? 'completed' : 'pending'}`}>
+                        <span className="checkbox">{selectedDepartment ? '✅' : '⬜'}</span>
+                        <span>Select a Department</span>
+                      </div>
+                      <div className={`checklist-item ${selectedDoctor ? 'completed' : 'pending'}`}>
+                        <span className="checkbox">{selectedDoctor ? '✅' : '⬜'}</span>
+                        <span>Select a Doctor</span>
+                      </div>
+                      <div className={`checklist-item ${selectedProcedure ? 'completed' : 'pending'}`}>
+                        <span className="checkbox">{selectedProcedure ? '✅' : '⬜'}</span>
+                        <span>Select a Procedure Type</span>
+                      </div>
+                    </div>
+                    <p className="guide-note">
+                      Once all selections are made, you'll be able to manage surgery sets and implant boxes for the selected doctor and procedure.
+                    </p>
+                  </div>
+                </div>
               )}
             </>
           )}

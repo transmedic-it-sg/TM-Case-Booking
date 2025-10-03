@@ -5,7 +5,6 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useNotifications } from '../../../hooks';
-import { AmendmentHistory } from '../../../types';
 import { getCurrentUserSync } from '../../../utils/auth';
 import { auditAttachmentChange } from '../../../utils/auditService';
 
