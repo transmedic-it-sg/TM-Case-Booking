@@ -21,6 +21,7 @@ import LogoutConfirmation from './components/LogoutConfirmation';
 import SSOCallback from './components/SSOCallback';
 import { User, CaseBooking } from './types';
 import { logout, validateSession } from './utils/auth';
+import { supabase } from './lib/supabase';
 import UserService from './services/userService';
 import { hasPermission, PERMISSION_ACTIONS, initializePermissions } from './utils/permissions';
 import { getSupabaseCodeTables } from './utils/supabaseCodeTableService';
@@ -31,7 +32,7 @@ import { ToastProvider, useToast } from './components/ToastContainer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RealtimeProvider } from './components/RealtimeProvider';
 import { getSystemConfig } from './utils/systemSettingsService';
-import { SafeStorage } from './utils/secureDataManager';
+// SafeStorage removed - using Supabase database for all data storage
 import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
 import { initializeVersionManager, handleVersionUpdate, updateStoredAppVersion } from './utils/appVersionManager';
@@ -41,7 +42,9 @@ import MobileNavigation from './components/MobileNavigation';
 import MobileHeader from './components/MobileHeader';
 import MaintenanceMode from './components/MaintenanceMode';
 import DatabaseConnectionStatus from './components/DatabaseConnectionStatus';
+import './assets/components/globals.css'; // CSS variables and utilities
 import './assets/components/App.css';
+import './assets/components/forms.css'; // Standardized form styling
 import './assets/components/CodeTableSetup.css';
 import './assets/components/AuditLogs.css';
 import './assets/components/MobileNavigation.css';
@@ -117,8 +120,8 @@ const AppContent: React.FC = () => {
         // For non-logged users, clear cache and reload immediately
         // Version tracking now in system_settings table, not localStorage
 
-        // Clear sessionStorage only
-        sessionStorage.clear();
+        // Version updates handled via database system_settings table
+        // No sessionStorage clearing needed
 
         // Clear browser cache if possible
         if ('caches' in window) {
@@ -179,18 +182,24 @@ const AppContent: React.FC = () => {
     // Set up periodic check for maintenance mode changes
     const maintenanceCheckInterval = setInterval(checkMaintenanceMode, 30000); // Check every 30 seconds
 
-    // Set up periodic session validation to prevent concurrent sessions
+    // Set up periodic session validation using Supabase auth
     const sessionValidationInterval = setInterval(async () => {
       const currentUser = UserService.getCurrentUserSync();
       if (currentUser) {
-        const isValidSession = await validateSession();
-        if (!isValidSession) {
-          console.warn('🚫 Session invalidated during periodic check, logging out user');
-          await logout();
-          setUser(null);
-          if (isMobileDevice()) {
-            setShowMobileEntry(true);
+        try {
+          // Use Supabase auth session validation instead of custom sessionStorage
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error || !session) {
+            console.warn('🚫 Supabase session invalidated during periodic check, logging out user');
+            await logout();
+            setUser(null);
+            if (isMobileDevice()) {
+              setShowMobileEntry(true);
+            }
           }
+        } catch (error) {
+          console.error('Error during periodic session validation:', error);
+          // Don't auto-logout on validation errors to prevent false positives
         }
       }
     }, 60000); // Check every minute
@@ -529,29 +538,16 @@ const AppContent: React.FC = () => {
   };
 
   const handleCalendarCaseClick = async (caseId: string) => {
-    try {
-      // Clear any previous pre-fill data that might interfere with case viewing
-      await SafeStorage.removeItem('calendar_prefill_date');
-      await SafeStorage.removeItem('calendar_prefill_department');
-
-      // Navigate to cases view and highlight the specific case
-      setHighlightedCaseId(caseId);
-      setActivePage('cases');
-    } catch (error) {
-      console.error('Error navigating to case from calendar:', error);
-      // Still try to navigate to the cases page
-      setHighlightedCaseId(caseId);
-      setActivePage('cases');
-    }
+    // Navigate to cases view and highlight the specific case
+    // No storage clearing needed - using React state for prefill data
+    setHighlightedCaseId(caseId);
+    setActivePage('cases');
     playSound.click();
   };
 
   const handleCalendarDateClick = async (date: Date, department: string) => {
-    // Store the selected date and department for pre-filling the booking form
-    await SafeStorage.setItem('calendar_prefill_date', date.toISOString(), { ttl: 24 * 60 * 60 * 1000 }); // 24 hours
-    await SafeStorage.setItem('calendar_prefill_department', department, { ttl: 24 * 60 * 60 * 1000 }); // 24 hours
-
-    // Switch to booking page
+    // TODO: Pass prefill data via React state/context instead of storage
+    // For now, navigate to booking page without prefill
     setActivePage('booking');
     playSound.click();
   };

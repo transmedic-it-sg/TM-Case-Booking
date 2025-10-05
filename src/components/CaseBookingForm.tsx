@@ -261,8 +261,26 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         const sets = await getSetsForDoctorProcedure(formData.doctorId, formData.procedureType, normalizedCountry);
         setAvailableProcedureSets(sets);
 
-        // Clear set selections and quantities when doctor/procedure changes
-        setFormData(prev => ({ ...prev, surgerySetSelection: [], implantBox: [], quantities: {} }));
+        // Auto-select all Surgery Sets and Implant Boxes after loading
+        const surgerySetNames = sets
+          .filter(set => set.item_type === 'surgery_set')
+          .map(set => set.item_name);
+        const implantBoxNames = sets
+          .filter(set => set.item_type === 'implant_box')
+          .map(set => set.item_name);
+
+        // Create quantities for all selected items (default quantity: 1)
+        const newQuantities: Record<string, number> = {};
+        [...surgerySetNames, ...implantBoxNames].forEach(itemName => {
+          newQuantities[itemName] = 1;
+        });
+
+        setFormData(prev => ({ 
+          ...prev, 
+          surgerySetSelection: surgerySetNames, 
+          implantBox: implantBoxNames, 
+          quantities: newQuantities 
+        }));
 
       } catch (error) {
         // Error loading doctor procedure sets
@@ -626,7 +644,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
       <div className="card-content">
         <form onSubmit={handleSubmit}>
-        <div className="form-row">
+        <div className="form-row two-columns">
           <div className="form-group">
             <label htmlFor="hospital" className="required">Hospital</label>
             <SearchableDropdown
@@ -656,7 +674,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           </div>
         </div>
 
-        <div className="form-row">
+        <div className="form-row two-columns">
           <div className="form-group">
             <label htmlFor="dateOfSurgery" className="required">Date of Surgery</label>
             <FilterDatePicker
@@ -695,9 +713,10 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           </div>
         </div>
 
-        {/* Doctor Selection - Regular Form Field */}
-        <div className="form-group">
-          <label htmlFor="doctorId" className="required">Doctor</label>
+        <div className="form-row two-columns">
+          {/* Doctor Selection */}
+          <div className="form-group">
+            <label htmlFor="doctorId" className="required">Doctor</label>
           <SearchableDropdown
             id="doctorId"
             value={getCurrentDoctorDisplayValue()}
@@ -717,6 +736,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             }}
             options={availableDoctors.map(formatDoctorDisplayName)}
             placeholder={isLoadingDoctors ? "Loading doctors..." :
+              !formData.department ? "⚠️ Please select a department first" :
               availableDoctors.length === 0 ? "No doctors available - Contact admin to add doctors" :
               "Search and select doctor"
             }
@@ -725,47 +745,36 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             required
           />
           {errors.doctorId && <span className="error-text">{errors.doctorId}</span>}
-          {!formData.department && (
-            <div className="help-text">
-              ℹ️ Please select a department first
-            </div>
-          )}
           {formData.department && availableDoctors.length === 0 && !isLoadingDoctors && (
             <div className="help-text">
               ℹ️ No doctors found for your department. Contact your administrator to add doctors.
             </div>
           )}
-        </div>
+          </div>
 
-        {/* Procedure Type Selection - Regular Form Field */}
-        <div className="form-group">
-          <label htmlFor="doctorProcedureType" className="required">Procedure Type</label>
-          <SearchableDropdown
-            id="doctorProcedureType"
-            value={formData.procedureType}
-            onChange={(value) => setFormData(prev => ({
-              ...prev,
-              procedureType: value,
-              surgerySetSelection: [],
-              implantBox: [],
-              quantities: {}
-            }))}
-            options={availableDoctorProcedures.map(proc => proc.procedure_type)}
-            placeholder={!formData.doctorId ? "Please select a doctor first" :
-              isLoadingProcedures ? "Loading procedures..." :
-              availableDoctorProcedures.length === 0 ? "No procedures available for this doctor" :
-              "Select procedure type"
-            }
-            className={errors.procedureType ? 'error' : ''}
-            disabled={!formData.doctorId || isLoadingProcedures || availableDoctorProcedures.length === 0}
-            required
-          />
-          {errors.procedureType && <span className="error-text">{errors.procedureType}</span>}
-          {formData.doctorId && availableDoctorProcedures.length === 0 && !isLoadingProcedures && (
-            <div className="help-text">
-              ℹ️ No procedures configured for this doctor. Contact your administrator.
-            </div>
-          )}
+          {/* Procedure Type Selection - Regular Form Field */}
+          <div className="form-group">
+            <label htmlFor="doctorProcedureType" className="required">Procedure Type</label>
+            <SearchableDropdown
+              id="doctorProcedureType"
+              value={formData.procedureType}
+              onChange={(value) => setFormData(prev => ({
+                ...prev,
+                procedureType: value
+                // Note: surgerySetSelection, implantBox, and quantities will be auto-populated by useEffect
+              }))}
+              options={availableDoctorProcedures.map(proc => proc.procedure_type)}
+              placeholder={!formData.doctorId ? "Please select a doctor first" :
+                isLoadingProcedures ? "Loading procedures..." :
+                availableDoctorProcedures.length === 0 ? "No procedures available for this doctor" :
+                "Select procedure type"
+              }
+              className={errors.procedureType ? 'error' : ''}
+              disabled={!formData.doctorId || isLoadingProcedures || availableDoctorProcedures.length === 0}
+              required
+            />
+            {errors.procedureType && <span className="error-text">{errors.procedureType}</span>}
+          </div>
         </div>
 
         {/* Surgery Sets & Implant Boxes with Multi-Select Dropdowns */}
@@ -783,7 +792,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               </div>
             ) : (
               <div className="procedure-sets-form">
-                <div className="form-row">
+                <div className="form-row two-columns">
                   {/* Surgery Sets Multi-Select Dropdown */}
                   {availableProcedureSets.filter(set => set.item_type === 'surgery_set').length > 0 && (
                     <div className="form-group">
@@ -869,55 +878,72 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
                   )}
                 </div>
 
-                {/* Quantity Inputs for Selected Items */}
+                {/* Quantity Inputs for Selected Items - Separate Surgery Sets and Implant Boxes */}
                 {(formData.surgerySetSelection.length > 0 || formData.implantBox.length > 0) && (
                   <div className="quantities-section">
                     <h4>Quantities</h4>
-                    <div className="quantities-grid">
-                      {formData.surgerySetSelection.map(setName => (
-                        <div key={`qty-surgery-${setName}`} className="quantity-item">
-                          <label>{setName}</label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="99"
-                            value={formData.quantities[setName] || 1}
-                            onChange={(e) => {
-                              const quantity = Math.max(1, parseInt(e.target.value) || 1);
-                              setFormData(prev => ({
-                                ...prev,
-                                quantities: {
-                                  ...prev.quantities,
-                                  [setName]: quantity
-                                }
-                              }));
-                            }}
-                            className="quantity-field"
-                          />
+                    <div className="form-row two-columns">
+                      {/* Surgery Sets Column */}
+                      {formData.surgerySetSelection.length > 0 && (
+                        <div className="form-group">
+                          <h5>Surgery Sets</h5>
+                          <div className="quantities-list">
+                            {formData.surgerySetSelection.map(setName => (
+                              <div key={`qty-surgery-${setName}`} className="quantity-item">
+                                <label>{setName}</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="99"
+                                  value={formData.quantities[setName] || 1}
+                                  onChange={(e) => {
+                                    const quantity = Math.max(1, parseInt(e.target.value) || 1);
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      quantities: {
+                                        ...prev.quantities,
+                                        [setName]: quantity
+                                      }
+                                    }));
+                                  }}
+                                  className="quantity-field"
+                                />
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      ))}
-                      {formData.implantBox.map(boxName => (
-                        <div key={`qty-implant-${boxName}`} className="quantity-item">
-                          <label>{boxName}</label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="99"
-                            value={formData.quantities[boxName] || 1}
-                            onChange={(e) => {
-                              const quantity = Math.max(1, parseInt(e.target.value) || 1);
-                              setFormData(prev => ({
-                                ...prev,
-                                quantities: {
-                                  ...prev.quantities,
-                                  [boxName]: quantity
-                                }
-                              }));
-                            }}
-                            className="quantity-field"
-                          />
+                      )}
+                      
+                      {/* Implant Boxes Column */}
+                      {formData.implantBox.length > 0 && (
+                        <div className="form-group">
+                          <h5>Implant Boxes</h5>
+                          <div className="quantities-list">
+                            {formData.implantBox.map(boxName => (
+                              <div key={`qty-implant-${boxName}`} className="quantity-item">
+                                <label>{boxName}</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="99"
+                                  value={formData.quantities[boxName] || 1}
+                                  onChange={(e) => {
+                                    const quantity = Math.max(1, parseInt(e.target.value) || 1);
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      quantities: {
+                                        ...prev.quantities,
+                                        [boxName]: quantity
+                                      }
+                                    }));
+                                  }}
+                                  className="quantity-field"
+                                />
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 )}

@@ -85,10 +85,8 @@ export const createSession = async (userId: string): Promise<void> => {
     }
 
     if (!userExists) {
-      console.warn('User not found in either profiles or users table, skipping session creation:', userId);
-      // Use sessionStorage as fallback
-      sessionStorage.setItem('session-token', `session-${userId}-${Date.now()}`);
-      return;
+      console.warn('User not found in either profiles or users table, cannot create session:', userId);
+      throw new Error('User not found - session creation failed');
     }
 
     // Generate secure session token
@@ -110,17 +108,13 @@ export const createSession = async (userId: string): Promise<void> => {
 
     if (error) {
       console.error('Failed to create database session:', error);
-      // Fallback to sessionStorage for backward compatibility
-      sessionStorage.setItem('session-token', `session-${userId}-${Date.now()}`);
-      return;
+      throw new Error('Database session creation failed');
     }
 
-    // Store session token in browser for quick access
-    sessionStorage.setItem('session-token', sessionToken);
+    // Session stored in database only - no browser storage
   } catch (error) {
     console.error('Error creating session:', error);
-    // Fallback to simple session management
-    sessionStorage.setItem('session-token', `session-${userId}-${Date.now()}`);
+    throw error; // Let calling code handle the error
   }
 };
 

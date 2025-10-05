@@ -30,14 +30,17 @@ interface BookingCalendarProps {
 
 const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateClick }) => {
   const initialCurrentUser = getCurrentUserSync();
-  const { cases = [] } = useRealtimeCases({
-    enableRealTime: true,
-    enableTesting: true,
-    filters: {
-      country: initialCurrentUser?.selectedCountry
-    }
-  });
-
+  
+  // Determine the active country (Admin selected country or user's country)
+  const userCountry = initialCurrentUser?.selectedCountry || initialCurrentUser?.countries?.[0];
+  const isAdmin = initialCurrentUser?.role === 'admin';
+  
+  // Use dynamic country filter that updates with user selections
+  const [filterCountry, setFilterCountry] = useState<string>(
+    userCountry ? normalizeCountry(userCountry) : ''
+  );
+  
+  // Component state variables
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [departments, setDepartments] = useState<string[]>([]);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -55,14 +58,45 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
   const [viewMode, setViewMode] = useState<'bookings' | 'usage'>('bookings');
   const [usageData, setUsageData] = useState<DailyUsage[]>([]);
   const [isLoadingUsage, setIsLoadingUsage] = useState(false);
+  const [showUsagePopup, setShowUsagePopup] = useState(false);
+  const [usagePopupData, setUsagePopupData] = useState<{date: string, usage: DailyUsage | null}>({date: '', usage: null});
 
   // Check if user has permission to view booking calendar
   const canViewCalendar = initialCurrentUser ? hasPermission(initialCurrentUser.role, PERMISSION_ACTIONS.BOOKING_CALENDAR) : false;
 
   // Determine the active country (Admin selected country or user's country)
-  const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
-  const isAdmin = currentUser?.role === 'admin';
   const activeCountry = isAdmin && selectedCountry ? selectedCountry : userCountry;
+
+  const { cases = [] } = useRealtimeCases({
+    enableRealTime: true,
+    enableTesting: true,
+    filters: {
+      country: filterCountry
+    }
+  });
+
+  // Debug: Log cases data for BookingCalendar
+  React.useEffect(() => {
+    console.log('🗓️ BookingCalendar - Cases received:', cases);
+    console.log('🗓️ BookingCalendar - Cases count:', cases.length);
+    console.log('🗓️ BookingCalendar - Filter country:', filterCountry);
+    console.log('🗓️ BookingCalendar - Active country:', activeCountry);
+    console.log('🗓️ BookingCalendar - User country:', userCountry);
+    console.log('🗓️ BookingCalendar - Selected country:', selectedCountry);
+    if (cases.length > 0) {
+      console.log('🗓️ BookingCalendar - Sample case:', cases[0]);
+      console.log('🗓️ BookingCalendar - Case dates:', cases.map(c => c.dateOfSurgery));
+    }
+  }, [cases, filterCountry, activeCountry, userCountry, selectedCountry]);
+
+  // Update filter country when active country changes
+  useEffect(() => {
+    if (activeCountry && activeCountry !== filterCountry) {
+      // Normalize country name to match database format
+      const normalizedCountry = normalizeCountry(activeCountry);
+      setFilterCountry(normalizedCountry);
+    }
+  }, [activeCountry, filterCountry]);
 
   useEffect(() => {
     const user = getCurrentUserSync();
@@ -292,6 +326,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
     const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
     const dayStr = day.toString().padStart(2, '0');
     const dateStr = `${year}-${month}-${dayStr}`;
+
 
     return cases.filter(caseItem => {
       const matchesDate = caseItem.dateOfSurgery === dateStr;
@@ -580,7 +615,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
       const dayUsage = usageData.find(usage => usage.usage_date === dateString);
 
       const isToday = new Date().toDateString() === new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString();
-      const dayClass = `calendar-day usage-day ${isToday ? 'today' : ''}`;
+      const dayClass = `calendar-day usage-day ${isToday ? 'calendar-day-today' : ''}`;
 
       days.push(
         <div key={day} className={dayClass}>
@@ -603,24 +638,26 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
                   )}
                 </div>
                 {dayUsage.top_items && dayUsage.top_items.length > 0 && (
-                  <div className="top-items">
-                    {dayUsage.top_items.slice(0, 2).map((item, index) => (
-                      <div key={index} className="top-item" title={`${item.item_name}: ${item.quantity}`}>
-                        <span className="item-name">{item.item_name.length > 15 ? item.item_name.substring(0, 15) + '...' : item.item_name}</span>
-                        <span className="item-quantity">×{item.quantity}</span>
-                      </div>
-                    ))}
-                    {dayUsage.top_items.length > 2 && (
-                      <div className="more-items">
-                        +{dayUsage.top_items.length - 2} more
-                      </div>
-                    )}
+                  <div className="usage-actions">
+                    <button
+                      className="view-sets-button"
+                      onClick={() => {
+                        setUsagePopupData({
+                          date: new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toLocaleDateString(),
+                          usage: dayUsage
+                        });
+                        setShowUsagePopup(true);
+                      }}
+                      title="View detailed usage breakdown"
+                    >
+                      📋 View Sets ({dayUsage.top_items.length})
+                    </button>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="no-usage">
-                <span className="no-usage-text">No usage</span>
+              // Hide days with no usage to reduce empty space
+              <div className="no-usage" style={{ display: 'none' }}>
               </div>
             )}
           </div>
@@ -899,6 +936,54 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
                     >
                       Next
                     </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Usage Details Popup */}
+      {showUsagePopup && usagePopupData.usage && (
+        <div className="usage-popup-overlay" onClick={() => setShowUsagePopup(false)}>
+          <div className="usage-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="usage-popup-header">
+              <h3>Usage Details - {usagePopupData.date}</h3>
+              <button 
+                className="close-button"
+                onClick={() => setShowUsagePopup(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="usage-popup-content">
+              <div className="usage-summary-section">
+                <h4>Totals</h4>
+                <div className="usage-totals-grid">
+                  <div className="total-item">
+                    <span className="total-icon">🏥</span>
+                    <span className="total-label">Surgery Sets:</span>
+                    <span className="total-value">{usagePopupData.usage.surgery_sets_total}</span>
+                  </div>
+                  <div className="total-item">
+                    <span className="total-icon">📦</span>
+                    <span className="total-label">Implant Boxes:</span>
+                    <span className="total-value">{usagePopupData.usage.implant_boxes_total}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {usagePopupData.usage.top_items && usagePopupData.usage.top_items.length > 0 && (
+                <div className="items-breakdown-section">
+                  <h4>Items Breakdown</h4>
+                  <div className="items-list">
+                    {usagePopupData.usage.top_items.map((item, index) => (
+                      <div key={index} className="usage-item-row">
+                        <span className="item-name">{item.item_name}</span>
+                        <span className="item-quantity">×{item.quantity}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

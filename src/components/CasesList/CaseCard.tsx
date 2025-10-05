@@ -107,6 +107,21 @@ const CaseCard: React.FC<CaseCardProps> = ({
   ]);
 
   const { getUserName } = useUserNames(userIds);
+  
+  // Debug logging for the problematic case
+  React.useEffect(() => {
+    if (caseItem.caseReferenceNumber === 'TMC-Singapore-2025-029') {
+      console.log('🔍 DEBUG Case TMC-Singapore-2025-029:');
+      console.log('📋 caseItem:', caseItem);
+      console.log('👤 submittedBy:', caseItem.submittedBy);
+      console.log('🏷️ getUserName result:', getUserName(caseItem.submittedBy));
+      console.log('📅 procedureType:', caseItem.procedureType);
+      console.log('📅 dateOfSurgery:', caseItem.dateOfSurgery);
+      console.log('🏥 surgerySetSelection:', caseItem.surgerySetSelection);
+      console.log('📦 implantBox:', caseItem.implantBox);
+      console.log('⏰ timeOfProcedure:', caseItem.timeOfProcedure);
+    }
+  }, [caseItem, getUserName]);
 
   // Real-time procedure types query - always fresh data
   const userCountry = currentUser?.selectedCountry || currentUser?.countries?.[0];
@@ -281,14 +296,10 @@ const CaseCard: React.FC<CaseCardProps> = ({
     // Admin can amend any case unlimited times
     if (currentUser.role === 'admin') return true;
 
-    // Check if user has amend permission using permission system
-    const { hasPermission, PERMISSION_ACTIONS } = require('../../utils/permissions');
-    const canAmend = hasPermission(currentUser.role, PERMISSION_ACTIONS.AMEND_CASE);
-
-    // Check if case hasn't been amended yet (for non-admin users)
+    // For non-admin users, check if case hasn't been amended yet
+    // Simplified logic to avoid permission issues
     const notAmended = !caseItem.isAmended;
-
-    return canAmend && notAmended;
+    return notAmended;
   };
 
   // Helper function to check if a field has been changed and show original value

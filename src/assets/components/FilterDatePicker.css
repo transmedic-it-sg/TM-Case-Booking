@@ -78,6 +78,26 @@
   z-index: 9999;
 }
 
+/* Ensure calendar doesn't get cut off */
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}
+
+.react-datepicker-popper[data-placement^="bottom"] {
+  margin-top: 4px;
+}
+
+.react-datepicker-popper[data-placement^="top"] {
+  margin-bottom: 4px;
+}
+
+/* Prevent calendar from being cut off by container */
+.react-datepicker {
+  position: relative;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
 /* Compact Header Styling */
 .filter-calendar .react-datepicker__header {
   background: var(--primary-color, #20b2aa);

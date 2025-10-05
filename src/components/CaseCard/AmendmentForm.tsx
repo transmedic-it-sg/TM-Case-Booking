@@ -72,32 +72,38 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
           const hospitals = hospitalTable?.items || [];
           setAvailableHospitals(hospitals.sort());
 
-          // Load all surgery sets for this country
+          // Load surgery sets respecting Edit Sets sort_order
           const { data: surgerySets, error: surgerySetsError } = await supabase
             .from('surgery_sets')
-            .select('name')
+            .select('name, sort_order')
             .eq('country', normalizedCountry)
-            .eq('is_active', true);
+            .eq('is_active', true)
+            .order('sort_order', { ascending: true, nullsFirst: false })
+            .order('name');
 
           if (surgerySetsError) {
             console.error('Error loading surgery sets:', surgerySetsError);
             setSurgerySetOptions([]);
           } else {
-            setSurgerySetOptions((surgerySets || []).map((s: any) => s.name).sort());
+            // Preserve the Edit Sets ordering by not sorting alphabetically
+            setSurgerySetOptions((surgerySets || []).map((s: any) => s.name));
           }
 
-          // Load all implant boxes for this country
+          // Load implant boxes respecting Edit Sets sort_order
           const { data: implantBoxes, error: implantBoxesError } = await supabase
             .from('implant_boxes')
-            .select('name')
+            .select('name, sort_order')
             .eq('country', normalizedCountry)
-            .eq('is_active', true);
+            .eq('is_active', true)
+            .order('sort_order', { ascending: true, nullsFirst: false })
+            .order('name');
 
           if (implantBoxesError) {
             console.error('Error loading implant boxes:', implantBoxesError);
             setImplantBoxOptions([]);
           } else {
-            setImplantBoxOptions((implantBoxes || []).map((i: any) => i.name).sort());
+            // Preserve the Edit Sets ordering by not sorting alphabetically
+            setImplantBoxOptions((implantBoxes || []).map((i: any) => i.name));
           }
 
         } catch (error) {
@@ -117,10 +123,10 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
   }, [caseItem.country]);
 
   useEffect(() => {
-    if (amendmentData) {
+    if (amendmentData && Object.keys(amendmentData).length > 0) {
       setFormData(prev => ({ ...prev, ...amendmentData }));
     }
-  }, [amendmentData]);
+  }, [JSON.stringify(amendmentData)]); // Use JSON.stringify to avoid reference changes
 
   // Handle case where caseItem is null or undefined after all hooks are called
   if (!caseItem) {
@@ -139,13 +145,27 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     if (!formData.hospital.trim()) {
       newErrors.hospital = 'Hospital is required';
     }
-    // Department and procedureType validation removed - these fields are read-only in amendment
+    
+    // Department is read-only in amendment, so no validation needed
+    
     if (!formData.dateOfSurgery) {
-      newErrors.dateOfSurgery = 'Surgery date is required';
+      newErrors.dateOfSurgery = 'Date of Surgery is required';
     }
+    
+    if (!formData.doctorName.trim()) {
+      newErrors.doctorName = 'Doctor is required';
+    }
+    
+    if (!formData.procedureType.trim()) {
+      newErrors.procedureType = 'Procedure Type is required';
+    }
+    
     if (!formData.procedureName.trim()) {
-      newErrors.procedureName = 'Procedure name is required';
+      newErrors.procedureName = 'Procedure Name is required';
     }
+    
+    // Surgery sets and implant boxes are optional (matching CaseBookingForm)
+    
     if (!formData.amendmentReason.trim()) {
       newErrors.amendmentReason = 'Amendment reason is required';
     }
@@ -169,8 +189,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     }
   };
 
-  // Debug logging to track modal rendering
-  console.log('Rendering AmendmentForm modal');
+  // Debug logging removed to prevent infinite rendering
   
   return (
     <div className="amendment-form-overlay">
@@ -207,7 +226,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
               <label>Department</label>
               <input
                 type="text"
-                value={formData.department}
+                value={formData.department || ''}
                 className="readonly-field"
                 readOnly
                 disabled
@@ -238,11 +257,39 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
               />
             </div>
 
-            {/* Procedure Type - Linked to Edit Sets */}
+            {/* Procedure Name - matches CaseBookingForm order */}
+            <div className="form-group">
+              <label className="required">Procedure Name</label>
+              <input
+                type="text"
+                value={formData.procedureName || ''}
+                onChange={(e) => handleInputChange('procedureName', e.target.value)}
+                className={errors.procedureName ? 'error' : ''}
+                placeholder="Enter procedure name"
+                required
+              />
+              {errors.procedureName && <span className="error-text">{errors.procedureName}</span>}
+            </div>
+
+            {/* Doctor Name - matches CaseBookingForm order */}
+            <div className="form-group">
+              <label className="required">Doctor Name</label>
+              <input
+                type="text"
+                value={formData.doctorName || ''}
+                onChange={(e) => handleInputChange('doctorName', e.target.value)}
+                className={errors.doctorName ? 'error' : ''}
+                placeholder="Enter doctor name"
+                required
+              />
+              {errors.doctorName && <span className="error-text">{errors.doctorName}</span>}
+            </div>
+
+            {/* Procedure Type - after Doctor to match CaseBookingForm order */}
             <div className="form-group">
               <label className="required">Procedure Type</label>
               <select
-                value={formData.procedureType}
+                value={formData.procedureType || ''}
                 onChange={(e) => handleInputChange('procedureType', e.target.value)}
                 className={errors.procedureType ? 'error' : ''}
                 required
@@ -257,35 +304,11 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
               {errors.procedureType && <span className="error-text">{errors.procedureType}</span>}
             </div>
 
-            {/* Procedure Name */}
-            <div className="form-group">
-              <label className="required">Procedure Name</label>
-              <input
-                type="text"
-                value={formData.procedureName}
-                onChange={(e) => handleInputChange('procedureName', e.target.value)}
-                className={errors.procedureName ? 'error' : ''}
-                placeholder="Enter procedure name"
-              />
-              {errors.procedureName && <span className="error-text">{errors.procedureName}</span>}
-            </div>
-
-            {/* Doctor Name */}
-            <div className="form-group">
-              <label>Doctor Name</label>
-              <input
-                type="text"
-                value={formData.doctorName}
-                onChange={(e) => handleInputChange('doctorName', e.target.value)}
-                placeholder="Enter doctor name"
-              />
-            </div>
-
             {/* Special Instructions */}
             <div className="form-group full-width">
               <label>Special Instructions</label>
               <textarea
-                value={formData.specialInstruction}
+                value={formData.specialInstruction || ''}
                 onChange={(e) => handleInputChange('specialInstruction', e.target.value)}
                 placeholder="Enter any special instructions"
                 rows={3}
@@ -299,7 +322,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
                   id="amendment-surgery-sets"
                   label="Surgery Set"
                   options={surgerySetOptions}
-                  value={formData.surgerySetSelection}
+                  value={formData.surgerySetSelection || []}
                   onChange={(values) => handleInputChange('surgerySetSelection', values)}
                   placeholder="Select Surgery Sets..."
                 />
@@ -313,7 +336,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
                   id="amendment-implant-boxes"
                   label="Implant Box"
                   options={implantBoxOptions}
-                  value={formData.implantBox}
+                  value={formData.implantBox || []}
                   onChange={(values) => handleInputChange('implantBox', values)}
                   placeholder="Select Implant Boxes..."
                 />
@@ -325,7 +348,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
           <div className="form-group full-width">
             <label className="required">Reason for Amendment</label>
             <textarea
-              value={formData.amendmentReason}
+              value={formData.amendmentReason || ''}
               onChange={(e) => handleInputChange('amendmentReason', e.target.value)}
               placeholder="Please provide a reason for this amendment"
               rows={3}

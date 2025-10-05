@@ -90,9 +90,21 @@ export const permissionActions: PermissionAction[] = [
     category: 'Case Management'
   },
   {
-    id: 'edit-sets',
-    name: 'Edit Sets',
-    description: 'Manage surgery sets and implant boxes for procedure types. Configure available surgical instruments and implant options for specific medical procedures and specialties.',
+    id: 'manage-doctors',
+    name: 'Manage Doctors',
+    description: 'Add, edit, and manage doctor profiles and their associated specialties.',
+    category: 'Case Management'
+  },
+  {
+    id: 'manage-procedure-types',
+    name: 'Manage Procedure Types',
+    description: 'Add, edit, and manage procedure types and their configurations.',
+    category: 'Case Management'
+  },
+  {
+    id: 'manage-surgery-implants',
+    name: 'Manage Surgery & Implants',
+    description: 'Manage surgery sets and implant boxes for procedure types. Configure available surgical instruments and implant options.',
     category: 'Case Management'
   },
 
@@ -330,7 +342,9 @@ export const permissions: Permission[] = [
   { actionId: 'amend-case', roleId: 'operations-manager', allowed: true },
   { actionId: 'update-case-status', roleId: 'operations-manager', allowed: true },
   { actionId: 'delete-case', roleId: 'operations-manager', allowed: true },
-  { actionId: 'edit-sets', roleId: 'operations-manager', allowed: true },
+  { actionId: 'manage-doctors', roleId: 'operations-manager', allowed: true },
+  { actionId: 'manage-procedure-types', roleId: 'operations-manager', allowed: true },
+  { actionId: 'manage-surgery-implants', roleId: 'operations-manager', allowed: true },
   { actionId: 'booking-calendar', roleId: 'operations-manager', allowed: true },
   { actionId: 'process-order', roleId: 'operations-manager', allowed: true },
   { actionId: 'order-processed', roleId: 'operations-manager', allowed: true },
@@ -394,7 +408,9 @@ export const permissions: Permission[] = [
   { actionId: 'create-case', roleId: 'it', allowed: true },
   { actionId: 'amend-case', roleId: 'it', allowed: true },
   { actionId: 'update-case-status', roleId: 'it', allowed: true },
-  { actionId: 'edit-sets', roleId: 'it', allowed: true },
+  { actionId: 'manage-doctors', roleId: 'it', allowed: true },
+  { actionId: 'manage-procedure-types', roleId: 'it', allowed: true },
+  { actionId: 'manage-surgery-implants', roleId: 'it', allowed: true },
   { actionId: 'process-order', roleId: 'it', allowed: true },
   { actionId: 'order-processed', roleId: 'it', allowed: true },
   { actionId: 'pending-delivery-hospital', roleId: 'it', allowed: true },

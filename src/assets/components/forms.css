@@ -16,6 +16,7 @@
 
 .form-row.two-columns {
   grid-template-columns: 1fr 1fr;
+  align-items: start;
 }
 
 .form-row.three-columns {
@@ -79,8 +80,6 @@ textarea,
 select {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 2px solid var(--border-light);
-  border-radius: var(--border-radius);
   font-size: 0.875rem;
   font-family: inherit;
   background-color: var(--white);
@@ -364,6 +363,88 @@ select:focus {
   font-size: 0.75rem;
   color: var(--primary-color);
   font-weight: 600;
+}
+
+/* Custom dropdown inputs (SearchableDropdown, MultiSelectDropdown) */
+.searchable-dropdown input,
+.multi-select-dropdown input,
+.custom-dropdown input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border-light);
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  font-family: inherit;
+  background-color: var(--white);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+
+.searchable-dropdown input:focus,
+.multi-select-dropdown input:focus,
+.custom-dropdown input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
+}
+
+.searchable-dropdown input:hover,
+.multi-select-dropdown input:hover,
+.custom-dropdown input:hover {
+  border-color: var(--primary-color);
+}
+
+/* Quantity fields standardization */
+.quantity-field {
+  padding: 0.75rem !important;
+  border: 2px solid var(--border-light) !important;
+  border-radius: var(--border-radius) !important;
+  font-size: 0.875rem !important;
+  background: var(--white) !important;
+  color: var(--text-primary) !important;
+  transition: all 0.2s ease !important;
+  min-height: 44px !important;
+}
+
+.quantity-field:focus {
+  outline: none !important;
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1) !important;
+}
+
+.quantity-field:hover {
+  border-color: var(--primary-color) !important;
+}
+
+/* Case Booking Form specific styles */
+.case-booking-form input,
+.case-booking-form textarea,
+.case-booking-form select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border-light);
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  font-family: inherit;
+  background-color: var(--white);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+
+.case-booking-form input:focus,
+.case-booking-form textarea:focus,
+.case-booking-form select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
+}
+
+.case-booking-form input:hover,
+.case-booking-form textarea:hover,
+.case-booking-form select:hover {
+  border-color: var(--primary-color);
 }
 
 /* Responsive adjustments */

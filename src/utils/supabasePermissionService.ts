@@ -50,6 +50,15 @@ const parseActionId = (actionId: string): { resource: string; action: string } |
       return { resource: 'reports', action: 'view' };
     case 'export-data':
       return { resource: 'data', action: 'export' };
+    // Granular Edit Sets permissions
+    case 'manage-doctors':
+      return { resource: 'other', action: 'manage-doctors' };
+    case 'manage-procedure-types':
+      return { resource: 'other', action: 'manage-procedure-types' };
+    case 'manage-surgery-implants':
+      return { resource: 'other', action: 'manage-surgery-implants' };
+    case 'edit-sets':
+      return { resource: 'other', action: 'edit-sets' };
     // Add more mappings as needed
     default:
       // For unmapped actions, don't try to parse - just return a safe fallback
@@ -138,6 +147,9 @@ export const getSupabasePermissions = async (): Promise<Permission[]> => {
         actionId = 'update-case-status';
       } else if (resource === 'case' && action === 'cancel') {
         actionId = 'case-cancelled';
+      } else if (resource === 'other') {
+        // For "other" resource, use the action as-is (for granular permissions)
+        actionId = action;
       } else {
         // Fallback to basic format
         actionId = `${action}-${resource}`;

@@ -82,7 +82,13 @@
       "Bash(git cherry-pick:*)",
       "Bash(PORT=3005 npm start)",
       "Bash(PORT=3006 npm start)",
-      "Bash(PORT=3007 npm start)"
+      "Bash(PORT=3007 npm start)",
+      "Bash(gh auth:*)",
+      "Bash(ssh:*)",
+      "Read(//c/Users/AnRon/**)",
+      "Bash(ssh-keygen:*)",
+      "Bash(mkdir:*)",
+      "Bash(/dev/null)"
     ],
     "deny": [],
     "ask": [],

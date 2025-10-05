@@ -785,10 +785,13 @@ body {
 
 /* Fix for showing exactly 5 options */
 .multi-select-option {
-  min-height: 36px;
+  min-height: 20px;
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 2px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 
@@ -4341,15 +4344,6 @@ textarea:focus {
   margin-top: 2px;
 }
 
-.multi-select-option {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
 .multi-select-option:last-child {
   border-bottom: none;
 }
@@ -5732,17 +5726,17 @@ textarea:focus {
 
 /* Modern Filters Section */
 .modern-filters-section {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, var(--white) 0%, var(--primary-light) 100%);
   border-radius: var(--border-radius-large);
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--primary-color);
   margin-bottom: 24px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(32, 178, 170, 0.1);
   transition: all 0.3s ease;
 }
 
 .modern-filters-section:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(32, 178, 170, 0.15);
 }
 
 .filters-header {
@@ -5998,22 +5992,23 @@ textarea:focus {
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  background: linear-gradient(135deg, var(--white), var(--primary-light));
   border-radius: var(--border-radius);
+  border: 1px solid var(--primary-color);
   flex-wrap: wrap;
 }
 
 .quick-filters-label {
   font-size: 13px;
   font-weight: 600;
-  color: #008b8b;
+  color: var(--primary-color);
   margin-right: 8px;
 }
 
 .quick-filter-button {
-  background: white;
-  color: #008b8b;
-  border: 1px solid #008b8b;
+  background: var(--white);
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
   padding: 6px 12px;
   border-radius: 20px;
   cursor: pointer;
@@ -6026,8 +6021,8 @@ textarea:focus {
 }
 
 .quick-filter-button:hover {
-  background: #008b8b;
-  color: white;
+  background: var(--primary-color);
+  color: var(--white);
   transform: scale(1.05);
 }
 
@@ -8403,4 +8398,130 @@ textarea:focus {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+/* Case Action Button Styles */
+.case-action-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 8px 4px 0;
+  box-shadow: var(--shadow-light);
+}
+
+.case-action-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-medium);
+}
+
+.case-action-button:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-light);
+}
+
+.case-action-button.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Delete Button - Danger Styling */
+.case-action-button.delete-button {
+  background: var(--danger-color);
+  color: white;
+  border: 2px solid var(--danger-color);
+}
+
+.case-action-button.delete-button:hover {
+  background: #c0392b;
+  border-color: #c0392b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.case-action-button.delete-button:active {
+  background: #a93226;
+  border-color: #a93226;
+  transform: translateY(0);
+}
+
+/* Amend Button - Warning Styling */
+.case-action-button.amend-button {
+  background: var(--warning-color);
+  color: white;
+  border: 2px solid var(--warning-color);
+}
+
+.case-action-button.amend-button:hover {
+  background: #e67e22;
+  border-color: #e67e22;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
+}
+
+/* Process Order Button - Primary Styling */
+.case-action-button.process-order-button,
+.case-action-button.process-button {
+  background: var(--primary-color);
+  color: white;
+  border: 2px solid var(--primary-color);
+}
+
+.case-action-button.process-order-button:hover,
+.case-action-button.process-button:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(32, 178, 170, 0.3);
+}
+
+/* Other Status Buttons */
+.case-action-button.sales-approval-button {
+  background: var(--success-color);
+  color: white;
+  border: 2px solid var(--success-color);
+}
+
+.case-action-button.sales-approval-button:hover {
+  background: #229954;
+  border-color: #229954;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+}
+
+.case-action-button.deliver-button,
+.case-action-button.received-button,
+.case-action-button.complete-button {
+  background: #3498db;
+  color: white;
+  border: 2px solid #3498db;
+}
+
+.case-action-button.deliver-button:hover,
+.case-action-button.received-button:hover,
+.case-action-button.complete-button:hover {
+  background: #2980b9;
+  border-color: #2980b9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.case-action-button.cancel-button {
+  background: #95a5a6;
+  color: white;
+  border: 2px solid #95a5a6;
+}
+
+.case-action-button.cancel-button:hover {
+  background: #7f8c8d;
+  border-color: #7f8c8d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
 }

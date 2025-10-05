@@ -222,7 +222,10 @@ const CaseActions: React.FC<CaseActionsProps> = ({
         >
           <button
             onClick={() => onDeleteCase(caseItem.id, caseItem)}
-            className="case-action-button delete-button"
+            className={`case-action-button delete-button ${
+              !hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.DELETE_CASE) ? 'disabled' : ''
+            }`}
+            disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.DELETE_CASE)}
           >
             🗑️ Delete Case
           </button>

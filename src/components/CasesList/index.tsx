@@ -72,13 +72,12 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   const [salesApprovalAttachments, setSalesApprovalAttachments] = useState<string[]>([]);
   const [salesApprovalComments, setSalesApprovalComments] = useState('');
 
-  // Filter cases locally
-  const filterCases = useCallback((casesToFilter: CaseBooking[], filterOptions: FilterOptions) => {
+  // Filter cases function - moved inside useEffect to avoid infinite loops
+  const filterCasesLocally = useCallback((casesToFilter: CaseBooking[], filterOptions: FilterOptions, userRole?: string) => {
     let filtered = casesToFilter;
 
     // Driver role filtering - only show delivery-related cases
-    const currentUser = getCurrentUserSync();
-    if (currentUser?.role === 'driver') {
+    if (userRole === 'driver') {
       const deliveryStatuses = [
         CASE_STATUSES.PENDING_DELIVERY_HOSPITAL,
         CASE_STATUSES.DELIVERED_HOSPITAL,
@@ -134,7 +133,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
 
     return filtered;
-  }, []);
+  }, [CASE_STATUSES.PENDING_DELIVERY_HOSPITAL, CASE_STATUSES.DELIVERED_HOSPITAL, CASE_STATUSES.PENDING_DELIVERY_OFFICE, CASE_STATUSES.DELIVERED_OFFICE]);
   const [hospitalDeliveryAttachments, setHospitalDeliveryAttachments] = useState<string[]>([]);
   const [hospitalDeliveryComments, setHospitalDeliveryComments] = useState('');
   const [hospitalDeliveryCase, setHospitalDeliveryCase] = useState<string | null>(null);
@@ -206,7 +205,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
   useEffect(() => {
     const currentUser = getCurrentUserSync();
-    let filteredResults = filterCases(cases, filters);
+    let filteredResults = filterCasesLocally(cases, filters, currentUser?.role);
 
     // Admin users see ALL cases without country/department restrictions
     if (currentUser?.role === 'admin') {
@@ -247,39 +246,47 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
 
     setFilteredCases(filteredResults);
-  }, [cases, filters]); // Remove filterCases from dependencies to prevent infinite loop
+  }, [cases, filters, filterCasesLocally]); // Now includes stable filterCasesLocally dependency
 
   // Handle highlighted case from calendar
   useEffect(() => {
     if (highlightedCaseId) {
-      // Find which page the highlighted case is on
-      const caseIndex = filteredCases.findIndex(c => c.id === highlightedCaseId);
-      if (caseIndex !== -1) {
-        const targetPage = Math.ceil((caseIndex + 1) / casesPerPage);
-        setCurrentPage(targetPage);
-      }
+      // Use a timeout to ensure filteredCases is updated
+      const timeoutId = setTimeout(() => {
+        setFilteredCases(currentFilteredCases => {
+          // Find which page the highlighted case is on
+          const caseIndex = currentFilteredCases.findIndex(c => c.id === highlightedCaseId);
+          if (caseIndex !== -1) {
+            const targetPage = Math.ceil((caseIndex + 1) / casesPerPage);
+            setCurrentPage(targetPage);
+          }
+          return currentFilteredCases; // Return unchanged to avoid re-render
+        });
 
-      // Auto-expand the highlighted case
-      setExpandedCases(prev => new Set([...Array.from(prev), highlightedCaseId]));
+        // Auto-expand the highlighted case
+        setExpandedCases(prev => new Set([...Array.from(prev), highlightedCaseId]));
 
-      // Scroll to the case after a small delay to ensure it's rendered
-      setTimeout(() => {
-        const caseElement = document.getElementById(`case-${highlightedCaseId}`);
-        if (caseElement) {
-          caseElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center'
-          });
-          // Add highlight effect
-          caseElement.classList.add('highlighted-case');
-          setTimeout(() => {
-            caseElement.classList.remove('highlighted-case');
-            onClearHighlight?.();
-          }, 3000);
-        }
-      }, 100);
+        // Scroll to the case after a small delay to ensure it's rendered
+        setTimeout(() => {
+          const caseElement = document.getElementById(`case-${highlightedCaseId}`);
+          if (caseElement) {
+            caseElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center'
+            });
+            // Add highlight effect
+            caseElement.classList.add('highlighted-case');
+            setTimeout(() => {
+              caseElement.classList.remove('highlighted-case');
+              onClearHighlight?.();
+            }, 3000);
+          }
+        }, 100);
+      }, 0);
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [highlightedCaseId, onClearHighlight, filteredCases, casesPerPage]);
+  }, [highlightedCaseId, onClearHighlight, casesPerPage]); // Removed filteredCases to fix infinite loop
 
   const handleFilterChange = (field: keyof FilterOptions, value: string) => {
     setTempFilters(prev => ({

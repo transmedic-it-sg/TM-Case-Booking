@@ -41,49 +41,49 @@ export const getUserNameById = async (userId: string): Promise<string> => {
 /**
  * Convert multiple user IDs to names
  */
-export const getUserNamesByIds = async (userIds: string[]): Promise<Record<string, string>> => {// First try the cached users approach
-  const users = await getCachedUsers();const result: Record<string, string> = {};
+export const getUserNamesByIds = async (userIds: string[]): Promise<Record<string, string>> => {
+  console.log('🔍 getUserNamesByIds called with userIds:', userIds);
+  
+  const result: Record<string, string> = {};
+  
+  try {
+    // Get all user names directly from profiles table
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, name')
+      .in('id', userIds.filter(id => id && id.includes('-')));
 
-  userIds.forEach(userId => {
-    const user = users.find(u => u.id === userId);
-    result[userId] = user ? user.name : userId;
+    console.log('📄 Supabase profiles response:', { profiles, error: profilesError });
 
-    if (!user && userId.includes('-')) {
-      // UUID not found in cache, will be looked up from Supabase below
-    }
-  });
-
-  // For any UUIDs that weren't found, try direct Supabase lookup
-  const missingIds = userIds.filter(id => result[id] === id && id.includes('-'));
-  if (missingIds.length > 0) {try {
-      // Try profiles table first
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', missingIds);
-
-      if (profilesError) {
-        console.error('❌ Profiles lookup error:', profilesError);
-      } else {if (profiles) {
-          profiles.forEach(profile => {
-            result[profile.id] = profile.name;});
-        }
+    if (profilesError) {
+      console.error('❌ Direct profiles lookup error:', profilesError);
+      // Fallback to userIds as names
+      userIds.forEach(userId => {
+        result[userId] = userId;
+      });
+    } else {
+      // First, set all IDs to themselves as fallback
+      userIds.forEach(userId => {
+        result[userId] = userId;
+      });
+      
+      // Then update with actual names where found
+      if (profiles) {
+        profiles.forEach(profile => {
+          result[profile.id] = profile.name;
+          console.log(`✅ Mapped user: ${profile.id} -> ${profile.name}`);
+        });
       }
-
-      // Users table removed - all users are now in profiles table only
-    } catch (error) {
-      console.error('💥 Error in direct Supabase user lookup:', error);
     }
+  } catch (error) {
+    console.error('💥 Error in direct Supabase user lookup:', error);
+    // Fallback to userIds as names
+    userIds.forEach(userId => {
+      result[userId] = userId;
+    });
   }
-
-  // Final fallback: Create user-friendly names for any remaining UUIDs
-  Object.keys(result).forEach(userId => {
-    if (result[userId] === userId && userId.includes('-')) {
-      // Create a short readable identifier from UUID
-      const shortId = userId.substring(0, 8);
-      result[userId] = `User ${shortId}`;
-    }
-  });
+  
+  console.log('🎉 Final getUserNamesByIds result:', result);
   
   return result;
 };

@@ -4,7 +4,7 @@
  */
 
 import { User } from '../types';
-import { SafeStorage } from '../utils/secureDataManager';
+import { supabase } from '../lib/supabase';
 
 class UserService {
   private static instance: UserService;
@@ -19,7 +19,7 @@ class UserService {
   }
 
   /**
-   * Get current authenticated user with caching (async version)
+   * Get current authenticated user from Supabase session (no local storage)
    */
   async getCurrentUser(): Promise<User | null> {
     if (this.currentUser) {
@@ -27,17 +27,29 @@ class UserService {
     }
 
     try {
-      const userData = await SafeStorage.getItem('currentUser');
-      if (userData) {
-        this.currentUser = typeof userData === 'string' ? JSON.parse(userData) : userData;
-        return this.currentUser;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        return null;
       }
+
+      // Fetch user details from profiles table
+      const { data: user, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error || !user) {
+        console.error('Error fetching user profile:', error);
+        return null;
+      }
+
+      this.currentUser = user;
+      return this.currentUser;
     } catch (error) {
       console.error('Error loading current user:', error);
-      await SafeStorage.removeItem('currentUser');
+      return null;
     }
-
-    return null;
   }
 
   /**
@@ -50,19 +62,14 @@ class UserService {
   }
 
   /**
-   * Set current user and update cache
+   * Set current user and update cache (no storage - using Supabase session)
    */
   async setCurrentUser(user: User | null): Promise<void> {
     this.currentUser = user;
     if (user) {
-      await SafeStorage.setItem('currentUser', user, {
-        tags: ['user-data', 'session'],
-        ttl: 24 * 60 * 60 * 1000 // 24 hours
-      });
       this.userCache.set(user.id, user);
-    } else {
-      await SafeStorage.removeItem('currentUser');
     }
+    // No storage needed - Supabase handles session management
   }
 
   /**
@@ -137,15 +144,17 @@ class UserService {
    */
   async deleteUser(userId: string): Promise<boolean> {
     try {
-      const users = await this.getAllUsers();
-      const filteredUsers = users.filter(u => u.id !== userId);
+      // Delete user from Supabase database directly instead of local storage
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
 
-      await SafeStorage.setItem('users', filteredUsers, {
-        tags: ['user-data'],
-        ttl: 7 * 24 * 60 * 60 * 1000 // 7 days
-      });
+      if (error) {
+        throw error;
+      }
+
       this.userCache.delete(userId);
-
       return true;
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -184,11 +193,12 @@ class UserService {
   }
 
   /**
-   * Logout user
+   * Logout user (Supabase handles session clearing)
    */
   async logout(): Promise<void> {
     this.clearCache();
-    await SafeStorage.removeItem('currentUser');
+    // Supabase auth handles session management
+    await supabase.auth.signOut();
   }
 }
 

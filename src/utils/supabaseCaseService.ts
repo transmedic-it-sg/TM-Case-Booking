@@ -206,10 +206,20 @@ const getAmendmentHistoryForCase = async (caseId: string): Promise<AmendmentHist
  */
 export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]> => {
   try {
-    // Fetch cases without nested relations to avoid 400 errors
+    // Fetch cases with status history to enable versioning history display
     let query = supabase
       .from('case_bookings')
-      .select('*')
+      .select(`
+        *,
+        status_history (
+          id,
+          status,
+          processed_by,
+          timestamp,
+          details,
+          attachments
+        )
+      `)
       .order('created_at', { ascending: false });
 
     if (country) {
@@ -236,73 +246,19 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
       return [];
     }
 
-    // Extract case IDs for bulk fetching
-    const caseIds = data.map(caseData => caseData.id);
-
-    // Fetch all status histories at once
-    const { data: statusHistories, error: statusError } = await supabase
-      .from('status_history')
-      .select('*')
-      .in('case_id', caseIds)
-      .order('timestamp', { ascending: true });
-
-    if (statusError) {
-      console.error('Error fetching status histories:', statusError);
-    }
-
-    // Fetch all amendment histories at once
-    const { data: amendmentHistories, error: amendmentError } = await supabase
-      .from('amendment_history')
-      .select('*')
-      .in('case_id', caseIds)
-      .order('timestamp', { ascending: true });
-
-    if (amendmentError) {
-      console.error('Error fetching amendment histories:', amendmentError);
-    }
-
-    // Group histories by case ID
-    const statusHistoryMap = new Map<string, StatusHistory[]>();
-    const amendmentHistoryMap = new Map<string, AmendmentHistory[]>();statusHistories?.forEach(history => {
-      if (!statusHistoryMap.has(history.case_id)) {
-        statusHistoryMap.set(history.case_id, []);
-      }
-      statusHistoryMap.get(history.case_id)!.push({
-        status: history.status as CaseStatus,
-        timestamp: history.timestamp,
-        processedBy: history.processed_by,
-        user: history.processed_by, // Add user field for compatibility
-        details: history.details || '',
-        attachments: history.attachments || []
+    // Debug: Log the raw data from Supabase
+    console.log('🔍 Raw Supabase data:', data);
+    data.forEach((caseData, index) => {
+      console.log(`📋 Case ${index}:`, {
+        case_reference_number: caseData.case_reference_number,
+        procedure_type: caseData.procedure_type,
+        procedure_name: caseData.procedure_name,
+        submitted_by: caseData.submitted_by,
+        date_of_surgery: caseData.date_of_surgery,
+        surgery_set_selection: caseData.surgery_set_selection,
+        implant_box: caseData.implant_box,
+        time_of_procedure: caseData.time_of_procedure
       });
-    });
-
-    // Group amendment histories by case and session
-    amendmentHistories?.forEach(history => {
-      if (!amendmentHistoryMap.has(history.case_id)) {
-        amendmentHistoryMap.set(history.case_id, []);
-      }
-
-      const caseAmendments = amendmentHistoryMap.get(history.case_id)!;
-      const sessionKey = `${history.timestamp}_${history.amended_by}`;
-
-      // Find existing amendment session or create new one
-      let existingAmendment = caseAmendments.find(
-        a => `${a.timestamp}_${a.amendedBy}` === sessionKey
-      );
-
-      if (!existingAmendment) {
-        existingAmendment = {
-          amendmentId: history.id,
-          timestamp: history.timestamp,
-          amendedBy: history.amended_by,
-          changes: history.changes || [],
-          reason: history.reason
-        };
-        caseAmendments.push(existingAmendment);
-      }
-      // Note: Don't merge changes arrays here to prevent duplicates
-      // Each amendment_history record should have its complete changes array
     });
 
     // Transform Supabase data to CaseBooking interface
@@ -334,9 +290,16 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
       attachments: caseData.attachments || [],
       orderSummary: caseData.order_summary,
       doNumber: caseData.do_number,
-      // Use the grouped histories
-      statusHistory: statusHistoryMap.get(caseData.id) || [],
-      amendmentHistory: amendmentHistoryMap.get(caseData.id) || []
+      // Use the nested status history from the relation
+      statusHistory: caseData.status_history?.map((history: any) => ({
+        status: history.status as CaseStatus,
+        timestamp: history.timestamp,
+        processedBy: history.processed_by,
+        user: history.processed_by, // Add user field for compatibility
+        details: history.details || '',
+        attachments: history.attachments || []
+      }))?.sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) || [],
+      amendmentHistory: [] // Will add amendment history separately if needed
     }));
   } catch (error) {
     console.error('Error in getSupabaseCases:', error);

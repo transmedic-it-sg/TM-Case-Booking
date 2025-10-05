@@ -210,61 +210,74 @@ export const getSetsForDoctorProcedure = async (
     }
 
     const normalizedCountry = normalizeCountry(country);
-    const { data, error } = await supabase.rpc('get_sets_for_doctor_procedure', {
-      p_doctor_id: doctorId,
-      p_procedure_type: procedureType,
-      p_country: normalizedCountry
-    });
+    
+    // Load surgery sets for this doctor/procedure combination with Edit Sets ordering
+    const { data: surgerySets, error: surgeryError } = await supabase
+      .from('surgery_sets')
+      .select('id, name, sort_order')
+      .eq('country', normalizedCountry)
+      .eq('doctor_id', doctorId)
+      .eq('procedure_type', procedureType)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true, nullsFirst: false })
+      .order('name');
 
-    if (error) {
-      logger.error('Error fetching sets for doctor-procedure', {
+    // Load implant boxes for this doctor/procedure combination with Edit Sets ordering
+    const { data: implantBoxes, error: implantError } = await supabase
+      .from('implant_boxes')
+      .select('id, name, sort_order')
+      .eq('country', normalizedCountry)
+      .eq('doctor_id', doctorId)
+      .eq('procedure_type', procedureType)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true, nullsFirst: false })
+      .order('name');
+
+    if (surgeryError) {
+      logger.error('Error fetching surgery sets for doctor-procedure', {
         doctorId,
         procedureType,
         country: normalizedCountry,
-        error: error.message
+        error: surgeryError.message
       });
-      return [];
     }
 
-    if (!data || data.length === 0) {
-      logger.info('No sets found for doctor-procedure', {
+    if (implantError) {
+      logger.error('Error fetching implant boxes for doctor-procedure', {
         doctorId,
         procedureType,
-        country: normalizedCountry
+        country: normalizedCountry,
+        error: implantError.message
       });
-      return [];
     }
 
+    // Transform to ProcedureSet format while preserving Edit Sets ordering
     const results: ProcedureSet[] = [];
-    const addedItems = new Set<string>(); // Track added items to prevent duplicates
     
-    // Transform the RPC response to match our expected interface
-    data.forEach((row: any) => {
-      // Add surgery set if it exists and not already added
-      if (row.surgery_set_id && row.surgery_set_name) {
-        const surgeryKey = `surgery_set:${row.surgery_set_id}`;
-        if (!addedItems.has(surgeryKey)) {
-          results.push({
-            item_type: 'surgery_set',
-            item_id: row.surgery_set_id,
-            item_name: row.surgery_set_name
-          });
-          addedItems.add(surgeryKey);
-        }
-      }
-      
-      // Add implant box if it exists and not already added
-      if (row.implant_box_id && row.implant_box_name) {
-        const implantKey = `implant_box:${row.implant_box_id}`;
-        if (!addedItems.has(implantKey)) {
-          results.push({
-            item_type: 'implant_box',
-            item_id: row.implant_box_id,
-            item_name: row.implant_box_name
-          });
-          addedItems.add(implantKey);
-        }
-      }
+    // Add surgery sets in Edit Sets order
+    (surgerySets || []).forEach(set => {
+      results.push({
+        item_type: 'surgery_set',
+        item_id: set.id,
+        item_name: set.name
+      });
+    });
+    
+    // Add implant boxes in Edit Sets order
+    (implantBoxes || []).forEach(box => {
+      results.push({
+        item_type: 'implant_box',
+        item_id: box.id,
+        item_name: box.name
+      });
+    });
+    
+    logger.info('Loaded sets for doctor-procedure with Edit Sets ordering', {
+      doctorId,
+      procedureType,
+      country: normalizedCountry,
+      surgerySetCount: surgerySets?.length || 0,
+      implantBoxCount: implantBoxes?.length || 0
     });
     
     return results;

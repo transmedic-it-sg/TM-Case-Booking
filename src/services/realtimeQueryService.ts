@@ -109,7 +109,56 @@ export const useRealtimeCasesQuery = (filters?: {
     if (error) {
       console.error('Error fetching cases:', error);
       throw new Error(`Failed to fetch cases: ${error.message}`);
-    }return data || [];
+    }
+
+    if (!data) {
+      return [];
+    }
+
+    // Transform Supabase data to CaseBooking interface (same as getSupabaseCases)
+    return data.map(caseData => ({
+      id: caseData.id,
+      caseReferenceNumber: caseData.case_reference_number,
+      hospital: caseData.hospital,
+      department: caseData.department,
+      dateOfSurgery: caseData.date_of_surgery,
+      procedureType: caseData.procedure_type,
+      procedureName: caseData.procedure_name,
+      doctorName: caseData.doctor_name,
+      timeOfProcedure: caseData.time_of_procedure,
+      surgerySetSelection: caseData.surgery_set_selection || [],
+      implantBox: caseData.implant_box || [],
+      specialInstruction: caseData.special_instruction,
+      status: caseData.status as CaseStatus,
+      submittedBy: caseData.submitted_by,
+      submittedAt: caseData.submitted_at,
+      processedBy: caseData.processed_by,
+      processedAt: caseData.processed_at,
+      processOrderDetails: caseData.process_order_details,
+      country: caseData.country,
+      isAmended: caseData.is_amended,
+      amendedBy: caseData.amended_by,
+      amendedAt: caseData.amended_at,
+      deliveryImage: caseData.delivery_image,
+      deliveryDetails: caseData.delivery_details,
+      attachments: caseData.attachments || [],
+      orderSummary: caseData.order_summary,
+      doNumber: caseData.do_number,
+      statusHistory: caseData.status_history?.map((history: any) => ({
+        status: history.status as CaseStatus,
+        timestamp: history.timestamp,
+        processedBy: history.processed_by,
+        user: history.processed_by,
+        details: history.details || '',
+        attachments: history.attachments || []
+      }))?.sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) || [],
+      amendmentHistory: caseData.amendment_history?.map((amendment: any) => ({
+        timestamp: amendment.timestamp,
+        amendedBy: amendment.amended_by,
+        reason: amendment.reason || '',
+        changes: amendment.changes || []
+      }))?.sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) || []
+    }));
   }, [filters]);
 
   return useRealtimeQuery(queryKey, queryFn, {
