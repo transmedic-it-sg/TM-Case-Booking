@@ -45,12 +45,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         }
       } catch (error) {
         // // // console.warn('Failed to load saved credentials from secure storage:', error);
-        // Clean up any old localStorage entry
-        try {
-          localStorage.removeItem('rememberMe');
-        } catch (cleanupError) {
-          // // // console.warn('Failed to clean up old localStorage credentials:', cleanupError);
-        }
+        // No localStorage cleanup needed
       }
     };
 

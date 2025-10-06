@@ -222,14 +222,14 @@ class SimplifiedOAuthManager {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Token exchange failed:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText,
-          provider: this.provider,
-          url: this.config.tokenUrl,
-          environment: process.env.NODE_ENV
-        });
+        // // // console.error('Token exchange failed:', {
+        //   status: response.status,
+        //   statusText: response.statusText,
+        //   body: errorText,
+        //   provider: this.provider,
+        //   url: this.config.tokenUrl,
+        //   environment: process.env.NODE_ENV
+        // });
 
         // Enhanced error messages for common issues
         if (response.status === 400) {
@@ -255,11 +255,11 @@ class SimplifiedOAuthManager {
       };
     } catch (error) {
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.error(`[OAuth] Network error during token exchange for ${this.provider}:`, {
-          error: error.message,
-          environment: process.env.NODE_ENV,
-          origin: window.location.origin
-        });
+        // // // console.error(`[OAuth] Network error during token exchange for ${this.provider}:`, {
+        //   error: error.message,
+        //   environment: process.env.NODE_ENV,
+        //   origin: window.location.origin
+        // });
         throw new Error('Network error during authentication. Please check your internet connection and try again.');
       }
       throw error;
@@ -278,12 +278,12 @@ class SimplifiedOAuthManager {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('User info request failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText,
-        provider: this.provider
-      });
+      // // // console.error('User info request failed:', {
+      //   status: response.status,
+      //   statusText: response.statusText,
+      //   body: errorText,
+      //   provider: this.provider
+      // });
       throw new Error(`Failed to get user info: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
@@ -537,11 +537,11 @@ export const refreshMicrosoftToken = async (country: string, refreshToken: strin
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Token refresh failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText
-      });
+      // // // console.error('Token refresh failed:', {
+      //   status: response.status,
+      //   statusText: response.statusText,
+      //   body: errorText
+      // });
       return null;
     }
 

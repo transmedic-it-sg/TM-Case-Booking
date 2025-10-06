@@ -4,7 +4,7 @@ import { getStatusColor, getNextResponsibleRole, formatDateTime } from './utils'
 import CaseActions from './CaseActions';
 import { getCurrentUserSync } from '../../utils/auth';
 import { useRealtimeMasterDataQuery } from '../../services/realtimeQueryService';
-import { getDepartments, getDepartmentNamesForUser } from '../../utils/codeTable';
+import { getDepartmentNamesForUser } from '../../utils/codeTable';
 import { useUserNames } from '../../hooks/useUserNames';
 import TimePicker from '../common/TimePicker';
 import { formatDate, getTodayForInput } from '../../utils/dateFormat';
@@ -138,7 +138,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
       try {
         const currentUser = getCurrentUserSync();
         if (!currentUser) {
-          setAvailableDepartments(getDepartments());
+          setAvailableDepartments([]);
           return;
         }
 
@@ -164,12 +164,12 @@ const CaseCard: React.FC<CaseCardProps> = ({
           return;
         }
 
-        // Fallback to global departments
-        setAvailableDepartments(getDepartments());
+        // No fallback - use empty array if no country
+        setAvailableDepartments([]);
       } catch (error) {
         // // // console.error('Error loading departments:', error);
-        // Use fallback departments on error
-        setAvailableDepartments(getDepartments());
+        // No fallback on error - use empty array
+        setAvailableDepartments([]);
       }
     };
 

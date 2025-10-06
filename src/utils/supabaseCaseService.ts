@@ -109,12 +109,12 @@ export const generateCaseReferenceNumber = async (country: string = 'Singapore')
 
       if (insertError) {
         // Log detailed error for debugging
-        console.error('Case counter insert error:', {
-          error: insertError,
-          country,
-          year: currentYear,
-          message: insertError.message
-        });
+        // // // console.error('Case counter insert error:', {
+        //   error: insertError,
+        //   country,
+        //   year: currentYear,
+        //   message: insertError.message
+        // });
         throw insertError;
       }
     }
@@ -1028,43 +1028,8 @@ export const saveCategorizedSets = async (
  * Migrate cases from localStorage to Supabase
  */
 export const migrateCasesFromLocalStorage = async (): Promise<void> => {
-  try {
-    const localCases = localStorage.getItem('case-booking-cases');
-    if (!localCases) return;
-
-    const cases = JSON.parse(localCases);
-
-    for (const caseData of cases) {
-      try {
-        // Transform localStorage format to Supabase format
-        const supabaseCase = {
-          hospital: caseData.hospital,
-          department: caseData.department,
-          dateOfSurgery: caseData.dateOfSurgery,
-          procedureType: caseData.procedureType,
-          procedureName: caseData.procedureName,
-          doctorName: caseData.doctorName,
-          timeOfProcedure: caseData.timeOfProcedure,
-          surgerySetSelection: caseData.surgerySetSelection || [],
-          implantBox: caseData.implantBox || [],
-          specialInstruction: caseData.specialInstruction,
-          status: caseData.status,
-          submittedBy: caseData.submittedBy,
-          country: normalizeCountry(caseData.country || ''),
-          processedBy: caseData.processedBy,
-          processedAt: caseData.processedAt,
-          processOrderDetails: caseData.processOrderDetails,
-          isAmended: caseData.isAmended,
-          amendedBy: caseData.amendedBy,
-          amendedAt: caseData.amendedAt
-        };
-
-        await saveSupabaseCase(supabaseCase);} catch (error) {
-        // Error migrating case - continue with next case
-      }
-    }} catch (error) {
-    // Error in case migration - continue silently
-  }
+  // Migration no longer needed - localStorage removed
+  return;
 };
 
 /**

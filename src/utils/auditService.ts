@@ -103,11 +103,7 @@ export const addAuditLog = async (
         const existingLogs = await getAuditLogsFromLocalStorage();
         const updatedLogs = [auditEntry, ...existingLogs];
 
-        // Keep only the latest 1000 audit entries to prevent localStorage bloat
-        const trimmedLogs = updatedLogs.slice(0, 1000);
-
-        // Store logs in localStorage (fallback only)
-        localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify(trimmedLogs));
+        // No localStorage fallback - logs only in database
       } else {
         throw error;
       }
@@ -170,16 +166,8 @@ export const getAuditLogs = async (): Promise<AuditLogEntry[]> => {
  * Get audit logs from localStorage (fallback)
  */
 const getAuditLogsFromLocalStorage = async (): Promise<AuditLogEntry[]> => {
-  try {
-    const logs = localStorage.getItem(AUDIT_LOGS_KEY);
-    if (logs) {
-      return JSON.parse(logs);
-    }
-    return [];
-  } catch (error) {
-    // // // console.error('Failed to load audit logs from localStorage:', error);
-    return [];
-  }
+  // No localStorage - return empty array
+  return [];
 };
 
 /**

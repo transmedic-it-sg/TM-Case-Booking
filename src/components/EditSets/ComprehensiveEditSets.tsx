@@ -20,7 +20,9 @@ import './ModernEditSets.css';
 interface Department {
   id: string;
   name: string;
-  country: string;
+  description?: string;
+  doctor_count?: number;
+  country?: string;
 }
 
 interface Doctor {

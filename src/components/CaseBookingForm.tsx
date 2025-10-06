@@ -114,9 +114,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         department: prefillDepartment
       }));
 
-      // Clear the pre-fill data from localStorage
-      localStorage.removeItem('calendar_prefill_date');
-      localStorage.removeItem('calendar_prefill_department');
+      // Pre-fill data handled - no localStorage needed
     }
   }, []);
 
@@ -410,26 +408,12 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           }
         } catch (error) {
           // Error loading departments from Supabase
-          // Try alternative service as fallback - no hardcoded data
-          try {
-            const { getDepartments } = await import('../services/constantsService');
-            const fallbackDepartments = await getDepartments(userCountry);
-            setAvailableDepartments(fallbackDepartments.sort());
-          } catch (fallbackError) {
-            // All department loading methods failed
-            setAvailableDepartments([]); // Empty array if all fails - forces user to contact support
-          }
+          // No fallback - use empty array
+          setAvailableDepartments([]); // Empty array if fails - forces user to contact support
         }
       } else {
-        // Try to get departments for the country using alternative service
-        try {
-          const { getDepartments } = await import('../services/constantsService');
-          const departments = await getDepartments(userCountry);
-          setAvailableDepartments(departments.sort());
-        } catch (error) {
-          // Error loading departments for country
-          setAvailableDepartments([]);
-        }
+        // No user or country - no departments available
+        setAvailableDepartments([]);
       }
     };
 

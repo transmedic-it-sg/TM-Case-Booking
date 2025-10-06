@@ -127,7 +127,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
           }
         }
       } catch (error) {
-        console.error('Error loading initial data:', error);
+        // // // console.error('Error loading initial data:', error);
       } finally {
         setIsLoadingDoctors(false);
       }
@@ -150,7 +150,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
         const doctors = await getDoctorsForDepartment(formData.department, normalizedCountry);
         setAvailableDoctors(doctors);
       } catch (error) {
-        console.error('Error loading doctors:', error);
+        // // // console.error('Error loading doctors:', error);
         setAvailableDoctors([]);
       } finally {
         setIsLoadingDoctors(false);
@@ -175,7 +175,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
         const procedures = await getProceduresForDoctor(formData.doctorId, normalizedCountry);
         setAvailableDoctorProcedures(procedures);
       } catch (error) {
-        console.error('Error loading doctor procedures:', error);
+        // // // console.error('Error loading doctor procedures:', error);
         setAvailableDoctorProcedures([]);
       } finally {
         setIsLoadingProcedures(false);
@@ -210,7 +210,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
         setSurgerySetOptions(surgerySetNames);
         setImplantBoxOptions(implantBoxNames);
       } catch (error) {
-        console.error('Error loading procedure sets:', error);
+        // // // console.error('Error loading procedure sets:', error);
         setAvailableProcedureSets([]);
       } finally {
         setIsLoadingSets(false);

@@ -132,38 +132,15 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
           }
         } catch (error) {
           // Error loading departments from Supabase code tables
-          // Try alternative service - no hardcoded data
-          try {
-            const { getDepartments } = await import('../services/constantsService');
-            const fallbackDepartments = await getDepartments(selectedCountry);
-            setDepartments(fallbackDepartments.sort());
-            if (fallbackDepartments.length > 0) {
-              setSelectedDepartment(fallbackDepartments[0]);
-            }
-          } catch (fallbackError) {
-            // All department loading failed - set empty departments
-            setDepartments([]);
-          }
+          // No fallback - set empty departments
+          setDepartments([]);
         }
       };
 
       loadDepartments();
     } else {
-      // Try to load departments from alternative service
-      const loadFallbackDepartments = async () => {
-        try {
-          const { getDepartments } = await import('../services/constantsService');
-          const departments = await getDepartments(selectedCountry);
-          setDepartments(departments.sort());
-          if (departments.length > 0) {
-            setSelectedDepartment(departments[0]);
-          }
-        } catch (error) {
-          // Error loading departments - set empty departments
-          setDepartments([]);
-        }
-      };
-      loadFallbackDepartments();
+      // No current user - set empty departments
+      setDepartments([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCountry]); // isAdmin is derived from currentUser which is already handled

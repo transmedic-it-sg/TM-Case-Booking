@@ -102,7 +102,7 @@ const Reports: React.FC = () => {
         setGlobalDepartments(Array.from(allDepartments).sort());
         setCaseStatuses(statuses || []);
       } catch (error) {
-        console.error('Error loading constants:', error);
+        // // // console.error('Error loading constants:', error);
         // Set default values to prevent errors
         setGlobalCountries([]);
         setGlobalDepartments([]);

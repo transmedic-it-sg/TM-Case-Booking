@@ -322,9 +322,9 @@ export class ErrorHandler {
       }));
     }
 
-    // Always log to console for debugging
-    const consoleMethod = type === 'error' ? 'error' : type === 'warning' ? 'warn' : 'log';
-    console[consoleMethod](`[${type.toUpperCase()}] ${message}`, details ? { details } : '');
+    // Logging disabled for production
+    // const consoleMethod = type === 'error' ? 'error' : type === 'warning' ? 'warn' : 'log';
+    // console[consoleMethod](`[${type.toUpperCase()}] ${message}`, details ? { details } : '');
   }
 
   /**
