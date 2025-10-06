@@ -158,15 +158,16 @@ const ComprehensiveEditSets: React.FC = () => {
   const loadDepartments = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('departments')
-        .select('*')
-        .eq('country', normalizedCountry)
-        .eq('is_active', true)
-        .order('name');
-
-      if (error) throw error;
-      setDepartments(data || []);
+      // Use standardized department loading service
+      const { getDepartmentsForCountry } = await import('../../utils/departmentDoctorService');
+      const departmentData = await getDepartmentsForCountry(normalizedCountry);
+      
+      if (!departmentData || departmentData.length === 0) {
+        setDepartments([]);
+        return;
+      }
+      
+      setDepartments(departmentData);
     } catch (error) {
       // // // console.error('Error loading departments:', error);
       showError('Database Error', 'Failed to load departments');
