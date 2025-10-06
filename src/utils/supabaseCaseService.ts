@@ -61,7 +61,10 @@ interface SupabaseCaseAmendmentHistory {
 /**
  * Generate a unique case reference number
  */
-export const generateCaseReferenceNumber = async (country: string): Promise<string> => {
+export const generateCaseReferenceNumber = async (country: string = 'Singapore'): Promise<string> => {
+  // Ensure country has a valid value
+  const validCountry = country && country.trim() ? country.trim() : 'Singapore';
+  
   try {
     const currentYear = new Date().getFullYear();
 
@@ -69,12 +72,11 @@ export const generateCaseReferenceNumber = async (country: string): Promise<stri
     const { data: counterData, error: counterError } = await supabase
       .from('case_counters')
       .select('current_counter')
-      .eq('country', country)
+      .eq('country', validCountry)
       .eq('year', currentYear)
       .single();
 
     if (counterError && counterError.code !== 'PGRST116') {
-      console.error('Error getting counter:', counterError);
       throw counterError;
     }
 
@@ -87,33 +89,39 @@ export const generateCaseReferenceNumber = async (country: string): Promise<stri
       const { error: updateError } = await supabase
         .from('case_counters')
         .update({ current_counter: newCounter })
-        .eq('country', country)
+        .eq('country', validCountry)
         .eq('year', currentYear);
 
       if (updateError) {
-        console.error('Error updating counter:', updateError);
         throw updateError;
       }
     } else {
-      // Create new counter
+      // Create new counter with explicit field handling
       const { error: insertError } = await supabase
         .from('case_counters')
         .insert([{
-          country,
+          country: validCountry, // Use validated country
           current_counter: newCounter,
           year: currentYear
-        }]);
+        }])
+        .select()
+        .single();
 
       if (insertError) {
-        console.error('Error creating counter:', insertError);
+        // Log detailed error for debugging
+        console.error('Case counter insert error:', {
+          error: insertError,
+          country,
+          year: currentYear,
+          message: insertError.message
+        });
         throw insertError;
       }
     }
 
     // Format: TMC-SG-2024-001
-    return `TMC-${country}-${currentYear}-${newCounter.toString().padStart(3, '0')}`;
+    return `TMC-${validCountry}-${currentYear}-${newCounter.toString().padStart(3, '0')}`;
   } catch (error) {
-    console.error('Error generating case reference number:', error);
     throw error;
   }
 };
@@ -134,7 +142,6 @@ const getStatusHistoryForCase = async (caseId: string): Promise<StatusHistory[]>
       .order('timestamp', { ascending: true });
 
     if (error) {
-      console.error('Error fetching status history:', error);
       return [];
     }
 
@@ -146,7 +153,6 @@ const getStatusHistoryForCase = async (caseId: string): Promise<StatusHistory[]>
       attachments: history.attachments
     })) || [];
   } catch (error) {
-    console.error('Error in getStatusHistoryForCase:', error);
     return [];
   }
 };
@@ -163,7 +169,6 @@ const getAmendmentHistoryForCase = async (caseId: string): Promise<AmendmentHist
       .order('timestamp', { ascending: true });
 
     if (error) {
-      console.error('Error fetching amendment history:', error);
       return [];
     }
 
@@ -192,7 +197,6 @@ const getAmendmentHistoryForCase = async (caseId: string): Promise<AmendmentHist
 
     return Array.from(groupedAmendments.values());
   } catch (error) {
-    console.error('Error in getAmendmentHistoryForCase:', error);
     return [];
   }
 };
@@ -238,7 +242,6 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching cases:', error);
       throw error;
     }
 
@@ -246,20 +249,7 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
       return [];
     }
 
-    // Debug: Log the raw data from Supabase
-    console.log('🔍 Raw Supabase data:', data);
-    data.forEach((caseData, index) => {
-      console.log(`📋 Case ${index}:`, {
-        case_reference_number: caseData.case_reference_number,
-        procedure_type: caseData.procedure_type,
-        procedure_name: caseData.procedure_name,
-        submitted_by: caseData.submitted_by,
-        date_of_surgery: caseData.date_of_surgery,
-        surgery_set_selection: caseData.surgery_set_selection,
-        implant_box: caseData.implant_box,
-        time_of_procedure: caseData.time_of_procedure
-      });
-    });
+    // Transform data for display
 
     // Transform Supabase data to CaseBooking interface
     return data.map(caseData => ({
@@ -302,7 +292,6 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
       amendmentHistory: [] // Will add amendment history separately if needed
     }));
   } catch (error) {
-    console.error('Error in getSupabaseCases:', error);
     return [];
   }
 };
@@ -349,7 +338,7 @@ export const getSupabaseCasesOriginal = async (country?: string): Promise<CaseBo
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching cases:', error);
+      // // // console.error('Error fetching cases:', error);
       throw error;
     }
 
@@ -410,7 +399,7 @@ export const getSupabaseCasesOriginal = async (country?: string): Promise<CaseBo
       })()
     }));
   } catch (error) {
-    console.error('Error in getSupabaseCases:', error);
+    // // // console.error('Error in getSupabaseCases:', error);
     throw error;
   }
 };
@@ -425,8 +414,8 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
     //   throw new Error('Insufficient permissions to create cases');
     // }
 
-    // Generate case reference number
-    const caseReferenceNumber = await generateCaseReferenceNumber(caseData.country);
+    // Generate case reference number with fallback
+    const caseReferenceNumber = await generateCaseReferenceNumber(caseData.country || 'Singapore');
 
     // Use direct query instead of secure query
     const { data: insertedCase, error: insertError } = await supabase
@@ -458,7 +447,6 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
       .single();
 
     if (insertError) {
-      console.error('Error inserting case:', insertError);
       throw insertError;
     }
 
@@ -475,7 +463,6 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
         }]);
 
       if (historyError) {
-        console.error('Error creating status history:', historyError);
         // Don't throw here, case was created successfully
       }
     }
@@ -516,7 +503,6 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
       ]
     };
   } catch (error) {
-    console.error('Error in saveSupabaseCase:', error);
     throw error;
   }
 };
@@ -540,7 +526,6 @@ export const updateSupabaseCaseStatus = async (
       .single();
 
     if (fetchError) {
-      console.error('Error fetching case data:', fetchError);
       // Continue with status update even if we can't fetch current data
     }
 
@@ -559,7 +544,6 @@ export const updateSupabaseCaseStatus = async (
       .eq('id', caseId);
 
     if (updateError) {
-      console.error('Error updating case status:', updateError);
       throw updateError;
     }
 
@@ -603,7 +587,6 @@ export const updateSupabaseCaseStatus = async (
         .insert([historyEntry]);
 
       if (historyError) {
-        console.error('❌ Error creating status history:', historyError);
         throw historyError;
       }// Add audit log for status change (only if history entry was added)
       if (caseRef && oldStatus !== newStatus) {
@@ -624,12 +607,11 @@ export const updateSupabaseCaseStatus = async (
             department
           );
         } catch (auditError) {
-          console.error('Failed to log status change audit:', auditError);
+          // Failed to log status change audit - continue silently
         }
       }
     }
   } catch (error) {
-    console.error('Error in updateSupabaseCaseStatus:', error);
     throw error;
   }
 };
@@ -659,7 +641,6 @@ export const updateSupabaseCaseProcessing = async (
       .eq('id', caseId);
 
     if (updateError) {
-      console.error('Error updating case processing:', updateError);
       throw updateError;
     }
 
@@ -683,11 +664,9 @@ export const updateSupabaseCaseProcessing = async (
       .insert([historyData]);
 
     if (historyError) {
-      console.error('Error creating status history:', historyError);
       throw historyError;
     }
   } catch (error) {
-    console.error('Error in updateSupabaseCaseProcessing:', error);
     throw error;
   }
 };
@@ -709,7 +688,6 @@ export const amendSupabaseCase = async (
       .single();
 
     if (fetchError) {
-      console.error('Error fetching current case:', fetchError);
       throw fetchError;
     }
 
@@ -851,7 +829,6 @@ export const amendSupabaseCase = async (
       .eq('id', caseId);
 
     if (updateError) {
-      console.error('Error amending case:', updateError);
       throw updateError;
     }
 
@@ -860,7 +837,7 @@ export const amendSupabaseCase = async (
     const session = await supabase.auth.getSession();// Skip authentication check if neither user nor session is available
     // The RLS policies will handle the actual authorization
     if (!user && !session.data.session) {
-      console.warn('No authentication found, but proceeding with RLS policy enforcement');
+      // No authentication found, but proceeding with RLS policy enforcement
     }
 
     // Create amendment history entry
@@ -875,8 +852,6 @@ export const amendSupabaseCase = async (
       .insert([historyEntry]);
 
     if (historyError) {
-      console.error('Error creating amendment history:', historyError);
-
       // Try alternative approach - use upsert instead of insert
       const { error: upsertError } = await supabase
         .from('amendment_history')
@@ -886,14 +861,10 @@ export const amendSupabaseCase = async (
         }]);
 
       if (upsertError) {
-        console.error('Upsert also failed:', upsertError);
         throw historyError; // Throw original error
-      } else {
-        console.log('Amendment history saved via upsert');
       }
     }
   } catch (error) {
-    console.error('Error in amendSupabaseCase:', error);
     throw error;
   }
 };
@@ -932,7 +903,6 @@ export const updateSupabaseCase = async (caseId: string, updates: Partial<CaseBo
       .single();
 
     if (updateError) {
-      console.error('Error updating case:', updateError);
       throw updateError;
     }
 
@@ -963,7 +933,6 @@ export const updateSupabaseCase = async (caseId: string, updates: Partial<CaseBo
       statusHistory: [] // Will be loaded separately
     };
   } catch (error) {
-    console.error('Error in updateSupabaseCase:', error);
     throw error;
   }
 };
@@ -979,11 +948,9 @@ export const deleteSupabaseCase = async (caseId: string): Promise<void> => {
       .eq('id', caseId);
 
     if (error) {
-      console.error('Error deleting case:', error);
       throw error;
     }
   } catch (error) {
-    console.error('Error in deleteSupabaseCase:', error);
     throw error;
   }
 };
@@ -1003,7 +970,6 @@ export const getCategorizedSets = async (country: string): Promise<Record<string
       .eq('country', country);
 
     if (error) {
-      console.error('Error fetching categorized sets:', error);
       throw error;
     }
 
@@ -1019,7 +985,6 @@ export const getCategorizedSets = async (country: string): Promise<Record<string
 
     return result;
   } catch (error) {
-    console.error('Error in getCategorizedSets:', error);
     throw error;
   }
 };
@@ -1048,15 +1013,9 @@ export const saveCategorizedSets = async (
       });
 
     if (upsertError) {
-      console.error('Error upserting categorized sets:', upsertError);
-      // Check if it's a table not found error (common cause of 400)
-      if (upsertError.message?.includes('relation "categorized_sets" does not exist')) {
-        console.warn('categorized_sets table does not exist. Please run FIX_CATEGORIZED_SETS_TABLE.sql to create it.');
-      }
       throw upsertError;
     }
   } catch (error) {
-    console.error('Error in saveCategorizedSets:', error);
     throw error;
   }
 };
@@ -1101,10 +1060,10 @@ export const migrateCasesFromLocalStorage = async (): Promise<void> => {
         };
 
         await saveSupabaseCase(supabaseCase);} catch (error) {
-        console.error(`Error migrating case ${caseData.caseReferenceNumber}:`, error);
+        // Error migrating case - continue with next case
       }
     }} catch (error) {
-    console.error('Error in case migration:', error);
+    // Error in case migration - continue silently
   }
 };
 
@@ -1119,13 +1078,11 @@ export const checkCasesExist = async (): Promise<boolean> => {
       .limit(1);
 
     if (error) {
-      console.error('Error checking cases exist:', error);
       return false;
     }
 
     return data.length > 0;
   } catch (error) {
-    console.error('Error in checkCasesExist:', error);
     return false;
   }
 };

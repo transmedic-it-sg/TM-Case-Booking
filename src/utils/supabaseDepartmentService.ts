@@ -37,7 +37,7 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching departments:', error);
+      // // // console.error('Error fetching departments:', error);
       return [];
     }
   }
@@ -56,7 +56,7 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return data?.map(item => item.procedure_type) || [];
     } catch (error) {
-      console.error('Error fetching procedure types:', error);
+      // // // console.error('Error fetching procedure types:', error);
       return [];
     }
   }
@@ -80,7 +80,7 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error adding procedure type:', error);
+      // // // console.error('Error adding procedure type:', error);
       return false;
     }
   }
@@ -101,7 +101,7 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error removing procedure type:', error);
+      // // // console.error('Error removing procedure type:', error);
       return false;
     }
   }
@@ -118,7 +118,7 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return data?.map(item => item.name) || [];
     } catch (error) {
-      console.error('Error fetching surgery sets:', error);
+      // // // console.error('Error fetching surgery sets:', error);
       return [];
     }
   }
@@ -135,7 +135,7 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return data?.map(item => item.name) || [];
     } catch (error) {
-      console.error('Error fetching implant boxes:', error);
+      // // // console.error('Error fetching implant boxes:', error);
       return [];
     }
   }
@@ -153,7 +153,7 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error adding surgery set:', error);
+      // // // console.error('Error adding surgery set:', error);
       return false;
     }
   }
@@ -171,7 +171,7 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error adding implant box:', error);
+      // // // console.error('Error adding implant box:', error);
       return false;
     }
   }
@@ -194,14 +194,28 @@ export const addImplantBox = (name: string, country: string) => service.addImpla
 
 // Additional function for backward compatibility
 export const getProcedureTypesForDepartmentIncludingInactive = async (
-  departmentId: string,
+  departmentName: string,
   country: string
 ): Promise<string[]> => {
   try {
+    // First get the department ID from the department name and country
+    const { data: deptData, error: deptError } = await supabase
+      .from('departments')
+      .select('id')
+      .eq('name', departmentName)
+      .eq('country', country)
+      .single();
+
+    if (deptError || !deptData) {
+      console.error('Department not found:', { departmentName, country, error: deptError });
+      return [];
+    }
+
+    // Then fetch procedure types using the department ID
     const { data, error } = await supabase
       .from('department_procedure_types')
       .select('procedure_type')
-      .eq('department_id', departmentId)
+      .eq('department_id', deptData.id)
       .eq('country', country)
       .order('procedure_type');
 

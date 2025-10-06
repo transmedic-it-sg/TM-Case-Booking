@@ -51,7 +51,7 @@ class EnterpriseCache {
               const operation = payload?.eventType;
 
               if (!table || !operation) {
-                console.warn('Invalid real-time payload received:', payload);
+                // // // console.warn('Invalid real-time payload received:', payload);
                 return;
               }// Invalidate all cache entries tagged with this table
               this.invalidateByTag(table);
@@ -63,13 +63,13 @@ class EnterpriseCache {
                 timestamp: Date.now()
               });
             } catch (error) {
-              console.error('Error processing real-time update:', error);
+              // // // console.error('Error processing real-time update:', error);
             }
           }
         )
         .subscribe((status: string) => {
           if (status === 'SUBSCRIBED') {} else if (status === 'CHANNEL_ERROR') {
-            console.error('❌ Real-time subscription error');
+            // // // console.error('❌ Real-time subscription error');
             // Attempt reconnection after delay
             setTimeout(() => this.setupRealtimeInvalidation(), 5000);
           }
@@ -77,7 +77,7 @@ class EnterpriseCache {
 
       this.realtimeSubscriptions.set('global', subscription);
     } catch (error) {
-      console.error('Failed to setup real-time invalidation:', error);
+      // // // console.error('Failed to setup real-time invalidation:', error);
     }
   }
 
@@ -120,7 +120,7 @@ class EnterpriseCache {
         throw new Error('Cache entry too large (max 10MB)');
       }
     } catch (error) {
-      console.warn('Cannot serialize cache data, storing as-is:', error);
+      // // // console.warn('Cannot serialize cache data, storing as-is:', error);
     }
 
     const entry: CacheEntry = {
@@ -200,7 +200,7 @@ class EnterpriseCache {
         try {
           callback(data);
         } catch (error) {
-          console.error('Cache subscriber error:', error);
+          // // // console.error('Cache subscriber error:', error);
         }
       });
     }
@@ -309,7 +309,7 @@ class EnterpriseCache {
             this.supabase.removeChannel(subscription);
           }
         } catch (error) {
-          console.warn(`Failed to remove subscription ${key}:`, error);
+          // // // console.warn(`Failed to remove subscription ${key}:`, error);
         }
       });
       this.realtimeSubscriptions.clear();
@@ -323,7 +323,7 @@ class EnterpriseCache {
       // Clear cache data
       this.cache.clear();
     } catch (error) {
-      console.error('Error during cache cleanup:', error);
+      // // // console.error('Error during cache cleanup:', error);
     }
   }
 }
@@ -339,7 +339,7 @@ export const initializeCache = (supabaseClient: any): EnterpriseCache => {
 
   // Prevent multiple initialization
   if (cacheInstance) {
-    console.warn('Cache already initialized, returning existing instance');
+    // // // console.warn('Cache already initialized, returning existing instance');
     return cacheInstance;
   }
 
@@ -353,7 +353,7 @@ export const initializeCache = (supabaseClient: any): EnterpriseCache => {
 
     cacheInstance = new EnterpriseCache(config, supabaseClient);return cacheInstance;
   } catch (error) {
-    console.error('❌ Failed to initialize enterprise cache:', error);
+    // // // console.error('❌ Failed to initialize enterprise cache:', error);
     throw error;
   }
 };

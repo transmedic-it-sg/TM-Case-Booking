@@ -12,6 +12,7 @@ import { rest } from 'msw';
 import { useRealtimeUsers } from '../../hooks/useRealtimeUsers';
 import { RealtimeProvider } from '../../components/RealtimeProvider';
 import { User } from '../../types';
+import { generateTestUUID, createTestUser } from '../utils/testHelpers';
 
 // Test component that uses the real-time users hook
 const TestUsersComponent: React.FC = () => {
@@ -114,28 +115,24 @@ describe('Real-time Users Integration Tests', () => {
       rest.get('*/rest/v1/profiles*', (req, res, ctx) => {
         return res(
           ctx.json([
-            {
-              id: 'test-user-1',
+            createTestUser({
               username: 'testuser1',
               name: 'Test User 1',
               role: 'nurse',
               departments: ['Emergency'],
               countries: ['Singapore'],
               enabled: true,
-              email: 'test1@example.com',
-              created_at: new Date().toISOString()
-            },
-            {
-              id: 'test-user-2',
+              email: 'test1@example.com'
+            }),
+            createTestUser({
               username: 'testuser2',
               name: 'Test User 2',
               role: 'doctor',
               departments: ['Surgery'],
               countries: ['Malaysia'],
               enabled: false,
-              email: 'test2@example.com',
-              created_at: new Date().toISOString()
-            }
+              email: 'test2@example.com'
+            })
           ])
         );
       })
@@ -176,17 +173,15 @@ describe('Real-time Users Integration Tests', () => {
         callCount++;
         return res(
           ctx.json([
-            {
-              id: `test-user-${callCount}`,
+            createTestUser({
               username: `testuser${callCount}`,
               name: `Test User ${callCount}`,
               role: 'nurse',
               departments: ['Emergency'],
               countries: ['Singapore'],
               enabled: true,
-              email: `test${callCount}@example.com`,
-              created_at: new Date().toISOString()
-            }
+              email: `test${callCount}@example.com`
+            })
           ])
         );
       })
@@ -258,7 +253,7 @@ describe('Real-time Users Integration Tests', () => {
         addCalled = true;
         return res(
           ctx.json({
-            id: 'new-user-id',
+            id: generateTestUUID(),
             ...(req.body as object),
             created_at: new Date().toISOString()
           })
@@ -269,7 +264,7 @@ describe('Real-time Users Integration Tests', () => {
         toggleCalled = true;
         return res(
           ctx.json({
-            id: 'test-user-1',
+            id: generateTestUUID(),
             enabled: false,
             updated_at: new Date().toISOString()
           })

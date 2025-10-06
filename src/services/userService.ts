@@ -40,14 +40,12 @@ class UserService {
         .single();
 
       if (error || !user) {
-        console.error('Error fetching user profile:', error);
         return null;
       }
 
       this.currentUser = user;
       return this.currentUser;
     } catch (error) {
-      console.error('Error loading current user:', error);
       return null;
     }
   }
@@ -96,7 +94,6 @@ class UserService {
       }
       return user;
     } catch (error) {
-      console.error('Error fetching user:', error);
       return null;
     }
   }
@@ -106,7 +103,7 @@ class UserService {
    */
   async getAllUsers(): Promise<User[]> {
     // This method is deprecated - use supabaseUserService.getAllUsers() instead
-    console.warn('getAllUsers() is deprecated - use Supabase service instead');
+    // getAllUsers() is deprecated - use Supabase service instead
     return [];
   }
 
@@ -134,7 +131,6 @@ class UserService {
 
       return true;
     } catch (error) {
-      console.error('Error saving user:', error);
       return false;
     }
   }
@@ -157,7 +153,6 @@ class UserService {
       this.userCache.delete(userId);
       return true;
     } catch (error) {
-      console.error('Error deleting user:', error);
       return false;
     }
   }

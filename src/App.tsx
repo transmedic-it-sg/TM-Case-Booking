@@ -131,7 +131,6 @@ const AppContent: React.FC = () => {
             // Force reload to get fresh content
             setTimeout(() => window.location.reload(), 500);
           }).catch(err => {
-            console.error('Error clearing cache:', err);
             // Force reload anyway
             setTimeout(() => window.location.reload(), 500);
           });
@@ -173,7 +172,7 @@ const AppContent: React.FC = () => {
         const config = await getSystemConfig();
         setMaintenanceModeActive(config.maintenanceMode);
       } catch (error) {
-        console.debug('Failed to check maintenance mode:', error);
+        // Failed to check maintenance mode - continue silently
       }
     };
 
@@ -182,31 +181,12 @@ const AppContent: React.FC = () => {
     // Set up periodic check for maintenance mode changes
     const maintenanceCheckInterval = setInterval(checkMaintenanceMode, 30000); // Check every 30 seconds
 
-    // Set up periodic session validation using Supabase auth
-    const sessionValidationInterval = setInterval(async () => {
-      const currentUser = UserService.getCurrentUserSync();
-      if (currentUser) {
-        try {
-          // Use Supabase auth session validation instead of custom sessionStorage
-          const { data: { session }, error } = await supabase.auth.getSession();
-          if (error || !session) {
-            console.warn('🚫 Supabase session invalidated during periodic check, logging out user');
-            await logout();
-            setUser(null);
-            if (isMobileDevice()) {
-              setShowMobileEntry(true);
-            }
-          }
-        } catch (error) {
-          console.error('Error during periodic session validation:', error);
-          // Don't auto-logout on validation errors to prevent false positives
-        }
-      }
-    }, 60000); // Check every minute
+    // Remove automatic session validation - the app uses custom auth
+    // Session management should be handled by user activity, not periodic checks
+    // This prevents unexpected logouts while users are actively working
 
     return () => {
       clearInterval(maintenanceCheckInterval);
-      clearInterval(sessionValidationInterval);
     };
   }, []);
 
@@ -277,7 +257,7 @@ const AppContent: React.FC = () => {
             // User is already logged in with valid session, no need to show mobile entry
           } else {
             // Invalid session, force logout
-            console.warn('🚫 Invalid session detected, logging out user');
+            // Invalid session detected, logging out user
             await logout();
             setUser(null);
             if (isMobileDevice()) {
@@ -290,7 +270,6 @@ const AppContent: React.FC = () => {
 
         // DISABLED: Health monitoring causing infinite loops
       } catch (error) {
-        console.error('Error during initialization:', error);
         // Still try to get current user even if initialization fails
         const currentUser = UserService.getCurrentUserSync();
         if (currentUser) {
@@ -350,7 +329,7 @@ const AppContent: React.FC = () => {
       // Force refresh permissions on login to ensure fresh permissions
       await initializePermissions(true);
     } catch (error) {
-      console.error('❌ Failed to refresh permissions on user login:', error);
+      // Failed to refresh permissions on user login
     }
 
     playSound.success();
@@ -439,7 +418,6 @@ const AppContent: React.FC = () => {
       showSuccess('Password changed successfully!', 'Your password has been updated and you can now access the application.');
 
     } catch (error) {
-      console.error('Password change failed:', error);
       setPasswordChangeData(prev => ({
         ...prev,
         isChanging: false,

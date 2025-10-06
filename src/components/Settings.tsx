@@ -63,7 +63,7 @@ const Settings: React.FC = () => {
   // Real-time error handling
   useEffect(() => {
     if (error) {
-      console.error('Real-time settings error detected:', error);
+      // // // console.error('Real-time settings error detected:', error);
     }
   }, [error]);
 
@@ -112,7 +112,7 @@ const Settings: React.FC = () => {
 
       playSound.success();
       showSuccess('Settings Reset', 'All settings have been restored to defaults');} catch (error) {
-      console.error('❌ Failed to reset settings:', error);
+      // // // console.error('❌ Failed to reset settings:', error);
       showSuccess('Error', 'Failed to reset settings. Please try again.');
     }
   };
@@ -142,14 +142,14 @@ const Settings: React.FC = () => {
               body: 'Notifications are now enabled!',
               icon: '/favicon.ico'
             });} catch (error) {
-            console.error('❌ Failed to enable notifications:', error);
+            // // // console.error('❌ Failed to enable notifications:', error);
             showSuccess('Error', 'Failed to save notification settings');
           }
         } else {
           showSuccess('Permission Required', 'Please allow notifications to enable this feature');
         }
       } catch (error) {
-        console.error('Error requesting notification permission:', error);
+        // // // console.error('Error requesting notification permission:', error);
         showSuccess('Error', 'Failed to request notification permission');
       }
     } else if (notificationPermission === 'granted') {
@@ -167,7 +167,7 @@ const Settings: React.FC = () => {
         } else {
           showSuccess('Notifications Disabled', 'Browser notifications have been disabled');
         }} catch (error) {
-        console.error('❌ Failed to update notification setting:', error);
+        // // // console.error('❌ Failed to update notification setting:', error);
         showSuccess('Error', 'Failed to update notification settings');
       }
     }

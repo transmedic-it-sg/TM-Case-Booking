@@ -56,7 +56,7 @@ const SystemSettings: React.FC = () => {
       setConfig(loadedConfig);
       setOriginalConfig({ ...loadedConfig });
     } catch (error) {
-      console.error('Failed to load system configuration:', error);
+      // // // console.error('Failed to load system configuration:', error);
       // Show user-friendly error message
       if (error instanceof Error && error.message.includes('system_settings')) {
         showError('Database Setup Required', 'System settings table needs to be created. Please run the CREATE_SYSTEM_SETTINGS_TABLE.sql script.');
@@ -142,10 +142,10 @@ const SystemSettings: React.FC = () => {
         showSuccess('Settings Saved', `System configuration has been updated successfully. ${validationResult.validCount}/${validationResult.totalCount} settings applied.`);
       } else {
         showSuccess('Settings Partially Saved', `${validationResult.validCount}/${validationResult.totalCount} settings applied successfully. Check console for details.`);
-        console.warn('Some settings may not have been applied correctly:', validationResult.failedSettings);
+        // // // console.warn('Some settings may not have been applied correctly:', validationResult.failedSettings);
       }
     } catch (error) {
-      console.error('Failed to save system configuration:', error);
+      // // // console.error('Failed to save system configuration:', error);
       showError('Save Failed', 'Failed to save system configuration. Please check your permissions.');
     } finally {
       setIsSaving(false);
@@ -190,9 +190,9 @@ const SystemSettings: React.FC = () => {
       });
 
       if (isValid) {
-        console.log(`✅ ${check.name}: Valid`);
+        // // // console.log(`✅ ${check.name}: Valid`);
       } else {
-        console.warn(`❌ ${check.name}: Expected "${check.expected}", got "${check.actual}"`);
+        // // // console.warn(`❌ ${check.name}: Expected "${check.expected}", got "${check.actual}"`);
       }
     });
 
@@ -219,7 +219,7 @@ const SystemSettings: React.FC = () => {
           await loadSystemConfig();
           showSuccess('Settings Reset', 'System configuration has been reset to defaults');
         } catch (error) {
-          console.error('Failed to reset system configuration:', error);
+          // // // console.error('Failed to reset system configuration:', error);
           showError('Reset Failed', 'Failed to reset system configuration');
         }
       }

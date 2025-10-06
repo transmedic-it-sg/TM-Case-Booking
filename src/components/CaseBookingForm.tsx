@@ -883,12 +883,23 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
                   <div className="quantities-section">
                     <h4>Quantities</h4>
                     <div className="form-row two-columns">
-                      {/* Surgery Sets Column */}
+                      {/* Surgery Sets Column - Sorted to match dropdown order */}
                       {formData.surgerySetSelection.length > 0 && (
                         <div className="form-group">
                           <h5>Surgery Sets</h5>
                           <div className="quantities-list">
-                            {formData.surgerySetSelection.map(setName => (
+                            {/* Sort selected sets to match dropdown order */}
+                            {formData.surgerySetSelection
+                              .sort((a, b) => {
+                                const orderA = availableProcedureSets
+                                  .filter(set => set.item_type === 'surgery_set')
+                                  .findIndex(set => set.item_name === a);
+                                const orderB = availableProcedureSets
+                                  .filter(set => set.item_type === 'surgery_set')
+                                  .findIndex(set => set.item_name === b);
+                                return orderA - orderB;
+                              })
+                              .map(setName => (
                               <div key={`qty-surgery-${setName}`} className="quantity-item">
                                 <label>{setName}</label>
                                 <input
@@ -914,12 +925,23 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
                         </div>
                       )}
                       
-                      {/* Implant Boxes Column */}
+                      {/* Implant Boxes Column - Sorted to match dropdown order */}
                       {formData.implantBox.length > 0 && (
                         <div className="form-group">
                           <h5>Implant Boxes</h5>
                           <div className="quantities-list">
-                            {formData.implantBox.map(boxName => (
+                            {/* Sort selected boxes to match dropdown order */}
+                            {formData.implantBox
+                              .sort((a, b) => {
+                                const orderA = availableProcedureSets
+                                  .filter(set => set.item_type === 'implant_box')
+                                  .findIndex(set => set.item_name === a);
+                                const orderB = availableProcedureSets
+                                  .filter(set => set.item_type === 'implant_box')
+                                  .findIndex(set => set.item_name === b);
+                                return orderA - orderB;
+                              })
+                              .map(boxName => (
                               <div key={`qty-implant-${boxName}`} className="quantity-item">
                                 <label>{boxName}</label>
                                 <input

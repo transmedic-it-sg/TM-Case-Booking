@@ -54,7 +54,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
             setPreferences({ ...defaultPreferences, ...savedPreferences });
           }
         } catch (error) {
-          console.error('Error loading notification preferences:', error);
+          // // // console.error('Error loading notification preferences:', error);
         }
       };
 
@@ -97,7 +97,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
         await SafeStorage.setItem(`${STORAGE_KEYS.USER_PREFERENCES}_notifications_${currentUser.id}`, newPreferences);
         setPreferences(newPreferences);
       } catch (error) {
-        console.error('Error saving notification preferences:', error);
+        // // // console.error('Error saving notification preferences:', error);
       }
     }
   };

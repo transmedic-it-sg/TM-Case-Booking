@@ -445,7 +445,7 @@ export const permissions: Permission[] = [
 export const getAllRoles = (): Role[] => {
     // For now, return default roles only to prevent localStorage security issues
   // Custom roles should be managed through database instead of localStorage
-  console.warn('Custom roles temporarily disabled for security - using default roles only');
+  // // console.warn('Custom roles temporarily disabled for security - using default roles only');
   return roles;
 };
 
@@ -459,7 +459,7 @@ export const getAllMatrixRoles = (): Role[] => {
 export const getAllPermissions = (): Permission[] => {
     // For now, return default permissions only to prevent localStorage security issues
   // Custom permissions should be managed through database instead of localStorage
-  console.warn('Custom permissions temporarily disabled for security - using default permissions only');
+  // // console.warn('Custom permissions temporarily disabled for security - using default permissions only');
   return permissions;
 };
 

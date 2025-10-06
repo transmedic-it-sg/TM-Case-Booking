@@ -17,7 +17,7 @@ import { getCurrentUserSync } from './authCompat';
 export const getCases = async (filters?: FilterOptions): Promise<CaseBooking[]> => {try {
     return await realtimeCaseService.getAllCases();
   } catch (error) {
-    console.error('❌ Failed to get cases:', error);
+    // // // console.error('❌ Failed to get cases:', error);
     throw error; // No localStorage fallback - fail fast
   }
 };
@@ -26,7 +26,7 @@ export const getCases = async (filters?: FilterOptions): Promise<CaseBooking[]> 
 export const saveCase = async (caseData: CaseBooking): Promise<CaseBooking | null> => {try {
     return await realtimeCaseService.saveCase(caseData);
   } catch (error) {
-    console.error(`❌ Failed to save case ${caseData.caseReferenceNumber}:`, error);
+    // // // console.error(`❌ Failed to save case ${caseData.caseReferenceNumber}:`, error);
     throw error; // No localStorage fallback - fail fast
   }
 };
@@ -40,7 +40,7 @@ export const updateCaseStatus = async (
 ): Promise<boolean> => {try {
     return await realtimeCaseService.updateCaseStatus(caseId, newStatus as any, details, attachments);
   } catch (error) {
-    console.error(`❌ Failed to update case ${caseId}:`, error);
+    // // // console.error(`❌ Failed to update case ${caseId}:`, error);
     throw error; // No localStorage fallback - fail fast
   }
 };
@@ -49,7 +49,7 @@ export const updateCaseStatus = async (
 export const deleteCase = async (caseId: string): Promise<boolean> => {try {
     return await realtimeCaseService.deleteCase(caseId);
   } catch (error) {
-    console.error(`❌ Failed to delete case ${caseId}:`, error);
+    // // // console.error(`❌ Failed to delete case ${caseId}:`, error);
     throw error; // No localStorage fallback - fail fast
   }
 };
@@ -58,7 +58,7 @@ export const deleteCase = async (caseId: string): Promise<boolean> => {try {
 export const generateCaseReferenceNumber = async (country?: string): Promise<string> => {try {
     return await realtimeCaseService.generateCaseReferenceNumber(country);
   } catch (error) {
-    console.error('❌ Failed to generate reference number:', error);
+    // // // console.error('❌ Failed to generate reference number:', error);
     throw error; // No localStorage fallback - fail fast
   }
 };
@@ -84,7 +84,7 @@ export const getProcedureTypesForDepartment = async (department: string, country
       }
     });return [...new Set(procedures)].sort(); // Remove duplicates and sort
   } catch (error) {
-    console.error(`❌ Failed to get procedures for ${department}:`, error);
+    // // // console.error(`❌ Failed to get procedures for ${department}:`, error);
     return []; // Return empty array on error - no localStorage fallback
   }
 };
@@ -101,7 +101,7 @@ export const getSurgerySets = async (country: string): Promise<string[]> => {try
 
     const sets = data?.map(item => item.name) || [];return sets.sort();
   } catch (error) {
-    console.error(`❌ Failed to get surgery sets for ${country}:`, error);
+    // // // console.error(`❌ Failed to get surgery sets for ${country}:`, error);
     return []; // Return empty array on error - no localStorage fallback
   }
 };
@@ -118,7 +118,7 @@ export const getImplantBoxes = async (country: string): Promise<string[]> => {tr
 
     const boxes = data?.map(item => item.name) || [];return boxes.sort();
   } catch (error) {
-    console.error(`❌ Failed to get implant boxes for ${country}:`, error);
+    // // // console.error(`❌ Failed to get implant boxes for ${country}:`, error);
     return []; // Return empty array on error - no localStorage fallback
   }
 };
@@ -142,7 +142,7 @@ export const amendCase = async (
       name: currentUser.name
     });
   } catch (error) {
-    console.error(`❌ Failed to amend case ${caseId}:`, error);
+    // // // console.error(`❌ Failed to amend case ${caseId}:`, error);
     throw error; // No localStorage fallback - fail fast
   }
 };
@@ -161,7 +161,7 @@ export const processCaseOrder = async (
       attachments
     );
   } catch (error) {
-    console.error(`❌ Failed to process order for case ${caseId}:`, error);
+    // // // console.error(`❌ Failed to process order for case ${caseId}:`, error);
     throw error; // No localStorage fallback - fail fast
   }
 };
@@ -174,7 +174,7 @@ export const processCaseOrder = async (
 export const getCaseStatistics = async () => {try {
     return await realtimeCaseService.getCaseStatistics();
   } catch (error) {
-    console.error('❌ Failed to get case statistics:', error);
+    // // // console.error('❌ Failed to get case statistics:', error);
     return { total: 0, byStatus: {}, byCountry: {} }; // Return empty stats on error
   }
 };
@@ -183,7 +183,7 @@ export const getCaseStatistics = async () => {try {
 export const searchCases = async (searchTerm: string): Promise<CaseBooking[]> => {try {
     return await realtimeCaseService.searchCases(searchTerm);
   } catch (error) {
-    console.error(`❌ Failed to search cases for "${searchTerm}":`, error);
+    // // // console.error(`❌ Failed to search cases for "${searchTerm}":`, error);
     return []; // Return empty array on error
   }
 };
@@ -198,7 +198,7 @@ export const caseExists = async (caseId: string): Promise<boolean> => {
     const caseItem = await realtimeCaseService.getCaseById(caseId);
     return caseItem !== null;
   } catch (error) {
-    console.error(`❌ Failed to check if case ${caseId} exists:`, error);
+    // // // console.error(`❌ Failed to check if case ${caseId} exists:`, error);
     return false;
   }
 };
@@ -208,7 +208,7 @@ export const getCaseById = async (caseId: string): Promise<CaseBooking | null> =
   try {
     return await realtimeCaseService.getCaseById(caseId);
   } catch (error) {
-    console.error(`❌ Failed to get case ${caseId}:`, error);
+    // // // console.error(`❌ Failed to get case ${caseId}:`, error);
     return null;
   }
 };
@@ -238,7 +238,7 @@ export const migrateLegacyData = async (): Promise<void> => {try {
       // Handle legacy data cleanup if needed
     }
   } catch (error) {
-    console.error('❌ Failed to check legacy data:', error);
+    // // // console.error('❌ Failed to check legacy data:', error);
   }
 };
 
@@ -259,6 +259,6 @@ export const clearAllLocalStorageCache = (): void => {
   cacheKeys.forEach(key => {
     try {
       localStorage.removeItem(key);} catch (error) {
-      console.warn(`⚠️ Failed to remove localStorage key ${key}:`, error);
+      // // // console.warn(`⚠️ Failed to remove localStorage key ${key}:`, error);
     }
   });};

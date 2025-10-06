@@ -150,7 +150,7 @@ const useOptimisticSettingsMutation = () => {
       }
     },
     onError: (error, action) => {
-      console.error(`❌ Failed to ${action.type} settings:`, error);
+      // // // console.error(`❌ Failed to ${action.type} settings:`, error);
 
       addNotification({
         title: 'Settings Error',
@@ -224,7 +224,7 @@ export const useRealtimeSettings = (options: UseRealtimeSettingsOptions = {}) =>
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update setting';
       setLocalError(errorMessage);
-      console.error(`❌ Failed to update setting ${key}:`, error);
+      // // // console.error(`❌ Failed to update setting ${key}:`, error);
       throw error;
     }
   }, [userId, settingsMutation, enableTesting, testing]);
@@ -248,7 +248,7 @@ export const useRealtimeSettings = (options: UseRealtimeSettingsOptions = {}) =>
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update settings';
       setLocalError(errorMessage);
-      console.error('❌ Failed to update settings:', error);
+      // // // console.error('❌ Failed to update settings:', error);
       throw error;
     }
   }, [userId, settingsMutation, enableTesting, testing]);
@@ -271,7 +271,7 @@ export const useRealtimeSettings = (options: UseRealtimeSettingsOptions = {}) =>
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to reset settings';
       setLocalError(errorMessage);
-      console.error('❌ Failed to reset settings:', error);
+      // // // console.error('❌ Failed to reset settings:', error);
       throw error;
     }
   }, [userId, settingsMutation, enableTesting, testing]);
@@ -309,7 +309,7 @@ export const useRealtimeSettings = (options: UseRealtimeSettingsOptions = {}) =>
       testing.recordValidation(true);return true;
     } catch (error) {
       testing.recordValidation(false, error instanceof Error ? error.message : 'Validation failed');
-      console.error('❌ useRealtimeSettings validation failed:', error);
+      // // // console.error('❌ useRealtimeSettings validation failed:', error);
       return false;
     }
   }, [refetch, userId, enableTesting, testing]);

@@ -109,7 +109,7 @@ const DataImport: React.FC = () => {
       }
 
     } catch (error) {
-      console.error('Import failed:', error);
+      // // // console.error('Import failed:', error);
       showError('Import Failed', `Failed to import data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsImporting(false);

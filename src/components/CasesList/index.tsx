@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { CaseBooking, FilterOptions, CaseStatus } from '../../types';
 import { CASE_STATUSES } from '../../constants/statuses';
 import { getCurrentUserSync } from '../../utils/auth';
@@ -19,6 +19,7 @@ import { amendCase, processCaseOrder } from '../../utils/realTimeStorage'; // Us
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
   const { modal, closeModal, showConfirm, showConfirmWithCustomButtons } = useModal();
+  const amendmentFormRef = useRef<HTMLDivElement>(null);
 
   // REAL-TIME CASES HOOK - Always fresh data, no cache issues, comprehensive testing
   const {
@@ -188,10 +189,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
   }, [cases]);
 
-  // Auto-apply filters for Driver role
+  // Auto-apply filters for Driver role - only once when component mounts
   useEffect(() => {
     const currentUser = getCurrentUserSync();
-    if (currentUser?.role === 'driver' && Object.keys(filters).length === 0) {
+    if (currentUser?.role === 'driver') {
       // Auto-apply delivery status filters for drivers
       // Set the first delivery status as default filter to show driver-relevant cases
       const defaultFilters = {
@@ -201,7 +202,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setFilters(defaultFilters);
       setTempFilters(defaultFilters);
     }
-  }, [cases]); // Only depend on cases, not filters to prevent infinite loop
+  }, []); // Run only once on mount
 
   useEffect(() => {
     const currentUser = getCurrentUserSync();
@@ -392,45 +393,30 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       return;
     }
     
-    // First, smoothly scroll to the case card
-    const caseElement = document.querySelector(`[data-case-id="${caseItem.id}"]`);
-    if (caseElement) {
-      caseElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-        inline: 'nearest'
-      });
-
-      // Add a slight delay before opening the modal to allow scroll to complete
-      setTimeout(() => {
-        setAmendingCase(caseItem.id);
-        setAmendmentData({
-          hospital: caseItem.hospital,
-          department: caseItem.department,
-          dateOfSurgery: caseItem.dateOfSurgery,
-          procedureType: caseItem.procedureType,
-          procedureName: caseItem.procedureName,
-          doctorName: caseItem.doctorName,
-          timeOfProcedure: caseItem.timeOfProcedure,
-          specialInstruction: caseItem.specialInstruction,
-          amendmentReason: ''
+    // Set the amending case
+    setAmendingCase(caseItem.id);
+    setAmendmentData({
+      hospital: caseItem.hospital,
+      department: caseItem.department,
+      dateOfSurgery: caseItem.dateOfSurgery,
+      procedureType: caseItem.procedureType,
+      procedureName: caseItem.procedureName,
+      doctorName: caseItem.doctorName,
+      timeOfProcedure: caseItem.timeOfProcedure,
+      specialInstruction: caseItem.specialInstruction,
+      amendmentReason: ''
+    });
+    
+    // Scroll to the amendment form after a brief delay
+    setTimeout(() => {
+      if (amendmentFormRef.current) {
+        amendmentFormRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest'
         });
-      }, 300);
-    } else {
-      // If element not found, proceed without scrolling
-      setAmendingCase(caseItem.id);
-      setAmendmentData({
-        hospital: caseItem.hospital,
-        department: caseItem.department,
-        dateOfSurgery: caseItem.dateOfSurgery,
-        procedureType: caseItem.procedureType,
-        procedureName: caseItem.procedureName,
-        doctorName: caseItem.doctorName,
-        timeOfProcedure: caseItem.timeOfProcedure,
-        specialInstruction: caseItem.specialInstruction,
-        amendmentReason: ''
-      });
-    }
+      }
+    }, 100);
   };
 
   const handleSaveAmendment = async (amendmentFormData: any) => {
@@ -1291,12 +1277,14 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
           return null;
         }
         return (
-          <AmendmentForm
-            caseItem={caseToAmend}
-            amendmentData={amendmentData}
-            onSave={handleSaveAmendment}
-            onCancel={handleCancelAmendment}
-          />
+          <div ref={amendmentFormRef}>
+            <AmendmentForm
+              caseItem={caseToAmend}
+              amendmentData={amendmentData}
+              onSave={handleSaveAmendment}
+              onCancel={handleCancelAmendment}
+            />
+          </div>
         );
       })()}
     </div>

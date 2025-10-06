@@ -22,7 +22,7 @@ export const getCachedUsers = async (): Promise<User[]> => {
     cacheTimestamp = now;
     return usersCache;
   } catch (error) {
-    console.error('❌ Error loading users for lookup:', error);
+    // console.error('❌ Error loading users for lookup:', error);
     return usersCache || [];
   }
 };
@@ -42,7 +42,7 @@ export const getUserNameById = async (userId: string): Promise<string> => {
  * Convert multiple user IDs to names
  */
 export const getUserNamesByIds = async (userIds: string[]): Promise<Record<string, string>> => {
-  console.log('🔍 getUserNamesByIds called with userIds:', userIds);
+  // console.log('🔍 getUserNamesByIds called with userIds:', userIds);
   
   const result: Record<string, string> = {};
   
@@ -53,10 +53,10 @@ export const getUserNamesByIds = async (userIds: string[]): Promise<Record<strin
       .select('id, name')
       .in('id', userIds.filter(id => id && id.includes('-')));
 
-    console.log('📄 Supabase profiles response:', { profiles, error: profilesError });
+    // console.log('📄 Supabase profiles response:', { profiles, error: profilesError });
 
     if (profilesError) {
-      console.error('❌ Direct profiles lookup error:', profilesError);
+      // console.error('❌ Direct profiles lookup error:', profilesError);
       // Fallback to userIds as names
       userIds.forEach(userId => {
         result[userId] = userId;
@@ -71,19 +71,19 @@ export const getUserNamesByIds = async (userIds: string[]): Promise<Record<strin
       if (profiles) {
         profiles.forEach(profile => {
           result[profile.id] = profile.name;
-          console.log(`✅ Mapped user: ${profile.id} -> ${profile.name}`);
+          // console.log(`✅ Mapped user: ${profile.id} -> ${profile.name}`);
         });
       }
     }
   } catch (error) {
-    console.error('💥 Error in direct Supabase user lookup:', error);
+    // console.error('💥 Error in direct Supabase user lookup:', error);
     // Fallback to userIds as names
     userIds.forEach(userId => {
       result[userId] = userId;
     });
   }
   
-  console.log('🎉 Final getUserNamesByIds result:', result);
+  // console.log('🎉 Final getUserNamesByIds result:', result);
   
   return result;
 };

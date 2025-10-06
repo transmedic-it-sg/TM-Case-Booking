@@ -55,7 +55,7 @@ const AuditLogs: React.FC = () => {
       });
       setUserMap(map);
     } catch (error) {
-      console.error('Error loading users:', error);
+      // // // console.error('Error loading users:', error);
     }
   }, []);
 
@@ -64,7 +64,7 @@ const AuditLogs: React.FC = () => {
       const logs = await getAuditLogs();
       setAuditLogs(logs);
     } catch (error) {
-      console.error('Failed to load audit logs:', error);
+      // // // console.error('Failed to load audit logs:', error);
       setAuditLogs([]);
     }
   }, []);
@@ -106,7 +106,7 @@ const AuditLogs: React.FC = () => {
       setFilteredLogs(finalFiltered);
       setCurrentPage(1);
     } catch (error) {
-      console.error('Failed to apply filters:', error);
+      // // // console.error('Failed to apply filters:', error);
       setFilteredLogs(auditLogs);
     }
   }, [auditLogs, filters, getUserDisplayName]);
@@ -135,7 +135,7 @@ const AuditLogs: React.FC = () => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to export audit logs:', error);
+      // // // console.error('Failed to export audit logs:', error);
     }
   };
 
@@ -157,7 +157,7 @@ const AuditLogs: React.FC = () => {
       setShowClearLogsModal(false);
       setClearLogsConfirmText('');
     } catch (error) {
-      console.error('Failed to clear old logs:', error);
+      // // // console.error('Failed to clear old logs:', error);
       alert('Failed to clear old logs. Please try again.');
     } finally {
       setIsClearingLogs(false);

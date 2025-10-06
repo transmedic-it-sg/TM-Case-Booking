@@ -36,7 +36,7 @@ export const checkAppVersionUpdate = (): VersionCheckResult => {
       userLoggedIn
     };
   } catch (error) {
-    console.error('Error checking app version:', error);
+    // // // console.error('Error checking app version:', error);
     return {
       versionChanged: false,
       currentVersion: getAppVersion(),
@@ -54,7 +54,7 @@ export const updateStoredAppVersion = (): void => {
     const currentVersion = getAppVersion();
     localStorage.setItem(APP_VERSION_KEY, currentVersion);
   } catch (error) {
-    console.error('Error updating stored app version:', error);
+    // // // console.error('Error updating stored app version:', error);
   }
 };
 
@@ -103,7 +103,7 @@ export const handleVersionUpdate = async (): Promise<void> => {
       window.location.reload();
     }
   } catch (error) {
-    console.error('Error handling version update:', error);
+    // // // console.error('Error handling version update:', error);
     // Fallback: force reload anyway
     window.location.reload();
   }

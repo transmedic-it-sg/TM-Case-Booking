@@ -77,15 +77,15 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
 
   // Debug: Log cases data for BookingCalendar
   React.useEffect(() => {
-    console.log('🗓️ BookingCalendar - Cases received:', cases);
-    console.log('🗓️ BookingCalendar - Cases count:', cases.length);
-    console.log('🗓️ BookingCalendar - Filter country:', filterCountry);
-    console.log('🗓️ BookingCalendar - Active country:', activeCountry);
-    console.log('🗓️ BookingCalendar - User country:', userCountry);
-    console.log('🗓️ BookingCalendar - Selected country:', selectedCountry);
+    // // // console.log('🗓️ BookingCalendar - Cases received:', cases);
+    // // // console.log('🗓️ BookingCalendar - Cases count:', cases.length);
+    // // // console.log('🗓️ BookingCalendar - Filter country:', filterCountry);
+    // // // console.log('🗓️ BookingCalendar - Active country:', activeCountry);
+    // // // console.log('🗓️ BookingCalendar - User country:', userCountry);
+    // // // console.log('🗓️ BookingCalendar - Selected country:', selectedCountry);
     if (cases.length > 0) {
-      console.log('🗓️ BookingCalendar - Sample case:', cases[0]);
-      console.log('🗓️ BookingCalendar - Case dates:', cases.map(c => c.dateOfSurgery));
+      // // // console.log('🗓️ BookingCalendar - Sample case:', cases[0]);
+      // // // console.log('🗓️ BookingCalendar - Case dates:', cases.map(c => c.dateOfSurgery));
     }
   }, [cases, filterCountry, activeCountry, userCountry, selectedCountry]);
 

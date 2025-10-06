@@ -71,7 +71,7 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ onRoleUpdate }) => {
       // Trigger a custom event to notify other components about role updates
       window.dispatchEvent(new CustomEvent('rolesUpdated', { detail: updatedAllRoles }));
     } catch (error) {
-      console.error('Error saving custom roles:', error);
+      // // // console.error('Error saving custom roles:', error);
       showError('Failed to save custom roles', 'Error');
     }
   };

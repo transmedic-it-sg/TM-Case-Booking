@@ -62,7 +62,7 @@ const BackupRestore: React.FC = () => {
 
       showSuccess('Backup Created', 'System backup has been created and downloaded successfully.');
     } catch (error) {
-      console.error('Backup failed:', error);
+      // // // console.error('Backup failed:', error);
       showError('Backup Failed', 'Failed to create system backup. Please try again.');
     } finally {
       setIsBackingUp(false);
@@ -110,7 +110,7 @@ const BackupRestore: React.FC = () => {
       if (fileInput) fileInput.value = '';
 
     } catch (error) {
-      console.error('Restore failed:', error);
+      // // // console.error('Restore failed:', error);
       showError('Restore Failed', `Failed to restore backup: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsRestoring(false);

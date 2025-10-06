@@ -9,6 +9,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { setupServer } from 'msw/node';
 import { rest } from 'msw';
 import '@testing-library/jest-dom';
+import { generateTestUUID, createTestCase } from './utils/testHelpers';
 
 // Mock the NotificationContext for tests
 jest.mock('../contexts/NotificationContext', () => {
@@ -49,7 +50,7 @@ jest.mock('../contexts/SoundContext', () => {
 // Mock auth utilities for tests
 jest.mock('../utils/authCompat', () => ({
   getCurrentUser: () => ({
-    id: 'test-user-1',
+    id: '550e8400-e29b-41d4-a716-446655440000',
     username: 'testuser',
     name: 'Test User',
     role: 'admin',
@@ -57,7 +58,7 @@ jest.mock('../utils/authCompat', () => ({
     selectedCountry: 'Singapore'
   }),
   getCurrentUserSync: () => ({
-    id: 'test-user-1',
+    id: '550e8400-e29b-41d4-a716-446655440000',
     username: 'testuser',
     name: 'Test User',
     role: 'admin',
@@ -100,14 +101,12 @@ export const server = setupServer(
   rest.get('*/rest/v1/case_bookings*', (req, res, ctx) => {
     return res(
       ctx.json([
-        {
-          id: 'test-case-1',
+        createTestCase({
           caseReferenceNumber: 'TC-2025-001',
           hospital: 'Test Hospital',
           status: 'Case Booked',
-          country: 'Singapore',
-          created_at: new Date().toISOString()
-        }
+          country: 'Singapore'
+        })
       ])
     );
   }),
@@ -115,7 +114,7 @@ export const server = setupServer(
   rest.post('*/rest/v1/case_bookings*', (req, res, ctx) => {
     return res(
       ctx.json({
-        id: 'new-test-case',
+        id: generateTestUUID(),
         ...(req.body as object),
         created_at: new Date().toISOString()
       })
@@ -125,7 +124,7 @@ export const server = setupServer(
   rest.patch('*/rest/v1/case_bookings*', (req, res, ctx) => {
     return res(
       ctx.json({
-        id: 'updated-case',
+        id: generateTestUUID(),
         ...(req.body as object),
         updated_at: new Date().toISOString()
       })
@@ -165,9 +164,9 @@ beforeEach(() => {
       warn: () => {},
       error: () => {}
     };
-    console.log = mockConsole.log;
-    console.warn = mockConsole.warn;
-    console.error = mockConsole.error;
+// console.log = mockConsole.log;
+// console.warn = mockConsole.warn;
+// console.error = mockConsole.error;
   }
 });
 

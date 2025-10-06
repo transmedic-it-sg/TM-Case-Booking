@@ -111,15 +111,15 @@ const CaseCard: React.FC<CaseCardProps> = ({
   // Debug logging for the problematic case
   React.useEffect(() => {
     if (caseItem.caseReferenceNumber === 'TMC-Singapore-2025-029') {
-      console.log('🔍 DEBUG Case TMC-Singapore-2025-029:');
-      console.log('📋 caseItem:', caseItem);
-      console.log('👤 submittedBy:', caseItem.submittedBy);
-      console.log('🏷️ getUserName result:', getUserName(caseItem.submittedBy));
-      console.log('📅 procedureType:', caseItem.procedureType);
-      console.log('📅 dateOfSurgery:', caseItem.dateOfSurgery);
-      console.log('🏥 surgerySetSelection:', caseItem.surgerySetSelection);
-      console.log('📦 implantBox:', caseItem.implantBox);
-      console.log('⏰ timeOfProcedure:', caseItem.timeOfProcedure);
+      // // // console.log('🔍 DEBUG Case TMC-Singapore-2025-029:');
+      // // // console.log('📋 caseItem:', caseItem);
+      // // // console.log('👤 submittedBy:', caseItem.submittedBy);
+      // // // console.log('🏷️ getUserName result:', getUserName(caseItem.submittedBy));
+      // // // console.log('📅 procedureType:', caseItem.procedureType);
+      // // // console.log('📅 dateOfSurgery:', caseItem.dateOfSurgery);
+      // // // console.log('🏥 surgerySetSelection:', caseItem.surgerySetSelection);
+      // // // console.log('📦 implantBox:', caseItem.implantBox);
+      // // // console.log('⏰ timeOfProcedure:', caseItem.timeOfProcedure);
     }
   }, [caseItem, getUserName]);
 
@@ -167,7 +167,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
         // Fallback to global departments
         setAvailableDepartments(getDepartments());
       } catch (error) {
-        console.error('Error loading departments:', error);
+        // // // console.error('Error loading departments:', error);
         // Use fallback departments on error
         setAvailableDepartments(getDepartments());
       }
@@ -190,7 +190,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
           .eq('case_booking_id', caseItem.id);
 
         if (error) {
-          console.error('Error loading case quantities:', error);
+          // // // console.error('Error loading case quantities:', error);
           return;
         }
 
@@ -204,7 +204,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
           setCaseQuantities({});
         }
       } catch (error) {
-        console.error('Error loading case quantities:', error);
+        // // // console.error('Error loading case quantities:', error);
         setCaseQuantities({});
       }
     };
@@ -353,7 +353,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   </div>
                   </div>
                   <div className="case-meta">
-            <span>Case Title: {caseItem.procedureType}</span>
+            <span>Procedure Type: {caseItem.procedureType}</span>
+            <span>Procedure Name: {caseItem.procedureName || 'Not specified'}</span>
             <span>Surgery Date: {formatDate(caseItem.dateOfSurgery)}</span>
             <span>Hospital: {caseItem.hospital}</span>
             <span>Department: {caseItem.department}</span>

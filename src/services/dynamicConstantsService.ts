@@ -50,7 +50,7 @@ class DynamicConstantsService {
 
       return value;
     } catch (error) {
-      console.error(`Error fetching dynamic constant ${key}:`, error);
+      // // // console.error(`Error fetching dynamic constant ${key}:`, error);
       return null;
     }
   }
@@ -81,7 +81,7 @@ class DynamicConstantsService {
 
       return true;
     } catch (error) {
-      console.error(`Error setting dynamic constant ${key}:`, error);
+      // // // console.error(`Error setting dynamic constant ${key}:`, error);
       return false;
     }
   }
@@ -117,7 +117,7 @@ class DynamicConstantsService {
       const countries = await this.getDynamicConstant('available_countries');
       return countries || ['Singapore', 'Malaysia'];
     } catch (error) {
-      console.error('Error fetching countries:', error);
+      // // // console.error('Error fetching countries:', error);
       return ['Singapore', 'Malaysia'];
     }
   }
@@ -139,7 +139,7 @@ class DynamicConstantsService {
         'Case Cancelled'
       ];
     } catch (error) {
-      console.error('Error fetching case statuses:', error);
+      // // // console.error('Error fetching case statuses:', error);
       return ['Case Booked', 'Order Preparation', 'Order Prepared', 'Case Completed', 'Case Closed'];
     }
   }

@@ -26,12 +26,12 @@ const getRedirectUri = (): string => {
 
   // Log the current environment for debugging (only once)
   if (!environmentLogged) {
-    console.log('OAuth Environment:', {
-      origin,
-      hostname: window.location.hostname,
-      isVercel: window.location.hostname.includes('vercel.com'),
-      isProd: process.env.NODE_ENV === 'production'
-    });
+    // console.log('OAuth Environment:', {
+    //   origin,
+    //   hostname: window.location.hostname,
+    //   isVercel: window.location.hostname.includes('vercel.com'),
+    //   isProd: process.env.NODE_ENV === 'production'
+    // });
 
     environmentLogged = true;
   }
@@ -156,11 +156,11 @@ class SimplifiedOAuthManager {
       state: state || `${this.provider}_${Date.now()}`
     };
 
-    console.log('Auth URL params:', {
-      clientId: this.config.config.clientId.substring(0, 8) + '...',
-      redirectUri: this.config.config.redirectUri,
-      scopes: this.config.config.scopes
-    });
+    // console.log('Auth URL params:', {
+    //   clientId: this.config.config.clientId.substring(0, 8) + '...',
+    //   redirectUri: this.config.config.redirectUri,
+    //   scopes: this.config.config.scopes
+    // });
 
     // Add PKCE for Microsoft (required) and Google (recommended)
     if (this.provider === 'microsoft' || this.provider === 'google') {
@@ -168,10 +168,10 @@ class SimplifiedOAuthManager {
       params.code_challenge = this.pkceChallenge.codeChallenge;
       params.code_challenge_method = 'S256';
       
-      console.log('PKCE Challenge:', {
-        challenge: this.pkceChallenge.codeChallenge.substring(0, 8) + '...',
-        method: 'S256'
-      });
+      // console.log('PKCE Challenge:', {
+      //   challenge: this.pkceChallenge.codeChallenge.substring(0, 8) + '...',
+      //   method: 'S256'
+      // });
     }
 
     // Provider-specific parameters
@@ -182,7 +182,7 @@ class SimplifiedOAuthManager {
 
     const authUrl = `${this.config.authUrl}?${new URLSearchParams(params).toString()}`;
     
-    console.log('Generated auth URL for', this.provider);
+    // // // console.log('Generated auth URL for', this.provider);
     return authUrl;
   }
 
@@ -202,11 +202,11 @@ class SimplifiedOAuthManager {
       code_verifier: this.pkceChallenge.codeVerifier // PKCE code verifier
     });
 
-    console.log('Token exchange request:', {
-      clientId: this.config.config.clientId.substring(0, 8) + '...',
-      hasCode: !!code,
-      codeLength: code.length
-    });
+    // console.log('Token exchange request:', {
+    //   clientId: this.config.config.clientId.substring(0, 8) + '...',
+    //   hasCode: !!code,
+    //   codeLength: code.length
+    // });
 
     try {
       // Note: In production, token exchange should happen on backend for security
@@ -558,7 +558,7 @@ export const refreshMicrosoftToken = async (country: string, refreshToken: strin
     // Store the new tokens
     storeAuthTokens(country, 'microsoft', newTokens);return newTokens;
   } catch (error) {
-    console.error('[OAuth] Failed to refresh Microsoft token:', error);
+    // // // console.error('[OAuth] Failed to refresh Microsoft token:', error);
     return null;
   }
 };
@@ -603,7 +603,7 @@ export const authenticateWithPopup = async (
   try {
     // Generate auth URL with PKCE (async operation)
     const authUrl = await oauth.getAuthUrl(`${country}_${Date.now()}`);
-    console.log(`[OAuth] Opening popup for ${provider}:`, authUrl.substring(0, 50) + '...');
+    // // // console.log(`[OAuth] Opening popup for ${provider}:`, authUrl.substring(0, 50) + '...');
 
     return new Promise((resolve, reject) => {
       const popup = window.open(
@@ -613,12 +613,12 @@ export const authenticateWithPopup = async (
       );
 
       if (!popup) {
-        console.error(`[OAuth] Popup blocked for ${provider}`);
+        // // // console.error(`[OAuth] Popup blocked for ${provider}`);
         reject(new Error('Popup blocked. Please allow popups for this site.'));
         return;
       }// Listen for auth completion
       const messageHandler = async (event: MessageEvent) => {if (event.origin !== window.location.origin) {
-          console.warn(`[OAuth] Ignoring message from different origin: ${event.origin}`);
+          // // // console.warn(`[OAuth] Ignoring message from different origin: ${event.origin}`);
           return;
         }
 
@@ -627,13 +627,13 @@ export const authenticateWithPopup = async (
             storeUserInfo(country, provider, userInfo);window.removeEventListener('message', messageHandler);
             popup.close();resolve({ tokens, userInfo });
           } catch (error) {
-            console.error(`[OAuth] OAuth flow failed for ${provider}:`, error);
+            // // // console.error(`[OAuth] OAuth flow failed for ${provider}:`, error);
             window.removeEventListener('message', messageHandler);
             popup.close();
             reject(error);
           }
         } else if (event.data.type === 'oauth_error' || event.data.type === 'sso_auth_error') {
-          console.error(`[OAuth] OAuth error received:`, event.data.error);
+          // // // console.error(`[OAuth] OAuth error received:`, event.data.error);
           window.removeEventListener('message', messageHandler);
           popup.close();
           reject(new Error(event.data.error));
@@ -651,7 +651,7 @@ export const authenticateWithPopup = async (
       // Add timeout protection
       setTimeout(() => {
         if (!popup.closed) {
-          console.warn(`[OAuth] Authentication timeout for ${provider} (2 minutes)`);
+          // // // console.warn(`[OAuth] Authentication timeout for ${provider} (2 minutes)`);
           clearInterval(checkClosed);
           window.removeEventListener('message', messageHandler);
           popup.close();
@@ -660,7 +660,7 @@ export const authenticateWithPopup = async (
       }, 120000); // 2 minute timeout
     });
   } catch (error) {
-    console.error(`[OAuth] Failed to generate auth URL for ${provider}:`, error);
+    // // // console.error(`[OAuth] Failed to generate auth URL for ${provider}:`, error);
     throw new Error(`Failed to generate auth URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };

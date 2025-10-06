@@ -114,7 +114,7 @@ class TestingFramework {
     const testName = `React Query - ${queryKey.join('.')}`;
 
     try {
-      console.log(`Testing React Query integration for ${queryKey.join('...')}`);
+      // console.log(`Testing React Query integration for ${queryKey.join('...')}`);
 
       if (!this.queryClient) {
         throw new Error('QueryClient not provided to testing framework');
@@ -164,7 +164,8 @@ class TestingFramework {
   /**
    * Test database connection and basic queries
    */
-  async testDatabaseConnection(): Promise<ConnectionTest> {const tests: ConnectionTest = {
+  async testDatabaseConnection(): Promise<ConnectionTest> {
+    const tests: ConnectionTest = {
       realtime: false,
       database: false,
       query: false,
@@ -191,8 +192,9 @@ class TestingFramework {
       tests.latency = Date.now() - startTime;
 
       // Cleanup
-      supabase.removeChannel(channel);} catch (error) {
-      console.error('❌ Database connection test failed:', error);
+      supabase.removeChannel(channel);
+    } catch (error) {
+      // console.error('❌ Database connection test failed:', error);
     }
 
     return tests;
@@ -209,7 +211,7 @@ class TestingFramework {
     const testName = `Component Test - ${componentName}`;
 
     try {
-      console.log(`Testing component: ${componentName}`);
+      // console.log(`Testing component: ${componentName}`);
       const passed = await testFunction();
       const duration = Date.now() - startTime;
 
@@ -254,7 +256,7 @@ class TestingFramework {
         updateCount++;
         const currentTime = performance.now();
         const elapsedTime = currentTime - startTime;
-        console.log(`Update ${updateCount} recorded at ${elapsedTime.toFixed(2)}ms`);
+        // console.log(`Update ${updateCount} recorded at ${elapsedTime.toFixed(2)}ms`);
       },
 
       getMetrics: () => {
@@ -334,7 +336,7 @@ class TestingFramework {
       const cache = queryClient.getQueryCache();
       const queries = cache.getAll();
       queries.forEach(query => {
-        console.log(`Query ${query.queryHash}: ${query.state.status}`);
+        // console.log(`Query ${query.queryHash}: ${query.state.status}`);
       });
     }
   };

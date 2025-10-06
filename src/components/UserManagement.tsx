@@ -154,7 +154,7 @@ const UserManagement: React.FC = () => {
           .order('display_name');
 
         if (error) {
-          console.error('Error loading countries from code_tables:', error);
+          // // // console.error('Error loading countries from code_tables:', error);
           setAvailableCountries([]);
           return;
         }
@@ -162,11 +162,11 @@ const UserManagement: React.FC = () => {
         if (data && data.length > 0) {
           const countryNames = data.map((item: any) => item.display_name);setAvailableCountries(countryNames);
         } else {
-          console.warn('No countries found in code_tables');
+          // // // console.warn('No countries found in code_tables');
           setAvailableCountries([]);
         }
       } catch (error) {
-        console.error('Error loading countries:', error);
+        // // // console.error('Error loading countries:', error);
         setAvailableCountries([]);
       }
     };
@@ -324,7 +324,7 @@ const UserManagement: React.FC = () => {
             );
           }
         } catch (auditError) {
-          console.error('Failed to log password reset audit:', auditError);
+          // // // console.error('Failed to log password reset audit:', auditError);
         }
 
         setShowResetPasswordModal(false);
@@ -340,7 +340,7 @@ const UserManagement: React.FC = () => {
           type: 'success'
         });
     } catch (error) {
-      console.error('Error resetting password:', error);
+      // // // console.error('Error resetting password:', error);
       setError('Failed to reset password. Please try again.');
     }
   };
@@ -380,7 +380,7 @@ const UserManagement: React.FC = () => {
               );
             }
           } catch (auditError) {
-            console.error('Failed to log user deletion audit:', auditError);
+            // // // console.error('Failed to log user deletion audit:', auditError);
           }
 
           playSound.delete();
@@ -391,7 +391,7 @@ const UserManagement: React.FC = () => {
             type: 'warning'
           });
       } catch (error) {
-        console.error('Error deleting user:', error);
+        // // // console.error('Error deleting user:', error);
         showError('Delete Failed', 'Failed to delete user. Please try again.');
       }
       // Close modal after operation
@@ -445,7 +445,7 @@ const UserManagement: React.FC = () => {
               );
             }
           } catch (auditError) {
-            console.error('Failed to log user status change audit:', auditError);
+            // // // console.error('Failed to log user status change audit:', auditError);
           }
 
           playSound.success();
@@ -456,7 +456,7 @@ const UserManagement: React.FC = () => {
             type: newStatus ? 'success' : 'warning'
           });
       } catch (error) {
-        console.error('Error updating user status:', error);
+        // // // console.error('Error updating user status:', error);
         showError('Update Failed', 'Failed to update user status. Please try again.');
       }
       // Close modal after operation
@@ -565,7 +565,7 @@ const UserManagement: React.FC = () => {
               );
             }
           } catch (auditError) {
-            console.error('Failed to log user update audit:', auditError);
+            // // // console.error('Failed to log user update audit:', auditError);
           }
 
           playSound.success();
@@ -602,7 +602,7 @@ const UserManagement: React.FC = () => {
               );
             }
           } catch (auditError) {
-            console.error('Failed to log user creation audit:', auditError);
+            // // // console.error('Failed to log user creation audit:', auditError);
           }
 
           playSound.success();
@@ -628,7 +628,7 @@ const UserManagement: React.FC = () => {
       setEditingUser(null);
       setShowAddUser(false);
     } catch (err) {
-      console.error('Error saving user:', err);
+      // // // console.error('Error saving user:', err);
       const errorMessage = editingUser ? 'Failed to update user' : 'Failed to add user';
       setError(errorMessage);
       playSound.error();

@@ -446,7 +446,7 @@ const ModernEditSets: React.FC = () => {
             .insert(junctionData);
 
           if (junctionError) {
-            console.warn('Failed to link set to doctor-procedure junction table:', junctionError);
+            // // // console.warn('Failed to link set to doctor-procedure junction table:', junctionError);
             // Don't throw - the set was created successfully, junction table is optimization
           }
 
@@ -731,7 +731,7 @@ const ModernEditSets: React.FC = () => {
         .insert(junctionData);
 
       if (junctionError) {
-        console.warn('Failed to link set to doctor-procedure junction table:', junctionError);
+        // // // console.warn('Failed to link set to doctor-procedure junction table:', junctionError);
         // Don't throw - the set was created successfully, junction table is optimization
       }
 
@@ -817,7 +817,7 @@ const ModernEditSets: React.FC = () => {
         .eq(deleteField, item.id);
 
       if (junctionError) {
-        console.warn('Failed to remove from doctor-procedure junction table:', junctionError);
+        // // // console.warn('Failed to remove from doctor-procedure junction table:', junctionError);
         // Don't throw - the main deletion was successful
       }
 

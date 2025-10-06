@@ -120,7 +120,7 @@ const ImageAmendmentModal: React.FC<ImageAmendmentModalProps> = ({
         .insert([auditEntry]);
 
       if (auditError) {
-        console.error('Error logging image amendment:', auditError);
+        // // // console.error('Error logging image amendment:', auditError);
         // Continue even if audit log fails
       }
 
@@ -129,7 +129,7 @@ const ImageAmendmentModal: React.FC<ImageAmendmentModalProps> = ({
       window.location.reload(); // Force refresh to show updated image
 
     } catch (error) {
-      console.error('Error amending image:', error);
+      // // // console.error('Error amending image:', error);
       setError('Failed to amend image. Please try again.');
     } finally {
       setIsSubmitting(false);

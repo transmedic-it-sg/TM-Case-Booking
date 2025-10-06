@@ -87,7 +87,7 @@ const SimplifiedEmailConfig: React.FC = () => {
         const countries = await dynamicConstantsService.getCountries();
         setAvailableCountries(countries);
       } catch (error) {
-        console.error('Error loading countries for email config:', error);
+        // // // console.error('Error loading countries for email config:', error);
         setAvailableCountries([]);
       }
     };
@@ -109,7 +109,7 @@ const SimplifiedEmailConfig: React.FC = () => {
         const departments = await getDepartmentsForCountry(selectedCountry);
         setAvailableDepartments(departments);
       } catch (error) {
-        console.error('Error loading departments for email config:', error);
+        // // // console.error('Error loading departments for email config:', error);
         setAvailableDepartments([]);
       }
     };
@@ -505,7 +505,7 @@ Best regards,
 
       return data.setting_value;
     } catch (error) {
-      console.error('Failed to load email configs from database:', error);
+      // // // console.error('Failed to load email configs from database:', error);
       return {};
     }
   };
@@ -528,7 +528,7 @@ Best regards,
       if (error) {
         throw error;
       }} catch (error) {
-      console.error('Failed to save email configs to database:', error);
+      // // // console.error('Failed to save email configs to database:', error);
       throw error;
     }
   };
@@ -568,7 +568,7 @@ Best regards,
         const savedEmailConfigs = await getEmailConfigFromDatabase(selectedCountry);
         return savedEmailConfigs;
       } catch (error) {
-        console.error('Failed to load email configs from database:', error);
+        // // // console.error('Failed to load email configs from database:', error);
         return {};
       }
     };
@@ -652,7 +652,7 @@ Best regards,
           }));
         }
       } catch (error) {
-        console.error('Failed to load email matrix configurations from database:', error);
+        // // // console.error('Failed to load email matrix configurations from database:', error);
         // Initialize with default if loading fails
         const newMatrix = initializeNotificationMatrix(selectedCountry);
         setEmailMatrixConfigs(prev => ({
@@ -691,10 +691,10 @@ Best regards,
     setAuthError('');
 
     try {
-      console.log('Starting OAuth authentication for:', provider);
-      console.log('Client ID:', clientId?.substring(0, 8) + '...');
-      console.log('Redirect URI:', `${window.location.origin}/auth/callback`);
-      console.log('Current Origin:', window.location.origin);
+      // // // console.log('Starting OAuth authentication for:', provider);
+      // // // console.log('Client ID:', clientId?.substring(0, 8) + '...');
+      // // // console.log('Redirect URI:', `${window.location.origin}/auth/callback`);
+      // // // console.log('Current Origin:', window.location.origin);
 
       const { tokens, userInfo } = await authenticateWithPopup(provider, selectedCountry);
       
@@ -723,7 +723,7 @@ Best regards,
       try {
         await saveEmailConfigToDatabase(updatedConfigs);
       } catch (error) {
-        console.error('Failed to save email configs to database after authentication:', error);
+        // // // console.error('Failed to save email configs to database after authentication:', error);
         showError('Save Failed', 'Email configuration saved locally but failed to sync to database');
       }
 
@@ -734,7 +734,7 @@ Best regards,
       );
 
     } catch (error) {
-      console.error('Authentication failed - Full error:', error);
+      // // // console.error('Authentication failed - Full error:', error);
 
       // More detailed error handling
       let errorMessage = 'Authentication failed';
@@ -826,7 +826,7 @@ Best regards,
       playSound.success();
       showSuccess('Configuration Saved', `Email settings for ${selectedCountry} have been saved to database`);
     } catch (error) {
-      console.error('Failed to save email configuration:', error);
+      // // // console.error('Failed to save email configuration:', error);
       showError('Save Failed', 'Failed to save email configuration to database. Please try again.');
     }
   };
@@ -899,7 +899,7 @@ Best regards,
         throw new Error('Email sending failed - API returned false');
       }
     } catch (error) {
-      console.error('Test email failed:', error);
+      // // // console.error('Test email failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
       if (errorMessage.includes('expired')) {
@@ -962,7 +962,7 @@ Best regards,
       playSound.success();
       showSuccess('Notification Rules Saved', `Email notification rules for ${selectedCountry} have been saved to database`);
     } catch (error) {
-      console.error('Failed to save notification matrix:', error);
+      // // // console.error('Failed to save notification matrix:', error);
       showError('Save Failed', 'Failed to save notification rules to database. Please try again.');
     }
   };

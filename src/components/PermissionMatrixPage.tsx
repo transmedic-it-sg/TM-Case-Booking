@@ -33,7 +33,7 @@ const PermissionMatrixPage: React.FC = () => {
     const runValidation = async () => {
       try {
         await validateComponent();} catch (error) {
-        console.error('❌ PermissionMatrixPage validation failed:', error);
+        // // // console.error('❌ PermissionMatrixPage validation failed:', error);
       }
     };
 
@@ -45,14 +45,14 @@ const PermissionMatrixPage: React.FC = () => {
   // Real-time error handling
   useEffect(() => {
     if (error) {
-      console.error('Real-time permission error detected:', error);
+      // // // console.error('Real-time permission error detected:', error);
     }
   }, [error]);
 
   // Handle permission change - using real-time hook
   const handlePermissionChange = async (actionId: string, roleId: string, allowed: boolean) => {try {
       await updatePermission(actionId, roleId, allowed);} catch (error) {
-      console.error('❌ Failed to update permission:', error);
+      // // // console.error('❌ Failed to update permission:', error);
     }
   };
 
@@ -60,7 +60,7 @@ const PermissionMatrixPage: React.FC = () => {
   const handleReset = async () => {try {
       await resetPermissions();
       setIsEditing(false);} catch (error) {
-      console.error('❌ Error resetting permissions:', error);
+      // // // console.error('❌ Error resetting permissions:', error);
     }
   };
 
@@ -74,7 +74,7 @@ const PermissionMatrixPage: React.FC = () => {
         await savePermissions(permissions);
         setIsEditing(false);
         showSuccess('Permissions saved successfully!');} catch (error) {
-        console.error('❌ Error saving permissions:', error);
+        // // // console.error('❌ Error saving permissions:', error);
         showSuccess('Error saving permissions. Please try again.');
       }
     });

@@ -25,7 +25,7 @@ export const useDatabaseConnection = () => {
       const result = await testConnectionWithTimeout(CONNECTION_TIMEOUT);
       setConnectionInfo(result);
     } catch (error) {
-      console.error('Manual connection test failed:', error);
+      // // // console.error('Manual connection test failed:', error);
       setConnectionInfo({
         status: 'disconnected',
         lastChecked: new Date(),

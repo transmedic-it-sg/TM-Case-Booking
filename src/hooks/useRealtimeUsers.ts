@@ -34,7 +34,7 @@ const useRealtimeUsersQuery = (filters?: UseRealtimeUsersOptions['filters']) => 
   return useQuery({
     queryKey: ['realtime-users', filters],
     queryFn: async () => {
-      console.log('Fetching realtime users data...');
+      // // // console.log('Fetching realtime users data...');
       const users = await getSupabaseUsers();
 
       // Apply filters on fresh data
@@ -122,7 +122,7 @@ const useOptimisticUserMutation = () => {
       });
     },
     onError: async (error, action) => {
-      console.error(`❌ Failed to ${action.type} user:`, error);
+      // // // console.error(`❌ Failed to ${action.type} user:`, error);
 
       await addNotification({
         title: 'User Management Error',
@@ -188,7 +188,7 @@ export const useRealtimeUsers = (options: UseRealtimeUsersOptions = {}) => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to add user';
       setLocalError(errorMessage);
-      console.error(`❌ Failed to add user ${userData.username}:`, error);
+      // // // console.error(`❌ Failed to add user ${userData.username}:`, error);
       throw error;
     }
   }, [userMutation, enableTesting, testing]);
@@ -211,7 +211,7 @@ export const useRealtimeUsers = (options: UseRealtimeUsersOptions = {}) => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update user';
       setLocalError(errorMessage);
-      console.error(`❌ Failed to update user ${userId}:`, error);
+      // // // console.error(`❌ Failed to update user ${userId}:`, error);
       throw error;
     }
   }, [userMutation, enableTesting, testing]);
@@ -233,7 +233,7 @@ export const useRealtimeUsers = (options: UseRealtimeUsersOptions = {}) => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete user';
       setLocalError(errorMessage);
-      console.error(`❌ Failed to delete user ${userId}:`, error);
+      // // // console.error(`❌ Failed to delete user ${userId}:`, error);
       throw error;
     }
   }, [userMutation, enableTesting, testing]);
@@ -255,7 +255,7 @@ export const useRealtimeUsers = (options: UseRealtimeUsersOptions = {}) => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to toggle user';
       setLocalError(errorMessage);
-      console.error(`❌ Failed to toggle user ${userId}:`, error);
+      // // // console.error(`❌ Failed to toggle user ${userId}:`, error);
       throw error;
     }
   }, [userMutation, enableTesting, testing]);
@@ -279,7 +279,7 @@ export const useRealtimeUsers = (options: UseRealtimeUsersOptions = {}) => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to reset password';
       setLocalError(errorMessage);
-      console.error(`❌ Failed to reset password for user ${userId}:`, error);
+      // // // console.error(`❌ Failed to reset password for user ${userId}:`, error);
       throw error;
     }
   }, [userMutation, enableTesting, testing]);
@@ -297,7 +297,7 @@ export const useRealtimeUsers = (options: UseRealtimeUsersOptions = {}) => {
       testing.recordValidation(true);return true;
     } catch (error) {
       testing.recordValidation(false, error instanceof Error ? error.message : 'Validation failed');
-      console.error('❌ useRealtimeUsers validation failed:', error);
+      // // // console.error('❌ useRealtimeUsers validation failed:', error);
       return false;
     }
   }, [refetch, enableTesting, testing]);

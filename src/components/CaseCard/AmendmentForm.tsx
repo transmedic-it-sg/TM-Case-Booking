@@ -11,6 +11,14 @@ import MultiSelectDropdown from '../MultiSelectDropdown';
 import SearchableDropdown from '../SearchableDropdown';
 import { supabase } from '../../lib/supabase';
 import { normalizeCountry } from '../../utils/countryUtils';
+import {
+  getDoctorsForDepartment,
+  getProceduresForDoctor,
+  getSetsForDoctorProcedure,
+  type DepartmentDoctor,
+  type DoctorProcedure,
+  type ProcedureSet
+} from '../../utils/departmentDoctorService';
 
 const AmendmentForm: React.FC<AmendmentFormProps> = ({
   caseItem,
@@ -25,6 +33,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     dateOfSurgery: caseItem?.dateOfSurgery || '',
     procedureType: caseItem?.procedureType || '',
     procedureName: caseItem?.procedureName || '',
+    doctorId: '', // Will be populated from doctorName
     doctorName: caseItem?.doctorName || '',
     timeOfProcedure: caseItem?.timeOfProcedure || '',
     specialInstruction: caseItem?.specialInstruction || '',
@@ -39,24 +48,177 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
   const [surgerySetOptions, setSurgerySetOptions] = useState<string[]>([]);
   const [implantBoxOptions, setImplantBoxOptions] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // New state for doctor hierarchy
+  const [availableDoctors, setAvailableDoctors] = useState<DepartmentDoctor[]>([]);
+  const [availableDoctorProcedures, setAvailableDoctorProcedures] = useState<DoctorProcedure[]>([]);
+  const [availableProcedureSets, setAvailableProcedureSets] = useState<ProcedureSet[]>([]);
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
+  const [isLoadingProcedures, setIsLoadingProcedures] = useState(false);
+  const [isLoadingSets, setIsLoadingSets] = useState(false);
+  
+  // Helper functions for doctor display
+  const formatDoctorDisplayName = (doctor: DepartmentDoctor): string => {
+    if (!doctor.name) return '';
+    const trimmed = doctor.name.trim();
+    // If name already starts with "Dr" or "Dr.", don't add another "Dr."
+    if (trimmed.toLowerCase().startsWith('dr')) {
+      return trimmed;
+    }
+    return `Dr. ${trimmed}`;
+  };
+  
+  const getCurrentDoctorDisplayValue = (): string => {
+    if (!formData.doctorId && formData.doctorName) {
+      // If we have doctorName but no doctorId (existing case), use doctorName
+      return formData.doctorName;
+    }
+    if (!formData.doctorId) return '';
+    const currentDoctor = availableDoctors.find(d => d.id === formData.doctorId);
+    return currentDoctor ? formatDoctorDisplayName(currentDoctor) : formData.doctorName || '';
+  };
 
-  // Load procedure types based on department from Edit Sets
+  // Initial load - try to find doctor ID and load all related data
   useEffect(() => {
-    const loadProcedureTypes = async () => {
-      if (formData.department && caseItem.country) {
-        try {
-          const { getProcedureTypesForDepartmentIncludingInactive } = await import('../../utils/supabaseDepartmentService');
-          const procedureTypes = await getProcedureTypesForDepartmentIncludingInactive(formData.department, caseItem.country);
-          setAvailableProcedureTypes(procedureTypes);
-        } catch (error) {
-          console.error('Error loading procedure types:', error);
-          setAvailableProcedureTypes([]);
+    const loadInitialData = async () => {
+      if (!formData.department || !caseItem.country) return;
+
+      try {
+        setIsLoadingDoctors(true);
+        const normalizedCountry = normalizeCountry(caseItem.country);
+        const doctors = await getDoctorsForDepartment(formData.department, normalizedCountry);
+        setAvailableDoctors(doctors);
+        
+        // Try to match existing doctor name with loaded doctors
+        let matchedDoctorId: string | null = null;
+        if (formData.doctorName) {
+          const matchingDoctor = doctors.find(d => 
+            d.name === formData.doctorName || 
+            formatDoctorDisplayName(d) === formData.doctorName
+          );
+          if (matchingDoctor) {
+            matchedDoctorId = matchingDoctor.id;
+            setFormData(prev => ({ ...prev, doctorId: matchingDoctor.id }));
+            
+            // Load procedures for this doctor
+            setIsLoadingProcedures(true);
+            const procedures = await getProceduresForDoctor(matchingDoctor.id, normalizedCountry);
+            setAvailableDoctorProcedures(procedures);
+            setIsLoadingProcedures(false);
+            
+            // If we have a procedure type, load sets
+            if (formData.procedureType) {
+              setIsLoadingSets(true);
+              const sets = await getSetsForDoctorProcedure(matchingDoctor.id, formData.procedureType, normalizedCountry);
+              setAvailableProcedureSets(sets);
+              
+              // Update surgery set and implant box options
+              const surgerySetNames = sets
+                .filter(set => set.item_type === 'surgery_set')
+                .map(set => set.item_name);
+              const implantBoxNames = sets
+                .filter(set => set.item_type === 'implant_box')
+                .map(set => set.item_name);
+              
+              setSurgerySetOptions(surgerySetNames);
+              setImplantBoxOptions(implantBoxNames);
+              setIsLoadingSets(false);
+            }
+          }
         }
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+      } finally {
+        setIsLoadingDoctors(false);
       }
     };
 
-    loadProcedureTypes();
+    loadInitialData();
+  }, []); // Run only once on mount
+
+  // Load doctors when department is selected (for department changes)
+  useEffect(() => {
+    const loadDoctorsForDepartment = async () => {
+      if (!formData.department || !caseItem.country) {
+        setAvailableDoctors([]);
+        return;
+      }
+
+      try {
+        setIsLoadingDoctors(true);
+        const normalizedCountry = normalizeCountry(caseItem.country);
+        const doctors = await getDoctorsForDepartment(formData.department, normalizedCountry);
+        setAvailableDoctors(doctors);
+      } catch (error) {
+        console.error('Error loading doctors:', error);
+        setAvailableDoctors([]);
+      } finally {
+        setIsLoadingDoctors(false);
+      }
+    };
+
+    loadDoctorsForDepartment();
   }, [formData.department, caseItem.country]);
+
+  // Load procedures when doctor is selected
+  useEffect(() => {
+    const loadDoctorProcedures = async () => {
+      if (!formData.doctorId || !caseItem.country) {
+        setAvailableDoctorProcedures([]);
+        setAvailableProcedureSets([]);
+        return;
+      }
+
+      try {
+        setIsLoadingProcedures(true);
+        const normalizedCountry = normalizeCountry(caseItem.country);
+        const procedures = await getProceduresForDoctor(formData.doctorId, normalizedCountry);
+        setAvailableDoctorProcedures(procedures);
+      } catch (error) {
+        console.error('Error loading doctor procedures:', error);
+        setAvailableDoctorProcedures([]);
+      } finally {
+        setIsLoadingProcedures(false);
+      }
+    };
+
+    loadDoctorProcedures();
+  }, [formData.doctorId, caseItem.country]);
+
+  // Load surgery sets and implant boxes when doctor + procedure is selected
+  useEffect(() => {
+    const loadDoctorProcedureSets = async () => {
+      if (!formData.doctorId || !formData.procedureType || !caseItem.country) {
+        setAvailableProcedureSets([]);
+        return;
+      }
+
+      try {
+        setIsLoadingSets(true);
+        const normalizedCountry = normalizeCountry(caseItem.country);
+        const sets = await getSetsForDoctorProcedure(formData.doctorId, formData.procedureType, normalizedCountry);
+        setAvailableProcedureSets(sets);
+
+        // Update surgery set and implant box options
+        const surgerySetNames = sets
+          .filter(set => set.item_type === 'surgery_set')
+          .map(set => set.item_name);
+        const implantBoxNames = sets
+          .filter(set => set.item_type === 'implant_box')
+          .map(set => set.item_name);
+        
+        setSurgerySetOptions(surgerySetNames);
+        setImplantBoxOptions(implantBoxNames);
+      } catch (error) {
+        console.error('Error loading procedure sets:', error);
+        setAvailableProcedureSets([]);
+      } finally {
+        setIsLoadingSets(false);
+      }
+    };
+
+    loadDoctorProcedureSets();
+  }, [formData.doctorId, formData.procedureType, caseItem.country]);
 
   // Load hospitals, surgery sets and implant boxes independently
   useEffect(() => {
@@ -82,7 +244,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
             .order('name');
 
           if (surgerySetsError) {
-            console.error('Error loading surgery sets:', surgerySetsError);
+            // // // console.error('Error loading surgery sets:', surgerySetsError);
             setSurgerySetOptions([]);
           } else {
             // Preserve the Edit Sets ordering by not sorting alphabetically
@@ -99,7 +261,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
             .order('name');
 
           if (implantBoxesError) {
-            console.error('Error loading implant boxes:', implantBoxesError);
+            // // // console.error('Error loading implant boxes:', implantBoxesError);
             setImplantBoxOptions([]);
           } else {
             // Preserve the Edit Sets ordering by not sorting alphabetically
@@ -107,7 +269,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
           }
 
         } catch (error) {
-          console.error('Error loading options:', error);
+          // // // console.error('Error loading options:', error);
           setAvailableHospitals([]);
           setSurgerySetOptions([]);
           setImplantBoxOptions([]);
@@ -130,7 +292,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
 
   // Handle case where caseItem is null or undefined after all hooks are called
   if (!caseItem) {
-    console.error('AmendmentForm: caseItem is undefined or null');
+    // // // console.error('AmendmentForm: caseItem is undefined or null');
     return (
       <div className="amendment-form-error">
         <p>Error: Case data is not available. Please refresh and try again.</p>
@@ -271,37 +433,66 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
               {errors.procedureName && <span className="error-text">{errors.procedureName}</span>}
             </div>
 
-            {/* Doctor Name - matches CaseBookingForm order */}
+            {/* Doctor - SearchableDropdown matching CaseBookingForm */}
             <div className="form-group">
-              <label className="required">Doctor Name</label>
-              <input
-                type="text"
-                value={formData.doctorName || ''}
-                onChange={(e) => handleInputChange('doctorName', e.target.value)}
+              <label className="required">Doctor</label>
+              <SearchableDropdown
+                value={getCurrentDoctorDisplayValue()}
+                onChange={(doctorDisplayName) => {
+                  const selectedDoctor = availableDoctors.find(d =>
+                    doctorDisplayName === formatDoctorDisplayName(d)
+                  );
+                  setFormData(prev => ({
+                    ...prev,
+                    doctorId: selectedDoctor?.id || '',
+                    doctorName: selectedDoctor?.name || doctorDisplayName,
+                    procedureType: '', // Reset procedure type when doctor changes
+                    surgerySetSelection: [],
+                    implantBox: []
+                  }));
+                }}
+                options={availableDoctors.map(formatDoctorDisplayName)}
+                placeholder={isLoadingDoctors ? "Loading doctors..." :
+                  availableDoctors.length === 0 ? "No doctors available" :
+                  "Search and select doctor"
+                }
                 className={errors.doctorName ? 'error' : ''}
-                placeholder="Enter doctor name"
+                disabled={isLoadingDoctors}
                 required
               />
               {errors.doctorName && <span className="error-text">{errors.doctorName}</span>}
+              {availableDoctors.length === 0 && !isLoadingDoctors && (
+                <div className="help-text">
+                  ℹ️ No doctors found for this department. Contact your administrator to add doctors.
+                </div>
+              )}
             </div>
 
-            {/* Procedure Type - after Doctor to match CaseBookingForm order */}
+            {/* Procedure Type - SearchableDropdown based on selected doctor */}
             <div className="form-group">
               <label className="required">Procedure Type</label>
-              <select
+              <SearchableDropdown
                 value={formData.procedureType || ''}
-                onChange={(e) => handleInputChange('procedureType', e.target.value)}
+                onChange={(value) => {
+                  handleInputChange('procedureType', value);
+                  // Reset surgery sets and implant boxes when procedure type changes
+                  setFormData(prev => ({
+                    ...prev,
+                    procedureType: value,
+                    surgerySetSelection: [],
+                    implantBox: []
+                  }));
+                }}
+                options={availableDoctorProcedures.map(proc => proc.procedure_type)}
+                placeholder={!formData.doctorId ? "Please select a doctor first" :
+                  isLoadingProcedures ? "Loading procedures..." :
+                  availableDoctorProcedures.length === 0 ? "No procedures available for this doctor" :
+                  "Select procedure type"
+                }
                 className={errors.procedureType ? 'error' : ''}
+                disabled={!formData.doctorId || isLoadingProcedures}
                 required
-              >
-                <option value="">Select Procedure Type</option>
-                {availableProcedureTypes.map(type => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-              {errors.procedureType && <span className="error-text">{errors.procedureType}</span>}
+              />
             </div>
 
             {/* Special Instructions */}
