@@ -63,7 +63,6 @@ const PushNotificationSettings: React.FC<PushNotificationSettingsProps> = ({
         showError('Enable Failed', 'Failed to enable push notifications. Please check your browser settings.');
       }
     } catch (error) {
-      console.error('Error enabling notifications:', error);
       showError('Enable Failed', 'An error occurred while enabling notifications');
     } finally {
       setIsLoading(false);
@@ -81,7 +80,6 @@ const PushNotificationSettings: React.FC<PushNotificationSettingsProps> = ({
         showError('Disable Failed', 'Failed to disable push notifications');
       }
     } catch (error) {
-      console.error('Error disabling notifications:', error);
       showError('Disable Failed', 'An error occurred while disabling notifications');
     } finally {
       setIsLoading(false);
@@ -94,7 +92,6 @@ const PushNotificationSettings: React.FC<PushNotificationSettingsProps> = ({
       setHasTestedNotification(true);
       showInfo('Test Sent', 'Check for the test notification on your device');
     } catch (error) {
-      console.error('Error sending test notification:', error);
       showError('Test Failed', 'Failed to send test notification');
     }
   };

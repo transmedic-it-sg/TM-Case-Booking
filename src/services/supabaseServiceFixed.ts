@@ -85,7 +85,6 @@ class SupabaseServiceFixed {
 
       return !error;
     } catch (error) {
-      console.error('Connection test failed:', error);
       return false;
     }
   }
@@ -99,7 +98,6 @@ class SupabaseServiceFixed {
       if (error) throw error;
       return count || 0;
     } catch (error) {
-      console.error(`Error getting count for ${tableName}:`, error);
       return 0;
     }
   }
@@ -182,7 +180,6 @@ class SupabaseServiceFixed {
       channel.unsubscribe();
 
     } catch (error) {
-      console.error('Health check error:', error);
     }
 
     return health;

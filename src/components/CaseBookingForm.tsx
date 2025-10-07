@@ -7,6 +7,7 @@ import { useRealtimeMasterDataQuery } from '../services/realtimeQueryService';
 import TimePicker from './common/TimePicker';
 import SearchableDropdown from './SearchableDropdown';
 import MultiSelectDropdown from './MultiSelectDropdown';
+import MultiSelectDropdownWithQuantity from './MultiSelectDropdownWithQuantity';
 import CustomModal from './CustomModal';
 import { useModal } from '../hooks/useModal';
 import FilterDatePicker from './FilterDatePicker';
@@ -114,9 +115,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
         department: prefillDepartment
       }));
 
-      // Clear the pre-fill data from localStorage
-      localStorage.removeItem('calendar_prefill_date');
-      localStorage.removeItem('calendar_prefill_department');
+      // Pre-fill data handled - no localStorage needed
     }
   }, []);
 
@@ -410,26 +409,12 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           }
         } catch (error) {
           // Error loading departments from Supabase
-          // Try alternative service as fallback - no hardcoded data
-          try {
-            const { getDepartments } = await import('../services/constantsService');
-            const fallbackDepartments = await getDepartments(userCountry);
-            setAvailableDepartments(fallbackDepartments.sort());
-          } catch (fallbackError) {
-            // All department loading methods failed
-            setAvailableDepartments([]); // Empty array if all fails - forces user to contact support
-          }
+          // No fallback - use empty array
+          setAvailableDepartments([]); // Empty array if fails - forces user to contact support
         }
       } else {
-        // Try to get departments for the country using alternative service
-        try {
-          const { getDepartments } = await import('../services/constantsService');
-          const departments = await getDepartments(userCountry);
-          setAvailableDepartments(departments.sort());
-        } catch (error) {
-          // Error loading departments for country
-          setAvailableDepartments([]);
-        }
+        // No user or country - no departments available
+        setAvailableDepartments([]);
       }
     };
 
@@ -644,7 +629,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
       <div className="card-content">
         <form onSubmit={handleSubmit}>
-        <div className="form-row two-columns">
+        <div className="form-row three-columns">
           <div className="form-group">
             <label htmlFor="hospital" className="required">Hospital</label>
             <SearchableDropdown
@@ -672,9 +657,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             />
             {errors.department && <span className="error-text">{errors.department}</span>}
           </div>
-        </div>
 
-        <div className="form-row two-columns">
           <div className="form-group">
             <label htmlFor="dateOfSurgery" className="required">Date of Surgery</label>
             <FilterDatePicker
@@ -686,7 +669,9 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             />
             {errors.dateOfSurgery && <span className="error-text">{errors.dateOfSurgery}</span>}
           </div>
+        </div>
 
+        <div className="form-row two-columns">
           <div className="form-group">
             <label htmlFor="timeOfProcedure">Time of Procedure</label>
             <TimePicker
@@ -697,9 +682,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               step={15}
             />
           </div>
-        </div>
 
-        <div className="form-row">
           <div className="form-group">
             <label htmlFor="procedureName" className="required">Procedure Name</label>
             <input
@@ -708,6 +691,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               value={formData.procedureName}
               onChange={(e) => setFormData(prev => ({ ...prev, procedureName: e.target.value }))}
               className={errors.procedureName ? 'error' : ''}
+              placeholder="Enter procedure name"
             />
             {errors.procedureName && <span className="error-text">{errors.procedureName}</span>}
           </div>
@@ -883,12 +867,23 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
                   <div className="quantities-section">
                     <h4>Quantities</h4>
                     <div className="form-row two-columns">
-                      {/* Surgery Sets Column */}
+                      {/* Surgery Sets Column - Sorted to match dropdown order */}
                       {formData.surgerySetSelection.length > 0 && (
                         <div className="form-group">
                           <h5>Surgery Sets</h5>
                           <div className="quantities-list">
-                            {formData.surgerySetSelection.map(setName => (
+                            {/* Sort selected sets to match dropdown order */}
+                            {formData.surgerySetSelection
+                              .sort((a, b) => {
+                                const orderA = availableProcedureSets
+                                  .filter(set => set.item_type === 'surgery_set')
+                                  .findIndex(set => set.item_name === a);
+                                const orderB = availableProcedureSets
+                                  .filter(set => set.item_type === 'surgery_set')
+                                  .findIndex(set => set.item_name === b);
+                                return orderA - orderB;
+                              })
+                              .map(setName => (
                               <div key={`qty-surgery-${setName}`} className="quantity-item">
                                 <label>{setName}</label>
                                 <input
@@ -914,12 +909,23 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
                         </div>
                       )}
                       
-                      {/* Implant Boxes Column */}
+                      {/* Implant Boxes Column - Sorted to match dropdown order */}
                       {formData.implantBox.length > 0 && (
                         <div className="form-group">
                           <h5>Implant Boxes</h5>
                           <div className="quantities-list">
-                            {formData.implantBox.map(boxName => (
+                            {/* Sort selected boxes to match dropdown order */}
+                            {formData.implantBox
+                              .sort((a, b) => {
+                                const orderA = availableProcedureSets
+                                  .filter(set => set.item_type === 'implant_box')
+                                  .findIndex(set => set.item_name === a);
+                                const orderB = availableProcedureSets
+                                  .filter(set => set.item_type === 'implant_box')
+                                  .findIndex(set => set.item_name === b);
+                                return orderA - orderB;
+                              })
+                              .map(boxName => (
                               <div key={`qty-implant-${boxName}`} className="quantity-item">
                                 <label>{boxName}</label>
                                 <input

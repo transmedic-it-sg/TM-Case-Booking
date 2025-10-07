@@ -44,7 +44,6 @@ const CountryGroupedDepartments: React.FC<CountryGroupedDepartmentsProps> = ({
             const departments = await getDepartmentsForCountry(country);
             departmentsByCountryFromDB[country] = departments || [];
           } catch (error) {
-            console.error(`Error loading departments for ${country}:`, error);
             departmentsByCountryFromDB[country] = [];
           }
         }

@@ -75,7 +75,6 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
         try {
           await auditLogin(result.user.name, result.user.id, result.user.role, result.user.selectedCountry);
         } catch (auditError) {
-          console.warn('Failed to audit login:', auditError);
           // Continue with login even if audit fails
         }
 
@@ -84,7 +83,6 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
         throw new Error(result.error || 'Login failed');
       }
     } catch (error: any) {
-      console.error('Login error:', error);
       setError(error.message || 'Login failed');
       setIsLoading(false);
     }

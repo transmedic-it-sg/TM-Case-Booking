@@ -44,7 +44,6 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
         const req = getPasswordRequirementsSync(config.passwordComplexity);
         setRequirements(req);
       } catch (error) {
-        console.error('Failed to load password requirements:', error);
         // Use default complex requirements on error
         const req = getPasswordRequirementsSync(true);
         setRequirements(req);

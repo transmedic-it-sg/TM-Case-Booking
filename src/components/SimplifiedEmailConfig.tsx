@@ -87,7 +87,6 @@ const SimplifiedEmailConfig: React.FC = () => {
         const countries = await dynamicConstantsService.getCountries();
         setAvailableCountries(countries);
       } catch (error) {
-        console.error('Error loading countries for email config:', error);
         setAvailableCountries([]);
       }
     };
@@ -109,7 +108,6 @@ const SimplifiedEmailConfig: React.FC = () => {
         const departments = await getDepartmentsForCountry(selectedCountry);
         setAvailableDepartments(departments);
       } catch (error) {
-        console.error('Error loading departments for email config:', error);
         setAvailableDepartments([]);
       }
     };
@@ -505,7 +503,6 @@ Best regards,
 
       return data.setting_value;
     } catch (error) {
-      console.error('Failed to load email configs from database:', error);
       return {};
     }
   };
@@ -514,21 +511,44 @@ Best regards,
   const saveEmailConfigToDatabase = async (configs: Record<string, CountryEmailConfig>) => {
     try {
       const { supabase } = await import('../lib/supabase');
-      const { error } = await supabase
+      
+      // First, check if the setting exists
+      const { data: existing } = await supabase
         .from('app_settings')
-        .upsert({
-          setting_key: 'simplified_email_configs',
-          setting_value: configs,
-          description: 'Email provider configurations for all countries',
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'setting_key'
-        });
-
-      if (error) {
-        throw error;
-      }} catch (error) {
-      console.error('Failed to save email configs to database:', error);
+        .select('id')
+        .eq('setting_key', 'simplified_email_configs')
+        .single();
+      
+      if (existing) {
+        // Update existing record
+        const { error } = await supabase
+          .from('app_settings')
+          .update({
+            setting_value: configs,
+            description: 'Email provider configurations for all countries',
+            updated_at: new Date().toISOString()
+          })
+          .eq('setting_key', 'simplified_email_configs');
+        
+        if (error) {
+          throw error;
+        }
+      } else {
+        // Insert new record
+        const { error } = await supabase
+          .from('app_settings')
+          .insert({
+            setting_key: 'simplified_email_configs',
+            setting_value: configs,
+            description: 'Email provider configurations for all countries',
+            updated_at: new Date().toISOString()
+          });
+        
+        if (error) {
+          throw error;
+        }
+      }
+    } catch (error) {
       throw error;
     }
   };
@@ -568,7 +588,6 @@ Best regards,
         const savedEmailConfigs = await getEmailConfigFromDatabase(selectedCountry);
         return savedEmailConfigs;
       } catch (error) {
-        console.error('Failed to load email configs from database:', error);
         return {};
       }
     };
@@ -652,7 +671,6 @@ Best regards,
           }));
         }
       } catch (error) {
-        console.error('Failed to load email matrix configurations from database:', error);
         // Initialize with default if loading fails
         const newMatrix = initializeNotificationMatrix(selectedCountry);
         setEmailMatrixConfigs(prev => ({
@@ -691,10 +709,6 @@ Best regards,
     setAuthError('');
 
     try {
-      console.log('Starting OAuth authentication for:', provider);
-      console.log('Client ID:', clientId?.substring(0, 8) + '...');
-      console.log('Redirect URI:', `${window.location.origin}/auth/callback`);
-      console.log('Current Origin:', window.location.origin);
 
       const { tokens, userInfo } = await authenticateWithPopup(provider, selectedCountry);
       
@@ -723,7 +737,6 @@ Best regards,
       try {
         await saveEmailConfigToDatabase(updatedConfigs);
       } catch (error) {
-        console.error('Failed to save email configs to database after authentication:', error);
         showError('Save Failed', 'Email configuration saved locally but failed to sync to database');
       }
 
@@ -734,7 +747,6 @@ Best regards,
       );
 
     } catch (error) {
-      console.error('Authentication failed - Full error:', error);
 
       // More detailed error handling
       let errorMessage = 'Authentication failed';
@@ -826,7 +838,6 @@ Best regards,
       playSound.success();
       showSuccess('Configuration Saved', `Email settings for ${selectedCountry} have been saved to database`);
     } catch (error) {
-      console.error('Failed to save email configuration:', error);
       showError('Save Failed', 'Failed to save email configuration to database. Please try again.');
     }
   };
@@ -899,7 +910,6 @@ Best regards,
         throw new Error('Email sending failed - API returned false');
       }
     } catch (error) {
-      console.error('Test email failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
       if (errorMessage.includes('expired')) {
@@ -944,25 +954,47 @@ Best regards,
 
     try {
       const { supabase } = await import('../lib/supabase');
-      const { error } = await supabase
+      
+      // First, check if the setting exists
+      const { data: existing } = await supabase
         .from('app_settings')
-        .upsert({
-          setting_key: 'email_matrix_configs_by_country',
-          setting_value: emailMatrixConfigs,
-          description: 'Email notification matrix configurations for all countries',
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'setting_key'
-        });
-
-      if (error) {
-        throw error;
+        .select('id')
+        .eq('setting_key', 'email_matrix_configs_by_country')
+        .single();
+      
+      if (existing) {
+        // Update existing record
+        const { error } = await supabase
+          .from('app_settings')
+          .update({
+            setting_value: emailMatrixConfigs,
+            description: 'Email notification matrix configurations for all countries',
+            updated_at: new Date().toISOString()
+          })
+          .eq('setting_key', 'email_matrix_configs_by_country');
+        
+        if (error) {
+          throw error;
+        }
+      } else {
+        // Insert new record
+        const { error } = await supabase
+          .from('app_settings')
+          .insert({
+            setting_key: 'email_matrix_configs_by_country',
+            setting_value: emailMatrixConfigs,
+            description: 'Email notification matrix configurations for all countries',
+            updated_at: new Date().toISOString()
+          });
+        
+        if (error) {
+          throw error;
+        }
       }
 
       playSound.success();
       showSuccess('Notification Rules Saved', `Email notification rules for ${selectedCountry} have been saved to database`);
     } catch (error) {
-      console.error('Failed to save notification matrix:', error);
       showError('Save Failed', 'Failed to save notification rules to database. Please try again.');
     }
   };
@@ -1192,8 +1224,21 @@ Best regards,
                     className="provider-icon"
                   />
                   <div>
-                    <h4>Microsoft Outlook</h4>
-                    <p>Send emails through Outlook/Office 365</p>
+                    <h4>
+                      Microsoft Outlook
+                      <span style={{ 
+                        fontSize: '0.65em', 
+                        marginLeft: '8px', 
+                        color: '#28a745',
+                        fontWeight: 'normal',
+                        backgroundColor: '#e8f5e9',
+                        padding: '2px 6px',
+                        borderRadius: '3px'
+                      }}>
+                        Global Account
+                      </span>
+                    </h4>
+                    <p>Send emails through Outlook/Office 365 (Same account for all countries)</p>
                   </div>
                 </div>
 

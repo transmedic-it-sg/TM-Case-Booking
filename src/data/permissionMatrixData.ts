@@ -272,12 +272,6 @@ export const permissionActions: PermissionAction[] = [
     category: 'Case Management'
   },
   {
-    id: 'backup-restore',
-    name: 'Backup & Restore',
-    description: 'Manage system backups and restoration',
-    category: 'System Settings'
-  },
-  {
     id: 'audit-logs',
     name: 'Audit Logs',
     description: 'View system audit trail and logs',
@@ -431,7 +425,6 @@ export const permissions: Permission[] = [
   { actionId: 'email-config', roleId: 'it', allowed: true },
   { actionId: 'code-table-setup', roleId: 'it', allowed: true },
   { actionId: 'global-tables', roleId: 'it', allowed: true },
-  { actionId: 'backup-restore', roleId: 'it', allowed: true },
   { actionId: 'audit-logs', roleId: 'it', allowed: true },
   { actionId: 'import-data', roleId: 'it', allowed: true },
   { actionId: 'export-data', roleId: 'it', allowed: true },
@@ -445,7 +438,6 @@ export const permissions: Permission[] = [
 export const getAllRoles = (): Role[] => {
     // For now, return default roles only to prevent localStorage security issues
   // Custom roles should be managed through database instead of localStorage
-  console.warn('Custom roles temporarily disabled for security - using default roles only');
   return roles;
 };
 
@@ -459,7 +451,6 @@ export const getAllMatrixRoles = (): Role[] => {
 export const getAllPermissions = (): Permission[] => {
     // For now, return default permissions only to prevent localStorage security issues
   // Custom permissions should be managed through database instead of localStorage
-  console.warn('Custom permissions temporarily disabled for security - using default permissions only');
   return permissions;
 };
 

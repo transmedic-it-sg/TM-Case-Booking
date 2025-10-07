@@ -54,7 +54,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
             setPreferences({ ...defaultPreferences, ...savedPreferences });
           }
         } catch (error) {
-          console.error('Error loading notification preferences:', error);
         }
       };
 
@@ -95,9 +94,26 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
         const { STORAGE_KEYS } = await import('../constants/secureStorage');
 
         await SafeStorage.setItem(`${STORAGE_KEYS.USER_PREFERENCES}_notifications_${currentUser.id}`, newPreferences);
+        // Update state immediately for UI responsiveness
         setPreferences(newPreferences);
+        
+        // Show success feedback
+        const event = new CustomEvent('notification', {
+          detail: {
+            type: 'success',
+            message: 'Notification preferences updated'
+          }
+        });
+        window.dispatchEvent(event);
       } catch (error) {
-        console.error('Error saving notification preferences:', error);
+        // Show error feedback
+        const event = new CustomEvent('notification', {
+          detail: {
+            type: 'error',
+            message: 'Failed to save preferences'
+          }
+        });
+        window.dispatchEvent(event);
       }
     }
   };
@@ -122,6 +138,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
       sound: true,
       desktop: true
     };
+    setPreferences(allEnabled); // Immediate UI update
     savePreferences(allEnabled);
   };
 
@@ -140,10 +157,12 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
       sound: false,
       desktop: false
     };
+    setPreferences(allDisabled); // Immediate UI update
     savePreferences(allDisabled);
   };
 
   const handleResetToDefault = () => {
+    setPreferences(defaultPreferences); // Immediate UI update
     savePreferences(defaultPreferences);
   };
 

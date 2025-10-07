@@ -133,7 +133,6 @@ export const useEnterpriseMutation = (options: {
           queryClient.setQueryData(queryKey, data);
         });
       }
-      console.error('Mutation failed:', error);
     },
     onSuccess: (data, variables) => {
       // Invalidate cache by tags
@@ -208,7 +207,7 @@ export const useCacheMonitoring = () => {
 
   const logCacheStats = useCallback(() => {
     const stats = getCacheStats();
-    console.table(stats);
+// console.table(stats);
   }, [getCacheStats]);
 
   return {

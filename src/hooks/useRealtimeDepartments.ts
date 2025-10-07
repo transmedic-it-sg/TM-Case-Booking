@@ -31,7 +31,6 @@ const useRealtimeDepartmentsQuery = (country?: string) => {
       // Validate that departments have country field
       departments.forEach(dept => {
         if (!dept.country) {
-          console.error(`❌ Department ${dept.name} missing country field!`, dept);
         }
       });return departments;
     },
@@ -55,7 +54,6 @@ const useRealtimeDoctorsQuery = (department?: Department) => {
 
       // Validate department has country before proceeding
       if (!department.country) {
-        console.error(`❌ Cannot fetch doctors: Department ${department.name} missing country field`);
         throw new Error(`Department ${department.name} is missing country information`);
       }const doctors = await getDoctorsForDepartment(department.name, department.country);return doctors;
     },
@@ -114,7 +112,6 @@ const useOptimisticDepartmentMutation = () => {
       });
     },
     onError: (error, action) => {
-      console.error(`❌ Failed to ${action.type}:`, error);
 
       addNotification({
         title: 'Department Management Error',
@@ -189,7 +186,6 @@ export const useRealtimeDepartments = (options: UseRealtimeDepartmentsOptions = 
   // Select department and load its doctors
   const selectDepartment = useCallback(async (department: Department | null) => {// Critical validation: Ensure department has country field
     if (department && !department.country) {
-      console.error(`❌ CRITICAL: Department ${department.name} missing country field!`, department);
       setLocalError(`Department ${department.name} is missing country information. Please refresh the page.`);
       return;
     }
@@ -221,7 +217,6 @@ export const useRealtimeDepartments = (options: UseRealtimeDepartmentsOptions = 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to add doctor';
       setLocalError(errorMessage);
-      console.error(`❌ Failed to add doctor ${doctorName}:`, error);
       throw error;
     }
   }, [departmentMutation, enableTesting, testing]);
@@ -243,7 +238,6 @@ export const useRealtimeDepartments = (options: UseRealtimeDepartmentsOptions = 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to remove doctor';
       setLocalError(errorMessage);
-      console.error(`❌ Failed to remove doctor ${doctorId}:`, error);
       throw error;
     }
   }, [departmentMutation, enableTesting, testing]);
@@ -261,7 +255,6 @@ export const useRealtimeDepartments = (options: UseRealtimeDepartmentsOptions = 
       testing.recordValidation(true);return true;
     } catch (error) {
       testing.recordValidation(false, error instanceof Error ? error.message : 'Validation failed');
-      console.error('❌ useRealtimeDepartments validation failed:', error);
       return false;
     }
   }, [refetchDepartments, enableTesting, testing]);

@@ -70,7 +70,7 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
   useEffect(() => {
     if (autoRefresh && refreshInterval > 0 && !enableRealTime) {
       const interval = setInterval(() => {
-        console.log('Auto-refreshing cases data');
+        // Auto-refreshing cases data
         refetch();
       }, refreshInterval);
       return () => clearInterval(interval);
@@ -87,7 +87,7 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to refresh cases';
       setLocalError(errorMessage);
-      console.error('❌ Failed to refresh cases:', error);
+      // Failed to refresh cases
     }
   }, [refetch, enableTesting, testing]);
 
@@ -114,7 +114,7 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update case status';
       setLocalError(errorMessage);
-      console.error(`❌ Failed to update case ${caseId}:`, error);
+      // Failed to update case
       return false;
     }
   }, [caseMutation, enableTesting, testing]);
@@ -137,7 +137,7 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to save case';
       setLocalError(errorMessage);
-      console.error(`❌ Failed to save case ${caseData.caseReferenceNumber}:`, error);
+      // Failed to save case
       return null;
     }
   }, [refetch, enableTesting, testing]);
@@ -160,7 +160,7 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete case';
       setLocalError(errorMessage);
-      console.error(`❌ Failed to delete case ${caseId}:`, error);
+      // Failed to delete case
       return false;
     }
   }, [refetch, enableTesting, testing]);
@@ -173,7 +173,7 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate reference number';
       setLocalError(errorMessage);
-      console.error('❌ Failed to generate reference number:', error);
+      // Failed to generate reference number
       throw error;
     }
   }, []);
@@ -188,7 +188,7 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
     try {
       const caseItem = await realtimeCaseService.getCaseById(caseId);return caseItem;
     } catch (error) {
-      console.error(`❌ Failed to fetch case ${caseId}:`, error);
+      // Failed to fetch case
       return null;
     }
   }, [cases]);
@@ -197,7 +197,7 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
   const getStatistics = useCallback(async () => {try {
       const stats = await realtimeCaseService.getCaseStatistics();return stats;
     } catch (error) {
-      console.error('❌ Failed to get statistics:', error);
+      // Failed to get statistics
       return { total: 0, byStatus: {} as any, byCountry: {} };
     }
   }, []);
@@ -211,7 +211,7 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
 
       const isValid = hasData && isNotLoading && hasNoErrors;return isValid;
     } catch (error) {
-      console.error('❌ Component validation failed:', error);
+      // Component validation failed
       return false;
     }
   }, [cases.length, isLoading, error, localError]);
@@ -370,7 +370,7 @@ export const useRealtimeCaseById = (caseId: string) => {
       }
       return !!success;
     } catch (error) {
-      console.error('Failed to update case:', error);
+      // Failed to update case
       return false;
     }
   }, []);

@@ -27,7 +27,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         const countries = await getCountries();
         setAvailableCountries(countries);
       } catch (error) {
-        console.error('Error loading countries:', error);
         setAvailableCountries([]); // Show empty instead of hardcoded fallback
       }
     };
@@ -44,13 +43,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           setRememberMe(true);
         }
       } catch (error) {
-        console.warn('Failed to load saved credentials from secure storage:', error);
-        // Clean up any old localStorage entry
-        try {
-          localStorage.removeItem('rememberMe');
-        } catch (cleanupError) {
-          console.warn('Failed to clean up old localStorage credentials:', cleanupError);
-        }
+        // No localStorage cleanup needed
       }
     };
 
@@ -111,7 +104,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         setIsLoading(false);
       }
     } catch (error) {
-      console.error('Authentication error:', error);
       setError('Authentication failed. Please try again.');
       setIsLoading(false);
     }

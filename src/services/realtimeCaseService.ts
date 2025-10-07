@@ -43,8 +43,6 @@ class RealtimeCaseService {
    * NO CACHING - every call hits Supabase directly
    */
   async getAllCases(): Promise<CaseBooking[]> {
-    console.log('Getting all cases from database...');
-
     try {
       // Always check database first - no cache considerations
       const casesExist = await checkCasesExist();
@@ -61,8 +59,6 @@ class RealtimeCaseService {
       const cases = await getSupabaseCases(country);return cases;
 
     } catch (error) {
-      console.error('❌ Error loading cases from database:', error);
-
       // Even fallback is fresh - no localStorage caching
       throw new Error(`Failed to load cases: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -80,7 +76,6 @@ class RealtimeCaseService {
 
       return caseItem || null;
     } catch (error) {
-      console.error(`❌ Error fetching case ${caseId}:`, error);
       return null;
     }
   }
@@ -103,7 +98,6 @@ class RealtimeCaseService {
 
       return savedCase;
     } catch (error) {
-      console.error(`❌ Error saving case ${caseData.caseReferenceNumber}:`, error);
       throw error;
     }
   }
@@ -128,7 +122,6 @@ class RealtimeCaseService {
 
       return true;
     } catch (error) {
-      console.error(`❌ Error updating case status ${caseId}:`, error);
       return false;
     }
   }
@@ -155,7 +148,6 @@ class RealtimeCaseService {
 
       return true;
     } catch (error) {
-      console.error(`❌ Error amending case ${caseId}:`, error);
       return false;
     }
   }
@@ -175,7 +167,6 @@ class RealtimeCaseService {
 
       return true;
     } catch (error) {
-      console.error(`❌ Error deleting case ${caseId}:`, error);
       return false;
     }
   }
@@ -186,7 +177,6 @@ class RealtimeCaseService {
   async generateCaseReferenceNumber(country?: string): Promise<string> {try {
       const referenceNumber = await generateSupabaseCaseReferenceNumber(country || 'Singapore');return referenceNumber;
     } catch (error) {
-      console.error('❌ Error generating reference number:', error);
       throw error;
     }
   }
@@ -198,7 +188,6 @@ class RealtimeCaseService {
       const allCases = await this.getAllCases();
       const filteredCases = allCases.filter(caseItem => caseItem.status === status);return filteredCases;
     } catch (error) {
-      console.error(`❌ Error fetching cases by status ${status}:`, error);
       return [];
     }
   }
@@ -210,7 +199,6 @@ class RealtimeCaseService {
       // Get cases with country filter directly
       const cases = await getSupabaseCases(country);return cases;
     } catch (error) {
-      console.error(`❌ Error fetching cases for country ${country}:`, error);
       return [];
     }
   }
@@ -231,7 +219,6 @@ class RealtimeCaseService {
         caseItem.submittedBy.toLowerCase().includes(searchTermLower)
       );return matchingCases;
     } catch (error) {
-      console.error(`❌ Error searching cases for "${searchTerm}":`, error);
       return [];
     }
   }
@@ -265,7 +252,6 @@ class RealtimeCaseService {
         stats.byCountry[caseItem.country] = (stats.byCountry[caseItem.country] || 0) + 1;
       });return stats;
     } catch (error) {
-      console.error('❌ Error calculating statistics:', error);
       return { total: 0, byStatus: {} as any, byCountry: {} };
     }
   }

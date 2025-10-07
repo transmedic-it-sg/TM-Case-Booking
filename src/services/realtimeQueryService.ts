@@ -107,7 +107,6 @@ export const useRealtimeCasesQuery = (filters?: {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching cases:', error);
       throw new Error(`Failed to fetch cases: ${error.message}`);
     }
 
@@ -188,7 +187,6 @@ export const useRealtimeUsersQuery = (filters?: { role?: string; enabled?: boole
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching users:', error);
       throw new Error(`Failed to fetch users: ${error.message}`);
     }return data?.map(user => ({
       id: user.id,
@@ -230,7 +228,6 @@ export const useRealtimeMasterDataQuery = (
     const { data, error } = await query;
 
     if (error) {
-      console.error(`Error fetching ${type}:`, error);
       throw new Error(`Failed to fetch ${type}: ${error.message}`);
     }
 
@@ -267,7 +264,6 @@ export const useRealtimeEditSetsQuery = (
       .order('name', { ascending: true });
 
     if (error) {
-      console.error(`Error fetching ${type}:`, error);
       throw new Error(`Failed to fetch ${type}: ${error.message}`);
     }
 
@@ -311,7 +307,9 @@ export const useOptimisticCaseMutation = () => {
             details: 'Status updated via real-time system'
           });
 
-        if (historyError) console.warn('Failed to record status history:', historyError);
+        if (historyError) {
+          // Failed to record status history
+        }
       }
 
       if (data) {
@@ -356,11 +354,11 @@ export const useOptimisticCaseMutation = () => {
       if (context?.previousCases) {
         queryClient.setQueryData(['cases', 'realtime'], context.previousCases);
       }
-      console.error('Case mutation failed:', error);
+      // Case mutation failed
     },
     onSuccess: () => {
       // The real-time subscription will automatically update the cache
-      console.log('Case mutation succeeded');
+      // Case mutation succeeded
     },
   });
 };

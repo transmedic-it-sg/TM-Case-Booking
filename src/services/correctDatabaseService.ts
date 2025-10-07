@@ -27,7 +27,6 @@ class CorrectDatabaseService {
       results.push(await this.checkOrphanedRecords());
 
     } catch (error) {
-      console.error('Database check failed:', error);
       results.push({
         table: 'system',
         issues: ['Database check failed'],
@@ -141,7 +140,6 @@ class CorrectDatabaseService {
       if (error) throw error;
       return data?.map(item => item.display_name) || [];
     } catch (error) {
-      console.error('Error fetching hospitals:', error);
       return [];
     }
   }
@@ -173,7 +171,6 @@ class CorrectDatabaseService {
       if (error) throw error;
       return data?.map(item => item.name) || [];
     } catch (error) {
-      console.error('Error fetching departments:', error);
       return [];
     }
   }
@@ -190,7 +187,6 @@ class CorrectDatabaseService {
       if (error) throw error;
       return data?.map(item => item.display_name) || [];
     } catch (error) {
-      console.error('Error fetching procedure types:', error);
       return [];
     }
   }
@@ -206,7 +202,6 @@ class CorrectDatabaseService {
       if (error) throw error;
       return data?.map(item => item.name) || [];
     } catch (error) {
-      console.error('Error fetching surgery sets:', error);
       return [];
     }
   }
@@ -222,7 +217,6 @@ class CorrectDatabaseService {
       if (error) throw error;
       return data?.map(item => item.name) || [];
     } catch (error) {
-      console.error('Error fetching implant boxes:', error);
       return [];
     }
   }

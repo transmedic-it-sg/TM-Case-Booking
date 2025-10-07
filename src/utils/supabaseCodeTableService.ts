@@ -86,12 +86,10 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
     const { data: codeTableData, error } = await query;
 
     if (error) {
-      console.error('❌ Error fetching code tables:', error);
       throw error;
     }
 
     if (!codeTableData || codeTableData.length === 0) {
-      console.warn('⚠️ No code table data found');
       return [];
     }
 
@@ -142,7 +140,6 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
     });return tables;
 
       } catch (error) {
-        console.error('❌ Error fetching code tables:', error);
         throw error;
       }
     })();
@@ -159,7 +156,6 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
     }
 
   } catch (error) {
-    console.error('❌ Error in getSupabaseCodeTables:', error);
 
     // Return empty array instead of false fallback data
     return [];
@@ -199,11 +195,9 @@ export const saveSupabaseCodeTables = async (
         });
 
       if (error) {
-        console.error('Error saving code tables:', error);
         throw error;
       }}
   } catch (error) {
-    console.error('Error in saveSupabaseCodeTables:', error);
     throw error;
   }
 };
@@ -227,7 +221,6 @@ export const addSupabaseCodeTableItem = async (
       targetCountry = 'Global';
     } else if (tableType === 'departments' || tableType === 'hospitals') {
       if (!country) {
-        console.error('Country is required for departments/hospitals addition');
         return false;
       }
       targetCountry = normalizedCountry;
@@ -247,7 +240,6 @@ export const addSupabaseCodeTableItem = async (
       });
 
     if (error) {
-      console.error('Error adding code table item:', error);
       return false;
     }
 
@@ -264,7 +256,6 @@ export const addSupabaseCodeTableItem = async (
 
     return true;
   } catch (error) {
-    console.error('Error in addSupabaseCodeTableItem:', error);
     return false;
   }
 };
@@ -290,7 +281,6 @@ export const updateSupabaseCodeTableItem = async (
       targetCountry = 'Global';
     } else if (tableType === 'departments' || tableType === 'hospitals') {
       if (!country) {
-        console.error('Country is required for departments/hospitals update');
         return false;
       }
       targetCountry = normalizedCountry;
@@ -310,7 +300,6 @@ export const updateSupabaseCodeTableItem = async (
       .eq('code', oldCode);
 
     if (error) {
-      console.error('Error updating code table item:', error);
       return false;
     }
 
@@ -327,7 +316,6 @@ export const updateSupabaseCodeTableItem = async (
 
     return true;
   } catch (error) {
-    console.error('Error in updateSupabaseCodeTableItem:', error);
     return false;
   }
 };
@@ -352,7 +340,6 @@ export const removeSupabaseCodeTableItem = async (
       targetCountry = 'Global';
     } else if (tableType === 'departments' || tableType === 'hospitals') {
       if (!country) {
-        console.error('Country is required for departments/hospitals deletion');
         return false;
       }
       targetCountry = normalizedCountry;
@@ -369,7 +356,6 @@ export const removeSupabaseCodeTableItem = async (
       .eq('code', code);
 
     if (result.error) {
-      console.error('Error removing code table item:', result.error);
       return false;
     }
 
@@ -385,7 +371,6 @@ export const removeSupabaseCodeTableItem = async (
 
     return true;
   } catch (error) {
-    console.error('Error in removeSupabaseCodeTableItem:', error);
     return false;
   }
 };
@@ -469,7 +454,6 @@ export const getDepartmentsForCountry = async (country: string): Promise<string[
         .order('display_name');
 
       if (error) {
-        console.error('Error fetching departments from code_tables:', error);
         throw error;
       }
 
@@ -496,7 +480,6 @@ export const getDepartmentsForCountry = async (country: string): Promise<string[
     }
 
   } catch (error) {
-    console.error('Error in getDepartmentsForCountry:', error);
     return [];
   }
 };
@@ -514,14 +497,12 @@ export const getHospitalsForCountry = async (country: string): Promise<string[]>
       .order('display_name');
 
     if (error) {
-      console.error('Error fetching hospitals from code_tables:', error);
       throw error;
     }
 
     const hospitals = data?.map(item => item.display_name) || [];return hospitals;
 
   } catch (error) {
-    console.error('Error in getHospitalsForCountry:', error);
     return [];
   }
 };

@@ -61,25 +61,22 @@ class Logger {
 
   debug(message: string, data?: any): void {
     if (this.shouldLog('debug')) {
-      console.debug(`🐛 ${message}`, data ? this.sanitizeData(data) : '');
     }
   }
 
   info(message: string, data?: any): void {
     if (this.shouldLog('info')) {
-      console.info(`ℹ️ ${message}`, data ? this.sanitizeData(data) : '');
+      // // // console.info(`ℹ️ ${message}`, data ? this.sanitizeData(data) : '');
     }
   }
 
   warn(message: string, data?: any): void {
     if (this.shouldLog('warn')) {
-      console.warn(`⚠️ ${message}`, data ? this.sanitizeData(data) : '');
     }
   }
 
   error(message: string, error?: any): void {
     if (this.shouldLog('error')) {
-      console.error(`❌ ${message}`, error instanceof Error ? error.message : error);
     }
   }
 

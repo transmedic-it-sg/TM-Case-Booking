@@ -21,21 +21,8 @@ export const checkUsersExist = async (): Promise<boolean> => {
 };
 
 export const migrateUsersFromLocalStorage = async (): Promise<void> => {
-  // Migrate localStorage data to secure storage first
-  await StorageMigration.migrateFromLocalStorage([STORAGE_KEY]);
-
-  const stored = await SafeStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      const users: User[] = Array.isArray(stored) ? stored : JSON.parse(stored);
-      for (const user of users) {
-        await addSupabaseUser(user);
-      }
-      console.log('Successfully migrated users to Supabase');
-    } catch (error) {
-      console.error('Failed to migrate users:', error);
-    }
-  }
+  // NO-OP: No localStorage migration needed
+  // All data is stored in Supabase
 };
 
 export const authenticateUser = async (username: string, password: string): Promise<User | null> => {
@@ -58,7 +45,6 @@ export const authenticateUser = async (username: string, password: string): Prom
     }
     return null;
   } catch (error) {
-    console.error('Authentication error:', error);
     return null;
   }
 };
@@ -85,7 +71,6 @@ export const createSession = async (userId: string): Promise<void> => {
     }
 
     if (!userExists) {
-      console.warn('User not found in either profiles or users table, cannot create session:', userId);
       throw new Error('User not found - session creation failed');
     }
 
@@ -107,13 +92,11 @@ export const createSession = async (userId: string): Promise<void> => {
       });
 
     if (error) {
-      console.error('Failed to create database session:', error);
       throw new Error('Database session creation failed');
     }
 
     // Session stored in database only - no browser storage
   } catch (error) {
-    console.error('Error creating session:', error);
     throw error; // Let calling code handle the error
   }
 };
@@ -133,14 +116,13 @@ export const deleteSession = async (sessionToken?: string): Promise<void> => {
         .eq('session_token', token);
 
       if (error) {
-        console.error('Failed to delete database session:', error);
+        // Failed to delete database session
       }
     }
 
     // Always remove from browser storage
     sessionStorage.removeItem('session-token');
   } catch (error) {
-    console.error('Error deleting session:', error);
     // Always remove from browser storage even if database operation fails
     sessionStorage.removeItem('session-token');
   }
@@ -176,7 +158,6 @@ export const validateSession = async (sessionToken?: string): Promise<boolean> =
 
     return true;
   } catch (error) {
-    console.error('Error validating session:', error);
     return false;
   }
 };
@@ -192,10 +173,10 @@ export const deleteAllUserSessions = async (userId: string): Promise<void> => {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Failed to delete user sessions:', error);
+      // Failed to delete user sessions
     }
   } catch (error) {
-    console.error('Error deleting user sessions:', error);
+    // Error deleting user sessions
   }
 };
 
@@ -232,7 +213,7 @@ export const getUsers = async (): Promise<User[]> => {
       // If no users in Supabase, check secure storage and migrate
       const stored = await SafeStorage.getItem(STORAGE_KEY);
       if (stored) {
-        console.log('Migrating users from secure storage to Supabase...');
+        // Migrating users from secure storage to Supabase
         await migrateUsersFromLocalStorage();
         return await getSupabaseUsers();
       }
@@ -252,10 +233,9 @@ export const getUsers = async (): Promise<User[]> => {
       return createdUser ? [createdUser] : [];
     }
   } catch (error) {
-    console.error('Error getting users, falling back to secure storage:', error);
+    // Error getting users, falling back to secure storage
     // Ensure secure storage has default users
     const localUsers = await getUsersFromSecureStorage();
-    console.log('Fallback: created/loaded secure storage users:', localUsers.length);
     return localUsers;
   }
 };
@@ -303,7 +283,7 @@ export const addUser = async (user: Omit<User, 'id'>): Promise<User> => {
     }
     throw new Error('Failed to create user in Supabase');
   } catch (error) {
-    console.error('Error adding user to Supabase, falling back to secure storage:', error);
+    // Error adding user to Supabase, falling back to secure storage
     // Fallback to secure storage
     const users = await getUsersFromSecureStorage();
     const newUser: User = {
@@ -326,14 +306,12 @@ export const authenticate = async (username: string, password: string, country: 
 
     // If Supabase authentication fails, try secure storage fallback
     if (!user) {
-      console.log('Supabase authentication failed, trying secure storage fallback...');
+      // Supabase authentication failed, trying secure storage fallback
 
       // Ensure secure storage has users by calling getUsers (which creates defaults if needed)
       await getUsers();
 
       const localUsers = await getUsersFromSecureStorage();
-      console.log('Available local users:', localUsers.map((u: any) => ({ username: u.username, enabled: u.enabled })));
-      console.log('Looking for username:', username); // Password removed for security
 
       const matchedUser = localUsers.find(u =>
         u.username.toLowerCase() === username.toLowerCase() &&
@@ -343,9 +321,9 @@ export const authenticate = async (username: string, password: string, country: 
 
       if (matchedUser) {
         user = matchedUser;
-        console.log('LocalStorage authentication successful for:', username);
+        // LocalStorage authentication successful
       } else {
-        console.log('LocalStorage authentication failed - no matching user found');
+        // LocalStorage authentication failed - no matching user found
       }
     }
 
@@ -366,14 +344,14 @@ export const authenticate = async (username: string, password: string, country: 
       try {
         await deleteAllUserSessions(user.id);
       } catch (sessionError) {
-        console.warn('Failed to delete existing user sessions:', sessionError);
+        // Failed to delete existing user sessions
       }
 
       // Try to create new session in Supabase (optional, fallback to localStorage if fails)
       try {
         await createSession(user.id);
       } catch (sessionError) {
-        console.warn('Failed to create Supabase session, continuing with localStorage:', sessionError);
+        // Failed to create Supabase session, continuing with localStorage
       }
 
       // Save to secure storage for session management
@@ -384,7 +362,6 @@ export const authenticate = async (username: string, password: string, country: 
       return { user: null, error: "Your account is not assigned to the selected country" };
     }
   } catch (error) {
-    console.error('Error authenticating user:', error);
     return { user: null, error: "Authentication failed. Please try again." };
   }
 };
@@ -415,7 +392,6 @@ export const logout = async (): Promise<void> => {
     // Clear secure storage session
     await clearCurrentUserFromStorage();
   } catch (error) {
-    console.error('Error during logout:', error);
     // Still clear localStorage even if Supabase logout fails
     clearCurrentUserFromStorage();
   }
@@ -439,7 +415,6 @@ export const getUserEmail = async (identifier: string): Promise<string | null> =
     );
     return user?.email || null;
   } catch (error) {
-    console.error('Error getting user email:', error);
     return null;
   }
 };
@@ -454,7 +429,6 @@ export const getUserEmailSync = async (identifier: string): Promise<string | nul
     );
     return user?.email || null;
   } catch (error) {
-    console.error('Error getting user email:', error);
     return null;
   }
 };

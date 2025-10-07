@@ -164,7 +164,6 @@ export const useRealtimeData = (configs: RealtimeConfig[]) => {
         try {
           supabase.removeChannel(channel);
         } catch (error) {
-          console.warn('Error removing channel:', error);
         }
       });
 
@@ -199,7 +198,6 @@ export const useRealtimeData = (configs: RealtimeConfig[]) => {
 
       // If no heartbeat for 60 seconds, mark as disconnected (increased from 30s)
       if (timeSinceLastHeartbeat > 60000 && connectionStatus.connected) {
-        console.warn('🚨 Real-time connection appears to be stale');
         realtimeDebugger.logEvent('error', {
           message: 'Connection timeout - no heartbeat for 60s'
         });

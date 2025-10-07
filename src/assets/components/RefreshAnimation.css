@@ -1,0 +1,182 @@
+/* Refresh Button Animation Styles */
+
+@keyframes rotate-refresh {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse-refresh {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Refresh button base styles */
+.refresh-button,
+.btn-refresh,
+button[title*="Refresh"],
+button[title*="refresh"],
+button:has(.refresh-icon),
+button:contains("🔄") {
+  position: relative;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+/* Active/loading state */
+.refresh-button.refreshing,
+.btn-refresh.refreshing,
+button[title*="Refresh"].refreshing,
+button[title*="refresh"].refreshing {
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.refresh-button.refreshing::after,
+.btn-refresh.refreshing::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin-top: -10px;
+  margin-left: -10px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: rotate-refresh 0.8s linear infinite;
+}
+
+/* Icon animation */
+.refresh-icon,
+.refresh-button span,
+.btn-refresh span,
+[class*="refresh"] > span:first-child {
+  display: inline-block;
+  transition: transform 0.5s ease;
+}
+
+.refresh-button:not(.refreshing):hover .refresh-icon,
+.refresh-button:not(.refreshing):hover span,
+.btn-refresh:not(.refreshing):hover span {
+  transform: rotate(180deg);
+}
+
+.refresh-button:active:not(.refreshing) .refresh-icon,
+.refresh-button:active:not(.refreshing) span,
+.btn-refresh:active:not(.refreshing) span {
+  transform: rotate(360deg);
+  transition: transform 0.3s ease;
+}
+
+/* Click animation */
+.refresh-button:not(.refreshing):active,
+.btn-refresh:not(.refreshing):active {
+  transform: scale(0.95);
+}
+
+/* Success animation */
+.refresh-button.success,
+.btn-refresh.success {
+  animation: pulse-refresh 0.5s ease;
+  background-color: #27ae60 !important;
+  color: white !important;
+}
+
+.refresh-button.success::before,
+.btn-refresh.success::before {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 20px;
+  color: white;
+  animation: fadeInOut 1s ease;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Mobile specific adjustments */
+@media (max-width: 768px) {
+  .refresh-button,
+  .btn-refresh {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .refresh-button.refreshing::after,
+  .btn-refresh.refreshing::after {
+    width: 16px;
+    height: 16px;
+    margin-top: -8px;
+    margin-left: -8px;
+  }
+}
+
+/* Apply to existing refresh buttons in the app */
+.header-actions button[title*="Refresh"],
+.database-status button,
+.cases-header button[title*="refresh"] {
+  position: relative;
+  overflow: hidden;
+}
+
+.header-actions button[title*="Refresh"]:hover,
+.database-status button:hover,
+.cases-header button[title*="refresh"]:hover {
+  background-color: var(--primary-light);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Specific refresh icon styles */
+button:has(span:contains("🔄")) {
+  transition: all 0.3s ease;
+}
+
+button:has(span:contains("🔄")):not(:disabled):hover {
+  background-color: var(--primary-light);
+}
+
+button:has(span:contains("🔄")):not(:disabled):active {
+  transform: scale(0.95);
+}
+
+button span:contains("🔄") {
+  display: inline-block;
+  transition: transform 0.5s ease;
+}
+
+button:not(:disabled):hover span:contains("🔄") {
+  transform: rotate(180deg);
+}
+
+button:not(:disabled):active span:contains("🔄") {
+  transform: rotate(360deg);
+  transition: transform 0.3s ease;
+}

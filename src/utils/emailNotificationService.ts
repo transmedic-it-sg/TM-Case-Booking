@@ -113,7 +113,6 @@ class EmailNotificationService {
   renderTemplate(templateName: string, variables: Record<string, string>): EmailNotification | null {
     const template = this.getTemplate(templateName);
     if (!template) {
-      console.error(`Template '${templateName}' not found`);
       return null;
     }
 
@@ -152,7 +151,6 @@ class EmailNotificationService {
       // This would integrate with actual email service (SendGrid, AWS SES, etc.)// Simulate success
       return true;
     } catch (error) {
-      console.error('Failed to send email notification:', error);
       return false;
     }
   }

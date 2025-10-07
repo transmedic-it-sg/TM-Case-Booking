@@ -20,7 +20,9 @@ import './ModernEditSets.css';
 interface Department {
   id: string;
   name: string;
-  country: string;
+  description?: string;
+  doctor_count?: number;
+  country?: string;
 }
 
 interface Doctor {
@@ -158,17 +160,17 @@ const ComprehensiveEditSets: React.FC = () => {
   const loadDepartments = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('departments')
-        .select('*')
-        .eq('country', normalizedCountry)
-        .eq('is_active', true)
-        .order('name');
-
-      if (error) throw error;
-      setDepartments(data || []);
+      // Use standardized department loading service
+      const { getDepartmentsForCountry } = await import('../../utils/departmentDoctorService');
+      const departmentData = await getDepartmentsForCountry(normalizedCountry);
+      
+      if (!departmentData || departmentData.length === 0) {
+        setDepartments([]);
+        return;
+      }
+      
+      setDepartments(departmentData);
     } catch (error) {
-      console.error('Error loading departments:', error);
       showError('Database Error', 'Failed to load departments');
     } finally {
       setIsLoading(false);
@@ -198,7 +200,6 @@ const ComprehensiveEditSets: React.FC = () => {
         setDoctors(data || []);
       }
     } catch (error) {
-      console.error('Error loading doctors:', error);
       showError('Database Error', 'Failed to load doctors');
     }
   };
@@ -216,7 +217,6 @@ const ComprehensiveEditSets: React.FC = () => {
       if (error) throw error;
       setDoctorProcedures(data || []);
     } catch (error) {
-      console.error('Error loading doctor procedures:', error);
       showError('Database Error', 'Failed to load doctor procedures');
     }
   };
@@ -238,7 +238,6 @@ const ComprehensiveEditSets: React.FC = () => {
       if (error) throw error;
       setDoctorProcedureSets(data || []);
     } catch (error) {
-      console.error('Error loading doctor procedure sets:', error);
       showError('Database Error', 'Failed to load doctor procedure sets');
     }
   };
@@ -281,7 +280,6 @@ const ComprehensiveEditSets: React.FC = () => {
       loadDoctorsForDepartment(selectedDepartmentForDoctors);
       playSound.success();
     } catch (error) {
-      console.error('Error saving doctor:', error);
       showError('Save Error', 'Failed to save doctor');
     } finally {
       setIsLoading(false);
@@ -302,7 +300,6 @@ const ComprehensiveEditSets: React.FC = () => {
       loadDoctorsForDepartment(selectedDepartmentForDoctors);
       playSound.success();
     } catch (error) {
-      console.error('Error deleting doctor:', error);
       showError('Delete Error', 'Failed to delete doctor');
     }
   };
@@ -345,7 +342,6 @@ const ComprehensiveEditSets: React.FC = () => {
       loadDoctorProcedures(selectedDoctorForProcedures);
       playSound.success();
     } catch (error) {
-      console.error('Error saving procedure type:', error);
       showError('Save Error', 'Failed to save procedure type');
     } finally {
       setIsLoading(false);
@@ -366,7 +362,6 @@ const ComprehensiveEditSets: React.FC = () => {
       loadDoctorProcedures(selectedDoctorForProcedures);
       playSound.success();
     } catch (error) {
-      console.error('Error deleting procedure type:', error);
       showError('Delete Error', 'Failed to delete procedure type');
     }
   };
@@ -471,7 +466,6 @@ const ComprehensiveEditSets: React.FC = () => {
       loadDoctorProcedureSets(selectedDoctorForSurgery, selectedProcedureForSurgery);
       playSound.success();
     } catch (error) {
-      console.error('Error saving doctor procedure set:', error);
       showError('Save Error', 'Failed to save doctor procedure set');
     } finally {
       setIsLoading(false);
@@ -492,7 +486,6 @@ const ComprehensiveEditSets: React.FC = () => {
       loadDoctorProcedureSets(selectedDoctorForSurgery, selectedProcedureForSurgery);
       playSound.success();
     } catch (error) {
-      console.error('Error deleting doctor procedure set:', error);
       showError('Delete Error', 'Failed to delete doctor procedure set');
     }
   };

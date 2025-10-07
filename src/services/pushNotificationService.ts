@@ -17,7 +17,7 @@ class PushNotificationService {
 
   async initialize(): Promise<boolean> {
     if (!('Notification' in window)) {
-      console.warn('Browser does not support notifications');
+      // Browser does not support notifications
       return false;
     }
 
@@ -39,7 +39,6 @@ class PushNotificationService {
 
       return this.config.enabled;
     } catch (error) {
-      console.error('Error requesting notification permission:', error);
       return false;
     }
   }
@@ -58,7 +57,6 @@ class PushNotificationService {
 
       return true;
     } catch (error) {
-      console.error('Error showing notification:', error);
       return false;
     }
   }
@@ -89,7 +87,6 @@ class PushNotificationService {
       }
       return false;
     } catch (error) {
-      console.error('Push subscription failed:', error);
       return false;
     }
   }
@@ -100,7 +97,6 @@ class PushNotificationService {
       // In a real implementation, you'd unsubscribe from push service
       return true;
     } catch (error) {
-      console.error('Push unsubscription failed:', error);
       return false;
     }
   }

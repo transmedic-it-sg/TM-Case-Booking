@@ -62,7 +62,6 @@ const parseActionId = (actionId: string): { resource: string; action: string } |
     // Add more mappings as needed
     default:
       // For unmapped actions, don't try to parse - just return a safe fallback
-      console.warn('Unmapped actionId:', actionId);
       // Return the original actionId format to avoid corruption
       return { resource: 'other', action: actionId };
   }
@@ -82,7 +81,6 @@ export const initializePermissionsTable = async (): Promise<void> => {
       // For now, we'll use the default permissions
     }
   } catch (error) {
-    console.error('Error initializing permissions table:', error);
   }
 };
 
@@ -91,7 +89,6 @@ export const getSupabasePermissions = async (): Promise<Permission[]> => {
   try {
     // If Supabase is not configured, return default permissions directly
     if (!isSupabaseConfigured) {
-      console.log('🔄 Using default permissions (Supabase not configured)');
       return getAllPermissions();
     }
 
@@ -103,13 +100,10 @@ export const getSupabasePermissions = async (): Promise<Permission[]> => {
     if (error) {
       // Check for specific error types
       if (error.code === '42P01' || error.message.includes('does not exist')) {
-        console.warn('Permissions table does not exist, using defaults');
         return getAllPermissions();
       } else if (error.code === '406' || error.message.includes('406')) {
-        console.warn('Database permission denied (406), using defaults');
         return getAllPermissions();
       } else {
-        console.warn('Database error, using defaults:', error.message);
         return getAllPermissions();
       }
     }
@@ -164,7 +158,6 @@ export const getSupabasePermissions = async (): Promise<Permission[]> => {
     
     return transformed;
   } catch (error) {
-    console.error('Error fetching permissions from Supabase:', error);
     return getAllPermissions();
   }
 };
@@ -174,7 +167,6 @@ export const saveSupabasePermissions = async (permissions: Permission[]): Promis
   try {
     // If Supabase is not configured, don't try to save but return success for testing
     if (!isSupabaseConfigured) {
-      console.log('🔄 Skipping save to Supabase (not configured)');
       return true;
     }
 
@@ -185,7 +177,6 @@ export const saveSupabasePermissions = async (permissions: Permission[]): Promis
       .gt('id', 0); // Delete all rows using a valid condition
 
     if (deleteError && !deleteError.message.includes('does not exist')) {
-      console.error('Error deleting existing permissions:', deleteError);
       return false;
     }
 
@@ -207,7 +198,6 @@ export const saveSupabasePermissions = async (permissions: Permission[]): Promis
       
       const parsed = parseActionId(perm.actionId);
       if (!parsed) {
-        console.warn('Invalid actionId in permission:', perm.actionId);
         return {
           role: perm.roleId,
           resource: 'unknown',
@@ -228,13 +218,11 @@ export const saveSupabasePermissions = async (permissions: Permission[]): Promis
       .insert(permissionsData);
 
     if (insertError) {
-      console.error('Error inserting permissions:', insertError);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error saving permissions to Supabase:', error);
     return false;
   }
 };
@@ -249,7 +237,6 @@ export const updateSupabasePermission = async (
     // First check if the permission exists
     const parsed = parseActionId(actionId);
     if (!parsed) {
-      console.error('Invalid actionId format:', actionId);
       return false;
     }
     
@@ -264,7 +251,6 @@ export const updateSupabasePermission = async (
       .single();
 
     if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking existing permission:', checkError);
       return false;
     }
 
@@ -278,7 +264,6 @@ export const updateSupabasePermission = async (
         .eq('action', action);
 
       if (updateError) {
-        console.error('Error updating existing permission:', updateError);
         return false;
       }
     } else {
@@ -293,14 +278,12 @@ export const updateSupabasePermission = async (
         });
 
       if (insertError) {
-        console.error('Error inserting new permission:', insertError);
         return false;
       }
     }
 
     return true;
   } catch (error) {
-    console.error('Error updating permission in Supabase:', error);
     return false;
   }
 };
@@ -311,7 +294,6 @@ export const resetSupabasePermissions = async (): Promise<boolean> => {
     const success = await saveSupabasePermissions(getAllPermissions());
     return success;
   } catch (error) {
-    console.error('Error resetting permissions:', error);
     return false;
   }
 };
@@ -326,7 +308,6 @@ export const hasSupabasePermission = async (roleId: string, actionId: string): P
   try {
     const parsed = parseActionId(actionId);
     if (!parsed) {
-      console.warn('Invalid actionId format:', actionId);
       return false;
     }
     
@@ -341,7 +322,6 @@ export const hasSupabasePermission = async (roleId: string, actionId: string): P
       .single();
 
     if (error) {
-      console.warn('Permission not found, checking defaults:', error.message);
       // Fall back to checking default permissions including custom roles
       const permission = getAllPermissions().find(p => p.roleId === roleId && p.actionId === actionId);
       return permission?.allowed || false;
@@ -349,7 +329,6 @@ export const hasSupabasePermission = async (roleId: string, actionId: string): P
 
     return data?.allowed || false;
   } catch (error) {
-    console.error('Error checking permission:', error);
     return false;
   }
 };
@@ -364,7 +343,6 @@ export const getSupabaseRolePermissions = async (roleId: string): Promise<Permis
       .eq('allowed', true);
 
     if (error) {
-      console.warn('Error fetching role permissions, using defaults:', error.message);
       return getAllPermissions().filter(p => p.roleId === roleId && p.allowed);
     }
 
@@ -374,7 +352,6 @@ export const getSupabaseRolePermissions = async (roleId: string): Promise<Permis
       allowed: perm.allowed
     })) || [];
   } catch (error) {
-    console.error('Error fetching role permissions:', error);
     return getAllPermissions().filter(p => p.roleId === roleId && p.allowed);
   }
 };

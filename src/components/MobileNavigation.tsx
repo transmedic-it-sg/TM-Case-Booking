@@ -4,7 +4,7 @@ import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import StatusLegend from './StatusLegend';
 import '../assets/components/MobileNavigation.css';
 
-type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config' | 'backup-restore' | 'data-import' | 'system-settings';
+type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config' | 'data-import' | 'system-settings';
 
 interface MobileNavigationProps {
   user: User;
@@ -286,22 +286,13 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                         Audit Logs
                       </button>
                     )}
-                    {hasPermission(user.role, PERMISSION_ACTIONS.BACKUP_RESTORE) && (
-                      <button
-                        onClick={() => handleMenuNavigate('backup-restore')}
-                        className={`mobile-menu-item ${activePage === 'backup-restore' ? 'active' : ''}`}
-                      >
-                        <span className="mobile-menu-icon">💾</span>
-                        Backup & Restore
-                      </button>
-                    )}
-                    {hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) && (
+                    {(hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) || hasPermission(user.role, PERMISSION_ACTIONS.EXPORT_DATA)) && (
                       <button
                         onClick={() => handleMenuNavigate('data-import')}
                         className={`mobile-menu-item ${activePage === 'data-import' ? 'active' : ''}`}
                       >
-                        <span className="mobile-menu-icon">📥</span>
-                        Data Import
+                        <span className="mobile-menu-icon">📦</span>
+                        Data Export/Import
                       </button>
                     )}
                   </div>

@@ -34,7 +34,6 @@ class NotificationService {
         this.notifications = JSON.parse(notificationsData);
       }
     } catch (error) {
-      console.error('Error loading notifications:', error);
       this.notifications = [];
     }
   }
@@ -46,7 +45,6 @@ class NotificationService {
     try {
       // Notifications stored in Supabase notifications table
     } catch (error) {
-      console.error('Error saving notifications:', error);
     }
   }
 
@@ -58,7 +56,6 @@ class NotificationService {
       try {
         listener([...this.notifications]);
       } catch (error) {
-        console.error('Error notifying listener:', error);
       }
     });
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { CaseBooking, FilterOptions, CaseStatus } from '../../types';
 import { CASE_STATUSES } from '../../constants/statuses';
 import { getCurrentUserSync } from '../../utils/auth';
@@ -19,6 +19,7 @@ import { amendCase, processCaseOrder } from '../../utils/realTimeStorage'; // Us
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
   const { modal, closeModal, showConfirm, showConfirmWithCustomButtons } = useModal();
+  const amendmentFormRef = useRef<HTMLDivElement>(null);
 
   // REAL-TIME CASES HOOK - Always fresh data, no cache issues, comprehensive testing
   const {
@@ -41,7 +42,6 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   // Real-time connection status - prioritize cases connection for this component
   const { overallConnected, casesConnected, forceRefreshAll } = useRealtime();
   const isConnected = casesConnected || overallConnected;
-  const [filteredCases, setFilteredCases] = useState<CaseBooking[]>([]);
   const [availableSubmitters, setAvailableSubmitters] = useState<string[]>([]);
   const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);
   const [filters, setFilters] = useState<FilterOptions>({});
@@ -79,10 +79,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     // Driver role filtering - only show delivery-related cases
     if (userRole === 'driver') {
       const deliveryStatuses = [
-        CASE_STATUSES.PENDING_DELIVERY_HOSPITAL,
-        CASE_STATUSES.DELIVERED_HOSPITAL,
-        CASE_STATUSES.PENDING_DELIVERY_OFFICE,
-        CASE_STATUSES.DELIVERED_OFFICE
+        'Pending Delivery (Hospital)',
+        'Delivered (Hospital)',
+        'Pending Delivery (Office)',
+        'Delivered (Office)'
       ];
 
       filtered = filtered.filter(caseItem =>
@@ -133,7 +133,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
 
     return filtered;
-  }, [CASE_STATUSES.PENDING_DELIVERY_HOSPITAL, CASE_STATUSES.DELIVERED_HOSPITAL, CASE_STATUSES.PENDING_DELIVERY_OFFICE, CASE_STATUSES.DELIVERED_OFFICE]);
+  }, []); // No dependencies needed since we're using string literals
   const [hospitalDeliveryAttachments, setHospitalDeliveryAttachments] = useState<string[]>([]);
   const [hospitalDeliveryComments, setHospitalDeliveryComments] = useState('');
   const [hospitalDeliveryCase, setHospitalDeliveryCase] = useState<string | null>(null);
@@ -188,10 +188,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
   }, [cases]);
 
-  // Auto-apply filters for Driver role
+  // Auto-apply filters for Driver role - only once when component mounts
   useEffect(() => {
     const currentUser = getCurrentUserSync();
-    if (currentUser?.role === 'driver' && Object.keys(filters).length === 0) {
+    if (currentUser?.role === 'driver') {
       // Auto-apply delivery status filters for drivers
       // Set the first delivery status as default filter to show driver-relevant cases
       const defaultFilters = {
@@ -201,17 +201,17 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setFilters(defaultFilters);
       setTempFilters(defaultFilters);
     }
-  }, [cases]); // Only depend on cases, not filters to prevent infinite loop
+  }, []); // Run only once on mount
 
-  useEffect(() => {
+  // Use useMemo to calculate filtered cases without causing re-renders
+  const filteredCases = useMemo(() => {
     const currentUser = getCurrentUserSync();
     let filteredResults = filterCasesLocally(cases, filters, currentUser?.role);
 
     // Admin users see ALL cases without country/department restrictions
     if (currentUser?.role === 'admin') {
       // Admin sees everything - no additional filtering
-      setFilteredCases(filteredResults);
-      return;
+      return filteredResults;
     }
 
     // Non-admin users: Apply country and department restrictions
@@ -245,24 +245,21 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       }
     }
 
-    setFilteredCases(filteredResults);
-  }, [cases, filters, filterCasesLocally]); // Now includes stable filterCasesLocally dependency
+    return filteredResults;
+  }, [cases, filters, filterCasesLocally]); // Calculate whenever dependencies change
 
   // Handle highlighted case from calendar
   useEffect(() => {
     if (highlightedCaseId) {
-      // Use a timeout to ensure filteredCases is updated
+      // Use a timeout for DOM manipulation and pagination
       const timeoutId = setTimeout(() => {
-        setFilteredCases(currentFilteredCases => {
-          // Find which page the highlighted case is on
-          const caseIndex = currentFilteredCases.findIndex(c => c.id === highlightedCaseId);
-          if (caseIndex !== -1) {
-            const targetPage = Math.ceil((caseIndex + 1) / casesPerPage);
-            setCurrentPage(targetPage);
-          }
-          return currentFilteredCases; // Return unchanged to avoid re-render
-        });
-
+        // Find which page the highlighted case is on
+        const caseIndex = cases.findIndex(c => c.id === highlightedCaseId);
+        if (caseIndex !== -1) {
+          const targetPage = Math.ceil((caseIndex + 1) / casesPerPage);
+          setCurrentPage(targetPage);
+        }
+        
         // Auto-expand the highlighted case
         setExpandedCases(prev => new Set([...Array.from(prev), highlightedCaseId]));
 
@@ -286,7 +283,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
       return () => clearTimeout(timeoutId);
     }
-  }, [highlightedCaseId, onClearHighlight, casesPerPage]); // Removed filteredCases to fix infinite loop
+  }, [highlightedCaseId, onClearHighlight, casesPerPage, cases]); // Depends on cases, not filteredCases
 
   const handleFilterChange = (field: keyof FilterOptions, value: string) => {
     setTempFilters(prev => ({
@@ -392,45 +389,30 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       return;
     }
     
-    // First, smoothly scroll to the case card
-    const caseElement = document.querySelector(`[data-case-id="${caseItem.id}"]`);
-    if (caseElement) {
-      caseElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-        inline: 'nearest'
-      });
-
-      // Add a slight delay before opening the modal to allow scroll to complete
-      setTimeout(() => {
-        setAmendingCase(caseItem.id);
-        setAmendmentData({
-          hospital: caseItem.hospital,
-          department: caseItem.department,
-          dateOfSurgery: caseItem.dateOfSurgery,
-          procedureType: caseItem.procedureType,
-          procedureName: caseItem.procedureName,
-          doctorName: caseItem.doctorName,
-          timeOfProcedure: caseItem.timeOfProcedure,
-          specialInstruction: caseItem.specialInstruction,
-          amendmentReason: ''
+    // Set the amending case
+    setAmendingCase(caseItem.id);
+    setAmendmentData({
+      hospital: caseItem.hospital,
+      department: caseItem.department,
+      dateOfSurgery: caseItem.dateOfSurgery,
+      procedureType: caseItem.procedureType,
+      procedureName: caseItem.procedureName,
+      doctorName: caseItem.doctorName,
+      timeOfProcedure: caseItem.timeOfProcedure,
+      specialInstruction: caseItem.specialInstruction,
+      amendmentReason: ''
+    });
+    
+    // Scroll to the amendment form after a brief delay
+    setTimeout(() => {
+      if (amendmentFormRef.current) {
+        amendmentFormRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest'
         });
-      }, 300);
-    } else {
-      // If element not found, proceed without scrolling
-      setAmendingCase(caseItem.id);
-      setAmendmentData({
-        hospital: caseItem.hospital,
-        department: caseItem.department,
-        dateOfSurgery: caseItem.dateOfSurgery,
-        procedureType: caseItem.procedureType,
-        procedureName: caseItem.procedureName,
-        doctorName: caseItem.doctorName,
-        timeOfProcedure: caseItem.timeOfProcedure,
-        specialInstruction: caseItem.specialInstruction,
-        amendmentReason: ''
-      });
-    }
+      }
+    }, 100);
   };
 
   const handleSaveAmendment = async (amendmentFormData: any) => {
@@ -1291,12 +1273,14 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
           return null;
         }
         return (
-          <AmendmentForm
-            caseItem={caseToAmend}
-            amendmentData={amendmentData}
-            onSave={handleSaveAmendment}
-            onCancel={handleCancelAmendment}
-          />
+          <div ref={amendmentFormRef}>
+            <AmendmentForm
+              caseItem={caseToAmend}
+              amendmentData={amendmentData}
+              onSave={handleSaveAmendment}
+              onCancel={handleCancelAmendment}
+            />
+          </div>
         );
       })()}
     </div>

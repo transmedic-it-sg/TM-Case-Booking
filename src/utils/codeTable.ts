@@ -13,7 +13,6 @@ export interface CodeTable {
 
 // DEPRECATED: Use Supabase services instead
 export const getCodeTables = (country?: string): CodeTable[] => {
-  console.warn('getCodeTables is deprecated. Use Supabase services instead.');
   // Return basic fallback data for legacy compatibility
   return getDefaultCodeTables(country);
 };
@@ -82,7 +81,6 @@ export const getDepartments = (userDepartments?: string[]): string[] => {
 
 // DEPRECATED: Use SUPPORTED_COUNTRIES from countryUtils instead
 export const getCountries = (): string[] => {
-  console.warn('getCountries from codeTable is deprecated. Use SUPPORTED_COUNTRIES from countryUtils instead.');
   return [...SUPPORTED_COUNTRIES];
 };
 
@@ -98,7 +96,6 @@ export const getDepartmentsByCountry = (): Record<string, string[]> => {
       const departmentsTable = countryTables.find(table => table.id === 'departments');
       departmentsByCountry[country] = departmentsTable?.items || [];
     } catch (error) {
-      console.error(`Error loading departments for ${country}:`, error);
       departmentsByCountry[country] = [];
     }
   });
@@ -228,7 +225,6 @@ export const saveCodeTables = (tables: CodeTable[], country?: string): void => {
     const storageKey = country ? `codeTables-${country}` : 'codeTables';
     // Code tables fetched from Supabase);
   } catch (error) {
-    console.error('Error saving code tables to localStorage:', error);
   }
 };
 
@@ -250,7 +246,6 @@ export const initializeCodeTables = (): void => {
         saveCodeTables(defaultTables);
       }
     } catch (error) {
-      console.error('Error checking code tables, resetting to defaults:', error);
       const defaultTables = getDefaultCodeTables();
       saveCodeTables(defaultTables);
     }
@@ -279,7 +274,6 @@ export const initializeCountryCodeTables = (country: string): void => {
         saveCodeTables(countryBasedTables, country);
       }
     } catch (error) {
-      console.error(`Error parsing country code tables for ${country}, reinitializing:`, error);
       const defaultTables = getDefaultCodeTables(country);
       const countryBasedTables = defaultTables.filter(table => table.id !== 'countries');
       saveCodeTables(countryBasedTables, country);
@@ -302,7 +296,6 @@ export const addCodeTableItem = (tableId: string, item: string): boolean => {
     saveCodeTables(tables);
     return true;
   } catch (error) {
-    console.error('Error adding item to code table:', error);
     return false;
   }
 };
@@ -319,7 +312,6 @@ export const removeCodeTableItem = (tableId: string, item: string): boolean => {
     saveCodeTables(tables);
     return true;
   } catch (error) {
-    console.error('Error removing item from code table:', error);
     return false;
   }
 };
@@ -342,7 +334,6 @@ export const updateCodeTableItem = (tableId: string, oldItem: string, newItem: s
     saveCodeTables(tables);
     return true;
   } catch (error) {
-    console.error('Error updating item in code table:', error);
     return false;
   }
 };
@@ -440,6 +431,5 @@ export const saveCodeTablesForCountry = (tables: CodeTable[], country?: string):
     const storageKey = country ? `codeTables-${country}` : 'codeTables';
     // Code tables fetched from Supabase);
   } catch (error) {
-    console.error('Error saving code tables to localStorage:', error);
   }
 };

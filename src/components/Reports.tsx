@@ -94,16 +94,14 @@ const Reports: React.FC = () => {
             const countryDepartments = await getDepartmentsForCountry(country);
             countryDepartments.forEach(dept => allDepartments.add(dept));
           } catch (error) {
-            console.warn(`Failed to load departments for ${country}:`, error);
           }
         }
 
-        setGlobalCountries(countries);
+        setGlobalCountries(countries || []);
         setGlobalDepartments(Array.from(allDepartments).sort());
-        setCaseStatuses(statuses);
+        setCaseStatuses(statuses || []);
       } catch (error) {
-        console.error('Error loading constants:', error);
-        // Fallback to empty arrays, services have their own fallbacks
+        // Set default values to prevent errors
         setGlobalCountries([]);
         setGlobalDepartments([]);
         setCaseStatuses([]);

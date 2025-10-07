@@ -27,7 +27,6 @@ export const getRuntimePermissions = async (): Promise<Permission[]> => {
     globalPermissionsCacheTime = Date.now();
     return permissions;
   } catch (error) {
-    console.error('Error loading runtime permissions, using defaults:', error);
     // Clear cache on error to prevent stale data
     clearPermissionsCache();
     return defaultPermissions;
@@ -37,7 +36,6 @@ export const getRuntimePermissions = async (): Promise<Permission[]> => {
 // Get user-specific permissions with caching
 export const getUserPermissions = async (userId: string): Promise<Permission[]> => {
   if (!userId) {
-    console.warn('No userId provided, using global permissions');
     return getRuntimePermissions();
   }
 
@@ -67,7 +65,6 @@ export const getUserPermissions = async (userId: string): Promise<Permission[]> 
 
     return permissions;
   } catch (error) {
-    console.error('Error loading user permissions:', error);
     return defaultPermissions;
   }
 };
@@ -81,7 +78,6 @@ export const saveRuntimePermissions = async (permissions: Permission[]): Promise
     clearPermissionsCache();
     globalPermissionsCache = permissions;
     globalPermissionsCacheTime = Date.now();} catch (error) {
-    console.error('Error saving runtime permissions:', error);
     // Clear cache on error to force reload from Supabase
     clearPermissionsCache();
   }
@@ -106,23 +102,19 @@ export const hasPermissionForUser = (roleId: string, actionId: string, userId: s
 
   // Check cache validity with improved race condition handling
   if (!cacheToUse || (Date.now() - cacheTimeToUse >= CACHE_DURATION)) {
-    console.warn(`🔄 Permission cache expired for ${roleId} - ${actionId} (user: ${userId}): Attempting refresh...`);
 
     // For critical actions, allow access during cache refresh to prevent lockouts
     const criticalActions = ['view-cases', 'create-case', 'booking-calendar', 'logout'];
     if (criticalActions.includes(actionId)) {
-      console.warn(`⚠️ Allowing critical action ${actionId} during cache refresh for user ${userId}`);
 
       // Trigger async refresh but don't wait for it
       initializePermissions(false).catch(error => {
-        console.error('❌ Failed to refresh permissions cache:', error);
       });
 
       return true;
     }
 
     // FAIL SECURE: Deny access for non-critical actions when permissions cannot be verified
-    console.warn(`🔒 Permission DENIED for ${roleId} - ${actionId} (user: ${userId}): Cache unavailable and not a critical action`);
     return false;
   }
 
@@ -131,11 +123,10 @@ export const hasPermissionForUser = (roleId: string, actionId: string, userId: s
   const result = permission?.allowed || false;
 
   // Log permission check result for debugging
-  console.debug(`🔒 Permission check for ${roleId} - ${actionId}: ${result ? 'ALLOWED' : 'DENIED'}`, {
-    userId,
-    cacheTime: cacheTimeToUse,
-    allPermissionsForRole: cacheToUse.filter(p => p.roleId === roleId).length
-  });
+  //   userId,
+  //   cacheTime: cacheTimeToUse,
+  //   allPermissionsForRole: cacheToUse.filter(p => p.roleId === roleId).length
+  // });
 
   return result;
 };
@@ -162,18 +153,14 @@ export const initializePermissions = async (forceRefresh: boolean = false): Prom
 
       const permissions = await getRuntimePermissions();
       
-      console.debug('📊 Permissions loaded:', permissions.reduce((acc, p) => {
-          acc[p.roleId] = (acc[p.roleId] || 0) + (p.allowed ? 1 : 0);
-          return acc;
-        }, {} as Record<string, number>)
-      );
+      //   acc[p.roleId] = (acc[p.roleId] || 0) + (p.allowed ? 1 : 0);
+      //   return acc;
+      // }, {} as Record<string, number>));
 
       // Set up automatic cache refresh to prevent expiry issues
       schedulePermissionCacheRefresh();
 
     } catch (error) {
-      console.error('❌ Error initializing permissions system:', error);
-      console.error('🚨 SECURITY WARNING: Permission system failed to initialize - access will be denied to all non-admin users');
       // Clear cache to ensure fail-secure behavior
       globalPermissionsCache = null;
       globalPermissionsCacheTime = 0;
@@ -201,7 +188,6 @@ const schedulePermissionCacheRefresh = () => {
       await getRuntimePermissions();// Schedule next refresh
       schedulePermissionCacheRefresh();
     } catch (error) {
-      console.error('❌ Failed to auto-refresh permissions cache:', error);
       // Retry in 1 minute
       refreshTimer = setTimeout(() => schedulePermissionCacheRefresh(), 60 * 1000);
     }
@@ -240,7 +226,6 @@ export const updatePermission = async (roleId: string, actionId: string, allowed
     const { updateSupabasePermission } = await import('./supabasePermissionService');
     await updateSupabasePermission(roleId, actionId, allowed);
   } catch (error) {
-    console.error('Error updating permission:', error);
   }
 };
 
@@ -250,7 +235,6 @@ export const resetPermissions = async (): Promise<void> => {
     const { resetSupabasePermissions } = await import('./supabasePermissionService');
     await resetSupabasePermissions();
   } catch (error) {
-    console.error('Error resetting permissions:', error);
   }
 };
 
@@ -297,7 +281,6 @@ export const PERMISSION_ACTIONS = {
   SYSTEM_SETTINGS: 'system-settings',
   EMAIL_CONFIG: 'email-config',
   CODE_TABLE_SETUP: 'code-table-setup',
-  BACKUP_RESTORE: 'backup-restore',
   AUDIT_LOGS: 'audit-logs',
   PERMISSION_MATRIX: 'permission-matrix',
 

@@ -324,7 +324,6 @@ export const updateSupabaseUserPassword = async (userId: string, newPassword: st
         .eq('id', userId);
 
       if (profileError) {
-        console.error('Error updating password in profiles table:', profileError);
         throw profileError;
       }
 

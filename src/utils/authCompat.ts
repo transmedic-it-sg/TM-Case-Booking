@@ -13,7 +13,6 @@ export const getCurrentUser = (): any => {
   try {
     return UserService.getCurrentUserSync();
   } catch (error) {
-    console.warn('Failed to get current user synchronously:', error);
     return null;
   }
 };

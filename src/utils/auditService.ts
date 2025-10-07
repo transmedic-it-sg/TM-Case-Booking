@@ -97,24 +97,18 @@ export const addAuditLog = async (
       if (error.message && (error.message.includes('Failed to fetch') ||
           error.message.includes('network') ||
           error.message.includes('does not exist'))) {
-        console.warn('Network error or table missing, falling back to localStorage');
 
         // Fallback to localStorage
         const existingLogs = await getAuditLogsFromLocalStorage();
         const updatedLogs = [auditEntry, ...existingLogs];
 
-        // Keep only the latest 1000 audit entries to prevent localStorage bloat
-        const trimmedLogs = updatedLogs.slice(0, 1000);
-
-        // Store logs in localStorage (fallback only)
-        localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify(trimmedLogs));
+        // No localStorage fallback - logs only in database
       } else {
         throw error;
       }
     }
 
   } catch (error) {
-    console.error('Failed to add audit log:', error);
   }
 };
 
@@ -135,7 +129,6 @@ export const getAuditLogs = async (): Promise<AuditLogEntry[]> => {
       if (error.message && (error.message.includes('Failed to fetch') ||
           error.message.includes('network') ||
           error.message.includes('does not exist'))) {
-        console.warn('Network error or table missing, falling back to localStorage');
         return await getAuditLogsFromLocalStorage();
       }
       throw error;
@@ -161,7 +154,6 @@ export const getAuditLogs = async (): Promise<AuditLogEntry[]> => {
 
     return supabaseLogs;
   } catch (error) {
-    console.error('Failed to load audit logs from Supabase:', error);
     return await getAuditLogsFromLocalStorage();
   }
 };
@@ -170,16 +162,8 @@ export const getAuditLogs = async (): Promise<AuditLogEntry[]> => {
  * Get audit logs from localStorage (fallback)
  */
 const getAuditLogsFromLocalStorage = async (): Promise<AuditLogEntry[]> => {
-  try {
-    const logs = localStorage.getItem(AUDIT_LOGS_KEY);
-    if (logs) {
-      return JSON.parse(logs);
-    }
-    return [];
-  } catch (error) {
-    console.error('Failed to load audit logs from localStorage:', error);
-    return [];
-  }
+  // No localStorage - return empty array
+  return [];
 };
 
 /**
@@ -240,7 +224,6 @@ export const clearOldAuditLogs = async (): Promise<number> => {
       .lt('timestamp', cutoffDateString);
 
     if (selectError) {
-      console.error('Error finding old audit logs:', selectError);
       throw selectError;
     }
 
@@ -253,7 +236,6 @@ export const clearOldAuditLogs = async (): Promise<number> => {
         .lt('timestamp', cutoffDateString);
 
       if (deleteError) {
-        console.error('Error deleting old audit logs:', deleteError);
         throw deleteError;
       }
     }
@@ -267,12 +249,10 @@ export const clearOldAuditLogs = async (): Promise<number> => {
       // Store filtered logs back to localStorage (if needed)
       // Note: We're using Supabase primarily, localStorage is just fallback
     } catch (localError) {
-      console.warn('Could not clear localStorage audit logs:', localError);
     }
 
     return deletedCount;
   } catch (error) {
-    console.error('Failed to clear old audit logs:', error);
     return 0;
   }
 };

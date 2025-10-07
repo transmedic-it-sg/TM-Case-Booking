@@ -59,7 +59,6 @@ const HybridLogin: React.FC<HybridLoginProps> = ({ onLogin }) => {
               });
 
             if (profileError) {
-              console.error('Profile creation error:', profileError);
               // Continue anyway, profile might be created by trigger
             }
 
@@ -98,7 +97,6 @@ const HybridLogin: React.FC<HybridLoginProps> = ({ onLogin }) => {
         onLogin(user);
       }
     } catch (error: any) {
-      console.error('Supabase login error:', error);
       setError(error.message || 'Login failed');
     }
   };

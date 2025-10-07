@@ -512,7 +512,7 @@ class CRUDVerificationService {
           id: testId,
           timestamp: new Date().toISOString(),
           user_name: 'Test User',
-          user_id: 'test-user-id',
+          user_id: '550e8400-e29b-41d4-a716-446655440000', // Valid UUID
           user_role: 'operations',
           action: 'crud_verification',
           category: 'testing',
@@ -577,12 +577,9 @@ class CRUDVerificationService {
 
     // Log summary
     const successRate = (passed / this.results.length * 100).toFixed(1);
-    console.log(`📊 Verification complete: ${passed}/${this.results.length} tests passed (${successRate}%)`);
 
     if (criticalIssues.length > 0) {
-      console.warn('🚨 Critical issues detected:');
       criticalIssues.forEach(issue => {
-        console.warn(`❌ ${issue}`);
       });
     }
 

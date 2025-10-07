@@ -344,12 +344,10 @@ export async function runSimpleCRUDTests(): Promise<TestResult[]> {
   const total = results.length;
   const successRate = ((passed / total) * 100).toFixed(1);
   
-  console.log(`\n📊 CRUD Test Summary: ${passed}/${total} tests passed (${successRate}%)`);
   
   results.forEach(result => {
     const status = result.success ? '✅' : '❌';
     const errorInfo = result.error ? ` (${result.error})` : '';
-    console.log(`${status} ${result.table} ${result.operation}${errorInfo}`);
   });
 
   // Check for critical failures
@@ -360,9 +358,7 @@ export async function runSimpleCRUDTests(): Promise<TestResult[]> {
   );
 
   if (criticalFailures.length > 0) {
-    console.warn('🚨 Critical failures detected:');
     criticalFailures.forEach(failure => {
-      console.warn(`❌ ${failure.table} ${failure.operation}: ${failure.error}`);
     });
   }
 

@@ -50,7 +50,6 @@ class ConstantsService {
       this.setCache(cacheKey, hospitals);
       return hospitals;
     } catch (error) {
-      console.error('Error fetching hospitals:', error);
       return this.cache.get(cacheKey) || [];
     }
   }
@@ -76,7 +75,6 @@ class ConstantsService {
       this.setCache(cacheKey, departments);
       return departments;
     } catch (error) {
-      console.error('Error fetching departments:', error);
       return this.cache.get(cacheKey) || [];
     }
   }
@@ -102,7 +100,6 @@ class ConstantsService {
       this.setCache(cacheKey, countries);
       return countries;
     } catch (error) {
-      console.error('Error fetching countries:', error);
       return ['Singapore', 'Malaysia']; // Fallback
     }
   }
