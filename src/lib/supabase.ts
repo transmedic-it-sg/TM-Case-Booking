@@ -444,6 +444,28 @@ export interface Database {
           country?: string | null
         }
       }
+      app_settings: {
+        Row: {
+          id: string
+          user_id: string | null
+          setting_key: string
+          setting_value: any
+          description?: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          setting_key: string
+          setting_value: any
+          description?: string | null
+        }
+        Update: {
+          setting_value?: any
+          description?: string | null
+          updated_at?: string
+        }
+      }
     }
   }
 }

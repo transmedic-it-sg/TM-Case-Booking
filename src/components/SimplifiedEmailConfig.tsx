@@ -491,18 +491,30 @@ Best regards,
   // Get email configurations from Supabase app_settings table
   const getEmailConfigFromDatabase = async (country: string): Promise<Record<string, CountryEmailConfig>> => {
     try {
-      const { supabase } = await import('../lib/supabase');
+      const { supabase, getCurrentUser } = await import('../lib/supabase');
+      
+      // Get current user ID for RLS policy compliance
+      const user = await getCurrentUser();
+      if (!user?.id) {
+        console.log('User not authenticated for loading email config');
+        return {};
+      }
+      
       const { data, error } = await supabase
         .from('app_settings')
         .select('setting_value')
-        .eq('setting_key', `simplified_email_configs`)
+        .eq('setting_key', 'simplified_email_configs')
+        .eq('user_id', user.id)
         .single();
 
-      if (error || !data?.setting_value) {return {};
+      if (error || !data?.setting_value) {
+        console.log('No email config found for user:', error?.message || 'No data');
+        return {};
       }
 
       return data.setting_value;
     } catch (error) {
+      console.error('Error in getEmailConfigFromDatabase:', error);
       return {};
     }
   };
@@ -510,13 +522,20 @@ Best regards,
   // Save email configurations to Supabase app_settings table
   const saveEmailConfigToDatabase = async (configs: Record<string, CountryEmailConfig>) => {
     try {
-      const { supabase } = await import('../lib/supabase');
+      const { supabase, getCurrentUser } = await import('../lib/supabase');
       
-      // First, check if the setting exists
+      // Get current user ID for RLS policy compliance
+      const user = await getCurrentUser();
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+      
+      // First, check if the setting exists for this user
       const { data: existing } = await supabase
         .from('app_settings')
         .select('id')
         .eq('setting_key', 'simplified_email_configs')
+        .eq('user_id', user.id)
         .single();
       
       if (existing) {
@@ -528,16 +547,19 @@ Best regards,
             description: 'Email provider configurations for all countries',
             updated_at: new Date().toISOString()
           })
-          .eq('setting_key', 'simplified_email_configs');
+          .eq('setting_key', 'simplified_email_configs')
+          .eq('user_id', user.id);
         
         if (error) {
+          console.error('Error updating app_settings:', error);
           throw error;
         }
       } else {
-        // Insert new record
+        // Insert new record with user_id
         const { error } = await supabase
           .from('app_settings')
           .insert({
+            user_id: user.id,
             setting_key: 'simplified_email_configs',
             setting_value: configs,
             description: 'Email provider configurations for all countries',
@@ -545,10 +567,12 @@ Best regards,
           });
         
         if (error) {
+          console.error('Error inserting app_settings:', error);
           throw error;
         }
       }
     } catch (error) {
+      console.error('Error in saveEmailConfigToDatabase:', error);
       throw error;
     }
   };
@@ -644,14 +668,30 @@ Best regards,
     // Load email notification matrix configs from database
     const loadNotificationMatrix = async () => {
       try {
-        const { supabase } = await import('../lib/supabase');
+        const { supabase, getCurrentUser } = await import('../lib/supabase');
+        
+        // Get current user ID for RLS policy compliance
+        const user = await getCurrentUser();
+        if (!user?.id) {
+          console.log('User not authenticated for loading notification matrix');
+          const newMatrix = initializeNotificationMatrix(selectedCountry);
+          setEmailMatrixConfigs(prev => ({
+            ...prev,
+            [selectedCountry]: newMatrix
+          }));
+          return;
+        }
+        
         const { data, error } = await supabase
           .from('app_settings')
           .select('setting_value')
           .eq('setting_key', 'email_matrix_configs_by_country')
+          .eq('user_id', user.id)
           .single();
 
-        if (error || !data?.setting_value) {const newMatrix = initializeNotificationMatrix(selectedCountry);
+        if (error || !data?.setting_value) {
+          console.log('No notification matrix found for user:', error?.message || 'No data');
+          const newMatrix = initializeNotificationMatrix(selectedCountry);
           setEmailMatrixConfigs(prev => ({
             ...prev,
             [selectedCountry]: newMatrix
@@ -671,6 +711,7 @@ Best regards,
           }));
         }
       } catch (error) {
+        console.error('Error in loadNotificationMatrix:', error);
         // Initialize with default if loading fails
         const newMatrix = initializeNotificationMatrix(selectedCountry);
         setEmailMatrixConfigs(prev => ({
@@ -953,13 +994,20 @@ Best regards,
     if (!selectedCountry) return;
 
     try {
-      const { supabase } = await import('../lib/supabase');
+      const { supabase, getCurrentUser } = await import('../lib/supabase');
       
-      // First, check if the setting exists
+      // Get current user ID for RLS policy compliance
+      const user = await getCurrentUser();
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+      
+      // First, check if the setting exists for this user
       const { data: existing } = await supabase
         .from('app_settings')
         .select('id')
         .eq('setting_key', 'email_matrix_configs_by_country')
+        .eq('user_id', user.id)
         .single();
       
       if (existing) {
@@ -971,16 +1019,19 @@ Best regards,
             description: 'Email notification matrix configurations for all countries',
             updated_at: new Date().toISOString()
           })
-          .eq('setting_key', 'email_matrix_configs_by_country');
+          .eq('setting_key', 'email_matrix_configs_by_country')
+          .eq('user_id', user.id);
         
         if (error) {
+          console.error('Error updating notification matrix:', error);
           throw error;
         }
       } else {
-        // Insert new record
+        // Insert new record with user_id
         const { error } = await supabase
           .from('app_settings')
           .insert({
+            user_id: user.id,
             setting_key: 'email_matrix_configs_by_country',
             setting_value: emailMatrixConfigs,
             description: 'Email notification matrix configurations for all countries',
@@ -988,6 +1039,7 @@ Best regards,
           });
         
         if (error) {
+          console.error('Error inserting notification matrix:', error);
           throw error;
         }
       }
@@ -995,6 +1047,7 @@ Best regards,
       playSound.success();
       showSuccess('Notification Rules Saved', `Email notification rules for ${selectedCountry} have been saved to database`);
     } catch (error) {
+      console.error('Error in saveNotificationMatrix:', error);
       showError('Save Failed', 'Failed to save notification rules to database. Please try again.');
     }
   };

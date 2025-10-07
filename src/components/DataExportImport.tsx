@@ -507,11 +507,27 @@ const DataExportImport: React.FC = () => {
           continue;
         }
         
+        // Ensure user_id is present for proper RLS
+        if (!setting.user_id) {
+          result.warnings.push(`Skipping setting without user_id: ${setting.setting_key}`);
+          continue;
+        }
+        
         const { error } = await supabase
           .from('app_settings')
-          .upsert(setting, { onConflict: 'setting_key' });
+          .upsert({
+            user_id: setting.user_id,
+            setting_key: setting.setting_key,
+            setting_value: setting.setting_value,
+            description: setting.description,
+            created_at: setting.created_at,
+            updated_at: new Date().toISOString()
+          });
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error importing app setting:', error);
+          throw error;
+        }
         result.imported++;
       } catch (error) {
         result.failed++;

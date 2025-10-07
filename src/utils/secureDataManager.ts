@@ -58,17 +58,31 @@ class SecureDataManager {
 
       // Try Supabase for persistent storage
       if (options.secure !== false) {
-        const { error } = await supabase
-          .from('app_settings')
-          .upsert({
-            setting_key: `cache_${key}`,
-            setting_value: data,
-            updated_at: new Date().toISOString()
-          });
-        
-        if (!error) {
-          logger.debug(`Data stored in Supabase: ${key}`);
-          return true;
+        try {
+          const { getCurrentUser } = await import('../lib/supabase');
+          const user = await getCurrentUser();
+          
+          if (user?.id) {
+            const { error } = await supabase
+              .from('app_settings')
+              .upsert({
+                user_id: user.id,
+                setting_key: `cache_${key}`,
+                setting_value: data,
+                updated_at: new Date().toISOString()
+              });
+            
+            if (!error) {
+              logger.debug(`Data stored in Supabase: ${key}`);
+              return true;
+            } else {
+              logger.warn(`Failed to store in Supabase for key ${key}:`, error);
+            }
+          } else {
+            logger.warn(`No user authenticated, skipping Supabase storage for key: ${key}`);
+          }
+        } catch (supabaseError) {
+          logger.warn(`Supabase storage failed for key ${key}:`, supabaseError);
         }
       }
 
@@ -114,15 +128,29 @@ class SecureDataManager {
 
       // Try Supabase
       if (options.secure !== false) {
-        const { data: result, error } = await supabase
-          .from('app_settings')
-          .select('setting_value')
-          .eq('setting_key', `cache_${key}`)
-          .single();
-        
-        if (!error && result) {
-          logger.debug(`Data retrieved from Supabase: ${key}`);
-          return result.setting_value;
+        try {
+          const { getCurrentUser } = await import('../lib/supabase');
+          const user = await getCurrentUser();
+          
+          if (user?.id) {
+            const { data: result, error } = await supabase
+              .from('app_settings')
+              .select('setting_value')
+              .eq('setting_key', `cache_${key}`)
+              .eq('user_id', user.id)
+              .single();
+            
+            if (!error && result) {
+              logger.debug(`Data retrieved from Supabase: ${key}`);
+              return result.setting_value;
+            } else if (error) {
+              logger.debug(`No Supabase data found for key ${key}: ${error.message}`);
+            }
+          } else {
+            logger.debug(`No user authenticated, skipping Supabase retrieval for key: ${key}`);
+          }
+        } catch (supabaseError) {
+          logger.warn(`Supabase retrieval failed for key ${key}:`, supabaseError);
         }
       }
 
@@ -170,13 +198,23 @@ class SecureDataManager {
       }
 
       // Remove from Supabase
-      const { error } = await supabase
-        .from('app_settings')
-        .delete()
-        .eq('setting_key', `cache_${key}`);
-      
-      if (!error) {
-        removed = true;
+      try {
+        const { getCurrentUser } = await import('../lib/supabase');
+        const user = await getCurrentUser();
+        
+        if (user?.id) {
+          const { error } = await supabase
+            .from('app_settings')
+            .delete()
+            .eq('setting_key', `cache_${key}`)
+            .eq('user_id', user.id);
+          
+          if (!error) {
+            removed = true;
+          }
+        }
+      } catch (supabaseError) {
+        logger.warn(`Failed to remove from Supabase for key ${key}:`, supabaseError);
       }
 
       // Remove from memory fallback
@@ -206,10 +244,20 @@ class SecureDataManager {
       }
 
       // Clear cache entries from Supabase
-      await supabase
-        .from('app_settings')
-        .delete()
-        .like('setting_key', 'cache_%');
+      try {
+        const { getCurrentUser } = await import('../lib/supabase');
+        const user = await getCurrentUser();
+        
+        if (user?.id) {
+          await supabase
+            .from('app_settings')
+            .delete()
+            .like('setting_key', 'cache_%')
+            .eq('user_id', user.id);
+        }
+      } catch (supabaseError) {
+        logger.warn(`Failed to clear Supabase cache entries:`, supabaseError);
+      }
 
       // Clear memory fallback
       this.fallbackData.clear();
@@ -235,14 +283,24 @@ class SecureDataManager {
     }
 
     // Check Supabase
-    const { data, error } = await supabase
-      .from('app_settings')
-      .select('setting_key')
-      .eq('setting_key', `cache_${key}`)
-      .single();
-    
-    if (!error && data) {
-      return true;
+    try {
+      const { getCurrentUser } = await import('../lib/supabase');
+      const user = await getCurrentUser();
+      
+      if (user?.id) {
+        const { data, error } = await supabase
+          .from('app_settings')
+          .select('setting_key')
+          .eq('setting_key', `cache_${key}`)
+          .eq('user_id', user.id)
+          .single();
+        
+        if (!error && data) {
+          return true;
+        }
+      }
+    } catch (supabaseError) {
+      logger.debug(`Failed to check Supabase for key ${key}:`, supabaseError);
     }
 
     // Check memory fallback

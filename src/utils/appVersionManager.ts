@@ -22,15 +22,25 @@ export interface VersionCheckResult {
  */
 const getStoredVersion = async (): Promise<string | null> => {
   try {
+    const { getCurrentUser } = await import('../lib/supabase');
+    const user = await getCurrentUser();
+    
+    if (!user?.id) {
+      console.log('No user authenticated for version check');
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('app_settings')
       .select('setting_value')
       .eq('setting_key', 'client_app_version')
+      .eq('user_id', user.id)
       .single();
     
     if (error || !data) return null;
     return data.setting_value as string;
   } catch (error) {
+    console.error('Error getting stored version:', error);
     return null;
   }
 };
@@ -40,11 +50,20 @@ const getStoredVersion = async (): Promise<string | null> => {
  */
 const setStoredVersion = async (version: string): Promise<void> => {
   try {
-    // First check if setting exists
+    const { getCurrentUser } = await import('../lib/supabase');
+    const user = await getCurrentUser();
+    
+    if (!user?.id) {
+      console.log('No user authenticated for version update');
+      return;
+    }
+    
+    // First check if setting exists for this user
     const { data: existing } = await supabase
       .from('app_settings')
       .select('id')
       .eq('setting_key', 'client_app_version')
+      .eq('user_id', user.id)
       .single();
     
     if (existing) {
@@ -55,12 +74,14 @@ const setStoredVersion = async (version: string): Promise<void> => {
           setting_value: version,
           updated_at: new Date().toISOString()
         })
-        .eq('setting_key', 'client_app_version');
+        .eq('setting_key', 'client_app_version')
+        .eq('user_id', user.id);
     } else {
       // Insert new
       await supabase
         .from('app_settings')
         .insert({
+          user_id: user.id,
           setting_key: 'client_app_version',
           setting_value: version,
           description: 'Client application version for update detection',
@@ -68,7 +89,7 @@ const setStoredVersion = async (version: string): Promise<void> => {
         });
     }
   } catch (error) {
-    // Failed to update stored version
+    console.error('Failed to update stored version:', error);
   }
 };
 

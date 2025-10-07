@@ -35,6 +35,69 @@ export class ErrorHandler {
   private static retryDelays = [1000, 2000, 4000]; // 1s, 2s, 4s delays
 
   /**
+   * Handle Supabase-specific errors with detailed error codes
+   */
+  static handleSupabaseError(error: any, operation: string): string {
+    if (!error) return 'Unknown error occurred';
+
+    // Handle common Supabase error codes
+    switch (error.code) {
+      case '401':
+      case 'PGRST301':
+        return 'Authentication required. Please log in again.';
+      
+      case '406':
+      case 'PGRST116':
+        return 'Request format not acceptable. Please try again.';
+      
+      case '400':
+      case 'PGRST104':
+        return 'Invalid request. Please check your data and try again.';
+      
+      case '403':
+      case 'PGRST302':
+        return 'Access denied. You do not have permission to perform this action.';
+      
+      case '409':
+      case 'PGRST109':
+        return 'Data conflict. The record may have been modified by another user.';
+      
+      case '422':
+      case 'PGRST204':
+        return 'Invalid data format. Please check your input and try again.';
+      
+      case '23505': // Unique constraint violation
+        return 'This record already exists. Please use different values.';
+      
+      case '23503': // Foreign key violation
+        return 'Cannot complete operation due to data dependencies.';
+      
+      case '23514': // Check constraint violation
+        return 'Data validation failed. Please check your input.';
+      
+      case '42P01': // Table does not exist
+        return 'Database table not found. Please contact support.';
+      
+      default:
+        // Check for RLS policy violations
+        if (error.message?.includes('row-level security') || 
+            error.message?.includes('policy violation') ||
+            error.message?.includes('user_id')) {
+          return 'Access denied. You can only access your own data.';
+        }
+        
+        // Check for missing user_id errors
+        if (error.message?.includes('user_id') && 
+            error.message?.includes('null')) {
+          return 'User authentication required for this operation.';
+        }
+        
+        // Return the original error message or a generic one
+        return error.message || `${operation} failed with unknown error`;
+    }
+  }
+
+  /**
    * Execute an operation with standardized error handling and retry logic
    */
   static async executeWithRetry<T>(
@@ -95,7 +158,7 @@ export class ErrorHandler {
         }
 
         // Final failure - show error to user
-        const errorMessage = this.formatErrorMessage(error);
+        const errorMessage = this.handleSupabaseError(error, operationName);
         const fullMessage = userMessage || `${operationName} failed`;
         const detailMessage = includeDetails ? `${fullMessage}: ${errorMessage}` : fullMessage;
 
