@@ -491,20 +491,21 @@ Best regards,
   // Get email configurations from Supabase app_settings table
   const getEmailConfigFromDatabase = async (country: string): Promise<Record<string, CountryEmailConfig>> => {
     try {
-      const { supabase, getCurrentUser } = await import('../lib/supabase');
+      const { supabase } = await import('../lib/supabase');
+      const { userService } = await import('../services');
       
       // Get current user ID for RLS policy compliance
-      const user = await getCurrentUser();
+      const user = await userService.getCurrentUser();
       if (!user?.id) {
         console.log('User not authenticated for loading email config');
-        return {};
+        // Still try to load global settings
       }
       
       const { data, error } = await supabase
         .from('app_settings')
         .select('setting_value')
         .eq('setting_key', 'simplified_email_configs')
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id || null)
         .single();
 
       if (error || !data?.setting_value) {
@@ -522,12 +523,13 @@ Best regards,
   // Save email configurations to Supabase app_settings table
   const saveEmailConfigToDatabase = async (configs: Record<string, CountryEmailConfig>) => {
     try {
-      const { supabase, getCurrentUser } = await import('../lib/supabase');
+      const { supabase } = await import('../lib/supabase');
+      const { userService } = await import('../services');
       
       // Get current user ID for RLS policy compliance
-      const user = await getCurrentUser();
+      const user = await userService.getCurrentUser();
       if (!user?.id) {
-        throw new Error('User not authenticated');
+        console.warn('User not authenticated for saving email config - saving as global setting');
       }
       
       // First, check if the setting exists for this user
@@ -535,7 +537,7 @@ Best regards,
         .from('app_settings')
         .select('id')
         .eq('setting_key', 'simplified_email_configs')
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id || null)
         .single();
       
       if (existing) {
@@ -544,11 +546,10 @@ Best regards,
           .from('app_settings')
           .update({
             setting_value: configs,
-            description: 'Email provider configurations for all countries',
             updated_at: new Date().toISOString()
           })
           .eq('setting_key', 'simplified_email_configs')
-          .eq('user_id', user.id);
+          .eq('user_id', user?.id || null);
         
         if (error) {
           console.error('Error updating app_settings:', error);
@@ -559,10 +560,9 @@ Best regards,
         const { error } = await supabase
           .from('app_settings')
           .insert({
-            user_id: user.id,
+            user_id: user?.id || null,
             setting_key: 'simplified_email_configs',
             setting_value: configs,
-            description: 'Email provider configurations for all countries',
             updated_at: new Date().toISOString()
           });
         
@@ -668,10 +668,11 @@ Best regards,
     // Load email notification matrix configs from database
     const loadNotificationMatrix = async () => {
       try {
-        const { supabase, getCurrentUser } = await import('../lib/supabase');
+        const { supabase } = await import('../lib/supabase');
+        const { userService } = await import('../services');
         
         // Get current user ID for RLS policy compliance
-        const user = await getCurrentUser();
+        const user = await userService.getCurrentUser();
         if (!user?.id) {
           console.log('User not authenticated for loading notification matrix');
           const newMatrix = initializeNotificationMatrix(selectedCountry);
@@ -686,7 +687,7 @@ Best regards,
           .from('app_settings')
           .select('setting_value')
           .eq('setting_key', 'email_matrix_configs_by_country')
-          .eq('user_id', user.id)
+          .eq('user_id', user?.id || null)
           .single();
 
         if (error || !data?.setting_value) {
@@ -994,12 +995,13 @@ Best regards,
     if (!selectedCountry) return;
 
     try {
-      const { supabase, getCurrentUser } = await import('../lib/supabase');
+      const { supabase } = await import('../lib/supabase');
+      const { userService } = await import('../services');
       
       // Get current user ID for RLS policy compliance
-      const user = await getCurrentUser();
+      const user = await userService.getCurrentUser();
       if (!user?.id) {
-        throw new Error('User not authenticated');
+        console.warn('User not authenticated for saving notification matrix - saving as global setting');
       }
       
       // First, check if the setting exists for this user
@@ -1007,7 +1009,7 @@ Best regards,
         .from('app_settings')
         .select('id')
         .eq('setting_key', 'email_matrix_configs_by_country')
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id || null)
         .single();
       
       if (existing) {
@@ -1016,11 +1018,10 @@ Best regards,
           .from('app_settings')
           .update({
             setting_value: emailMatrixConfigs,
-            description: 'Email notification matrix configurations for all countries',
             updated_at: new Date().toISOString()
           })
           .eq('setting_key', 'email_matrix_configs_by_country')
-          .eq('user_id', user.id);
+          .eq('user_id', user?.id || null);
         
         if (error) {
           console.error('Error updating notification matrix:', error);
@@ -1031,10 +1032,9 @@ Best regards,
         const { error } = await supabase
           .from('app_settings')
           .insert({
-            user_id: user.id,
+            user_id: user?.id || null,
             setting_key: 'email_matrix_configs_by_country',
             setting_value: emailMatrixConfigs,
-            description: 'Email notification matrix configurations for all countries',
             updated_at: new Date().toISOString()
           });
         

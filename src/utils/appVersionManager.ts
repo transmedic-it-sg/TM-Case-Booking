@@ -22,8 +22,8 @@ export interface VersionCheckResult {
  */
 const getStoredVersion = async (): Promise<string | null> => {
   try {
-    const { getCurrentUser } = await import('../lib/supabase');
-    const user = await getCurrentUser();
+    const { userService } = await import('../services');
+    const user = await userService.getCurrentUser();
     
     if (!user?.id) {
       console.log('No user authenticated for version check');
@@ -34,7 +34,7 @@ const getStoredVersion = async (): Promise<string | null> => {
       .from('app_settings')
       .select('setting_value')
       .eq('setting_key', 'client_app_version')
-      .eq('user_id', user.id)
+      .eq('user_id', user?.id || null)
       .single();
     
     if (error || !data) return null;
@@ -50,8 +50,8 @@ const getStoredVersion = async (): Promise<string | null> => {
  */
 const setStoredVersion = async (version: string): Promise<void> => {
   try {
-    const { getCurrentUser } = await import('../lib/supabase');
-    const user = await getCurrentUser();
+    const { userService } = await import('../services');
+    const user = await userService.getCurrentUser();
     
     if (!user?.id) {
       console.log('No user authenticated for version update');
@@ -63,7 +63,7 @@ const setStoredVersion = async (version: string): Promise<void> => {
       .from('app_settings')
       .select('id')
       .eq('setting_key', 'client_app_version')
-      .eq('user_id', user.id)
+      .eq('user_id', user?.id || null)
       .single();
     
     if (existing) {
@@ -75,13 +75,13 @@ const setStoredVersion = async (version: string): Promise<void> => {
           updated_at: new Date().toISOString()
         })
         .eq('setting_key', 'client_app_version')
-        .eq('user_id', user.id);
+        .eq('user_id', user?.id || null);
     } else {
       // Insert new
       await supabase
         .from('app_settings')
         .insert({
-          user_id: user.id,
+          user_id: user?.id || null,
           setting_key: 'client_app_version',
           setting_value: version,
           description: 'Client application version for update detection',
