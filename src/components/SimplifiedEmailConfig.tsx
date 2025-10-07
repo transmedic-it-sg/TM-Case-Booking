@@ -506,7 +506,7 @@ Best regards,
         .select('setting_value')
         .eq('setting_key', 'simplified_email_configs')
         .eq('user_id', user?.id || null)
-        .single();
+        .maybeSingle();
 
       if (error || !data?.setting_value) {
         console.log('No email config found for user:', error?.message || 'No data');
@@ -538,7 +538,7 @@ Best regards,
         .select('id')
         .eq('setting_key', 'simplified_email_configs')
         .eq('user_id', user?.id || null)
-        .single();
+        .maybeSingle();
       
       if (existing) {
         // Update existing record
@@ -688,7 +688,7 @@ Best regards,
           .select('setting_value')
           .eq('setting_key', 'email_matrix_configs_by_country')
           .eq('user_id', user?.id || null)
-          .single();
+          .maybeSingle();
 
         if (error || !data?.setting_value) {
           console.log('No notification matrix found for user:', error?.message || 'No data');
@@ -1010,7 +1010,7 @@ Best regards,
         .select('id')
         .eq('setting_key', 'email_matrix_configs_by_country')
         .eq('user_id', user?.id || null)
-        .single();
+        .maybeSingle();
       
       if (existing) {
         // Update existing record
