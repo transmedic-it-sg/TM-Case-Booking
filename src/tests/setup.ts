@@ -164,9 +164,6 @@ beforeEach(() => {
       warn: () => {},
       error: () => {}
     };
-// console.log = mockConsole.log;
-// console.warn = mockConsole.warn;
-// console.error = mockConsole.error;
   }
 });
 

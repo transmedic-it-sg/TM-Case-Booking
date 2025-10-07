@@ -111,13 +111,18 @@
       "Bash(vercel deploy:*)",
       "Bash(npm run dev:*)",
       "Bash(npm run start:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(export SKIP_PREFLIGHT_CHECK=true)",
+      "Bash(CI=false npm run build)",
+      "Bash(export CI=false)",
+      "mcp__supabase__deploy_edge_function"
     ],
     "deny": [],
     "ask": [],
     "additionalDirectories": [
       "/mnt/c",
-      "/usr/lib/node_modules/@anthropic-ai/claude-code"
+      "/usr/lib/node_modules/@anthropic-ai/claude-code",
+      "/tmp"
     ]
   }
 }

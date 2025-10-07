@@ -26,7 +26,6 @@ const getRedirectUri = (): string => {
 
   // Log the current environment for debugging (only once)
   if (!environmentLogged) {
-    // console.log('OAuth Environment:', {
     //   origin,
     //   hostname: window.location.hostname,
     //   isVercel: window.location.hostname.includes('vercel.com'),
@@ -156,7 +155,6 @@ class SimplifiedOAuthManager {
       state: state || `${this.provider}_${Date.now()}`
     };
 
-    // console.log('Auth URL params:', {
     //   clientId: this.config.config.clientId.substring(0, 8) + '...',
     //   redirectUri: this.config.config.redirectUri,
     //   scopes: this.config.config.scopes
@@ -168,7 +166,6 @@ class SimplifiedOAuthManager {
       params.code_challenge = this.pkceChallenge.codeChallenge;
       params.code_challenge_method = 'S256';
       
-      // console.log('PKCE Challenge:', {
       //   challenge: this.pkceChallenge.codeChallenge.substring(0, 8) + '...',
       //   method: 'S256'
       // });
@@ -182,7 +179,6 @@ class SimplifiedOAuthManager {
 
     const authUrl = `${this.config.authUrl}?${new URLSearchParams(params).toString()}`;
     
-    // // // console.log('Generated auth URL for', this.provider);
     return authUrl;
   }
 
@@ -202,7 +198,6 @@ class SimplifiedOAuthManager {
       code_verifier: this.pkceChallenge.codeVerifier // PKCE code verifier
     });
 
-    // console.log('Token exchange request:', {
     //   clientId: this.config.config.clientId.substring(0, 8) + '...',
     //   hasCode: !!code,
     //   codeLength: code.length
@@ -222,7 +217,6 @@ class SimplifiedOAuthManager {
 
       if (!response.ok) {
         const errorText = await response.text();
-        // // // console.error('Token exchange failed:', {
         //   status: response.status,
         //   statusText: response.statusText,
         //   body: errorText,
@@ -255,7 +249,6 @@ class SimplifiedOAuthManager {
       };
     } catch (error) {
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        // // // console.error(`[OAuth] Network error during token exchange for ${this.provider}:`, {
         //   error: error.message,
         //   environment: process.env.NODE_ENV,
         //   origin: window.location.origin
@@ -278,7 +271,6 @@ class SimplifiedOAuthManager {
 
     if (!response.ok) {
       const errorText = await response.text();
-      // // // console.error('User info request failed:', {
       //   status: response.status,
       //   statusText: response.statusText,
       //   body: errorText,
@@ -453,18 +445,27 @@ class SimplifiedOAuthManager {
 
 // Token storage utilities
 export const storeAuthTokens = (country: string, provider: string, tokens: AuthTokens): void => {
-  const key = `email_auth_${country}_${provider}`;
+  // Microsoft auth is global (same account for all countries)
+  const key = provider === 'microsoft' 
+    ? `email_auth_global_microsoft` 
+    : `email_auth_${country}_${provider}`;
   // OAuth tokens should NOT be in localStorage);
 };
 
 // User info storage utilities
 export const storeUserInfo = (country: string, provider: string, userInfo: UserInfo): void => {
-  const key = `email_userinfo_${country}_${provider}`;
+  // Microsoft user info is global (same account for all countries)
+  const key = provider === 'microsoft'
+    ? `email_userinfo_global_microsoft`
+    : `email_userinfo_${country}_${provider}`;
   // OAuth tokens should NOT be in localStorage);
 };
 
 export const getStoredUserInfo = (country: string, provider: string): UserInfo | null => {
-  const key = `email_userinfo_${country}_${provider}`;
+  // Microsoft user info is global (same account for all countries)
+  const key = provider === 'microsoft'
+    ? `email_userinfo_global_microsoft`
+    : `email_userinfo_${country}_${provider}`;
   const stored = null /* OAuth tokens should be in secure backend */;
   if (!stored) return null;
 
@@ -476,12 +477,15 @@ export const getStoredUserInfo = (country: string, provider: string): UserInfo |
 };
 
 export const clearUserInfo = (country: string, provider: string): void => {
-  const key = `email_userinfo_${country}_${provider}`;
-  localStorage.removeItem(key);
+  // NO-OP: User info is managed via Supabase, not localStorage
+  // Kept for backward compatibility
 };
 
 export const getStoredAuthTokens = (country: string, provider: string): AuthTokens | null => {
-  const key = `email_auth_${country}_${provider}`;
+  // Microsoft auth is global (same account for all countries)
+  const key = provider === 'microsoft'
+    ? `email_auth_global_microsoft`
+    : `email_auth_${country}_${provider}`;
   const stored = null /* OAuth tokens should be in secure backend */;
   if (!stored) return null;
 
@@ -493,8 +497,7 @@ export const getStoredAuthTokens = (country: string, provider: string): AuthToke
 };
 
 export const clearAuthTokens = (country: string, provider: string): void => {
-  const key = `email_auth_${country}_${provider}`;
-  localStorage.removeItem(key);
+  // NO-OP: Auth tokens are managed via Supabase, not localStorage
   // Also clear user info when clearing tokens
   clearUserInfo(country, provider);
 };
@@ -537,7 +540,6 @@ export const refreshMicrosoftToken = async (country: string, refreshToken: strin
 
     if (!response.ok) {
       const errorText = await response.text();
-      // // // console.error('Token refresh failed:', {
       //   status: response.status,
       //   statusText: response.statusText,
       //   body: errorText
@@ -558,7 +560,6 @@ export const refreshMicrosoftToken = async (country: string, refreshToken: strin
     // Store the new tokens
     storeAuthTokens(country, 'microsoft', newTokens);return newTokens;
   } catch (error) {
-    // // // console.error('[OAuth] Failed to refresh Microsoft token:', error);
     return null;
   }
 };
@@ -603,7 +604,6 @@ export const authenticateWithPopup = async (
   try {
     // Generate auth URL with PKCE (async operation)
     const authUrl = await oauth.getAuthUrl(`${country}_${Date.now()}`);
-    // // // console.log(`[OAuth] Opening popup for ${provider}:`, authUrl.substring(0, 50) + '...');
 
     return new Promise((resolve, reject) => {
       const popup = window.open(
@@ -613,12 +613,10 @@ export const authenticateWithPopup = async (
       );
 
       if (!popup) {
-        // // // console.error(`[OAuth] Popup blocked for ${provider}`);
         reject(new Error('Popup blocked. Please allow popups for this site.'));
         return;
       }// Listen for auth completion
       const messageHandler = async (event: MessageEvent) => {if (event.origin !== window.location.origin) {
-          // // // console.warn(`[OAuth] Ignoring message from different origin: ${event.origin}`);
           return;
         }
 
@@ -627,13 +625,11 @@ export const authenticateWithPopup = async (
             storeUserInfo(country, provider, userInfo);window.removeEventListener('message', messageHandler);
             popup.close();resolve({ tokens, userInfo });
           } catch (error) {
-            // // // console.error(`[OAuth] OAuth flow failed for ${provider}:`, error);
             window.removeEventListener('message', messageHandler);
             popup.close();
             reject(error);
           }
         } else if (event.data.type === 'oauth_error' || event.data.type === 'sso_auth_error') {
-          // // // console.error(`[OAuth] OAuth error received:`, event.data.error);
           window.removeEventListener('message', messageHandler);
           popup.close();
           reject(new Error(event.data.error));
@@ -651,7 +647,6 @@ export const authenticateWithPopup = async (
       // Add timeout protection
       setTimeout(() => {
         if (!popup.closed) {
-          // // // console.warn(`[OAuth] Authentication timeout for ${provider} (2 minutes)`);
           clearInterval(checkClosed);
           window.removeEventListener('message', messageHandler);
           popup.close();
@@ -660,7 +655,6 @@ export const authenticateWithPopup = async (
       }, 120000); // 2 minute timeout
     });
   } catch (error) {
-    // // // console.error(`[OAuth] Failed to generate auth URL for ${provider}:`, error);
     throw new Error(`Failed to generate auth URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };

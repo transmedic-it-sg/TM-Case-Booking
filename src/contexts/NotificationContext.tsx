@@ -50,7 +50,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
           setAllNotifications(validNotifications);
         }
       } catch (error) {
-        // // console.error('Failed to load notifications from secure storage:', error);
         // Don't fallback to localStorage to prevent conflicts
         setAllNotifications([]);
       }
@@ -81,7 +80,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
         await SafeStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, allNotifications);
       } catch (error) {
-        // // console.error('Failed to save notifications to secure storage:', error);
       }
     };
 
@@ -101,7 +99,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         return savedPreferences;
       }
     } catch (error) {
-      // // console.error('Error loading notification preferences from secure storage:', error);
     }
 
     // Default preferences
@@ -166,7 +163,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
           return;
         }
       } catch (error) {
-        // // console.error('Failed to check notification preferences, allowing notification:', error);
         // Continue to send notification if preferences can't be loaded
       }
     }

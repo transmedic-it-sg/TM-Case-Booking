@@ -60,24 +60,12 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
       try {
         attachmentData = typeof attachment === 'string' ? JSON.parse(attachment) : attachment;
       } catch (error) {
-        // Log parsing error for debugging
-        console.error('Failed to parse attachment data:', {
-          attachment,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          caseId: caseId || 'no-case-id'
-        });
-
         // Skip malformed attachments instead of using false data
         return null;
       }
 
       // Validate required attachment data
       if (!attachmentData.name || !attachmentData.type) {
-        console.error('Attachment missing required data:', {
-          attachment,
-          attachmentData,
-          caseId: caseId || 'no-case-id'
-        });
         return null;
       }
 
@@ -174,7 +162,6 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
         type: file.type,
         size: file.size,
         uploadedBy: currentUser?.name || (() => {
-          // // console.error('No current user available for attachment upload:', { caseId });
           throw new Error('User authentication required for file upload');
         })(),
         uploadedAt: new Date().toISOString(),
@@ -190,7 +177,6 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
         type: 'add',
         fileName: file.name,
         user: currentUser?.name || (() => {
-          // // console.error('No current user available for attachment tracking:', { caseId });
           throw new Error('User authentication required for file operations');
         })(),
         timestamp: new Date().toISOString()
@@ -209,7 +195,6 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
             currentUser.selectedCountry || ''
           );
         } catch (auditError) {
-          // // console.error('Failed to log attachment audit:', auditError);
         }
       }
     }
@@ -248,7 +233,6 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
         type: 'delete',
         fileName: attachment.name,
         user: currentUser?.name || (() => {
-          // // console.error('No current user available for attachment tracking:', { caseId });
           throw new Error('User authentication required for file operations');
         })(),
         timestamp: new Date().toISOString()
@@ -269,7 +253,6 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
             currentUser.selectedCountry || ''
           );
         } catch (auditError) {
-          // // console.error('Failed to log attachment audit:', auditError);
         }
       }
     }
@@ -299,7 +282,6 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
       type: newFile.type,
       size: newFile.size,
       uploadedBy: currentUser?.name || (() => {
-        // // console.error('No current user available for attachment operation:', { caseId });
         throw new Error('User authentication required for file operations');
       })(),
       uploadedAt: new Date().toISOString(),
@@ -323,7 +305,6 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
       fileName: newFile.name,
       oldFileName: existingAttachment.name,
       user: currentUser?.name || (() => {
-        // // console.error('No current user available for attachment tracking:', { caseId });
         throw new Error('User authentication required for file operations');
       })(),
       timestamp: new Date().toISOString()
@@ -344,7 +325,6 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
           currentUser.selectedCountry || ''
         );
       } catch (auditError) {
-        // // console.error('Failed to log attachment audit:', auditError);
       }
     }
 
@@ -365,7 +345,6 @@ export const useEnhancedAttachments = (options: UseEnhancedAttachmentsOptions = 
       type: 'delete' as const,
       fileName: attachment.name,
       user: currentUser?.name || (() => {
-        // // console.error('No current user available for attachment tracking:', { caseId });
         throw new Error('User authentication required for file operations');
       })(),
       timestamp: new Date().toISOString()

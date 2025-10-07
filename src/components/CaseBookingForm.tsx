@@ -7,6 +7,7 @@ import { useRealtimeMasterDataQuery } from '../services/realtimeQueryService';
 import TimePicker from './common/TimePicker';
 import SearchableDropdown from './SearchableDropdown';
 import MultiSelectDropdown from './MultiSelectDropdown';
+import MultiSelectDropdownWithQuantity from './MultiSelectDropdownWithQuantity';
 import CustomModal from './CustomModal';
 import { useModal } from '../hooks/useModal';
 import FilterDatePicker from './FilterDatePicker';
@@ -628,7 +629,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
       <div className="card-content">
         <form onSubmit={handleSubmit}>
-        <div className="form-row two-columns">
+        <div className="form-row three-columns">
           <div className="form-group">
             <label htmlFor="hospital" className="required">Hospital</label>
             <SearchableDropdown
@@ -656,9 +657,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             />
             {errors.department && <span className="error-text">{errors.department}</span>}
           </div>
-        </div>
 
-        <div className="form-row two-columns">
           <div className="form-group">
             <label htmlFor="dateOfSurgery" className="required">Date of Surgery</label>
             <FilterDatePicker
@@ -670,7 +669,9 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             />
             {errors.dateOfSurgery && <span className="error-text">{errors.dateOfSurgery}</span>}
           </div>
+        </div>
 
+        <div className="form-row two-columns">
           <div className="form-group">
             <label htmlFor="timeOfProcedure">Time of Procedure</label>
             <TimePicker
@@ -681,9 +682,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               step={15}
             />
           </div>
-        </div>
 
-        <div className="form-row">
           <div className="form-group">
             <label htmlFor="procedureName" className="required">Procedure Name</label>
             <input
@@ -692,6 +691,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
               value={formData.procedureName}
               onChange={(e) => setFormData(prev => ({ ...prev, procedureName: e.target.value }))}
               className={errors.procedureName ? 'error' : ''}
+              placeholder="Enter procedure name"
             />
             {errors.procedureName && <span className="error-text">{errors.procedureName}</span>}
           </div>

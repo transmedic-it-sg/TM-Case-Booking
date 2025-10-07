@@ -117,7 +117,6 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
     const fileInfo = getFileInfo(attachment);
 
     if (!canViewFiles) {
-      // // // console.warn('User does not have permission to view attachments');
       return;
     }
 

@@ -171,7 +171,6 @@ const ComprehensiveEditSets: React.FC = () => {
       
       setDepartments(departmentData);
     } catch (error) {
-      // // // console.error('Error loading departments:', error);
       showError('Database Error', 'Failed to load departments');
     } finally {
       setIsLoading(false);
@@ -201,7 +200,6 @@ const ComprehensiveEditSets: React.FC = () => {
         setDoctors(data || []);
       }
     } catch (error) {
-      // // // console.error('Error loading doctors:', error);
       showError('Database Error', 'Failed to load doctors');
     }
   };
@@ -219,7 +217,6 @@ const ComprehensiveEditSets: React.FC = () => {
       if (error) throw error;
       setDoctorProcedures(data || []);
     } catch (error) {
-      // // // console.error('Error loading doctor procedures:', error);
       showError('Database Error', 'Failed to load doctor procedures');
     }
   };
@@ -241,7 +238,6 @@ const ComprehensiveEditSets: React.FC = () => {
       if (error) throw error;
       setDoctorProcedureSets(data || []);
     } catch (error) {
-      // // // console.error('Error loading doctor procedure sets:', error);
       showError('Database Error', 'Failed to load doctor procedure sets');
     }
   };
@@ -284,7 +280,6 @@ const ComprehensiveEditSets: React.FC = () => {
       loadDoctorsForDepartment(selectedDepartmentForDoctors);
       playSound.success();
     } catch (error) {
-      // // // console.error('Error saving doctor:', error);
       showError('Save Error', 'Failed to save doctor');
     } finally {
       setIsLoading(false);
@@ -305,7 +300,6 @@ const ComprehensiveEditSets: React.FC = () => {
       loadDoctorsForDepartment(selectedDepartmentForDoctors);
       playSound.success();
     } catch (error) {
-      // // // console.error('Error deleting doctor:', error);
       showError('Delete Error', 'Failed to delete doctor');
     }
   };
@@ -348,7 +342,6 @@ const ComprehensiveEditSets: React.FC = () => {
       loadDoctorProcedures(selectedDoctorForProcedures);
       playSound.success();
     } catch (error) {
-      // // // console.error('Error saving procedure type:', error);
       showError('Save Error', 'Failed to save procedure type');
     } finally {
       setIsLoading(false);
@@ -369,7 +362,6 @@ const ComprehensiveEditSets: React.FC = () => {
       loadDoctorProcedures(selectedDoctorForProcedures);
       playSound.success();
     } catch (error) {
-      // // // console.error('Error deleting procedure type:', error);
       showError('Delete Error', 'Failed to delete procedure type');
     }
   };
@@ -474,7 +466,6 @@ const ComprehensiveEditSets: React.FC = () => {
       loadDoctorProcedureSets(selectedDoctorForSurgery, selectedProcedureForSurgery);
       playSound.success();
     } catch (error) {
-      // // // console.error('Error saving doctor procedure set:', error);
       showError('Save Error', 'Failed to save doctor procedure set');
     } finally {
       setIsLoading(false);
@@ -495,7 +486,6 @@ const ComprehensiveEditSets: React.FC = () => {
       loadDoctorProcedureSets(selectedDoctorForSurgery, selectedProcedureForSurgery);
       playSound.success();
     } catch (error) {
-      // // // console.error('Error deleting doctor procedure set:', error);
       showError('Delete Error', 'Failed to delete doctor procedure set');
     }
   };

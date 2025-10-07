@@ -52,7 +52,6 @@ export const useTestingValidation = (config: ValidationConfig) => {
 
   // Test React Query integration
   const testQueryIntegration = async (queryKey: string[], queryFn: () => Promise<any>) => {
-    // // // console.log(`Testing query integration in ${config.componentName}`);
     return await testingFramework.current.testReactQueryIntegration(queryKey, queryFn);
   };
 
@@ -74,9 +73,7 @@ export const useTestingValidation = (config: ValidationConfig) => {
   // Record validation result
   const recordValidation = (success: boolean, error?: string) => {
     if (success) {
-      // // // console.log(`✅ Validation passed for ${config.componentName}`);
     } else {
-      // // // console.error(`❌ Validation failed for ${config.componentName}: ${error}`);
     }
   };
 

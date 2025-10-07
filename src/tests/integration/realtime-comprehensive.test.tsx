@@ -58,7 +58,6 @@ const ComprehensiveRealtimeComponent: React.FC = () => {
       const allValid = Object.values(results).every(result => result === true);
       return allValid;
     } catch (error) {
-      // // console.error('🧪 Comprehensive validation failed:', error);
       return false;
     }
   };

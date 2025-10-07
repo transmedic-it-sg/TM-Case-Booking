@@ -80,7 +80,6 @@ const SSOCallback: React.FC = () => {
         }
 
       } catch (err) {
-        // // // console.error('Error processing OAuth callback:', err);
         setStatus('error');
         setMessage('An error occurred while processing the authentication callback.');
 

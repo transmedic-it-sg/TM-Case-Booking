@@ -42,12 +42,16 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     amendmentReason: ''
   });
 
+  // State for quantities - key is item name, value is quantity
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+
   // State variables for dropdowns
   const [availableProcedureTypes, setAvailableProcedureTypes] = useState<string[]>([]);
   const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);
   const [surgerySetOptions, setSurgerySetOptions] = useState<string[]>([]);
   const [implantBoxOptions, setImplantBoxOptions] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoadingQuantities, setIsLoadingQuantities] = useState(false);
   
   // New state for doctor hierarchy
   const [availableDoctors, setAvailableDoctors] = useState<DepartmentDoctor[]>([]);
@@ -77,6 +81,35 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
     const currentDoctor = availableDoctors.find(d => d.id === formData.doctorId);
     return currentDoctor ? formatDoctorDisplayName(currentDoctor) : formData.doctorName || '';
   };
+
+  // Load quantities when component mounts
+  useEffect(() => {
+    const loadQuantities = async () => {
+      if (!caseItem?.id) return;
+
+      setIsLoadingQuantities(true);
+      try {
+        const { data, error } = await supabase
+          .from('case_booking_quantities')
+          .select('item_name, quantity')
+          .eq('case_booking_id', caseItem.id);
+
+        if (error) {
+        } else if (data && data.length > 0) {
+          const quantityMap: Record<string, number> = {};
+          data.forEach(item => {
+            quantityMap[item.item_name] = item.quantity;
+          });
+          setQuantities(quantityMap);
+        }
+      } catch (err) {
+      } finally {
+        setIsLoadingQuantities(false);
+      }
+    };
+
+    loadQuantities();
+  }, [caseItem?.id]);
 
   // Initial load - try to find doctor ID and load all related data
   useEffect(() => {
@@ -127,7 +160,6 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
           }
         }
       } catch (error) {
-        // // // console.error('Error loading initial data:', error);
       } finally {
         setIsLoadingDoctors(false);
       }
@@ -150,7 +182,6 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
         const doctors = await getDoctorsForDepartment(formData.department, normalizedCountry);
         setAvailableDoctors(doctors);
       } catch (error) {
-        // // // console.error('Error loading doctors:', error);
         setAvailableDoctors([]);
       } finally {
         setIsLoadingDoctors(false);
@@ -175,7 +206,6 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
         const procedures = await getProceduresForDoctor(formData.doctorId, normalizedCountry);
         setAvailableDoctorProcedures(procedures);
       } catch (error) {
-        // // // console.error('Error loading doctor procedures:', error);
         setAvailableDoctorProcedures([]);
       } finally {
         setIsLoadingProcedures(false);
@@ -210,7 +240,6 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
         setSurgerySetOptions(surgerySetNames);
         setImplantBoxOptions(implantBoxNames);
       } catch (error) {
-        // // // console.error('Error loading procedure sets:', error);
         setAvailableProcedureSets([]);
       } finally {
         setIsLoadingSets(false);
@@ -244,7 +273,6 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
             .order('name');
 
           if (surgerySetsError) {
-            // // // console.error('Error loading surgery sets:', surgerySetsError);
             setSurgerySetOptions([]);
           } else {
             // Preserve the Edit Sets ordering by not sorting alphabetically
@@ -261,7 +289,6 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
             .order('name');
 
           if (implantBoxesError) {
-            // // // console.error('Error loading implant boxes:', implantBoxesError);
             setImplantBoxOptions([]);
           } else {
             // Preserve the Edit Sets ordering by not sorting alphabetically
@@ -269,7 +296,6 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
           }
 
         } catch (error) {
-          // // // console.error('Error loading options:', error);
           setAvailableHospitals([]);
           setSurgerySetOptions([]);
           setImplantBoxOptions([]);
@@ -292,7 +318,6 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
 
   // Handle case where caseItem is null or undefined after all hooks are called
   if (!caseItem) {
-    // // // console.error('AmendmentForm: caseItem is undefined or null');
     return (
       <div className="amendment-form-error">
         <p>Error: Case data is not available. Please refresh and try again.</p>
@@ -339,7 +364,12 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      onSave(formData);
+      // Include quantities in the save data
+      const saveData = {
+        ...formData,
+        quantities
+      };
+      onSave(saveData);
     }
   };
 
@@ -516,7 +546,29 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
                   value={formData.surgerySetSelection || []}
                   onChange={(values) => handleInputChange('surgerySetSelection', values)}
                   placeholder="Select Surgery Sets..."
+                  disabled={!formData.procedureType}
                 />
+                {/* Quantities for selected surgery sets */}
+                {formData.surgerySetSelection.length > 0 && (
+                  <div className="quantities-section" style={{ marginTop: '1rem' }}>
+                    <label style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>Quantities:</label>
+                    {formData.surgerySetSelection.map((setName) => (
+                      <div key={setName} className="quantity-item" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <span style={{ flex: 1, fontSize: '0.875rem' }}>{setName}:</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={quantities[setName] || 1}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value) || 1;
+                            setQuantities(prev => ({ ...prev, [setName]: value }));
+                          }}
+                          style={{ width: '80px', padding: '0.25rem 0.5rem' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -530,7 +582,29 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
                   value={formData.implantBox || []}
                   onChange={(values) => handleInputChange('implantBox', values)}
                   placeholder="Select Implant Boxes..."
+                  disabled={!formData.procedureType}
                 />
+                {/* Quantities for selected implant boxes */}
+                {formData.implantBox.length > 0 && (
+                  <div className="quantities-section" style={{ marginTop: '1rem' }}>
+                    <label style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>Quantities:</label>
+                    {formData.implantBox.map((boxName) => (
+                      <div key={boxName} className="quantity-item" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <span style={{ flex: 1, fontSize: '0.875rem' }}>{boxName}:</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={quantities[boxName] || 1}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value) || 1;
+                            setQuantities(prev => ({ ...prev, [boxName]: value }));
+                          }}
+                          style={{ width: '80px', padding: '0.25rem 0.5rem' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

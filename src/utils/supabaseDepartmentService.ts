@@ -37,7 +37,6 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      // // // console.error('Error fetching departments:', error);
       return [];
     }
   }
@@ -56,7 +55,6 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return data?.map(item => item.procedure_type) || [];
     } catch (error) {
-      // // // console.error('Error fetching procedure types:', error);
       return [];
     }
   }
@@ -80,7 +78,6 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return true;
     } catch (error) {
-      // // // console.error('Error adding procedure type:', error);
       return false;
     }
   }
@@ -101,7 +98,6 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return true;
     } catch (error) {
-      // // // console.error('Error removing procedure type:', error);
       return false;
     }
   }
@@ -118,7 +114,6 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return data?.map(item => item.name) || [];
     } catch (error) {
-      // // // console.error('Error fetching surgery sets:', error);
       return [];
     }
   }
@@ -135,7 +130,6 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return data?.map(item => item.name) || [];
     } catch (error) {
-      // // // console.error('Error fetching implant boxes:', error);
       return [];
     }
   }
@@ -153,7 +147,6 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return true;
     } catch (error) {
-      // // // console.error('Error adding surgery set:', error);
       return false;
     }
   }
@@ -171,7 +164,6 @@ class SupabaseDepartmentService {
       if (error) throw error;
       return true;
     } catch (error) {
-      // // // console.error('Error adding implant box:', error);
       return false;
     }
   }
@@ -207,7 +199,6 @@ export const getProcedureTypesForDepartmentIncludingInactive = async (
       .single();
 
     if (deptError || !deptData) {
-      console.error('Department not found:', { departmentName, country, error: deptError });
       return [];
     }
 
@@ -222,7 +213,6 @@ export const getProcedureTypesForDepartmentIncludingInactive = async (
     if (error) throw error;
     return data?.map(item => item.procedure_type) || [];
   } catch (error) {
-    console.error('Error fetching procedure types (including inactive):', error);
     return [];
   }
 };

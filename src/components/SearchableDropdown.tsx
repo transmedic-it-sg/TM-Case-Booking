@@ -96,12 +96,13 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
         }
         break;
       case 'Enter':
-        e.preventDefault();
-        if (isOpen && focusedIndex >= 0 && filteredOptions[focusedIndex]) {
-          handleSelect(filteredOptions[focusedIndex]);
-        } else if (!isOpen) {
-          setIsOpen(true);
+        if (isOpen) {
+          e.preventDefault();
+          if (focusedIndex >= 0 && filteredOptions[focusedIndex]) {
+            handleSelect(filteredOptions[focusedIndex]);
+          }
         }
+        // If dropdown is closed, don't prevent default - allow form submission
         break;
       case 'Escape':
         setIsOpen(false);

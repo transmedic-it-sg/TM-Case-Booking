@@ -1,9 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CaseStatus } from '../types';
 import { getStatusColor } from './CasesList/utils';
 
 const StatusLegend: React.FC = () => {
   const [showPopup, setShowPopup] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1366);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 1366);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const statusList: { status: CaseStatus; description: string }[] = [
     { status: 'Case Booked', description: 'Initial case submission' },
@@ -23,10 +32,11 @@ const StatusLegend: React.FC = () => {
   return (
     <>
       <button
-        className="status-legend-button"
+        className={`status-legend-button ${isMobile ? 'mobile-menu-item' : ''}`}
         onClick={() => setShowPopup(true)}
       >
-        📊 Status Colors
+        <span className={isMobile ? 'mobile-menu-icon' : ''}>📊</span>
+        <span>Status Colors</span>
       </button>
 
       {showPopup && (

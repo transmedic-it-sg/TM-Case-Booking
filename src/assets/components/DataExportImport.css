@@ -1,0 +1,409 @@
+/* Data Export/Import Component Styles */
+.data-export-import {
+  padding: 20px;
+  background: #f8f9fa;
+  min-height: calc(100vh - 200px);
+}
+
+.data-export-import .component-header {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.data-export-import .component-header h2 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1.8rem;
+}
+
+.data-export-import .component-header p {
+  margin: 0;
+  color: #666;
+  font-size: 1rem;
+}
+
+/* Tab Navigation */
+.data-export-import .tab-navigation {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  background: white;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.data-export-import .tab-button {
+  padding: 10px 20px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.data-export-import .tab-button:hover {
+  background: #e9ecef;
+}
+
+.data-export-import .tab-button.active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+/* Section Cards */
+.data-export-import .section-card {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.data-export-import .section-card h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1.4rem;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 10px;
+}
+
+.data-export-import .section-card p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+/* Export Options */
+.data-export-import .export-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.data-export-import .export-option {
+  display: flex;
+  align-items: flex-start;
+  padding: 15px;
+  background: #f8f9fa;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.data-export-import .export-option:hover:not(.disabled) {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+.data-export-import .export-option.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.data-export-import .export-option input[type="checkbox"] {
+  margin-right: 15px;
+  margin-top: 5px;
+  transform: scale(1.2);
+}
+
+.data-export-import .option-content {
+  flex: 1;
+}
+
+.data-export-import .option-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.data-export-import .option-icon {
+  font-size: 1.5rem;
+}
+
+.data-export-import .option-name {
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+}
+
+.data-export-import .record-count {
+  background: #007bff;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.data-export-import .option-description {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.data-export-import .admin-required {
+  display: inline-block;
+  margin-top: 5px;
+  color: #dc3545;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Export Actions */
+.data-export-import .export-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 2px solid #dee2e6;
+}
+
+/* File Upload Area */
+.data-export-import .file-upload-area {
+  margin: 20px 0;
+}
+
+.data-export-import .file-upload-label {
+  display: block;
+  padding: 40px;
+  background: #f8f9fa;
+  border: 2px dashed #007bff;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.data-export-import .file-upload-label:hover {
+  background: #e9ecef;
+  border-color: #0056b3;
+}
+
+.data-export-import .file-selected {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+
+.data-export-import .file-icon {
+  font-size: 2rem;
+}
+
+.data-export-import .file-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.data-export-import .file-size {
+  color: #666;
+}
+
+.data-export-import .file-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.data-export-import .upload-icon {
+  font-size: 3rem;
+  color: #007bff;
+}
+
+.data-export-import .file-hint {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Import Actions */
+.data-export-import .import-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Import Results */
+.data-export-import .import-results {
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 8px;
+  background: white;
+  border: 2px solid #dee2e6;
+}
+
+.data-export-import .import-results.success {
+  border-color: #28a745;
+  background: #d4edda;
+}
+
+.data-export-import .import-results.error {
+  border-color: #ffc107;
+  background: #fff3cd;
+}
+
+.data-export-import .import-results h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.data-export-import .result-stats {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.data-export-import .result-stats .stat {
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.data-export-import .result-stats .stat.success {
+  background: #28a745;
+  color: white;
+}
+
+.data-export-import .result-stats .stat.error {
+  background: #dc3545;
+  color: white;
+}
+
+.data-export-import .warnings-list,
+.data-export-import .errors-list {
+  margin-top: 15px;
+  padding: 10px;
+  background: white;
+  border-radius: 4px;
+}
+
+.data-export-import .warnings-list h5,
+.data-export-import .errors-list h5 {
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+}
+
+.data-export-import .warnings-list ul,
+.data-export-import .errors-list ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.data-export-import .warnings-list li,
+.data-export-import .errors-list li {
+  margin: 5px 0;
+  font-size: 0.9rem;
+}
+
+/* Info/Warning Cards */
+.data-export-import .info-card,
+.data-export-import .warning-card {
+  padding: 20px;
+  border-radius: 8px;
+  background: white;
+  border-left: 4px solid;
+  margin-top: 20px;
+}
+
+.data-export-import .info-card {
+  border-color: #17a2b8;
+  background: #d1ecf1;
+}
+
+.data-export-import .warning-card {
+  border-color: #ffc107;
+  background: #fff3cd;
+}
+
+.data-export-import .info-card h4,
+.data-export-import .warning-card h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.data-export-import .info-card ul,
+.data-export-import .warning-card ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.data-export-import .info-card li,
+.data-export-import .warning-card li {
+  margin: 5px 0;
+  color: #666;
+}
+
+/* Buttons */
+.data-export-import .btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.data-export-import .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.data-export-import .btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.data-export-import .btn-primary:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.data-export-import .btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.data-export-import .btn-secondary:hover:not(:disabled) {
+  background: #545b62;
+}
+
+.data-export-import .btn-warning {
+  background: #ffc107;
+  color: #333;
+}
+
+.data-export-import .btn-warning:hover:not(:disabled) {
+  background: #e0a800;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .data-export-import .export-options {
+    grid-template-columns: 1fr;
+  }
+  
+  .data-export-import .tab-navigation {
+    flex-direction: column;
+  }
+  
+  .data-export-import .tab-button {
+    width: 100%;
+  }
+  
+  .data-export-import .export-actions,
+  .data-export-import .import-actions {
+    flex-direction: column;
+  }
+  
+  .data-export-import .btn {
+    width: 100%;
+  }
+}

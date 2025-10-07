@@ -21,21 +21,8 @@ export const checkUsersExist = async (): Promise<boolean> => {
 };
 
 export const migrateUsersFromLocalStorage = async (): Promise<void> => {
-  // Migrate localStorage data to secure storage first
-  await StorageMigration.migrateFromLocalStorage([STORAGE_KEY]);
-
-  const stored = await SafeStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      const users: User[] = Array.isArray(stored) ? stored : JSON.parse(stored);
-      for (const user of users) {
-        await addSupabaseUser(user);
-      }
-      // Successfully migrated users to Supabase
-    } catch (error) {
-      // Failed to migrate users
-    }
-  }
+  // NO-OP: No localStorage migration needed
+  // All data is stored in Supabase
 };
 
 export const authenticateUser = async (username: string, password: string): Promise<User | null> => {

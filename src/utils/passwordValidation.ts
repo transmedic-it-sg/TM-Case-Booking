@@ -47,7 +47,6 @@ export const getPasswordRequirements = async (): Promise<PasswordRequirements> =
     const config = await getSystemConfig();
     return config.passwordComplexity ? DEFAULT_REQUIREMENTS : SIMPLE_REQUIREMENTS;
   } catch (error) {
-    // // // console.error('Failed to get system config, using default requirements:', error);
     return DEFAULT_REQUIREMENTS;
   }
 };

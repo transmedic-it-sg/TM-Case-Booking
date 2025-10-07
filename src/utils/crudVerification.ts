@@ -577,12 +577,9 @@ class CRUDVerificationService {
 
     // Log summary
     const successRate = (passed / this.results.length * 100).toFixed(1);
-    // // // console.log(`📊 Verification complete: ${passed}/${this.results.length} tests passed (${successRate}%)`);
 
     if (criticalIssues.length > 0) {
-      // // // console.warn('🚨 Critical issues detected:');
       criticalIssues.forEach(issue => {
-        // // // console.warn(`❌ ${issue}`);
       });
     }
 

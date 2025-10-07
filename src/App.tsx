@@ -14,8 +14,7 @@ import WelcomePopup from './components/WelcomePopup';
 import PermissionMatrixPage from './components/PermissionMatrixPage';
 import AuditLogs from './components/AuditLogs';
 import SimplifiedEmailConfig from './components/SimplifiedEmailConfig';
-import BackupRestore from './components/BackupRestore';
-import DataImport from './components/DataImport';
+import DataExportImport from './components/DataExportImport';
 import SystemSettings from './components/SystemSettings';
 import LogoutConfirmation from './components/LogoutConfirmation';
 import SSOCallback from './components/SSOCallback';
@@ -42,11 +41,13 @@ import MobileNavigation from './components/MobileNavigation';
 import MobileHeader from './components/MobileHeader';
 import MaintenanceMode from './components/MaintenanceMode';
 import DatabaseConnectionStatus from './components/DatabaseConnectionStatus';
+import { initRefreshAnimations } from './utils/refreshAnimation';
 import './assets/components/globals.css'; // CSS variables and utilities
 import './assets/components/App.css';
 import './assets/components/forms.css'; // Standardized form styling
 import './assets/components/CodeTableSetup.css';
 import './assets/components/AuditLogs.css';
+import './assets/components/RefreshAnimation.css'; // Refresh button animations
 import './assets/components/MobileNavigation.css';
 import './assets/components/MobileHeader.css';
 import './assets/components/MobileLayout.css';
@@ -54,7 +55,7 @@ import './assets/components/MobileComponents.css';
 import './assets/components/MobileEntryPage.css';
 import './assets/components/MobileOverrides.css'; // Load last for maximum specificity
 
-type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config' | 'backup-restore' | 'data-import' | 'system-settings';
+type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config' | 'data-import' | 'system-settings';
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -83,66 +84,77 @@ const AppContent: React.FC = () => {
 
   // App version management with logout on version change - DYNAMIC VERSION TRACKING
   useEffect(() => {
+    // Initialize refresh button animations
+    initRefreshAnimations();
+    
+    // Re-initialize when page changes
+    const animationInterval = setInterval(initRefreshAnimations, 1000);
+    
     // Prevent double initialization in React Strict Mode
     if (window.versionCheckInProgress) {
+      clearInterval(animationInterval);
       return;
     }
 
     window.versionCheckInProgress = true;
 
-    const versionCheck = initializeVersionManager();
-    
-    // Debug logging with current version
-    // If app version or cache version changed, handle it
-    const anyVersionChanged = versionCheck.versionChanged;
+    // Handle async version check
+    initializeVersionManager().then(versionCheck => {
+      // Debug logging with current version
+      // If app version or cache version changed, handle it
+      const anyVersionChanged = versionCheck.versionChanged;
 
-    if (anyVersionChanged) {
-      let updateMessage = '🔄 ';
-      const changes = [];
+      if (anyVersionChanged) {
+        let updateMessage = '🔄 ';
+        const changes = [];
 
-      if (versionCheck.versionChanged) {
-        changes.push(`App version: ${versionCheck.storedVersion} → ${versionCheck.currentVersion}`);
-      }
-
-      updateMessage += changes.join(', ') + ' - clearing cache';
-      
-      // CRITICAL FIX: Update stored versions FIRST to prevent infinite loop
-      updateStoredAppVersion();
-      
-      if (versionCheck.userLoggedIn) {
-        // Show popup for logged users
-        setVersionUpdateInfo({
-          currentVersion: versionCheck.currentVersion,
-          previousVersion: versionCheck.storedVersion || 'Unknown'
-        });
-        setShowVersionUpdatePopup(true);
-      } else {
-        // For non-logged users, clear cache and reload immediately
-        // Version tracking now in system_settings table, not localStorage
-
-        // Version updates handled via database system_settings table
-        // No sessionStorage clearing needed
-
-        // Clear browser cache if possible
-        if ('caches' in window) {
-          caches.keys().then(names => {
-            return Promise.all(names.map(name => caches.delete(name)));
-          }).then(() => {
-            // Force reload to get fresh content
-            setTimeout(() => window.location.reload(), 500);
-          }).catch(err => {
-            // Force reload anyway
-            setTimeout(() => window.location.reload(), 500);
-          });
-        } else {
-          // No cache API support, just reload
-          setTimeout(() => window.location.reload(), 500);
+        if (versionCheck.versionChanged) {
+          changes.push(`App version: ${versionCheck.storedVersion} → ${versionCheck.currentVersion}`);
         }
+
+        updateMessage += changes.join(', ') + ' - clearing cache';
+        
+        // CRITICAL FIX: Update stored versions FIRST to prevent infinite loop
+        updateStoredAppVersion().then(() => {
+          if (versionCheck.userLoggedIn) {
+            // Show popup for logged users
+            setVersionUpdateInfo({
+              currentVersion: versionCheck.currentVersion,
+              previousVersion: versionCheck.storedVersion || 'Unknown'
+            });
+            setShowVersionUpdatePopup(true);
+          } else {
+            // For non-logged users, clear cache and reload immediately
+            // Version tracking now in system_settings table, not localStorage
+
+            // Version updates handled via database system_settings table
+            // No sessionStorage clearing needed
+
+            // Clear browser cache if possible
+            if ('caches' in window) {
+              caches.keys().then(names => {
+                return Promise.all(names.map(name => caches.delete(name)));
+              }).then(() => {
+                // Force reload to get fresh content
+                setTimeout(() => window.location.reload(), 500);
+              }).catch(err => {
+                // Force reload anyway
+                setTimeout(() => window.location.reload(), 500);
+              });
+            } else {
+              // No cache API support, just reload
+              setTimeout(() => window.location.reload(), 500);
+            }
+          }
+        });
+      } else {
+        // Normal version logging - ensure versions are stored
+        updateStoredAppVersion();
       }
-    } else {
-      // Normal version logging - ensure versions are stored
-      updateStoredAppVersion();
-    }
+    }).catch(error => {
+      // Version check failed silently
+      window.versionCheckInProgress = false;
+    });
 
     // Initialize UserService with existing user session if available
     const initializeUserService = async () => {
@@ -715,19 +727,7 @@ const AppContent: React.FC = () => {
                             📊 Audit Logs
                           </button>
                         )}
-                        {hasPermission(user.role, PERMISSION_ACTIONS.BACKUP_RESTORE) && (
-                          <button
-                            onClick={() => {
-                              setActivePage('backup-restore');
-                              playSound.click();
-                              setAdminPanelExpanded(false);
-                            }}
-                            className={`header-admin-item ${activePage === 'backup-restore' ? 'active' : ''}`}
-                          >
-                            💾 Backup & Restore
-                          </button>
-                        )}
-                        {hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) && (
+                        {(hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) || hasPermission(user.role, PERMISSION_ACTIONS.EXPORT_DATA)) && (
                           <button
                             onClick={() => {
                               setActivePage('data-import');
@@ -736,7 +736,7 @@ const AppContent: React.FC = () => {
                             }}
                             className={`header-admin-item ${activePage === 'data-import' ? 'active' : ''}`}
                           >
-                            📥 Data Import
+                            📦 Data Export/Import
                           </button>
                         )}
                       </div>
@@ -899,12 +899,9 @@ const AppContent: React.FC = () => {
           <CodeTableSetup />
         )}
 
-        {activePage === 'backup-restore' && hasPermission(user.role, PERMISSION_ACTIONS.BACKUP_RESTORE) && (
-          <BackupRestore />
-        )}
 
-        {activePage === 'data-import' && hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) && (
-          <DataImport />
+        {activePage === 'data-import' && (hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) || hasPermission(user.role, PERMISSION_ACTIONS.EXPORT_DATA)) && (
+          <DataExportImport />
         )}
 
         {activePage === 'system-settings' && hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) && (

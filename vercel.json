@@ -1,50 +1,46 @@
 {
-  "version": 2,
-  "name": "tm-case-booking",
-  "alias": ["tm-case-booking.vercel.app"],
-  "build": {
-    "env": {
-      "CI": "",
-      "SKIP_PREFLIGHT_CHECK": "true"
-    }
-  },
-  "builds": [
+  "buildCommand": "npm run build",
+  "outputDirectory": "build",
+  "framework": "create-react-app",
+  "rewrites": [
     {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "build"
-      }
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
     {
-      "source": "/sw.js",
+      "source": "/api/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        },
-        {
-          "key": "Service-Worker-Allowed",
-          "value": "/"
+          "value": "no-cache, no-store, must-revalidate"
         }
       ]
     },
     {
-      "source": "/manifest.json",
+      "source": "/(.*)",
       "headers": [
         {
-          "key": "Content-Type",
-          "value": "application/manifest+json"
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
         }
       ]
     }
   ],
-  "rewrites": [
-    {
-      "source": "/((?!static|api|manifest\\.json|sw\\.js|logo.*\\.png|favicon\\.ico|.*\\.css|.*\\.js|.*\\.html).*)",
-      "destination": "/index.html"
-    }
-  ]
+  "env": {
+    "CI": "false"
+  }
 }

@@ -120,7 +120,6 @@ const useOptimisticPermissionMutation = () => {
       });
     },
     onError: (error, action) => {
-      // // // console.error(`❌ Failed to ${action.type} permission:`, error);
 
       addNotification({
         title: 'Permission Management Error',
@@ -210,7 +209,6 @@ export const useRealtimePermissions = (options: UseRealtimePermissionsOptions = 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update permission';
       setLocalError(errorMessage);
-      // // // console.error(`❌ Failed to update permission ${actionId}:`, error);
       throw error;
     }
   }, [permissionMutation, enableTesting, testing]);
@@ -233,7 +231,6 @@ export const useRealtimePermissions = (options: UseRealtimePermissionsOptions = 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to save permissions';
       setLocalError(errorMessage);
-      // // // console.error('❌ Failed to save permissions:', error);
       throw error;
     }
   }, [permissionMutation, enableTesting, testing]);
@@ -255,7 +252,6 @@ export const useRealtimePermissions = (options: UseRealtimePermissionsOptions = 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to reset permissions';
       setLocalError(errorMessage);
-      // // // console.error('❌ Failed to reset permissions:', error);
       throw error;
     }
   }, [permissionMutation, enableTesting, testing]);
@@ -300,7 +296,6 @@ export const useRealtimePermissions = (options: UseRealtimePermissionsOptions = 
       return true;
     } catch (error) {
       testing.recordValidation(false, error instanceof Error ? error.message : 'Validation failed');
-      // // // console.error('❌ useRealtimePermissions validation failed:', error);
       return false;
     }
   }, [refetchPermissions, refetchRoles, refetchActions, enableTesting, testing]);

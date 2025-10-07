@@ -39,7 +39,6 @@ export const testConnectionWithTimeout = async (timeout: number = 3000): Promise
     const responseTime = Date.now() - startTime;
 
     if (error) {
-      // // // console.error('Database connection test failed:', error);
       return {
         status: 'disconnected',
         lastChecked: new Date(),
@@ -58,7 +57,6 @@ export const testConnectionWithTimeout = async (timeout: number = 3000): Promise
 
   } catch (error) {
     const responseTime = Date.now() - startTime;
-    // // // console.error('Database connection error:', error);
 
     return {
       status: 'disconnected',

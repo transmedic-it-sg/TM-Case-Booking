@@ -33,7 +33,6 @@ const PermissionMatrixPage: React.FC = () => {
     const runValidation = async () => {
       try {
         await validateComponent();} catch (error) {
-        // // // console.error('❌ PermissionMatrixPage validation failed:', error);
       }
     };
 
@@ -45,14 +44,12 @@ const PermissionMatrixPage: React.FC = () => {
   // Real-time error handling
   useEffect(() => {
     if (error) {
-      // // // console.error('Real-time permission error detected:', error);
     }
   }, [error]);
 
   // Handle permission change - using real-time hook
   const handlePermissionChange = async (actionId: string, roleId: string, allowed: boolean) => {try {
       await updatePermission(actionId, roleId, allowed);} catch (error) {
-      // // // console.error('❌ Failed to update permission:', error);
     }
   };
 
@@ -60,7 +57,6 @@ const PermissionMatrixPage: React.FC = () => {
   const handleReset = async () => {try {
       await resetPermissions();
       setIsEditing(false);} catch (error) {
-      // // // console.error('❌ Error resetting permissions:', error);
     }
   };
 
@@ -74,23 +70,11 @@ const PermissionMatrixPage: React.FC = () => {
         await savePermissions(permissions);
         setIsEditing(false);
         showSuccess('Permissions saved successfully!');} catch (error) {
-        // // // console.error('❌ Error saving permissions:', error);
         showSuccess('Error saving permissions. Please try again.');
       }
     });
   };
 
-  const exportPermissions = () => {
-    const dataStr = JSON.stringify(permissions, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-
-    const exportFileDefaultName = `permissions_${new Date().toISOString().split('T')[0]}.json`;
-
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-  };
 
   return (
     <div className="permission-matrix-page">
@@ -105,13 +89,6 @@ const PermissionMatrixPage: React.FC = () => {
         </div>
 
         <div className="header-actions">
-          <button
-            className="export-button"
-            onClick={exportPermissions}
-          >
-            Export Permissions
-          </button>
-
           {isEditing ? (
             <div className="edit-actions">
               <button
@@ -148,43 +125,6 @@ const PermissionMatrixPage: React.FC = () => {
         </div>
       )}
 
-      {/* Real-time Testing Section - Development Only */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="testing-section" style={{ marginBottom: '20px', padding: '10px', border: '1px dashed #ccc' }}>
-          <h4>Real-time Testing (Dev Only)</h4>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <button
-              className="btn btn-outline-primary btn-sm"
-              onClick={async () => {const isValid = await validateComponent();}}
-              disabled={isLoading || isMutating}
-              style={{ padding: '5px 10px', fontSize: '12px' }}
-            >
-              Validate Component
-            </button>
-            <button
-              className="btn btn-outline-secondary btn-sm"
-              onClick={() => {
-                // Show testing report functionality
-              }}
-              disabled={isLoading || isMutating}
-              style={{ padding: '5px 10px', fontSize: '12px' }}
-            >
-              Show Testing Report
-            </button>
-            <button
-              className="btn btn-outline-info btn-sm"
-              onClick={() => refreshPermissions()}
-              disabled={isLoading || isMutating}
-              style={{ padding: '5px 10px', fontSize: '12px' }}
-            >
-              Force Refresh
-            </button>
-            <span style={{ fontSize: '12px', color: '#666' }}>
-              Loading: {isLoading ? 'Yes' : 'No'} | Mutating: {isMutating ? 'Yes' : 'No'}
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* Loading State */}
       {isLoading && (

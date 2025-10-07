@@ -20,7 +20,6 @@ const EditSetsErrorFallback: React.FC<EditSetsErrorFallbackProps> = ({
 }) => {
   const handleReportError = () => {
     // Log to console for development
-    // console.error('Edit Sets Error Report:', {
     //   component: componentName,
     //   userAction,
     //   error: error.message,
@@ -91,7 +90,6 @@ const EditSetsErrorBoundary: React.FC<{
 }> = ({ children, componentName, userAction }) => {
   const handleError = (error: Error, errorInfo: ErrorInfo) => {
     // Enhanced error logging
-    // console.error('EditSets Error Boundary Caught:', {
     //   error: error.message,
     //   stack: error.stack,
     //   componentStack: errorInfo.componentStack,
@@ -116,7 +114,6 @@ const EditSetsErrorBoundary: React.FC<{
       onError={handleError}
       onReset={() => {
         // Clear any error state, reset forms, etc.
-        // // // console.log('Error boundary reset');
       }}
     >
       {children}

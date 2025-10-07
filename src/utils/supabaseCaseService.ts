@@ -109,7 +109,6 @@ export const generateCaseReferenceNumber = async (country: string = 'Singapore')
 
       if (insertError) {
         // Log detailed error for debugging
-        // // // console.error('Case counter insert error:', {
         //   error: insertError,
         //   country,
         //   year: currentYear,
@@ -338,7 +337,6 @@ export const getSupabaseCasesOriginal = async (country?: string): Promise<CaseBo
     const { data, error } = await query;
 
     if (error) {
-      // // // console.error('Error fetching cases:', error);
       throw error;
     }
 
@@ -399,7 +397,6 @@ export const getSupabaseCasesOriginal = async (country?: string): Promise<CaseBo
       })()
     }));
   } catch (error) {
-    // // // console.error('Error in getSupabaseCases:', error);
     throw error;
   }
 };
@@ -518,6 +515,18 @@ export const updateSupabaseCaseStatus = async (
   attachments?: string[]
 ): Promise<void> => {
   try {
+    // Extract actual user from details if available
+    let actualUser = changedBy;
+    if (details) {
+      try {
+        const parsedDetails = JSON.parse(details);
+        if (parsedDetails.processedBy) {
+          actualUser = parsedDetails.processedBy;
+        }
+      } catch (e) {
+        // Details is not JSON or doesn't have processedBy, use changedBy
+      }
+    }
     // Get current case data for audit logging
     const { data: currentCase, error: fetchError } = await supabase
       .from('case_bookings')
@@ -578,7 +587,7 @@ export const updateSupabaseCaseStatus = async (
       const historyEntry = {
         case_id: caseId,
         status: newStatus,
-        processed_by: changedBy,
+        processed_by: actualUser,
         timestamp: new Date().toISOString(),
         details: details || null,
         attachments: attachments || null
@@ -597,7 +606,7 @@ export const updateSupabaseCaseStatus = async (
           const { getCurrentUser } = await import('./authCompat');
           const currentUserData = getCurrentUser();
           await auditCaseStatusChange(
-            currentUserData?.name || changedBy,
+            currentUserData?.name || actualUser,
             currentUserData?.id || 'unknown',
             currentUserData?.role || 'unknown',
             caseRef,
@@ -938,20 +947,74 @@ export const updateSupabaseCase = async (caseId: string, updates: Partial<CaseBo
 };
 
 /**
- * Delete a case from Supabase
+ * Delete a case from Supabase and its associated usage data
  */
 export const deleteSupabaseCase = async (caseId: string): Promise<void> => {
   try {
-    const { error } = await supabase
+    // First get the case details to know what usage to delete
+    const { data: caseData, error: fetchError } = await supabase
+      .from('case_bookings')
+      .select('date_of_surgery, country, department')
+      .eq('id', caseId)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    // Delete case quantities first (foreign key constraint)
+    const { error: quantityError } = await supabase
+      .from('case_booking_quantities')
+      .delete()
+      .eq('case_booking_id', caseId);
+
+    if (quantityError) {
+    }
+
+    // Delete the case
+    const { error: deleteError } = await supabase
       .from('case_bookings')
       .delete()
       .eq('id', caseId);
 
-    if (error) {
-      throw error;
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    // Trigger usage recalculation for that date
+    if (caseData) {
+      await recalculateUsageForDate(caseData.date_of_surgery, caseData.country, caseData.department);
     }
   } catch (error) {
     throw error;
+  }
+};
+
+/**
+ * Recalculate usage for a specific date after case deletion
+ */
+export const recalculateUsageForDate = async (date: string, country: string, department: string): Promise<void> => {
+  try {
+    // Call RPC function to recalculate usage
+    const { error } = await supabase.rpc('recalculate_daily_usage', {
+      p_usage_date: date,
+      p_country: country,
+      p_department: department
+    });
+
+    if (error) {
+      // If RPC doesn't exist, manually delete and recalculate
+      const { error: deleteError } = await supabase
+        .from('daily_usage_aggregation')
+        .delete()
+        .eq('usage_date', date)
+        .eq('country', country)
+        .eq('department', department);
+      
+      if (deleteError) {
+      }
+    }
+  } catch (error) {
   }
 };
 

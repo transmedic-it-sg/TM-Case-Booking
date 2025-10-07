@@ -90,7 +90,6 @@ export class ErrorHandler {
 
         // If this isn't the last attempt and auto-retry is enabled, wait and retry
         if (attempt < maxRetries && autoRetry) {
-          // // // console.warn(`${operationName} failed (attempt ${retryCount}/${maxRetries + 1}), retrying...`, error);
           await this.delay(this.retryDelays[attempt] || 4000);
           continue;
         }

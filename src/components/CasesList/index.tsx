@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { CaseBooking, FilterOptions, CaseStatus } from '../../types';
 import { CASE_STATUSES } from '../../constants/statuses';
 import { getCurrentUserSync } from '../../utils/auth';
@@ -42,7 +42,6 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   // Real-time connection status - prioritize cases connection for this component
   const { overallConnected, casesConnected, forceRefreshAll } = useRealtime();
   const isConnected = casesConnected || overallConnected;
-  const [filteredCases, setFilteredCases] = useState<CaseBooking[]>([]);
   const [availableSubmitters, setAvailableSubmitters] = useState<string[]>([]);
   const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);
   const [filters, setFilters] = useState<FilterOptions>({});
@@ -80,10 +79,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     // Driver role filtering - only show delivery-related cases
     if (userRole === 'driver') {
       const deliveryStatuses = [
-        CASE_STATUSES.PENDING_DELIVERY_HOSPITAL,
-        CASE_STATUSES.DELIVERED_HOSPITAL,
-        CASE_STATUSES.PENDING_DELIVERY_OFFICE,
-        CASE_STATUSES.DELIVERED_OFFICE
+        'Pending Delivery (Hospital)',
+        'Delivered (Hospital)',
+        'Pending Delivery (Office)',
+        'Delivered (Office)'
       ];
 
       filtered = filtered.filter(caseItem =>
@@ -134,7 +133,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
 
     return filtered;
-  }, [CASE_STATUSES.PENDING_DELIVERY_HOSPITAL, CASE_STATUSES.DELIVERED_HOSPITAL, CASE_STATUSES.PENDING_DELIVERY_OFFICE, CASE_STATUSES.DELIVERED_OFFICE]);
+  }, []); // No dependencies needed since we're using string literals
   const [hospitalDeliveryAttachments, setHospitalDeliveryAttachments] = useState<string[]>([]);
   const [hospitalDeliveryComments, setHospitalDeliveryComments] = useState('');
   const [hospitalDeliveryCase, setHospitalDeliveryCase] = useState<string | null>(null);
@@ -204,15 +203,15 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
   }, []); // Run only once on mount
 
-  useEffect(() => {
+  // Use useMemo to calculate filtered cases without causing re-renders
+  const filteredCases = useMemo(() => {
     const currentUser = getCurrentUserSync();
     let filteredResults = filterCasesLocally(cases, filters, currentUser?.role);
 
     // Admin users see ALL cases without country/department restrictions
     if (currentUser?.role === 'admin') {
       // Admin sees everything - no additional filtering
-      setFilteredCases(filteredResults);
-      return;
+      return filteredResults;
     }
 
     // Non-admin users: Apply country and department restrictions
@@ -246,24 +245,21 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       }
     }
 
-    setFilteredCases(filteredResults);
-  }, [cases, filters, filterCasesLocally]); // Now includes stable filterCasesLocally dependency
+    return filteredResults;
+  }, [cases, filters, filterCasesLocally]); // Calculate whenever dependencies change
 
   // Handle highlighted case from calendar
   useEffect(() => {
     if (highlightedCaseId) {
-      // Use a timeout to ensure filteredCases is updated
+      // Use a timeout for DOM manipulation and pagination
       const timeoutId = setTimeout(() => {
-        setFilteredCases(currentFilteredCases => {
-          // Find which page the highlighted case is on
-          const caseIndex = currentFilteredCases.findIndex(c => c.id === highlightedCaseId);
-          if (caseIndex !== -1) {
-            const targetPage = Math.ceil((caseIndex + 1) / casesPerPage);
-            setCurrentPage(targetPage);
-          }
-          return currentFilteredCases; // Return unchanged to avoid re-render
-        });
-
+        // Find which page the highlighted case is on
+        const caseIndex = cases.findIndex(c => c.id === highlightedCaseId);
+        if (caseIndex !== -1) {
+          const targetPage = Math.ceil((caseIndex + 1) / casesPerPage);
+          setCurrentPage(targetPage);
+        }
+        
         // Auto-expand the highlighted case
         setExpandedCases(prev => new Set([...Array.from(prev), highlightedCaseId]));
 
@@ -287,7 +283,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
       return () => clearTimeout(timeoutId);
     }
-  }, [highlightedCaseId, onClearHighlight, casesPerPage]); // Removed filteredCases to fix infinite loop
+  }, [highlightedCaseId, onClearHighlight, casesPerPage, cases]); // Depends on cases, not filteredCases
 
   const handleFilterChange = (field: keyof FilterOptions, value: string) => {
     setTempFilters(prev => ({

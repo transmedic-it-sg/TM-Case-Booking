@@ -91,6 +91,9 @@
 .edit-button {
   background: var(--success-color);
   color: white;
+  white-space: nowrap;
+  min-width: fit-content;
+  width: auto;
 }
 
 .edit-button:hover {

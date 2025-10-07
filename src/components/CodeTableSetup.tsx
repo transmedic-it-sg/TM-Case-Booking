@@ -98,7 +98,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
           }
         }
       } catch (error) {
-        // // // console.error('Error loading countries from Supabase:', error);
         // Fallback to constants if Supabase fails
         setAvailableCountries([...COUNTRIES]);
         if (!selectedCountry && currentUser) {
@@ -155,7 +154,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
           countryBasedTablesData = [hospitalsTable, departmentsTable];
 
         } catch (error) {
-          // // // console.error('Error loading country-based data:', error);
           // Fallback to empty tables
           countryBasedTablesData = [
             {
@@ -177,7 +175,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
         const filteredCountryTables = getFilteredTablesForUser(countryBasedTablesData, currentUser);
         setCountryBasedTables(filteredCountryTables);
       } catch (error) {
-        // // // console.error('Error loading code tables from Supabase:', error);
         // You could add fallback to localStorage here if needed
       }
     };
@@ -292,7 +289,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       showSuccess('Item Added', `"${trimmedName}" has been added to ${currentTable.name}`);
 
     } catch (error) {
-      // // // console.error('Error adding item to Supabase:', error);
       setItemError('Failed to add item. Please try again.');
     }
   };
@@ -358,7 +354,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       showSuccess('Item Updated', `"${oldName}" has been renamed to "${trimmedName}"`);
 
     } catch (error) {
-      // // // console.error('Error updating item in Supabase:', error);
       setItemError('Failed to update item. Please try again.');
     }
   };
@@ -421,7 +416,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       playSound.delete();
       showSuccess('Item Deleted', `"${itemName}" has been removed from ${table.name}`);
     } catch (error) {
-      // // // console.error('Error deleting item from Supabase:', error);
       showError('Delete Failed', `Failed to delete "${itemName}" from ${table.name}`);
     }
   };
@@ -581,7 +575,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
                       const filteredGlobalTables = getFilteredTablesForUser(globalOnly, currentUser);
                       setGlobalTables(filteredGlobalTables);
                     } catch (error) {
-                      // // // console.error('Error reinitializing tables:', error);
                     }
                   }}
                   className="btn btn-secondary"
@@ -620,7 +613,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
                       setCountryBasedTables(genericCountryTables);
 
                     } catch (error) {
-                      // // // console.error('Error reinitializing tables:', error);
                     }
                   }}
                   className="btn btn-secondary"

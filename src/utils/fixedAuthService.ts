@@ -98,7 +98,6 @@ class FixedAuthService {
       };
 
     } catch (error) {
-      // // // console.error('Login error:', error);
       return {
         success: false,
         error: 'Login failed. Please try again.'
@@ -111,9 +110,7 @@ class FixedAuthService {
     this.currentUser = null;
     this.sessionToken = null;
 
-    // Clear localStorage
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('sessionToken');
+    // Clear session storage only (no localStorage)
   }
 
   getCurrentUser(): AuthUser | null {
@@ -129,7 +126,6 @@ class FixedAuthService {
         return this.currentUser;
       }
     } catch (error) {
-      // // // console.error('Error restoring user from localStorage:', error);
     }
 
     return null;
@@ -170,7 +166,6 @@ class FixedAuthService {
       return { success: true };
 
     } catch (error) {
-      // // // console.error('Password change error:', error);
       return {
         success: false,
         error: 'Password change failed'

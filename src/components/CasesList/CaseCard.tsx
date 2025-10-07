@@ -9,6 +9,7 @@ import { useUserNames } from '../../hooks/useUserNames';
 import TimePicker from '../common/TimePicker';
 import { formatDate, getTodayForInput } from '../../utils/dateFormat';
 import { supabase } from '../../lib/supabase';
+import { StatusAttachmentManager } from './StatusAttachmentManager';
 
 const CaseCard: React.FC<CaseCardProps> = ({
   caseItem,
@@ -111,15 +112,6 @@ const CaseCard: React.FC<CaseCardProps> = ({
   // Debug logging for the problematic case
   React.useEffect(() => {
     if (caseItem.caseReferenceNumber === 'TMC-Singapore-2025-029') {
-      // // // console.log('🔍 DEBUG Case TMC-Singapore-2025-029:');
-      // // // console.log('📋 caseItem:', caseItem);
-      // // // console.log('👤 submittedBy:', caseItem.submittedBy);
-      // // // console.log('🏷️ getUserName result:', getUserName(caseItem.submittedBy));
-      // // // console.log('📅 procedureType:', caseItem.procedureType);
-      // // // console.log('📅 dateOfSurgery:', caseItem.dateOfSurgery);
-      // // // console.log('🏥 surgerySetSelection:', caseItem.surgerySetSelection);
-      // // // console.log('📦 implantBox:', caseItem.implantBox);
-      // // // console.log('⏰ timeOfProcedure:', caseItem.timeOfProcedure);
     }
   }, [caseItem, getUserName]);
 
@@ -167,7 +159,6 @@ const CaseCard: React.FC<CaseCardProps> = ({
         // No fallback - use empty array if no country
         setAvailableDepartments([]);
       } catch (error) {
-        // // // console.error('Error loading departments:', error);
         // No fallback on error - use empty array
         setAvailableDepartments([]);
       }
@@ -190,7 +181,6 @@ const CaseCard: React.FC<CaseCardProps> = ({
           .eq('case_booking_id', caseItem.id);
 
         if (error) {
-          // // // console.error('Error loading case quantities:', error);
           return;
         }
 
@@ -204,7 +194,6 @@ const CaseCard: React.FC<CaseCardProps> = ({
           setCaseQuantities({});
         }
       } catch (error) {
-        // // // console.error('Error loading case quantities:', error);
         setCaseQuantities({});
       }
     };
@@ -1016,69 +1005,21 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                 })()}
                               </div>
                             )}
-                            {historyItem.attachments && historyItem.attachments.length > 0 && (
-                              <div>
-                                <strong>Attachments ({historyItem.attachments.length}):</strong>
-                                <div className="attachment-preview-grid">
-                                  {historyItem.attachments.map((attachment: string, idx: number) => {
-                                    try {
-                                      const fileData = JSON.parse(attachment);
-                                      const isImage = fileData.type?.startsWith('image/');
-
-                                      return (
-                                        <div key={idx} className="attachment-preview-item">
-                                          {isImage ? (
-                                            <div className="image-attachment">
-                                              <img
-                                                src={fileData.data}
-                                                alt={fileData.name}
-                                                className="attachment-thumbnail clickable-image"
-                                                style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
-                                                onClick={() => {
-                                                  const modal = document.createElement('div');
-                                                  modal.className = 'image-modal';
-                                                  modal.innerHTML = `
-                                                    <div class="modal-overlay">
-                                                      <div class="modal-content">
-                                                        <div class="modal-header">
-                                                          <h5>${fileData.name}</h5>
-                                                          <button type="button" class="btn-close" onclick="this.closest('.image-modal').remove()">&times;</button>
-                                                        </div>
-                                                        <div class="modal-body text-center">
-                                                          <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 80vh; object-fit: contain;" />
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                          <button type="button" class="btn btn-secondary" onclick="this.closest('.image-modal').remove()">Close</button>
-                                                          <a href="${fileData.data}" download="${fileData.name}" class="btn btn-primary">Download</a>
-                                                        </div>
-                                                      </div>
-                                                    </div>
-                                                  `;
-                                                  document.body.appendChild(modal);
-                                                }}
-                                                title="Click to view full size"
-                                              />
-                                              <div className="attachment-info">
-                                                <div className="file-name" title={fileData.name}>{fileData.name}</div>
-                                              </div>
-                                            </div>
-                                          ) : (
-                                            <div className="file-attachment">
-                                              <div className="file-icon">📄</div>
-                                              <div className="attachment-info">
-                                                <div className="file-name" title={fileData.name}>{fileData.name}</div>
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    } catch {
-                                      return null;
-                                    }
-                                  })}
-                                </div>
-                              </div>
-                            )}
+                            <StatusAttachmentManager
+                              historyItem={{
+                                id: `status-${caseItem.id}-${index}`,
+                                attachments: historyItem.attachments,
+                                status: historyItem.status,
+                                timestamp: historyItem.timestamp,
+                                processed_by: historyItem.processedBy || 'System'
+                              }}
+                              caseId={caseItem.id}
+                              canEdit={currentUser?.role === 'admin' || currentUser?.role === 'operations-manager'}
+                              onAttachmentsUpdated={() => {
+                                // Refresh the case data
+                                window.location.reload();
+                              }}
+                            />
                           </div>
                         </div>
                       ))
@@ -2270,94 +2211,6 @@ const CaseCard: React.FC<CaseCardProps> = ({
             </div>
           )}
 
-          {/* Current Attachments for statuses without active forms */}
-          {currentAttachments.length > 0 && (
-            <div className="current-attachments-section">
-              <div className="section-header">
-                <h4>📎 Current Attachments ({currentAttachments.length})</h4>
-              </div>
-              <div className="attachment-preview-grid">
-                {currentAttachments.map((fileData: any, index: number) => {
-                  const isImage = fileData.type?.startsWith('image/');
-                  return (
-                    <div key={index} className="attachment-preview-item">
-                      {isImage ? (
-                        <img
-                          src={fileData.data}
-                          alt={fileData.name}
-                          className="attachment-preview-image clickable-image"
-                          style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
-                          onClick={() => {
-                            const modal = document.createElement('div');
-                            modal.className = 'image-modal';
-                            modal.innerHTML = `
-                              <div class="modal-overlay">
-                                <div class="modal-content">
-                                  <div class="modal-header">
-                                    <h5>${fileData.name}</h5>
-                                    <button type="button" class="btn-close" onclick="this.closest('.image-modal').remove()">&times;</button>
-                                  </div>
-                                  <div class="modal-body text-center">
-                                    <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 80vh; object-fit: contain;" />
-                                  </div>
-                                  <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" onclick="this.closest('.image-modal').remove()">Close</button>
-                                    <a href="${fileData.data}" download="${fileData.name}" class="btn btn-primary">Download</a>
-                                  </div>
-                                </div>
-                              </div>
-                            `;
-                            document.body.appendChild(modal);
-                          }}
-                          title="Click to view full size"
-                        />
-                      ) : (
-                        <div className="attachment-preview-file">
-                          📄
-                        </div>
-                      )}
-                      <div className="attachment-info">
-                        <div className="attachment-name" title={fileData.name}>
-                          {fileData.name?.length > 15 ? `${fileData.name.substring(0, 15)}...` : fileData.name}
-                        </div>
-                        <div className="attachment-size">
-                          {fileData.size ? `${(fileData.size / 1024).toFixed(1)} KB` : 'Unknown size'}
-                        </div>
-                        {fileData.uploadedBy && (
-                          <div className="attachment-uploaded-by">
-                            By: {fileData.uploadedBy}
-                          </div>
-                        )}
-                      </div>
-                      <div className="attachment-actions">
-                        <button
-                          className="attachment-action-btn download"
-                          onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = fileData.data;
-                            link.download = fileData.name || 'attachment';
-                            link.click();
-                          }}
-                          title="Download attachment"
-                        >
-                          ⬇️
-                        </button>
-                        <button
-                          className="attachment-action-btn view"
-                          onClick={() => {
-                            window.open(fileData.data, '_blank');
-                          }}
-                          title="View attachment"
-                        >
-                          👁️
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           <CaseActions
             caseItem={caseItem}

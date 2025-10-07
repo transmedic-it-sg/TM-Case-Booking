@@ -11,7 +11,6 @@ export const saveCustomRoles = (roles: Role[]): void => {
   try {
     // Roles stored in profiles table);
   } catch (error) {
-    // // // console.error('Error saving custom roles:', error);
     throw new Error('Failed to save custom roles');
   }
 };
@@ -24,7 +23,6 @@ export const loadCustomRoles = (): Role[] => {
     const savedRoles = null /* Use Supabase profiles table */;
     return savedRoles ? JSON.parse(savedRoles) : [];
   } catch (error) {
-    // // // console.error('Error loading custom roles:', error);
     return [];
   }
 };
@@ -36,7 +34,6 @@ export const saveCustomPermissions = (permissions: Permission[]): void => {
   try {
     // Roles stored in profiles table);
   } catch (error) {
-    // // // console.error('Error saving custom permissions:', error);
     throw new Error('Failed to save custom permissions');
   }
 };
@@ -49,7 +46,6 @@ export const loadCustomPermissions = (): Permission[] => {
     const savedPermissions = null /* Use Supabase profiles table */;
     return savedPermissions ? JSON.parse(savedPermissions) : [];
   } catch (error) {
-    // // // console.error('Error loading custom permissions:', error);
     return [];
   }
 };
@@ -126,7 +122,6 @@ export const deleteCustomRole = (roleId: string): void => {
     const updatedPermissions = customPermissions.filter(p => p.roleId !== roleId);
     saveCustomPermissions(updatedPermissions);
   } catch (error) {
-    // // // console.error('Error deleting custom role:', error);
     throw new Error('Failed to delete custom role');
   }
 };

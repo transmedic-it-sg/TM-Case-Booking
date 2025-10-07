@@ -22,7 +22,6 @@ export const getCachedUsers = async (): Promise<User[]> => {
     cacheTimestamp = now;
     return usersCache;
   } catch (error) {
-    // console.error('❌ Error loading users for lookup:', error);
     return usersCache || [];
   }
 };
@@ -42,48 +41,84 @@ export const getUserNameById = async (userId: string): Promise<string> => {
  * Convert multiple user IDs to names
  */
 export const getUserNamesByIds = async (userIds: string[]): Promise<Record<string, string>> => {
-  // console.log('🔍 getUserNamesByIds called with userIds:', userIds);
   
   const result: Record<string, string> = {};
   
   try {
-    // Get all user names directly from profiles table
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, name')
-      .in('id', userIds.filter(id => id && id.includes('-')));
+    // Handle special cases first
+    const specialCases: Record<string, string> = {
+      'Current_user': 'Current User',
+      'current_user': 'Current User', 
+      'system': 'System',
+      'System': 'System'
+    };
 
-    // console.log('📄 Supabase profiles response:', { profiles, error: profilesError });
+    // Separate special cases from UUIDs
+    const uuids = userIds.filter(id => id && id.includes('-'));
+    const nonUuids = userIds.filter(id => id && !id.includes('-'));
 
-    if (profilesError) {
-      // console.error('❌ Direct profiles lookup error:', profilesError);
-      // Fallback to userIds as names
-      userIds.forEach(userId => {
-        result[userId] = userId;
-      });
-    } else {
-      // First, set all IDs to themselves as fallback
-      userIds.forEach(userId => {
-        result[userId] = userId;
-      });
+    // Handle non-UUID cases (like username lookups)
+    if (nonUuids.length > 0) {
+      // Try to look up by username
+      const { data: profilesByUsername } = await supabase
+        .from('profiles')
+        .select('username, name')
+        .in('username', nonUuids);
       
-      // Then update with actual names where found
-      if (profiles) {
-        profiles.forEach(profile => {
-          result[profile.id] = profile.name;
-          // console.log(`✅ Mapped user: ${profile.id} -> ${profile.name}`);
+      if (profilesByUsername) {
+        profilesByUsername.forEach(profile => {
+          result[profile.username] = profile.name;
         });
       }
     }
+
+    // Get all user names directly from profiles table for UUIDs
+    if (uuids.length > 0) {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', uuids);
+
+      if (!profilesError && profiles) {
+        profiles.forEach(profile => {
+          result[profile.id] = profile.name;
+        });
+      }
+    }
+    
+    // Apply special case replacements and fallbacks
+    userIds.forEach(userId => {
+      if (!(userId in result)) {
+        // Check if it's a special case
+        if (specialCases[userId]) {
+          result[userId] = specialCases[userId];
+        } else {
+          // Try to get from current user session if it matches
+          const currentUserStr = sessionStorage.getItem('currentUser');
+          if (currentUserStr) {
+            try {
+              const currentUser = JSON.parse(currentUserStr);
+              if (currentUser && (userId === currentUser.id || userId === currentUser.username)) {
+                result[userId] = currentUser.name || userId;
+              } else {
+                result[userId] = userId;
+              }
+            } catch {
+              result[userId] = userId;
+            }
+          } else {
+            // Final fallback to the userId itself
+            result[userId] = userId;
+          }
+        }
+      }
+    });
   } catch (error) {
-    // console.error('💥 Error in direct Supabase user lookup:', error);
     // Fallback to userIds as names
     userIds.forEach(userId => {
       result[userId] = userId;
     });
   }
-  
-  // console.log('🎉 Final getUserNamesByIds result:', result);
   
   return result;
 };

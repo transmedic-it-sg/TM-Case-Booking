@@ -1,13 +1,13 @@
 /**
- * App Version Manager - Simplified
+ * App Version Manager - Using Supabase
  * Handles app version updates with automatic logout when version changes
+ * NO localStorage - uses Supabase app_settings table
  */
 
 import { getAppVersion } from './version';
 import { logout } from './auth';
+import { supabase } from '../lib/supabase';
 
-// Storage keys for versions
-const APP_VERSION_KEY = 'tm-app-version';
 const USER_SESSION_KEY = 'currentUser';
 
 export interface VersionCheckResult {
@@ -18,12 +18,67 @@ export interface VersionCheckResult {
 }
 
 /**
+ * Get stored version from Supabase
+ */
+const getStoredVersion = async (): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'client_app_version')
+      .single();
+    
+    if (error || !data) return null;
+    return data.setting_value as string;
+  } catch (error) {
+    return null;
+  }
+};
+
+/**
+ * Update stored version in Supabase
+ */
+const setStoredVersion = async (version: string): Promise<void> => {
+  try {
+    // First check if setting exists
+    const { data: existing } = await supabase
+      .from('app_settings')
+      .select('id')
+      .eq('setting_key', 'client_app_version')
+      .single();
+    
+    if (existing) {
+      // Update existing
+      await supabase
+        .from('app_settings')
+        .update({
+          setting_value: version,
+          updated_at: new Date().toISOString()
+        })
+        .eq('setting_key', 'client_app_version');
+    } else {
+      // Insert new
+      await supabase
+        .from('app_settings')
+        .insert({
+          setting_key: 'client_app_version',
+          setting_value: version,
+          description: 'Client application version for update detection',
+          updated_at: new Date().toISOString()
+        });
+    }
+  } catch (error) {
+    // Failed to update stored version
+  }
+};
+
+/**
  * Check if app version has changed and user is logged in
  */
-export const checkAppVersionUpdate = (): VersionCheckResult => {
+export const checkAppVersionUpdate = async (): Promise<VersionCheckResult> => {
   try {
     const currentVersion = getAppVersion();
-    const storedVersion = localStorage.getItem(APP_VERSION_KEY);
+    const storedVersion = await getStoredVersion();
     const userSession = sessionStorage.getItem(USER_SESSION_KEY);
     const userLoggedIn = !!userSession;
 
@@ -36,7 +91,6 @@ export const checkAppVersionUpdate = (): VersionCheckResult => {
       userLoggedIn
     };
   } catch (error) {
-    // // // console.error('Error checking app version:', error);
     return {
       versionChanged: false,
       currentVersion: getAppVersion(),
@@ -49,24 +103,24 @@ export const checkAppVersionUpdate = (): VersionCheckResult => {
 /**
  * Update stored app version
  */
-export const updateStoredAppVersion = (): void => {
+export const updateStoredAppVersion = async (): Promise<void> => {
   try {
     const currentVersion = getAppVersion();
-    localStorage.setItem(APP_VERSION_KEY, currentVersion);
+    await setStoredVersion(currentVersion);
   } catch (error) {
-    // // // console.error('Error updating stored app version:', error);
+    // Failed to update app version
   }
 };
 
 /**
  * Initialize version manager and check for updates
  */
-export const initializeVersionManager = (): VersionCheckResult => {
-  const versionCheck = checkAppVersionUpdate();
+export const initializeVersionManager = async (): Promise<VersionCheckResult> => {
+  const versionCheck = await checkAppVersionUpdate();
   
   // If this is first time or no stored version, just store current version
   if (versionCheck.storedVersion === null) {
-    updateStoredAppVersion();
+    await updateStoredAppVersion();
     return {
       versionChanged: false,
       currentVersion: getAppVersion(),
@@ -84,7 +138,7 @@ export const initializeVersionManager = (): VersionCheckResult => {
 export const handleVersionUpdate = async (): Promise<void> => {
   try {
     // Update stored version first
-    updateStoredAppVersion();
+    await updateStoredAppVersion();
     
     // Check if user is logged in
     const userSession = sessionStorage.getItem(USER_SESSION_KEY);
@@ -94,7 +148,6 @@ export const handleVersionUpdate = async (): Promise<void> => {
       
       // Clear all storage to ensure clean state
       sessionStorage.clear();
-      localStorage.removeItem('selectedCountry');
       
       // Reload the page to get fresh version
       window.location.reload();
@@ -103,23 +156,21 @@ export const handleVersionUpdate = async (): Promise<void> => {
       window.location.reload();
     }
   } catch (error) {
-    // // // console.error('Error handling version update:', error);
-    // Fallback: force reload anyway
+    // Failed to handle version update
+    // Fallback - reload anyway
     window.location.reload();
   }
 };
 
 /**
- * Get current version info for display
+ * Get version info for debugging
  */
-export interface VersionInfo {
-  currentVersion: string;
-  storedVersion: string | null;
-}
-
-export const getVersionInfo = (): VersionInfo => {
+export const getVersionDebugInfo = async () => {
+  const currentVersion = getAppVersion();
+  const storedVersion = await getStoredVersion();
+  
   return {
-    currentVersion: getAppVersion(),
-    storedVersion: localStorage.getItem(APP_VERSION_KEY)
+    currentVersion,
+    storedVersion: storedVersion || 'Not set'
   };
 };

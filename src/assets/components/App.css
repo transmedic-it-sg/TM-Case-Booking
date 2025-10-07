@@ -778,17 +778,18 @@ body {
 }
 
 .options-container {
-  max-height: calc(5 * 52px);
+  max-height: calc(5 * 36px);
   overflow-y: auto;
   overflow-x: hidden;
 }
 
 /* Fix for showing exactly 5 options */
 .multi-select-option {
-  min-height: 20px;
+  min-height: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
-  padding: 2px 12px;
+  padding: 6px 12px;
   cursor: pointer;
   transition: background-color 0.2s ease;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
@@ -7958,53 +7959,74 @@ textarea:focus {
 }
 
 .amendment-changes {
-  margin-top: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
 }
 
 .changes-grid {
   margin-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .change-item {
-  display: flow;
-  grid-template-columns: 120px 1fr 20px 1fr;
-  gap: 8px;
+  display: flex;
   align-items: center;
-  padding: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
   background: white;
-  border-radius: 4px;
-  border: 1px solid #e0e0e0;
-  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.change-item:hover {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border-color: #d1d5db;
 }
 
 .change-field {
   font-weight: 600;
-  color: #333;
+  color: #495057;
+  min-width: 140px;
+  font-size: 13px;
+  text-transform: capitalize;
 }
 
 .change-from {
   color: #dc3545;
-  font-family: monospace;
-  background: #fff5f5;
-  padding: 2px 4px;
-  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  background: #ffebee;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-decoration: line-through;
+  border: 1px solid #ffcdd2;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .change-arrow {
-  text-align: center;
-  color: #666;
+  color: #6c757d;
+  margin: 0 8px;
   font-weight: bold;
+  font-size: 16px;
 }
 
 .change-to {
-  color: #20b2aa;
-  font-family: monospace;
-  background: #f5fff5;
-  padding: 2px 4px;
-  border-radius: 3px;
+  color: #28a745;
+  font-family: 'Courier New', monospace;
+  background: #e8f5e9;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #c8e6c9;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 /* EditSets Admin Country Selector */

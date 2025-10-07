@@ -103,7 +103,6 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
     await saveSystemConfigToSecureStorage(supabaseConfig);
     return supabaseConfig;
   } catch (error) {
-    // console.error('Error getting system configuration from Supabase:', error);
     return await getSystemConfigFromSecureStorage();
   }
 };
@@ -152,11 +151,9 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
         if (error.code === '401' || error.message.includes('permission denied')) {
           return;
         }
-        // console.warn(`⚠️ Failed to save setting ${mapping.key} to Supabase:`, error.message);
       }
     }
   } catch (error) {
-    // console.error('⚠️ Error saving system configuration to Supabase:', error);
     // Don't throw error since localStorage save was successful
   }
 };
@@ -189,7 +186,6 @@ const createDefaultSystemConfig = async (): Promise<SystemConfig> => {
     await saveSystemConfig(DEFAULT_CONFIG);
     return DEFAULT_CONFIG;
   } catch (error) {
-    // console.error('Error creating default system configuration:', error);
     return DEFAULT_CONFIG;
   }
 };
@@ -218,7 +214,6 @@ const getSystemConfigFromSecureStorage = async (): Promise<SystemConfig> => {
       };return config;
     }return DEFAULT_CONFIG;
   } catch (error) {
-    // console.error('Error getting system configuration from secure storage:', error);
     return DEFAULT_CONFIG;
   }
 };
@@ -233,7 +228,6 @@ const saveSystemConfigToSecureStorage = async (config: SystemConfig): Promise<vo
       ttl: 90 * 24 * 60 * 60 * 1000 // 90 days
     });
   } catch (error) {
-    // console.error('Error saving system configuration to secure storage:', error);
   }
 };
 
@@ -245,7 +239,6 @@ export const resetSystemConfig = async (): Promise<SystemConfig> => {
     await saveSystemConfig(DEFAULT_CONFIG);
     return DEFAULT_CONFIG;
   } catch (error) {
-    // console.error('Error resetting system configuration:', error);
     throw error;
   }
 };
@@ -407,7 +400,6 @@ export const applySystemConfig = async (config: SystemConfig): Promise<void> => 
       ttl: 90 * 24 * 60 * 60 * 1000
     });
   } catch (error) {
-    // console.error('Error applying system configuration:', error);
     throw error;
   }
 };

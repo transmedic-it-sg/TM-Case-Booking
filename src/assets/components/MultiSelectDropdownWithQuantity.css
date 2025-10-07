@@ -1,0 +1,453 @@
+/* Enhanced Multi-Select Dropdown with Quantity - Modern Design */
+
+.custom-multi-select.with-quantity {
+  position: relative;
+  width: 100%;
+}
+
+/* Trigger Button - Modern Design */
+.custom-multi-select.with-quantity .multi-select-trigger {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  background: linear-gradient(to bottom, #ffffff 0%, #fafafa 100%);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.95rem;
+  min-height: 48px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.custom-multi-select.with-quantity .multi-select-trigger:hover:not(.disabled) {
+  border-color: #007bff;
+  background: linear-gradient(to bottom, #ffffff 0%, #f0f8ff 100%);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.custom-multi-select.with-quantity .multi-select-trigger:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.custom-multi-select.with-quantity .multi-select-trigger.disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Selected Text */
+.custom-multi-select.with-quantity .selected-text {
+  color: #2c3e50;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.custom-multi-select.with-quantity .placeholder {
+  color: #9e9e9e;
+  font-style: italic;
+}
+
+/* Dropdown Arrow */
+.custom-multi-select.with-quantity .dropdown-arrow {
+  color: #757575;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+}
+
+.custom-multi-select.with-quantity .dropdown-arrow.open {
+  transform: rotate(180deg);
+  color: #007bff;
+}
+
+/* Enhanced Dropdown Content */
+.custom-multi-select.with-quantity .multi-select-dropdown-content.enhanced {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid #007bff;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-height: 400px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dropdown Header */
+.custom-multi-select.with-quantity .dropdown-header {
+  padding: 12px;
+  background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Search Input */
+.custom-multi-select.with-quantity .search-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.custom-multi-select.with-quantity .search-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+/* Select All Button */
+.custom-multi-select.with-quantity .select-all-btn {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  background: #007bff;
+  color: white;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.custom-multi-select.with-quantity .select-all-btn:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* Options List */
+.custom-multi-select.with-quantity .options-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+}
+
+/* Custom Scrollbar */
+.custom-multi-select.with-quantity .options-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-multi-select.with-quantity .options-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.custom-multi-select.with-quantity .options-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.custom-multi-select.with-quantity .options-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Option Item - Enhanced Design */
+.custom-multi-select.with-quantity .multi-select-option {
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.custom-multi-select.with-quantity .multi-select-option:hover {
+  background: #e3f2fd;
+  border-color: #007bff;
+  transform: translateX(2px);
+}
+
+.custom-multi-select.with-quantity .multi-select-option.selected {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border-color: #007bff;
+}
+
+/* Option Content Layout */
+.custom-multi-select.with-quantity .option-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Checkbox Container */
+.custom-multi-select.with-quantity .checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+/* Custom Checkbox */
+.custom-multi-select.with-quantity .custom-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #757575;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  background: white;
+  flex-shrink: 0;
+}
+
+.custom-multi-select.with-quantity .multi-select-option.selected .custom-checkbox {
+  background: #007bff;
+  border-color: #007bff;
+}
+
+.custom-multi-select.with-quantity .custom-checkbox::after {
+  content: '✓';
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.2s ease;
+}
+
+.custom-multi-select.with-quantity .multi-select-option.selected .custom-checkbox::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Option Label */
+.custom-multi-select.with-quantity .option-label {
+  flex: 1;
+  font-size: 0.95rem;
+  color: #2c3e50;
+  font-weight: 400;
+  user-select: none;
+}
+
+.custom-multi-select.with-quantity .multi-select-option.selected .option-label {
+  font-weight: 500;
+  color: #0056b3;
+}
+
+/* Quantity Control - Modern Design */
+.custom-multi-select.with-quantity .quantity-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: white;
+  border-radius: 8px;
+  padding: 2px;
+  border: 1px solid #e0e0e0;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: all 0.3s ease;
+}
+
+.custom-multi-select.with-quantity .multi-select-option.selected .quantity-control {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Quantity Buttons */
+.custom-multi-select.with-quantity .quantity-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: #007bff;
+  color: white;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.custom-multi-select.with-quantity .quantity-btn:hover:not(:disabled) {
+  background: #0056b3;
+  transform: scale(1.1);
+}
+
+.custom-multi-select.with-quantity .quantity-btn:disabled {
+  background: #e0e0e0;
+  color: #9e9e9e;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Quantity Input */
+.custom-multi-select.with-quantity .quantity-input {
+  width: 50px;
+  padding: 4px;
+  text-align: center;
+  border: none;
+  background: #f8f9fa;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.custom-multi-select.with-quantity .quantity-input:focus {
+  outline: none;
+  background: white;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+}
+
+/* Selected Items Summary */
+.custom-multi-select.with-quantity .selected-items-summary {
+  padding: 12px;
+  background: linear-gradient(to right, #e3f2fd 0%, #f0f8ff 100%);
+  border-top: 1px solid #e0e0e0;
+  font-size: 0.9rem;
+  color: #0056b3;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* No Results */
+.custom-multi-select.with-quantity .no-results {
+  padding: 20px;
+  text-align: center;
+  color: #9e9e9e;
+  font-style: italic;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .custom-multi-select.with-quantity .multi-select-trigger {
+    padding: 12px;
+    font-size: 1rem;
+  }
+  
+  .custom-multi-select.with-quantity .multi-select-dropdown-content.enhanced {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 70vh;
+    border-radius: 20px 20px 0 0;
+    animation: slideUp 0.3s ease;
+  }
+  
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  
+  .custom-multi-select.with-quantity .dropdown-header {
+    padding: 16px;
+  }
+  
+  .custom-multi-select.with-quantity .search-input {
+    padding: 12px;
+    font-size: 1rem;
+  }
+  
+  .custom-multi-select.with-quantity .multi-select-option {
+    padding: 14px;
+    margin-bottom: 8px;
+  }
+  
+  .custom-multi-select.with-quantity .quantity-control {
+    opacity: 1;
+    transform: scale(1);
+  }
+  
+  .custom-multi-select.with-quantity .quantity-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+  
+  .custom-multi-select.with-quantity .quantity-input {
+    width: 60px;
+    padding: 8px;
+    font-size: 1rem;
+  }
+}
+
+/* Animations */
+@keyframes checkmark {
+  0% {
+    transform: scale(0) rotate(45deg);
+  }
+  50% {
+    transform: scale(1.2) rotate(45deg);
+  }
+  100% {
+    transform: scale(1) rotate(45deg);
+  }
+}
+
+/* Focus Styles for Accessibility */
+.custom-multi-select.with-quantity *:focus-visible {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Hover Effects */
+.custom-multi-select.with-quantity .multi-select-option:active {
+  transform: scale(0.98);
+}
+
+/* Loading State */
+.custom-multi-select.with-quantity.loading .multi-select-trigger {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.custom-multi-select.with-quantity.loading .multi-select-trigger::after {
+  content: '';
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid #007bff;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
+}

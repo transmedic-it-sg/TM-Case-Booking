@@ -17,7 +17,6 @@ export const useCurrentUser = () => {
         const currentUser = await userService.getCurrentUser();
         setUser(currentUser);
       } catch (error) {
-        // // // console.error('Error loading user:', error);
         setUser(null);
       } finally {
         setLoading(false);

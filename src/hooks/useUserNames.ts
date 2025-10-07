@@ -24,7 +24,6 @@ export const useUserNames = (userIds: string[]) => {
 
         setUserNames(names);
       } catch (error) {
-        // // // console.error('Error loading user names:', error);
         // Fallback to userIds as names
         const fallback: Record<string, string> = {};
         userIds.forEach(id => {

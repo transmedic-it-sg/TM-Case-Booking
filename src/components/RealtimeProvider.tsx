@@ -96,7 +96,6 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const lastRefreshRef = useRef<number>(0);
   useEffect(() => {
     if (!overallConnected && totalReconnectAttempts > 20) { // Increased threshold
-      // // // console.warn('🚨 Too many reconnect attempts - forcing cache refresh');
 
       // Throttle force refresh to once every 60 seconds (memory only)
       const now = Date.now();
