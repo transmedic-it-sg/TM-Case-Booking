@@ -29,16 +29,17 @@ class DynamicConstantsService {
       let query = supabase
         .from('system_settings')
         .select('setting_value')
-        .eq('setting_key', key)
-        .single();
+        .eq('setting_key', key);
 
       const { data, error } = await query;
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+      if (error) {
         throw error;
       }
 
-      const value = data?.setting_value || null;
+      // Handle array result from select (without .single())
+      const result = Array.isArray(data) ? data[0] : data;
+      const value = result?.setting_value || null;
 
       // Cache the result
       this.cache.set(cacheKey, {
