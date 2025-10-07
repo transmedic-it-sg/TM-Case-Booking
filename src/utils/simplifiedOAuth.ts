@@ -449,7 +449,14 @@ export const storeAuthTokens = (country: string, provider: string, tokens: AuthT
   const key = provider === 'microsoft' 
     ? `email_auth_global_microsoft` 
     : `email_auth_${country}_${provider}`;
-  // OAuth tokens should NOT be in localStorage);
+  
+  // Store in sessionStorage for immediate use
+  sessionStorage.setItem(key, JSON.stringify(tokens));
+  
+  // Also store in Supabase for persistence across tabs
+  import('../utils/secureDataManager').then(({ secureDataManager }) => {
+    secureDataManager.setData(key, tokens, { ttl: 3600000 }); // 1 hour TTL
+  });
 };
 
 // User info storage utilities
@@ -458,7 +465,14 @@ export const storeUserInfo = (country: string, provider: string, userInfo: UserI
   const key = provider === 'microsoft'
     ? `email_userinfo_global_microsoft`
     : `email_userinfo_${country}_${provider}`;
-  // OAuth tokens should NOT be in localStorage);
+  
+  // Store in sessionStorage
+  sessionStorage.setItem(key, JSON.stringify(userInfo));
+  
+  // Also store in Supabase for persistence
+  import('../utils/secureDataManager').then(({ secureDataManager }) => {
+    secureDataManager.setData(key, userInfo, { ttl: 86400000 }); // 24 hour TTL
+  });
 };
 
 export const getStoredUserInfo = (country: string, provider: string): UserInfo | null => {

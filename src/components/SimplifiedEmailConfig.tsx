@@ -581,13 +581,66 @@ Best regards,
   useEffect(() => {
     if (!selectedCountry) return;
 
-    // Check for stored tokens for both providers
+    // Check for stored tokens for both providers (sync from sessionStorage)
     const googleTokens = getStoredAuthTokens(selectedCountry, 'google');
     const microsoftTokens = getStoredAuthTokens(selectedCountry, 'microsoft');
 
-    // Load stored user info
+    // Load stored user info (sync from sessionStorage)
     const googleUserInfo = getStoredUserInfo(selectedCountry, 'google');
     const microsoftUserInfo = getStoredUserInfo(selectedCountry, 'microsoft');
+    
+    // Also load from Supabase for persistence across tabs
+    const loadPersistedAuth = async () => {
+      const { secureDataManager } = await import('../utils/secureDataManager');
+      
+      // Try to load Microsoft auth from Supabase if not in sessionStorage
+      if (!microsoftTokens) {
+        const key = 'email_auth_global_microsoft';
+        const persistedTokens = await secureDataManager.getData(key);
+        if (persistedTokens) {
+          storeAuthTokens(selectedCountry, 'microsoft', persistedTokens as AuthTokens);
+        }
+      }
+      
+      // Try to load Microsoft user info from Supabase if not in sessionStorage
+      if (!microsoftUserInfo) {
+        const key = 'email_userinfo_global_microsoft';
+        const persistedInfo = await secureDataManager.getData(key);
+        if (persistedInfo) {
+          storeUserInfo(selectedCountry, 'microsoft', persistedInfo as UserInfo);
+        }
+      }
+      
+      // Do the same for Google if needed
+      if (!googleTokens) {
+        const key = `email_auth_${selectedCountry}_google`;
+        const persistedTokens = await secureDataManager.getData(key);
+        if (persistedTokens) {
+          storeAuthTokens(selectedCountry, 'google', persistedTokens as AuthTokens);
+        }
+      }
+      
+      if (!googleUserInfo) {
+        const key = `email_userinfo_${selectedCountry}_google`;
+        const persistedInfo = await secureDataManager.getData(key);
+        if (persistedInfo) {
+          storeUserInfo(selectedCountry, 'google', persistedInfo as UserInfo);
+        }
+      }
+      
+      // Re-render with loaded data
+      const newGoogleTokens = getStoredAuthTokens(selectedCountry, 'google');
+      const newMicrosoftTokens = getStoredAuthTokens(selectedCountry, 'microsoft');
+      const newGoogleUserInfo = getStoredUserInfo(selectedCountry, 'google');
+      const newMicrosoftUserInfo = getStoredUserInfo(selectedCountry, 'microsoft');
+      
+      if (newGoogleTokens || newMicrosoftTokens || newGoogleUserInfo || newMicrosoftUserInfo) {
+        // Trigger re-render by updating state
+        initializeEmailConfig();
+      }
+    };
+    
+    loadPersistedAuth();
 
     // Enhanced token validation - check if tokens are valid or can be refreshed
     const validateTokens = async (tokens: AuthTokens | null, provider: 'google' | 'microsoft') => {
