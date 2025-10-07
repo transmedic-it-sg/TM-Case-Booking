@@ -219,66 +219,22 @@ export const getUserCountries = (userCountries?: string[]): string[] => {
   return allCountries;
 };
 
-// Save code tables to localStorage
+// Save code tables to Supabase (deprecated - use database services instead)
 export const saveCodeTables = (tables: CodeTable[], country?: string): void => {
-  try {
-    const storageKey = country ? `codeTables-${country}` : 'codeTables';
-    // Code tables fetched from Supabase);
-  } catch (error) {
-  }
+  // NO-OP: Use Supabase database services directly instead
+  console.warn('saveCodeTables is deprecated - use Supabase database services instead');
 };
 
-// Initialize code tables if they don't exist or if corrupted
+// Initialize code tables if they don't exist or if corrupted (deprecated)
 export const initializeCodeTables = (): void => {
-  const existingTables = null /* Use Supabase tables */;
-  if (!existingTables) {
-    const defaultTables = getDefaultCodeTables();
-    saveCodeTables(defaultTables);
-  } else {
-    // Check if countries table is corrupted (missing countries)
-    try {
-      const tables = JSON.parse(existingTables);
-      const countriesTable = tables.find((table: CodeTable) => table.id === 'countries');
-      const defaultCountries = getDefaultCodeTables().find(table => table.id === 'countries');
-
-      // If countries table exists but has fewer items than default, reset to defaults
-      if (countriesTable && defaultCountries && countriesTable.items.length < defaultCountries.items.length) {const defaultTables = getDefaultCodeTables();
-        saveCodeTables(defaultTables);
-      }
-    } catch (error) {
-      const defaultTables = getDefaultCodeTables();
-      saveCodeTables(defaultTables);
-    }
-  }
+  // NO-OP: Use Supabase database services to initialize data instead
+  console.warn('initializeCodeTables is deprecated - use Supabase database services instead');
 };
 
-// Initialize country-specific code tables
+// Initialize country-specific code tables (deprecated)
 export const initializeCountryCodeTables = (country: string): void => {
-  const storageKey = `codeTables-${country}`;
-  const existingTables = null /* Use Supabase tables */;
-
-  if (!existingTables) {
-    // Create country-specific tables with default data for that country
-    const defaultTables = getDefaultCodeTables(country);
-    // Only save country-based tables (exclude countries table which is global)
-    const countryBasedTables = defaultTables.filter(table => table.id !== 'countries');
-    saveCodeTables(countryBasedTables, country);} else {
-    // Validate existing country tables
-    try {
-      const tables = JSON.parse(existingTables);
-      const hospitalsTable = tables.find((table: CodeTable) => table.id === 'hospitals');
-
-      // If hospitals table doesn't exist, reinitialize
-      if (!hospitalsTable) {const defaultTables = getDefaultCodeTables(country);
-        const countryBasedTables = defaultTables.filter(table => table.id !== 'countries');
-        saveCodeTables(countryBasedTables, country);
-      }
-    } catch (error) {
-      const defaultTables = getDefaultCodeTables(country);
-      const countryBasedTables = defaultTables.filter(table => table.id !== 'countries');
-      saveCodeTables(countryBasedTables, country);
-    }
-  }
+  // NO-OP: Use Supabase database services to initialize country-specific data instead
+  console.warn('initializeCountryCodeTables is deprecated - use Supabase database services instead');
 };
 
 // Add item to a code table
@@ -425,11 +381,8 @@ export const getDefaultHospitalsForCountry = (country?: string): string[] => {
   }
 };
 
-// Update saveCodeTables to support country-specific storage
+// Update saveCodeTables to support country-specific storage (deprecated)
 export const saveCodeTablesForCountry = (tables: CodeTable[], country?: string): void => {
-  try {
-    const storageKey = country ? `codeTables-${country}` : 'codeTables';
-    // Code tables fetched from Supabase);
-  } catch (error) {
-  }
+  // NO-OP: Use Supabase database services directly instead
+  console.warn('saveCodeTablesForCountry is deprecated - use Supabase database services instead');
 };

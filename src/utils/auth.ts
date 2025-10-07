@@ -218,25 +218,12 @@ export const getUsers = async (): Promise<User[]> => {
         return await getSupabaseUsers();
       }
 
-      // Create default admin user if none exist
-      const defaultUser: Omit<User, 'id'> = {
-        username: 'Admin',
-        password: 'Admin',
-        role: 'admin',
-        name: 'System Administrator',
-        departments: [],
-        countries: [...SUPPORTED_COUNTRIES],
-        enabled: true
-      };
-
-      const createdUser = await addSupabaseUser(defaultUser);
-      return createdUser ? [createdUser] : [];
+      // No fallback to default users - return empty array if no users exist
+      return [];
     }
   } catch (error) {
-    // Error getting users, falling back to secure storage
-    // Ensure secure storage has default users
-    const localUsers = await getUsersFromSecureStorage();
-    return localUsers;
+    // Error getting users, no fallback - return empty array
+    return [];
   }
 };
 
@@ -253,26 +240,8 @@ const getUsersFromSecureStorage = async (): Promise<User[]> => {
     }));
   }
 
-  // SECURITY: Default admin with temporary password - must be changed on first login
-  const defaultUsers: User[] = [
-    {
-      id: '97a7414a-0edc-4623-96de-7a93004eb7a7',
-      username: 'admin',
-      password: 'TempAdmin123!',  // Temporary strong password
-      role: 'admin',
-      name: 'System Administrator',
-      departments: [],
-      countries: [...SUPPORTED_COUNTRIES],
-      enabled: true,
-      isTemporaryPassword: true  // Force password change on first login
-    }
-  ];
-
-  await SafeStorage.setItem(STORAGE_KEY, defaultUsers, {
-    tags: ['user-data', 'admin'],
-    ttl: 7 * 24 * 60 * 60 * 1000 // 7 days
-  });
-  return defaultUsers;
+  // No fallback to default users - return empty array if no users exist
+  return [];
 };
 
 export const addUser = async (user: Omit<User, 'id'>): Promise<User> => {
@@ -304,28 +273,7 @@ export const authenticate = async (username: string, password: string, country: 
   try {
     let user = await authenticateUser(username, password);
 
-    // If Supabase authentication fails, try secure storage fallback
-    if (!user) {
-      // Supabase authentication failed, trying secure storage fallback
-
-      // Ensure secure storage has users by calling getUsers (which creates defaults if needed)
-      await getUsers();
-
-      const localUsers = await getUsersFromSecureStorage();
-
-      const matchedUser = localUsers.find(u =>
-        u.username.toLowerCase() === username.toLowerCase() &&
-        u.password === password &&
-        u.enabled !== false
-      );
-
-      if (matchedUser) {
-        user = matchedUser;
-        // LocalStorage authentication successful
-      } else {
-        // LocalStorage authentication failed - no matching user found
-      }
-    }
+    // No fallback to secure storage - only use Supabase authentication
 
     if (!user) {
       return { user: null, error: "Invalid username or password" };
@@ -347,11 +295,11 @@ export const authenticate = async (username: string, password: string, country: 
         // Failed to delete existing user sessions
       }
 
-      // Try to create new session in Supabase (optional, fallback to localStorage if fails)
+      // Try to create new session in Supabase
       try {
         await createSession(user.id);
       } catch (sessionError) {
-        // Failed to create Supabase session, continuing with localStorage
+        // Failed to create Supabase session, continuing with sessionStorage only
       }
 
       // Save to secure storage for session management
@@ -392,7 +340,7 @@ export const logout = async (): Promise<void> => {
     // Clear secure storage session
     await clearCurrentUserFromStorage();
   } catch (error) {
-    // Still clear localStorage even if Supabase logout fails
+    // Still clear secure storage even if Supabase logout fails
     clearCurrentUserFromStorage();
   }
 };

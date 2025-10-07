@@ -89,8 +89,8 @@ class FixedAuthService {
 
       this.currentUser = authUser;
 
-      // Store in localStorage for persistence
-      // User session managed by Supabase auth);
+      // Store in sessionStorage for session persistence
+      sessionStorage.setItem('currentUser', JSON.stringify(authUser));
 
       return {
         success: true,
@@ -110,7 +110,8 @@ class FixedAuthService {
     this.currentUser = null;
     this.sessionToken = null;
 
-    // Clear session storage only (no localStorage)
+    // Clear session storage
+    sessionStorage.removeItem('currentUser');
   }
 
   getCurrentUser(): AuthUser | null {
@@ -118,9 +119,9 @@ class FixedAuthService {
       return this.currentUser;
     }
 
-    // Try to restore from localStorage
+    // Try to restore from sessionStorage
     try {
-      const stored = null /* Use Supabase auth.getUser() */;
+      const stored = sessionStorage.getItem('currentUser');
       if (stored) {
         this.currentUser = JSON.parse(stored);
         return this.currentUser;
@@ -132,7 +133,7 @@ class FixedAuthService {
   }
 
   async validateSession(): Promise<boolean> {
-    // Simple session validation - just check if user exists in localStorage
+    // Simple session validation - just check if user exists in sessionStorage
     const user = this.getCurrentUser();
     return user !== null;
   }

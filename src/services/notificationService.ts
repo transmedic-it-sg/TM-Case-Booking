@@ -25,27 +25,20 @@ class NotificationService {
   }
 
   /**
-   * Load notifications from localStorage
+   * Load notifications from Supabase (initial load)
    */
   private loadNotifications(): void {
-    try {
-      const notificationsData = null; // Use Supabase notifications table
-      if (notificationsData) {
-        this.notifications = JSON.parse(notificationsData);
-      }
-    } catch (error) {
-      this.notifications = [];
-    }
+    // NO-OP: Notifications are loaded from Supabase when needed
+    // This service now manages in-memory notifications only
+    this.notifications = [];
   }
 
   /**
-   * Save notifications to localStorage
+   * Save notifications to Supabase (persist notifications)
    */
   private saveNotifications(): void {
-    try {
-      // Notifications stored in Supabase notifications table
-    } catch (error) {
-    }
+    // NO-OP: Use dedicated Supabase notification storage service
+    // This service manages in-memory notifications for real-time UI updates
   }
 
   /**

@@ -5,49 +5,39 @@ const CUSTOM_ROLES_KEY = 'case-booking-custom-roles';
 const CUSTOM_PERMISSIONS_KEY = 'case-booking-custom-permissions';
 
 /**
- * Save custom roles to localStorage
+ * Save custom roles to Supabase (deprecated - use database services)
  */
 export const saveCustomRoles = (roles: Role[]): void => {
-  try {
-    // Roles stored in profiles table);
-  } catch (error) {
-    throw new Error('Failed to save custom roles');
-  }
+  // NO-OP: Use Supabase database services directly instead
+  console.warn('saveCustomRoles is deprecated - use Supabase database services instead');
+  throw new Error('Use Supabase database services for role management instead');
 };
 
 /**
- * Load custom roles from localStorage
+ * Load custom roles from Supabase (deprecated - use database services)
  */
 export const loadCustomRoles = (): Role[] => {
-  try {
-    const savedRoles = null /* Use Supabase profiles table */;
-    return savedRoles ? JSON.parse(savedRoles) : [];
-  } catch (error) {
-    return [];
-  }
+  // NO-OP: Use Supabase database services directly instead
+  console.warn('loadCustomRoles is deprecated - use Supabase database services instead');
+  return [];
 };
 
 /**
- * Save custom permissions to localStorage
+ * Save custom permissions to Supabase (deprecated - use database services)
  */
 export const saveCustomPermissions = (permissions: Permission[]): void => {
-  try {
-    // Roles stored in profiles table);
-  } catch (error) {
-    throw new Error('Failed to save custom permissions');
-  }
+  // NO-OP: Use Supabase database services directly instead
+  console.warn('saveCustomPermissions is deprecated - use Supabase database services instead');
+  throw new Error('Use Supabase database services for permission management instead');
 };
 
 /**
- * Load custom permissions from localStorage
+ * Load custom permissions from Supabase (deprecated - use database services)
  */
 export const loadCustomPermissions = (): Permission[] => {
-  try {
-    const savedPermissions = null /* Use Supabase profiles table */;
-    return savedPermissions ? JSON.parse(savedPermissions) : [];
-  } catch (error) {
-    return [];
-  }
+  // NO-OP: Use Supabase database services directly instead
+  console.warn('loadCustomPermissions is deprecated - use Supabase database services instead');
+  return [];
 };
 
 /**
