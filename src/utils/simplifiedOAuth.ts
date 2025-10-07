@@ -638,19 +638,32 @@ export const authenticateWithPopup = async (
 
       // Check if popup was closed manually
       const checkClosed = setInterval(() => {
-        if (popup.closed) {clearInterval(checkClosed);
-          window.removeEventListener('message', messageHandler);
-          reject(new Error('Authentication cancelled'));
+        try {
+          // Try to access popup.closed - may be blocked by COOP policy
+          if (popup.closed) {
+            clearInterval(checkClosed);
+            window.removeEventListener('message', messageHandler);
+            reject(new Error('Authentication cancelled'));
+          }
+        } catch (e) {
+          // COOP policy blocks access - ignore and rely on message handler
         }
       }, 1000);
 
       // Add timeout protection
       setTimeout(() => {
-        if (!popup.closed) {
+        try {
+          if (!popup.closed) {
+            clearInterval(checkClosed);
+            window.removeEventListener('message', messageHandler);
+            popup.close();
+            reject(new Error('Authentication timeout - please try again'));
+          }
+        } catch (e) {
+          // COOP policy blocks access - cleanup anyway
           clearInterval(checkClosed);
           window.removeEventListener('message', messageHandler);
-          popup.close();
-          reject(new Error('Authentication timeout - please try again'));
+          try { popup.close(); } catch (e2) { }
         }
       }, 120000); // 2 minute timeout
     });
