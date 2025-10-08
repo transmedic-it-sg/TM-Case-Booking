@@ -115,7 +115,8 @@
       "Bash(export SKIP_PREFLIGHT_CHECK=true)",
       "Bash(CI=false npm run build)",
       "Bash(export CI=false)",
-      "mcp__supabase__deploy_edge_function"
+      "mcp__supabase__deploy_edge_function",
+      "Bash(git merge:*)"
     ],
     "deny": [],
     "ask": [],
