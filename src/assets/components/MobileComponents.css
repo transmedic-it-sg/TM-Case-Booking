@@ -1266,7 +1266,10 @@
   }
   
   /* Ensure Advanced Filters toggle arrows are visible and properly sized */
-  .filters-toggle {
+  .filters-toggle,
+  .btn.filters-toggle,
+  button.filters-toggle,
+  .filters-header .filters-toggle {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -1274,8 +1277,46 @@
     min-width: 24px !important;
     height: 24px !important;
     border-radius: 4px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
   
+  /* Ensure the arrow content inside the toggle is visible */
+  .filters-toggle:before,
+  .filters-toggle:after,
+  .btn.filters-toggle:before,
+  .btn.filters-toggle:after {
+    display: inline !important;
+    visibility: visible !important;
+  }
+  
+  /* Comprehensive Advanced Filters visibility fix */
+  .filters-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    cursor: pointer !important;
+    padding: 8px 12px !important;
+  }
+  
+  .filters-header .filters-toggle {
+    background: var(--primary-light) !important;
+    border: 1px solid var(--primary-color) !important;
+    color: var(--primary-color) !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+  }
+  
+  .filters-header .filters-toggle:hover {
+    background: var(--primary-color) !important;
+    color: white !important;
+  }
+  
+  .filters-header .filters-toggle.expanded {
+    background: var(--primary-color) !important;
+    color: white !important;
+  }
+
   /* Hide pagination arrows that take space */
   .pagination-arrow,
   .page-arrow,

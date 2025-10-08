@@ -20,6 +20,10 @@ interface ExportConfig {
   permissions: boolean;
   audit_logs: boolean;
   app_settings: boolean;
+  doctors: boolean;
+  surgery_sets: boolean;
+  implant_boxes: boolean;
+  doctor_procedure_sets: boolean;
 }
 
 interface ImportResult {
@@ -39,6 +43,20 @@ interface DataEntity {
   requiresAdmin: boolean;
   icon: string;
 }
+
+// Default export configuration
+const DEFAULT_EXPORT_CONFIG: ExportConfig = {
+  cases: true,
+  users: true,
+  code_tables: true,
+  permissions: true,
+  audit_logs: false,
+  app_settings: true,
+  doctors: true,
+  surgery_sets: true,
+  implant_boxes: true,
+  doctor_procedure_sets: true
+};
 
 // Define data entities as a constant outside the component to avoid temporal dead zone
 const DATA_ENTITIES: DataEntity[] = [
@@ -95,6 +113,42 @@ const DATA_ENTITIES: DataEntity[] = [
     importEnabled: true,
     requiresAdmin: true,
     icon: '⚙️'
+  },
+  {
+    name: 'Doctors',
+    description: 'Doctor profiles and specialties per country',
+    table: 'doctors',
+    exportEnabled: true,
+    importEnabled: true,
+    requiresAdmin: false,
+    icon: '👨‍⚕️'
+  },
+  {
+    name: 'Surgery Sets',
+    description: 'Surgery equipment sets and configurations',
+    table: 'surgery_sets',
+    exportEnabled: true,
+    importEnabled: true,
+    requiresAdmin: false,
+    icon: '🏥'
+  },
+  {
+    name: 'Implant Boxes',
+    description: 'Implant box inventories and specifications',
+    table: 'implant_boxes',
+    exportEnabled: true,
+    importEnabled: true,
+    requiresAdmin: false,
+    icon: '📦'
+  },
+  {
+    name: 'Doctor Procedure Sets',
+    description: 'Surgery sets and implant boxes assigned to doctors by procedure',
+    table: 'doctor_procedure_sets',
+    exportEnabled: true,
+    importEnabled: true,
+    requiresAdmin: false,
+    icon: '🔗'
   }
 ];
 
@@ -105,14 +159,7 @@ const DataExportImport: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [exportConfig, setExportConfig] = useState<ExportConfig>({
-    cases: true,
-    users: true,
-    code_tables: true,
-    permissions: true,
-    audit_logs: false,
-    app_settings: true
-  });
+  const [exportConfig, setExportConfig] = useState<ExportConfig>(DEFAULT_EXPORT_CONFIG);
   const [importResults, setImportResults] = useState<ImportResult | null>(null);
   const [currentDataPreview, setCurrentDataPreview] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'export' | 'import'>('export');
@@ -315,6 +362,58 @@ const DataExportImport: React.FC = () => {
         }
       }
 
+      // Export Doctors
+      if (exportConfig.doctors) {
+        const { data: doctors, error } = await supabase
+          .from('doctors')
+          .select('*')
+          .order('name');
+
+        if (!error && doctors) {
+          exportData.data.doctors = doctors;
+          showInfo('Exported', `${doctors.length} doctors exported`);
+        }
+      }
+
+      // Export Surgery Sets
+      if (exportConfig.surgery_sets) {
+        const { data: surgerySets, error } = await supabase
+          .from('surgery_sets')
+          .select('*')
+          .order('set_name');
+
+        if (!error && surgerySets) {
+          exportData.data.surgery_sets = surgerySets;
+          showInfo('Exported', `${surgerySets.length} surgery sets exported`);
+        }
+      }
+
+      // Export Implant Boxes
+      if (exportConfig.implant_boxes) {
+        const { data: implantBoxes, error } = await supabase
+          .from('implant_boxes')
+          .select('*')
+          .order('box_name');
+
+        if (!error && implantBoxes) {
+          exportData.data.implant_boxes = implantBoxes;
+          showInfo('Exported', `${implantBoxes.length} implant boxes exported`);
+        }
+      }
+
+      // Export Doctor Procedure Sets
+      if (exportConfig.doctor_procedure_sets) {
+        const { data: doctorProcedureSets, error } = await supabase
+          .from('doctor_procedure_sets')
+          .select('*')
+          .order('doctor_id, set_type');
+
+        if (!error && doctorProcedureSets) {
+          exportData.data.doctor_procedure_sets = doctorProcedureSets;
+          showInfo('Exported', `${doctorProcedureSets.length} doctor procedure sets exported`);
+        }
+      }
+
       // Create and download the export file
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = window.URL.createObjectURL(blob);
@@ -430,6 +529,38 @@ const DataExportImport: React.FC = () => {
         result.imported += settingsResult.imported;
         result.failed += settingsResult.failed;
         result.errors.push(...settingsResult.errors);
+      }
+
+      // 6. Import Doctors (Edit Sets data)
+      if (importData.data.doctors) {
+        const doctorsResult = await importDoctors(importData.data.doctors);
+        result.imported += doctorsResult.imported;
+        result.failed += doctorsResult.failed;
+        result.errors.push(...doctorsResult.errors);
+      }
+
+      // 7. Import Surgery Sets
+      if (importData.data.surgery_sets) {
+        const surgerySetsResult = await importSurgerySets(importData.data.surgery_sets);
+        result.imported += surgerySetsResult.imported;
+        result.failed += surgerySetsResult.failed;
+        result.errors.push(...surgerySetsResult.errors);
+      }
+
+      // 8. Import Implant Boxes
+      if (importData.data.implant_boxes) {
+        const implantBoxesResult = await importImplantBoxes(importData.data.implant_boxes);
+        result.imported += implantBoxesResult.imported;
+        result.failed += implantBoxesResult.failed;
+        result.errors.push(...implantBoxesResult.errors);
+      }
+
+      // 9. Import Doctor Procedure Sets (depends on doctors and sets)
+      if (importData.data.doctor_procedure_sets) {
+        const doctorProcedureSetsResult = await importDoctorProcedureSets(importData.data.doctor_procedure_sets);
+        result.imported += doctorProcedureSetsResult.imported;
+        result.failed += doctorProcedureSetsResult.failed;
+        result.errors.push(...doctorProcedureSetsResult.errors);
       }
 
       result.success = result.failed === 0;
@@ -603,6 +734,90 @@ const DataExportImport: React.FC = () => {
     return result;
   };
 
+  const importDoctors = async (data: any[]): Promise<ImportResult> => {
+    const result: ImportResult = { success: false, imported: 0, failed: 0, errors: [], warnings: [] };
+    
+    for (const doctor of data) {
+      try {
+        const { error } = await supabase
+          .from('doctors')
+          .upsert(doctor, { onConflict: 'id' });
+        
+        if (error) throw error;
+        result.imported++;
+      } catch (error) {
+        result.failed++;
+        result.errors.push(`Doctor ${doctor.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+    
+    result.success = result.failed === 0;
+    return result;
+  };
+
+  const importSurgerySets = async (data: any[]): Promise<ImportResult> => {
+    const result: ImportResult = { success: false, imported: 0, failed: 0, errors: [], warnings: [] };
+    
+    for (const surgerySet of data) {
+      try {
+        const { error } = await supabase
+          .from('surgery_sets')
+          .upsert(surgerySet, { onConflict: 'id' });
+        
+        if (error) throw error;
+        result.imported++;
+      } catch (error) {
+        result.failed++;
+        result.errors.push(`Surgery Set ${surgerySet.set_name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+    
+    result.success = result.failed === 0;
+    return result;
+  };
+
+  const importImplantBoxes = async (data: any[]): Promise<ImportResult> => {
+    const result: ImportResult = { success: false, imported: 0, failed: 0, errors: [], warnings: [] };
+    
+    for (const implantBox of data) {
+      try {
+        const { error } = await supabase
+          .from('implant_boxes')
+          .upsert(implantBox, { onConflict: 'id' });
+        
+        if (error) throw error;
+        result.imported++;
+      } catch (error) {
+        result.failed++;
+        result.errors.push(`Implant Box ${implantBox.box_name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+    
+    result.success = result.failed === 0;
+    return result;
+  };
+
+  const importDoctorProcedureSets = async (data: any[]): Promise<ImportResult> => {
+    const result: ImportResult = { success: false, imported: 0, failed: 0, errors: [], warnings: [] };
+    
+    for (const doctorProcedureSet of data) {
+      try {
+        const { error } = await supabase
+          .from('doctor_procedure_sets')
+          .upsert(doctorProcedureSet, { onConflict: 'id' });
+        
+        if (error) throw error;
+        result.imported++;
+      } catch (error) {
+        result.failed++;
+        result.errors.push(`Doctor Procedure Set ${doctorProcedureSet.doctor_id}-${doctorProcedureSet.set_type}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+    
+    result.success = result.failed === 0;
+    return result;
+  };
+
   if (!canExportData && !canImportData) {
     return (
       <div className="admin-component">
@@ -701,14 +916,7 @@ const DataExportImport: React.FC = () => {
               
               <button
                 className="btn btn-secondary"
-                onClick={() => setExportConfig({
-                  cases: true,
-                  users: true,
-                  code_tables: true,
-                  permissions: true,
-                  audit_logs: false,
-                  app_settings: true
-                })}
+                onClick={() => setExportConfig({...DEFAULT_EXPORT_CONFIG})}
               >
                 🔄 Reset Selection
               </button>
