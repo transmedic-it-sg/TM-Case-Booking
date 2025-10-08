@@ -38,9 +38,16 @@ const SSOCallback: React.FC = () => {
             }, window.location.origin);
           }
 
-          // Auto-close after 3 seconds
+          // Auto-close after 3 seconds (CORS-safe)
           setTimeout(() => {
-            window.close();
+            try {
+              window.close();
+            } catch (error) {
+              // CORS might block window.close, try parent communication
+              if (window.opener) {
+                window.opener.postMessage({ type: 'auth_window_close' }, window.location.origin);
+              }
+            }
           }, 3000);
 
         } else if (code) {
@@ -57,9 +64,16 @@ const SSOCallback: React.FC = () => {
             }, window.location.origin);
           }
 
-          // Auto-close after 1 second
+          // Auto-close after 1 second (CORS-safe)
           setTimeout(() => {
-            window.close();
+            try {
+              window.close();
+            } catch (error) {
+              // CORS might block window.close, try parent communication
+              if (window.opener) {
+                window.opener.postMessage({ type: 'auth_window_close' }, window.location.origin);
+              }
+            }
           }, 1000);
 
         } else {
@@ -75,7 +89,14 @@ const SSOCallback: React.FC = () => {
           }
 
           setTimeout(() => {
-            window.close();
+            try {
+              window.close();
+            } catch (error) {
+              // CORS might block window.close, try parent communication
+              if (window.opener) {
+                window.opener.postMessage({ type: 'auth_window_close' }, window.location.origin);
+              }
+            }
           }, 3000);
         }
 
@@ -91,7 +112,14 @@ const SSOCallback: React.FC = () => {
         }
 
         setTimeout(() => {
-          window.close();
+          try {
+            window.close();
+          } catch (error) {
+            // CORS might block window.close, try parent communication
+            if (window.opener) {
+              window.opener.postMessage({ type: 'auth_window_close' }, window.location.origin);
+            }
+          }
         }, 3000);
       }
     };
@@ -208,7 +236,16 @@ const SSOCallback: React.FC = () => {
         {status === 'error' && (
           <div>
             <button
-              onClick={() => window.close()}
+              onClick={() => {
+                try {
+                  window.close();
+                } catch (error) {
+                  // CORS might block window.close, try parent communication
+                  if (window.opener) {
+                    window.opener.postMessage({ type: 'auth_window_close' }, window.location.origin);
+                  }
+                }
+              }}
               style={{
                 background: '#dc3545',
                 color: 'white',

@@ -124,7 +124,12 @@
       "Bash(npx vercel:*)",
       "Bash(nslookup:*)",
       "WebSearch",
-      "mcp__supabase__list_tables"
+      "mcp__supabase__list_tables",
+      "Bash(npx tsc:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx stylelint:*)",
+      "Bash(node:*)",
+      "Bash(vercel:*)"
     ],
     "deny": [],
     "ask": [],

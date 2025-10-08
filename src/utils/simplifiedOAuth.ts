@@ -650,35 +650,67 @@ export const authenticateWithPopup = async (
         }
 
         if ((event.data.type === 'oauth_success' || event.data.type === 'sso_auth_success') && event.data.code) {
-          try {const tokens = await oauth.exchangeCodeForTokens(event.data.code);const userInfo = await oauth.getUserInfo(tokens.accessToken);// Store tokens and user infostoreAuthTokens(country, provider, tokens);
-            storeUserInfo(country, provider, userInfo);window.removeEventListener('message', messageHandler);
-            popup.close();resolve({ tokens, userInfo });
-          } catch (error) {
+          try {
+            authComplete = true;
+            const tokens = await oauth.exchangeCodeForTokens(event.data.code);
+            const userInfo = await oauth.getUserInfo(tokens.accessToken);
+            // Store tokens and user info
+            storeAuthTokens(country, provider, tokens);
+            storeUserInfo(country, provider, userInfo);
             window.removeEventListener('message', messageHandler);
+            clearInterval(checkClosed);
+            popup.close();
+            resolve({ tokens, userInfo });
+          } catch (error) {
+            authComplete = true;
+            window.removeEventListener('message', messageHandler);
+            clearInterval(checkClosed);
             popup.close();
             reject(error);
           }
         } else if (event.data.type === 'oauth_error' || event.data.type === 'sso_auth_error') {
+          authComplete = true;
           window.removeEventListener('message', messageHandler);
+          clearInterval(checkClosed);
           popup.close();
           reject(new Error(event.data.error));
         } else {}
-      };window.addEventListener('message', messageHandler);
+      };
+      
+      // Track authentication completion to avoid false cancellation errors
+      let authComplete = false;
+      window.addEventListener('message', messageHandler);
 
-      // Check if popup was closed manually
+      // Check if popup was closed manually (CORS-safe approach)
       const checkClosed = setInterval(() => {
-        if (popup.closed) {clearInterval(checkClosed);
-          window.removeEventListener('message', messageHandler);
-          reject(new Error('Authentication cancelled'));
+        try {
+          // Try to access popup location - will throw if CORS blocked
+          if (popup.closed || popup.location.href === 'about:blank') {
+            clearInterval(checkClosed);
+            window.removeEventListener('message', messageHandler);
+            if (!authComplete) {
+              reject(new Error('Authentication cancelled'));
+            }
+          }
+        } catch (error) {
+          // CORS error means popup is on different origin, continue polling
+          // This is expected during OAuth flow
         }
       }, 1000);
 
       // Add timeout protection
       setTimeout(() => {
-        if (!popup.closed) {
+        try {
+          if (!popup.closed) {
+            clearInterval(checkClosed);
+            window.removeEventListener('message', messageHandler);
+            popup.close();
+            reject(new Error('Authentication timeout - please try again'));
+          }
+        } catch (error) {
+          // CORS error means popup is still on different origin
           clearInterval(checkClosed);
           window.removeEventListener('message', messageHandler);
-          popup.close();
           reject(new Error('Authentication timeout - please try again'));
         }
       }, 120000); // 2 minute timeout

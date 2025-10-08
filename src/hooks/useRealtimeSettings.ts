@@ -56,34 +56,38 @@ const useRealtimeSettingsQuery = (userId?: string) => {
     queryFn: async () => {
       if (!userId) throw new Error('User ID required for settings');
       
-      try {
-        const { data, error } = await supabase
-          .from('app_settings')
-          .select('*')
-          .eq('user_id', userId)
-          .single();
-
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-          // Return defaults on error instead of throwing
-        }
-        
-        if (data) {
-          return {
-            userId,
-            ...DEFAULT_SETTINGS,
-            ...(data.setting_value || {}),
-            lastUpdated: data.updated_at || new Date().toISOString()
-          } as UserSettings;
-        }
-      } catch (err) {
-      }
-
-      // If no settings found, return defaults
+      // Define defaults first
       const defaultSettings: UserSettings = {
         userId,
         ...DEFAULT_SETTINGS,
         lastUpdated: new Date().toISOString()
       };
+      
+      try {
+        const { data, error } = await supabase
+          .from('app_settings')
+          .select('*')
+          .eq('user_id', userId);
+
+        if (error) {
+          console.warn('Unable to load app_settings, using defaults:', error.message);
+          return defaultSettings;
+        }
+        
+        if (data && data.length > 0) {
+          const settings = data[0]; // Get first settings record
+          return {
+            userId,
+            ...DEFAULT_SETTINGS,
+            ...(settings.setting_value || {}),
+            lastUpdated: settings.updated_at || new Date().toISOString()
+          } as UserSettings;
+        }
+      } catch (err) {
+        console.warn('Error querying app_settings:', err);
+      }
+
+      // If no settings found, return defaults
       return defaultSettings;
     },
     enabled: !!userId,
