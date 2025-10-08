@@ -54,7 +54,7 @@ const DATA_ENTITIES: DataEntity[] = [
   {
     name: 'Users',
     description: 'User accounts with roles and department assignments',
-    table: 'users',
+    table: 'profiles',
     exportEnabled: true,
     importEnabled: true,
     requiresAdmin: true,
@@ -254,7 +254,7 @@ const DataExportImport: React.FC = () => {
       // Export Users
       if (exportConfig.users && isAdmin) {
         const { data: users, error } = await supabase
-          .from('users')
+          .from('profiles')
           .select('*')
           .order('username');
 
@@ -272,12 +272,12 @@ const DataExportImport: React.FC = () => {
       // Export Code Tables
       if (exportConfig.code_tables) {
         const { data: codeTableItems, error } = await supabase
-          .from('code_table_items')
+          .from('code_tables')
           .select('*')
-          .order('table_type, item_name');
+          .order('table_type, display_name');
 
         if (!error && codeTableItems) {
-          exportData.data.code_table_items = codeTableItems;
+          exportData.data.code_tables = codeTableItems;
           showInfo('Exported', `${codeTableItems.length} code table items exported`);
         }
       }
@@ -393,8 +393,8 @@ const DataExportImport: React.FC = () => {
       // Import data in the correct order to maintain referential integrity
       
       // 1. Import Code Tables first (reference data)
-      if (importData.data.code_table_items) {
-        const codeTableResult = await importCodeTables(importData.data.code_table_items);
+      if (importData.data.code_tables) {
+        const codeTableResult = await importCodeTables(importData.data.code_tables);
         result.imported += codeTableResult.imported;
         result.failed += codeTableResult.failed;
         result.errors.push(...codeTableResult.errors);
@@ -456,7 +456,7 @@ const DataExportImport: React.FC = () => {
     for (const item of data) {
       try {
         const { error } = await supabase
-          .from('code_table_items')
+          .from('code_tables')
           .upsert(item, { onConflict: 'id' });
         
         if (error) throw error;
@@ -480,7 +480,7 @@ const DataExportImport: React.FC = () => {
         const cleanUser = { ...user, password: undefined, sessionToken: undefined };
         
         const { error } = await supabase
-          .from('users')
+          .from('profiles')
           .upsert(cleanUser, { onConflict: 'username' });
         
         if (error) throw error;
