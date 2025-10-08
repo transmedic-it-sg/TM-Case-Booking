@@ -449,7 +449,13 @@ export const storeAuthTokens = (country: string, provider: string, tokens: AuthT
   const key = provider === 'microsoft' 
     ? `email_auth_global_microsoft` 
     : `email_auth_${country}_${provider}`;
-  // OAuth tokens should NOT be in localStorage);
+  
+  try {
+    // Use sessionStorage for security - tokens expire when browser session ends
+    sessionStorage.setItem(key, JSON.stringify(tokens));
+  } catch (error) {
+    console.warn('Failed to store auth tokens:', error);
+  }
 };
 
 // User info storage utilities
@@ -458,7 +464,13 @@ export const storeUserInfo = (country: string, provider: string, userInfo: UserI
   const key = provider === 'microsoft'
     ? `email_userinfo_global_microsoft`
     : `email_userinfo_${country}_${provider}`;
-  // OAuth tokens should NOT be in localStorage);
+  
+  try {
+    // Use sessionStorage for security - info expires when browser session ends
+    sessionStorage.setItem(key, JSON.stringify(userInfo));
+  } catch (error) {
+    console.warn('Failed to store user info:', error);
+  }
 };
 
 export const getStoredUserInfo = (country: string, provider: string): UserInfo | null => {
@@ -466,19 +478,27 @@ export const getStoredUserInfo = (country: string, provider: string): UserInfo |
   const key = provider === 'microsoft'
     ? `email_userinfo_global_microsoft`
     : `email_userinfo_${country}_${provider}`;
-  const stored = null /* OAuth tokens should be in secure backend */;
-  if (!stored) return null;
-
+  
   try {
+    const stored = sessionStorage.getItem(key);
+    if (!stored) return null;
     return JSON.parse(stored);
-  } catch {
+  } catch (error) {
+    console.warn('Failed to retrieve user info:', error);
     return null;
   }
 };
 
 export const clearUserInfo = (country: string, provider: string): void => {
-  // NO-OP: User info is managed via Supabase, not localStorage
-  // Kept for backward compatibility
+  const key = provider === 'microsoft'
+    ? `email_userinfo_global_microsoft`
+    : `email_userinfo_${country}_${provider}`;
+  
+  try {
+    sessionStorage.removeItem(key);
+  } catch (error) {
+    console.warn('Failed to clear user info:', error);
+  }
 };
 
 export const getStoredAuthTokens = (country: string, provider: string): AuthTokens | null => {
@@ -486,20 +506,29 @@ export const getStoredAuthTokens = (country: string, provider: string): AuthToke
   const key = provider === 'microsoft'
     ? `email_auth_global_microsoft`
     : `email_auth_${country}_${provider}`;
-  const stored = null /* OAuth tokens should be in secure backend */;
-  if (!stored) return null;
-
+  
   try {
+    const stored = sessionStorage.getItem(key);
+    if (!stored) return null;
     return JSON.parse(stored);
-  } catch {
+  } catch (error) {
+    console.warn('Failed to retrieve auth tokens:', error);
     return null;
   }
 };
 
 export const clearAuthTokens = (country: string, provider: string): void => {
-  // NO-OP: Auth tokens are managed via Supabase, not localStorage
-  // Also clear user info when clearing tokens
-  clearUserInfo(country, provider);
+  const key = provider === 'microsoft'
+    ? `email_auth_global_microsoft`
+    : `email_auth_${country}_${provider}`;
+  
+  try {
+    sessionStorage.removeItem(key);
+    // Also clear user info when clearing tokens
+    clearUserInfo(country, provider);
+  } catch (error) {
+    console.warn('Failed to clear auth tokens:', error);
+  }
 };
 
 export const isTokenExpired = (tokens: AuthTokens): boolean => {
