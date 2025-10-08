@@ -411,27 +411,75 @@
   transform: translateX(4px);
 }
 
-/* Show mobile navigation on small screens */
-@media screen and (max-width: 1366px) {
+/* Mobile view for phones (<768px) */
+@media screen and (max-width: 767px) {
   .mobile-bottom-nav {
-    display: block;
+    display: block !important;
   }
   
   /* Hide desktop navigation */
   .app-nav {
     display: none !important;
+  }
+  
+  /* Adjust content spacing for small screens */
+  .app-main {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
+  }
+  
+  .mobile-nav-container {
+    height: 60px;
+    padding: 0 4px;
+  }
+  
+  .mobile-nav-item {
+    min-width: 44px;
+    max-width: 70px;
+    padding: 6px 4px;
+  }
+  
+  .mobile-nav-icon {
+    font-size: 18px;
+  }
+  
+  .mobile-nav-label {
+    font-size: 9px;
   }
 }
 
-/* Additional breakpoint for larger tablets and iPad Pro */
-@media screen and (max-width: 1500px) and (min-width: 1367px) {
+/* Tablet view for iPad Mini to iPad Pro (768px - 1366px) */
+@media screen and (min-width: 768px) and (max-width: 1366px) {
   .mobile-bottom-nav {
-    display: block;
+    display: block !important;
   }
   
   /* Hide desktop navigation */
   .app-nav {
     display: none !important;
+  }
+  
+  /* Adjust content spacing for tablets */
+  .app-main {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+  
+  .mobile-nav-container {
+    height: 70px;
+    padding: 0 8px;
+  }
+  
+  .mobile-nav-item {
+    min-width: 60px;
+    max-width: 90px;
+    padding: 10px 8px;
+  }
+  
+  .mobile-nav-icon {
+    font-size: 22px;
+  }
+  
+  .mobile-nav-label {
+    font-size: 11px;
   }
 }
 
@@ -557,43 +605,37 @@
   outline-offset: 2px;
 }
 
-/* Mobile Status Legend in Menu */
-.status-legend-item {
-  padding: 16px !important;
-  background: var(--background-light) !important;
-  cursor: pointer !important;
-  border-radius: 12px;
-  margin-bottom: 12px;
-  border: 2px solid var(--primary-light);
-  transition: all 0.3s ease;
-}
-
-.status-legend-item .status-legend-button {
-  width: 100%;
-  padding: 16px;
-  margin: 0;
-  font-size: 16px;
-  border-radius: 12px;
-  text-align: left;
+/* Mobile Status Legend in Menu - standardized with other menu items */
+.status-legend-button.mobile-menu-item {
   display: flex;
   align-items: center;
   gap: 16px;
+  width: 100%;
+  padding: 16px 0;
   background: none;
   border: none;
   color: var(--text-primary);
+  font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  border-radius: 12px;
+  text-align: left;
   min-height: 52px;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
-.status-legend-item .status-legend-button:hover,
-.status-legend-item .status-legend-button:focus {
+.status-legend-button.mobile-menu-item:hover,
+.status-legend-button.mobile-menu-item:focus {
   background: var(--background-light);
   outline: none;
   transform: translateX(4px);
+}
+
+.status-legend-button.mobile-menu-item.active {
+  background: var(--primary-light);
+  color: var(--primary-color);
 }
 
 /* Improved touch feedback */

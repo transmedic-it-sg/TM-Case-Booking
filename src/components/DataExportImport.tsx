@@ -63,7 +63,7 @@ const DATA_ENTITIES: DataEntity[] = [
   {
     name: 'Code Tables',
     description: 'Hospitals, departments, procedures, and other reference data',
-    table: 'code_table_items',
+    table: 'code_tables',
     exportEnabled: true,
     importEnabled: true,
     requiresAdmin: false,

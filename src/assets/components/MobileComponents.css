@@ -1252,17 +1252,28 @@
     margin-right: 4px !important;
   }
   
-  /* Hide or minimize unnecessary arrows and expand indicators */
-  .expand-arrow,
-  .chevron-down,
-  .fa-chevron-down,
-  .fa-angle-down,
-  .arrow-icon,
-  .dropdown-arrow,
-  .collapse-arrow,
-  .toggle-arrow,
-  .section-arrow {
+  /* Hide or minimize unnecessary arrows and expand indicators (but keep Advanced Filters toggle) */
+  .expand-arrow:not(.filters-toggle),
+  .chevron-down:not(.filters-toggle),
+  .fa-chevron-down:not(.filters-toggle),
+  .fa-angle-down:not(.filters-toggle),
+  .arrow-icon:not(.filters-toggle),
+  .dropdown-arrow:not(.filters-toggle),
+  .collapse-arrow:not(.filters-toggle),
+  .toggle-arrow:not(.filters-toggle),
+  .section-arrow:not(.filters-toggle) {
     display: none !important;
+  }
+  
+  /* Ensure Advanced Filters toggle arrows are visible and properly sized */
+  .filters-toggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 12px !important;
+    min-width: 24px !important;
+    height: 24px !important;
+    border-radius: 4px !important;
   }
   
   /* Hide pagination arrows that take space */

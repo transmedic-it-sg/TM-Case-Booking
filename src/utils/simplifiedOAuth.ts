@@ -60,8 +60,8 @@ const OAUTH_PROVIDERS: Record<'google' | 'microsoft', OAuthProvider> = {
   },
   microsoft: {
     name: 'Microsoft',
-    authUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
-    tokenUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+    authUrl: 'https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize',
+    tokenUrl: 'https://login.microsoftonline.com/consumers/oauth2/v2.0/token',
     userInfoUrl: 'https://graph.microsoft.com/v1.0/me',
     config: {
       clientId: process.env.REACT_APP_MICROSOFT_CLIENT_ID || '',
