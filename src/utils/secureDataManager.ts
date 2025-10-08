@@ -138,7 +138,7 @@ class SecureDataManager {
               .select('setting_value')
               .eq('setting_key', `cache_${key}`)
               .eq('user_id', user.id)
-              .single();
+              .maybeSingle();
             
             if (!error && result) {
               logger.debug(`Data retrieved from Supabase: ${key}`);
@@ -293,7 +293,7 @@ class SecureDataManager {
           .select('setting_key')
           .eq('setting_key', `cache_${key}`)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
         
         if (!error && data) {
           return true;

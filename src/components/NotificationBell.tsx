@@ -45,7 +45,11 @@ const NotificationBell: React.FC = () => {
 
   const handleBellClick = () => {
     setIsOpen(!isOpen);
-    playSound.click();
+    try {
+      playSound.click();
+    } catch (error) {
+      console.debug('Sound playback failed:', error);
+    }
 
     // Mark all notifications as read when opening
     if (!isOpen && unreadCount > 0) {
@@ -55,13 +59,21 @@ const NotificationBell: React.FC = () => {
 
   const handleNotificationClick = (id: string) => {
     markAsRead(id);
-    playSound.click();
+    try {
+      playSound.click();
+    } catch (error) {
+      console.debug('Sound playback failed:', error);
+    }
   };
 
   const handleClearNotification = useCallback((id: string, event: React.MouseEvent) => {
     event.stopPropagation();
     clearNotification(id);
-    playSound.click();
+    try {
+      playSound.click();
+    } catch (error) {
+      console.debug('Sound playback failed:', error);
+    }
   }, [clearNotification, playSound]);
 
   const formatTimestamp = useCallback((timestamp: string) => {
@@ -120,7 +132,11 @@ const NotificationBell: React.FC = () => {
                   onClick={() => {
                     setShowSettings(true);
                     setIsOpen(false);
-                    playSound.click();
+                    try {
+                      playSound.click();
+                    } catch (error) {
+                      console.debug('Sound playback failed:', error);
+                    }
                   }}
                   className="btn btn-outline-primary btn-sm settings-button"
                   title="Notification Settings"
@@ -132,7 +148,11 @@ const NotificationBell: React.FC = () => {
                 <button
                   onClick={() => {
                     markAllAsRead();
-                    playSound.click();
+                    try {
+                      playSound.click();
+                    } catch (error) {
+                      console.debug('Sound playback failed:', error);
+                    }
                   }}
                   className="btn btn-outline-secondary btn-sm mark-all-read-button"
                 >

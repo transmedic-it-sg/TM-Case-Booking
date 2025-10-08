@@ -304,6 +304,54 @@
   }
 }
 
+/* iPad and tablet breakpoint - fix for 820x1180 and similar resolutions */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .audit-logs-header {
+    flex-direction: column;
+    gap: 20px;
+    align-items: stretch;
+  }
+  
+  .header-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  .filters-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .stat-item {
+    padding: 14px 18px;
+  }
+  
+  .header-content h2 {
+    font-size: 26px;
+  }
+  
+  /* Ensure table displays properly on iPad */
+  .audit-logs-table {
+    overflow-x: auto;
+  }
+  
+  .audit-logs-table table {
+    min-width: 800px;
+  }
+  
+  .audit-logs-table th,
+  .audit-logs-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+  
+  .details-cell {
+    max-width: 150px;
+  }
+}
+
 @media (max-width: 768px) {
   .audit-logs {
     padding: 16px;

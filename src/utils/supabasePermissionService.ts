@@ -247,14 +247,16 @@ export const updateSupabasePermission = async (
       .select('id')
       .eq('role', roleId)
       .eq('resource', resource)
-      .eq('action', action)
-      .single();
+      .eq('action', action);
 
-    if (checkError && checkError.code !== 'PGRST116') {
+    // Handle the array result - check if any rows exist
+    if (checkError) {
       return false;
     }
+    
+    const hasExisting = existing && existing.length > 0;
 
-    if (existing) {
+    if (hasExisting) {
       // Update existing permission
       const { error: updateError } = await supabase
         .from('permissions')

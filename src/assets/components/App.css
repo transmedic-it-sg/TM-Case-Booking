@@ -4768,6 +4768,11 @@ textarea:focus {
   border-radius: 4px;
   transition: all 0.2s ease;
   margin-left: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
 }
 
 .notification-close:hover {

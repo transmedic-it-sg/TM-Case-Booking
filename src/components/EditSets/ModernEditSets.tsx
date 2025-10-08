@@ -139,6 +139,11 @@ const ModernEditSets: React.FC = () => {
   // Drag and drop state
   const [draggedItem, setDraggedItem] = useState<ProcedureRecord | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  
+  // Touch drag state for mobile
+  const [touchStartY, setTouchStartY] = useState<number>(0);
+  const [touchCurrentY, setTouchCurrentY] = useState<number>(0);
+  const [isTouchDragging, setIsTouchDragging] = useState(false);
 
   // Real-time departments hook
   const {
@@ -566,6 +571,66 @@ const ModernEditSets: React.FC = () => {
     setIsDragging(false);
     setDraggedItem(null);
   }, []);
+
+  // Touch event handlers for mobile drag and drop
+  const handleTouchStart = useCallback((e: React.TouchEvent, procedure: ProcedureRecord) => {
+    const touch = e.touches[0];
+    setTouchStartY(touch.clientY);
+    setTouchCurrentY(touch.clientY);
+    setDraggedItem(procedure);
+    setIsTouchDragging(false);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!draggedItem) return;
+    
+    const touch = e.touches[0];
+    const deltaY = Math.abs(touch.clientY - touchStartY);
+    
+    setTouchCurrentY(touch.clientY);
+    
+    // Start dragging if moved more than 10px
+    if (deltaY > 10 && !isTouchDragging) {
+      setIsTouchDragging(true);
+      setIsDragging(true);
+    }
+    
+    if (isTouchDragging) {
+      e.preventDefault(); // Prevent scrolling while dragging
+    }
+  }, [draggedItem, touchStartY, isTouchDragging]);
+
+  const handleTouchEnd = useCallback(async (e: React.TouchEvent) => {
+    if (!draggedItem || !isTouchDragging) {
+      setDraggedItem(null);
+      setIsTouchDragging(false);
+      setIsDragging(false);
+      return;
+    }
+
+    // Find the element under the touch point
+    const touch = e.changedTouches[0];
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const targetElement = elementBelow?.closest('[data-procedure-id]');
+    
+    if (targetElement) {
+      const targetId = targetElement.getAttribute('data-procedure-id');
+      const targetProcedure = procedures.find(p => p.id === targetId);
+      
+      if (targetProcedure && targetProcedure.id !== draggedItem.id) {
+        // Simulate drop event
+        const mockEvent = {
+          preventDefault: () => {},
+        } as React.DragEvent;
+        
+        await handleDrop(mockEvent, targetProcedure);
+      }
+    }
+
+    setDraggedItem(null);
+    setIsTouchDragging(false);
+    setIsDragging(false);
+  }, [draggedItem, isTouchDragging, procedures, handleDrop]);
 
   // Drag and drop handlers for doctors reordering
   const [draggedDoctor, setDraggedDoctor] = useState<DoctorRecord | null>(null);
@@ -1241,6 +1306,9 @@ const ModernEditSets: React.FC = () => {
               isDragging && (draggedItem?.id === item.id || draggedDoctor?.id === item.id || draggedSurgeryImplant?.id === item.id) ? 'dragging' : ''
             }`}
             draggable={true}
+            data-procedure-id={activeTab === TABS.PROCEDURES ? item.id : undefined}
+            data-doctor-id={activeTab === TABS.DOCTORS ? item.id : undefined}
+            data-surgery-implant-id={activeTab === TABS.SURGERY_IMPLANTS ? item.id : undefined}
             onDragStart={
               activeTab === TABS.PROCEDURES ? (e) => handleDragStart(e, item) :
               activeTab === TABS.DOCTORS ? (e) => handleDoctorDragStart(e, item) :
@@ -1252,9 +1320,18 @@ const ModernEditSets: React.FC = () => {
               activeTab === TABS.DOCTORS ? (e) => handleDoctorDrop(e, item) :
               activeTab === TABS.SURGERY_IMPLANTS ? (e) => handleSurgeryImplantDrop(e, item) : undefined
             }
+            onTouchStart={
+              activeTab === TABS.PROCEDURES ? (e) => handleTouchStart(e, item) : undefined
+            }
+            onTouchMove={
+              activeTab === TABS.PROCEDURES ? handleTouchMove : undefined
+            }
+            onTouchEnd={
+              activeTab === TABS.PROCEDURES ? handleTouchEnd : undefined
+            }
             onDragEnd={handleDragEnd}
           >
-            {activeTab === TABS.PROCEDURES && (
+            {(activeTab === TABS.PROCEDURES || activeTab === TABS.SURGERY_IMPLANTS) && (
               <div className="item-number">
                 {index + 1}
               </div>

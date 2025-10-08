@@ -429,6 +429,103 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
     return <div className="mobile-calendar-list">{days}</div>;
   };
 
+  // Mobile usage view for better mobile experience
+  const renderMobileUsageView = () => {
+    const daysInMonth = getDaysInMonth(currentDate);
+    const days = [];
+    const today = new Date();
+    const isCurrentMonth = today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateString = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
+        .toISOString().split('T')[0];
+      
+      const dayUsage = usageData.find(usage => usage.usage_date === dateString);
+      const isToday = isCurrentMonth && day === today.getDate();
+      const dayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+      const dateString2 = dayDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
+
+      // Only show days with usage data
+      if (dayUsage && (dayUsage.surgery_sets_total > 0 || dayUsage.implant_boxes_total > 0)) {
+        days.push(
+          <div key={day} className={`mobile-calendar-day ${isToday ? 'mobile-calendar-day-today' : ''}`}>
+            <div className="mobile-calendar-day-header">
+              <h3 className="mobile-calendar-date">
+                {isToday && <span className="today-badge">Today</span>}
+                {dateString2}
+              </h3>
+              <div className="mobile-calendar-day-count">
+                Usage Summary
+              </div>
+            </div>
+            <div className="mobile-calendar-usage">
+              <div className="mobile-usage-summary">
+                <div className="mobile-usage-totals">
+                  {dayUsage.surgery_sets_total > 0 && (
+                    <div className="mobile-usage-item surgery-sets">
+                      <span className="mobile-usage-icon">🏥</span>
+                      <span className="mobile-usage-label">Surgery Sets</span>
+                      <span className="mobile-usage-count">{dayUsage.surgery_sets_total}</span>
+                    </div>
+                  )}
+                  {dayUsage.implant_boxes_total > 0 && (
+                    <div className="mobile-usage-item implant-boxes">
+                      <span className="mobile-usage-icon">📦</span>
+                      <span className="mobile-usage-label">Implant Boxes</span>
+                      <span className="mobile-usage-count">{dayUsage.implant_boxes_total}</span>
+                    </div>
+                  )}
+                </div>
+                {dayUsage.top_items && dayUsage.top_items.length > 0 && (
+                  <div className="mobile-usage-actions">
+                    <button
+                      className="mobile-view-sets-button"
+                      onClick={() => {
+                        setUsagePopupData({
+                          date: dayDate.toLocaleDateString(),
+                          usage: dayUsage
+                        });
+                        setShowUsagePopup(true);
+                      }}
+                    >
+                      <div className="mobile-view-sets-content">
+                        <div className="mobile-view-sets-icon">📋</div>
+                        <div className="mobile-view-sets-text">
+                          <div className="mobile-view-sets-title">View Detailed Usage</div>
+                          <div className="mobile-view-sets-subtitle">
+                            {dayUsage.top_items.length} item{dayUsage.top_items.length !== 1 ? 's' : ''} used
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+    }
+
+    if (days.length === 0) {
+      return (
+        <div className="mobile-calendar-empty">
+          <div className="empty-state">
+            <h3>No usage data</h3>
+            <p>No usage data found for {getMonthYearDisplay(currentDate)} in {selectedDepartment}</p>
+          </div>
+        </div>
+      );
+    }
+
+    return <div className="mobile-calendar-list">{days}</div>;
+  };
+
   const renderCalendarGrid = () => {
     const daysInMonth = getDaysInMonth(currentDate);
     const firstDay = getFirstDayOfMonth(currentDate);
@@ -807,11 +904,18 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
                  renderUsageCalendar()
                )}
             </div>
-            {viewMode === 'bookings' && (
-              <div className="mobile-calendar-view">
-                {renderMobileListView()}
-              </div>
-            )}
+            <div className="mobile-calendar-view">
+              {viewMode === 'bookings' ? (
+                renderMobileListView()
+              ) : viewMode === 'usage' && isLoadingUsage ? (
+                <div className="mobile-usage-loading">
+                  <div className="loading-spinner">⏳</div>
+                  <p>Loading usage data...</p>
+                </div>
+              ) : (
+                renderMobileUsageView()
+              )}
+            </div>
           </div>
         ) : (
           <div className="no-department-selected">

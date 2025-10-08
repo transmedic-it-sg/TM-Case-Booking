@@ -15,14 +15,14 @@
 
 .mobile-nav-container {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-evenly;
   align-items: center;
   max-width: 100%;
   margin: 0 auto;
   height: 60px;
   position: relative;
-  padding: 0 4px;
-  gap: 0;
+  padding: 0 8px;
+  gap: 4px;
 }
 
 .mobile-nav-item {
@@ -421,6 +421,46 @@
   .app-nav {
     display: none !important;
   }
+}
+
+/* Additional breakpoint for larger tablets and iPad Pro */
+@media screen and (max-width: 1500px) and (min-width: 1367px) {
+  .mobile-bottom-nav {
+    display: block;
+  }
+  
+  /* Hide desktop navigation */
+  .app-nav {
+    display: none !important;
+  }
+}
+
+/* Specific targeting for iPad devices */
+@media only screen 
+  and (min-device-width: 768px) 
+  and (max-device-width: 1024px) 
+  and (-webkit-min-device-pixel-ratio: 1) {
+  .mobile-bottom-nav {
+    display: block !important;
+  }
+  
+  .app-nav {
+    display: none !important;
+  }
+}
+
+/* Targeting for iPad Pro */
+@media only screen 
+  and (min-device-width: 1024px) 
+  and (max-device-width: 1366px) 
+  and (-webkit-min-device-pixel-ratio: 2) {
+  .mobile-bottom-nav {
+    display: block !important;
+  }
+  
+  .app-nav {
+    display: none !important;
+  }
   
   /* Add bottom padding to main content to avoid overlap */
   .app-main {
@@ -473,8 +513,8 @@
   }
 }
 
-/* Larger mobile devices */
-@media screen and (max-width: 1366px) and (min-width: 480px) {
+/* Larger mobile devices and tablets */
+@media screen and (max-width: 1500px) and (min-width: 480px) {
   .mobile-nav-container {
     height: 60px;
   }

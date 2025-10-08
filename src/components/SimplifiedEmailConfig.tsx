@@ -5,6 +5,7 @@ import { getAllRoles } from '../data/permissionMatrixData';
 import { useSound } from '../contexts/SoundContext';
 import { useToast } from './ToastContainer';
 import MultiSelectDropdown from './MultiSelectDropdown';
+import SearchableDropdown from './SearchableDropdown';
 import { CASE_STATUSES, STATUS_WORKFLOW } from '../constants/statuses';
 import { USER_ROLES } from '../constants/permissions';
 import dynamicConstantsService from '../services/dynamicConstantsService';
@@ -583,69 +584,19 @@ Best regards,
   useEffect(() => {
     if (!selectedCountry) return;
 
-    // Check for stored tokens for both providers (sync from sessionStorage)
-    const googleTokens = getStoredAuthTokens(selectedCountry, 'google');
-    const microsoftTokens = getStoredAuthTokens(selectedCountry, 'microsoft');
+    const loadAuthData = async () => {
+      // Load tokens and user info ONLY from Supabase
+      const googleTokens = await getStoredAuthTokens(selectedCountry, 'google');
+      const microsoftTokens = await getStoredAuthTokens(selectedCountry, 'microsoft');
 
-    // Load stored user info (sync from sessionStorage)
-    const googleUserInfo = getStoredUserInfo(selectedCountry, 'google');
-    const microsoftUserInfo = getStoredUserInfo(selectedCountry, 'microsoft');
-    
-    // Also load from Supabase for persistence across tabs
-    const loadPersistedAuth = async () => {
-      const { secureDataManager } = await import('../utils/secureDataManager');
+      // Load stored user info ONLY from Supabase
+      const googleUserInfo = await getStoredUserInfo(selectedCountry, 'google');
+      const microsoftUserInfo = await getStoredUserInfo(selectedCountry, 'microsoft');
       
-      // Try to load Microsoft auth from Supabase if not in sessionStorage
-      if (!microsoftTokens) {
-        const key = 'email_auth_global_microsoft';
-        const persistedTokens = await secureDataManager.getData(key);
-        if (persistedTokens) {
-          await storeAuthTokens(selectedCountry, 'microsoft', persistedTokens as AuthTokens);
-        }
-      }
-      
-      // Try to load Microsoft user info from Supabase if not in sessionStorage
-      if (!microsoftUserInfo) {
-        const key = 'email_userinfo_global_microsoft';
-        const persistedInfo = await secureDataManager.getData(key);
-        if (persistedInfo) {
-          await storeUserInfo(selectedCountry, 'microsoft', persistedInfo as UserInfo);
-        }
-      }
-      
-      // Do the same for Google if needed
-      if (!googleTokens) {
-        const key = `email_auth_${selectedCountry}_google`;
-        const persistedTokens = await secureDataManager.getData(key);
-        if (persistedTokens) {
-          await storeAuthTokens(selectedCountry, 'google', persistedTokens as AuthTokens);
-        }
-      }
-      
-      if (!googleUserInfo) {
-        const key = `email_userinfo_${selectedCountry}_google`;
-        const persistedInfo = await secureDataManager.getData(key);
-        if (persistedInfo) {
-          await storeUserInfo(selectedCountry, 'google', persistedInfo as UserInfo);
-        }
-      }
-      
-      // Re-render with loaded data
-      const newGoogleTokens = getStoredAuthTokens(selectedCountry, 'google');
-      const newMicrosoftTokens = getStoredAuthTokens(selectedCountry, 'microsoft');
-      const newGoogleUserInfo = getStoredUserInfo(selectedCountry, 'google');
-      const newMicrosoftUserInfo = getStoredUserInfo(selectedCountry, 'microsoft');
-      
-      if (newGoogleTokens || newMicrosoftTokens || newGoogleUserInfo || newMicrosoftUserInfo) {
-        // Trigger re-render by updating state
-        initializeEmailConfig();
-      }
-    };
-    
-    loadPersistedAuth();
+      // No need for separate persistence loading - all data comes from Supabase now
 
-    // Enhanced token validation - check if tokens are valid or can be refreshed
-    const validateTokens = async (tokens: AuthTokens | null, provider: 'google' | 'microsoft') => {
+      // Enhanced token validation - check if tokens are valid or can be refreshed
+      const validateTokens = async (tokens: AuthTokens | null, provider: 'google' | 'microsoft') => {
       if (!tokens) return false;
 
       // If token is still valid, return true
@@ -682,8 +633,8 @@ Best regards,
       const microsoftValid = await validateTokens(microsoftTokens, 'microsoft');
 
       // Get potentially refreshed tokens after validation
-      const updatedGoogleTokens = getStoredAuthTokens(selectedCountry, 'google');
-      const updatedMicrosoftTokens = getStoredAuthTokens(selectedCountry, 'microsoft');
+      const updatedGoogleTokens = await getStoredAuthTokens(selectedCountry, 'google');
+      const updatedMicrosoftTokens = await getStoredAuthTokens(selectedCountry, 'microsoft');
 
       const config: CountryEmailConfig = {
         country: selectedCountry,
@@ -716,12 +667,44 @@ Best regards,
         ...prev,
         [selectedCountry]: config
       }));
+      };
+
+      // Call initializeEmailConfig after loading auth data
+      await initializeEmailConfig();
     };
 
-    // Call initializeEmailConfig after loading auth data
-    loadPersistedAuth().then(() => {
-      initializeEmailConfig();
-    });
+    // Initial load
+    loadAuthData();
+
+    // Add visibility change listener to reload auth when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Reload auth data when tab becomes visible
+        setTimeout(() => {
+          loadAuthData();
+        }, 100); // Small delay to ensure proper reload
+      }
+    };
+
+    // Add focus listener as fallback
+    const handleFocus = () => {
+      setTimeout(() => {
+        loadAuthData();
+      }, 100);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [selectedCountry]);
+
+  // Load email notification matrix configs from database
+  useEffect(() => {
+    if (!selectedCountry) return;
 
     // Load email notification matrix configs from database
     const loadNotificationMatrix = async () => {
@@ -873,10 +856,10 @@ Best regards,
   };
 
   // Handle disconnection
-  const handleDisconnect = (provider: 'google' | 'microsoft') => {
+  const handleDisconnect = async (provider: 'google' | 'microsoft') => {
     if (!selectedCountry) return;
 
-    clearAuthTokens(selectedCountry, provider);
+    await clearAuthTokens(selectedCountry, provider);
 
     setEmailConfigs(prev => ({
       ...prev,
@@ -978,9 +961,12 @@ Best regards,
       }// Create OAuth manager for sending email
       const oauth = createOAuthManager(activeProvider);
 
+      // Get current user's email if available
+      const recipientEmail = currentUser?.email || providerConfig.userInfo.email;
+      
       // Prepare test email data
       const emailData = {
-        to: [providerConfig.userInfo.email], // Send to self for testing
+        to: [recipientEmail], // Send to current user or OAuth email
         subject: `Test Email from ${providerConfig.fromName}`,
         body: `
           <h2>✅ Email Configuration Test</h2>
@@ -991,6 +977,8 @@ Best regards,
             <li><strong>Provider:</strong> ${activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)}</li>
             <li><strong>Country:</strong> ${selectedCountry}</li>
             <li><strong>From Name:</strong> ${providerConfig.fromName}</li>
+            <li><strong>Sent To:</strong> ${recipientEmail}</li>
+            <li><strong>OAuth Account:</strong> ${providerConfig.userInfo.email}</li>
             <li><strong>Send Time:</strong> ${new Date().toLocaleString()}</li>
           </ul>
 
@@ -1010,7 +998,7 @@ Best regards,
         playSound.success();
         showSuccess(
           'Test Email Sent Successfully! 📧',
-          `Test email sent to ${providerConfig.userInfo.email} via ${activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)}`
+          `Test email sent to ${recipientEmail} via ${activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)}`
         );
       } else {
         throw new Error('Email sending failed - API returned false');
@@ -1159,17 +1147,17 @@ Best regards,
         {canSwitchCountries && (
           <div className="country-selection" style={{ marginTop: '1rem' }}>
             <label style={{ fontSize: '0.9rem', fontWeight: '500', marginBottom: '0.5rem', display: 'block' }}>Select Country:</label>
-            <select
-              value={selectedCountry}
-              onChange={(e) => setSelectedCountry(e.target.value)}
-              className="form-control"
-              style={{ maxWidth: '200px' }}
-            >
-              <option value="">Select a country...</option>
-              {availableCountries.map(country => (
-                <option key={country} value={country}>{country}</option>
-              ))}
-            </select>
+            <div style={{ maxWidth: '300px' }}>
+              <SearchableDropdown
+                id="country-selection"
+                value={selectedCountry}
+                onChange={(value) => setSelectedCountry(value)}
+                options={availableCountries}
+                placeholder="Search and select country"
+                required={true}
+                disabled={false}
+              />
+            </div>
           </div>
         )}
 

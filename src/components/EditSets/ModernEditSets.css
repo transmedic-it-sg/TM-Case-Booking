@@ -1190,6 +1190,11 @@
     margin-left: 20px;
   }
   
+  /* Reduce spacing for Surgery & Implants on mobile */
+  .surgery-implant-content .data-list .draggable-item {
+    margin-left: 15px;
+  }
+  
   .item-number {
     width: 25px;
     height: 25px;

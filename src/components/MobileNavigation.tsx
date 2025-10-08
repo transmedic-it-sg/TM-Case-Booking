@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import StatusLegend from './StatusLegend';
@@ -28,7 +28,6 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   onLogout
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu function
   const closeMenu = () => {
@@ -43,9 +42,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   // Click outside to close menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (isMenuOpen && menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        closeMenu();
-      }
+      // Menu overlay handles its own click events
+      // This is just a backup
     };
 
     if (isMenuOpen) {
@@ -148,28 +146,22 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
             </button>
           ))}
 
-          {/* More/Menu button for additional features */}
-          <div className="mobile-nav-more" ref={menuRef}>
-            <button
-              onClick={toggleMenu}
-              className={`mobile-nav-item mobile-more-btn ${isMenuOpen ? 'active' : ''}`}
-              aria-label="Open menu"
-              aria-expanded={isMenuOpen}
-            >
-              <span className="mobile-nav-icon">⋯</span>
-              <span className="mobile-nav-label">More</span>
-              <div className="mobile-user-preview">
-                <span className="mobile-user-preview-name">{user.name}</span>
-                <span className="mobile-user-preview-role">{user.role.toUpperCase()}</span>
-                {user.selectedCountry && (
-                  <span className="mobile-user-preview-country">📍 {user.selectedCountry}</span>
-                )}
-              </div>
-            </button>
+          {/* More/Menu button - same as other nav items */}
+          <button
+            onClick={toggleMenu}
+            className={`mobile-nav-item ${isMenuOpen ? 'active' : ''}`}
+            aria-label="More"
+            aria-expanded={isMenuOpen}
+          >
+            <span className="mobile-nav-icon">⋯</span>
+            <span className="mobile-nav-label">More</span>
+          </button>
+        </div>
+      </div>
 
-            {/* Expandable menu */}
-            {isMenuOpen && (
-              <div className="mobile-menu-overlay active" onClick={closeMenu}>
+      {/* Expandable menu - outside of nav container */}
+      {isMenuOpen && (
+        <div className="mobile-menu-overlay active" onClick={closeMenu}>
                 <div className="mobile-menu-content active" onClick={(e) => e.stopPropagation()}>
                 <div className="mobile-menu-header">
                   <div className="mobile-user-info">
@@ -211,7 +203,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 </div>
 
                 <div className="mobile-menu-section">
-                  <h3>Status Colors</h3>
+                  <h3>Reference</h3>
                   <StatusLegend />
                 </div>
 
@@ -303,11 +295,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   </button>
                 </div>
               </div>
-            </div>
-            )}
-          </div>
         </div>
-      </div>
+      )}
     </>
   );
 };

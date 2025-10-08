@@ -15,7 +15,7 @@ import {
   resetSystemConfig,
   applySystemConfig
 } from '../utils/systemSettingsService';
-import { getAppVersion } from '../utils/version';
+import { getAppVersion, getBuildInfo } from '../utils/version';
 import '../assets/components/AdminComponents.css';
 import '../assets/components/SystemSettings.css';
 
@@ -373,6 +373,34 @@ const SystemSettings: React.FC = () => {
               title="Version is read-only"
             />
             <small className="modern-setting-description">Current application version (read-only)</small>
+          </div>
+          <div className="modern-setting-item">
+            <label className="modern-setting-label">Environment</label>
+            <input
+              type="text"
+              className="modern-setting-input"
+              value={getBuildInfo().environment}
+              disabled
+              title="Environment is auto-detected"
+              style={{
+                color: getBuildInfo().environment === 'Production' ? '#dc3545' : '#28a745',
+                fontWeight: 'bold'
+              }}
+            />
+            <small className="modern-setting-description">
+              Auto-detected based on URL ({getBuildInfo().environment === 'Production' ? 'Vercel.app domain' : 'localhost domain'})
+            </small>
+          </div>
+          <div className="modern-setting-item">
+            <label className="modern-setting-label">Last Update</label>
+            <input
+              type="text"
+              className="modern-setting-input"
+              value={getBuildInfo().lastUpdate}
+              disabled
+              title="Last update date"
+            />
+            <small className="modern-setting-description">Last major update to the application</small>
           </div>
           <div className="modern-setting-item">
             <div className="modern-checkbox-container">

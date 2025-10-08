@@ -443,34 +443,29 @@ class SimplifiedOAuthManager {
   }
 }
 
-// Token storage utilities
+// Token storage utilities - ONLY use Supabase, no sessionStorage
 export const storeAuthTokens = async (country: string, provider: string, tokens: AuthTokens): Promise<void> => {
   // Microsoft auth is global (same account for all countries)
   const key = provider === 'microsoft' 
     ? `email_auth_global_microsoft` 
     : `email_auth_${country}_${provider}`;
   
-  // Store in sessionStorage for immediate use within the same tab
-  sessionStorage.setItem(key, JSON.stringify(tokens));
-  
-  // Store in Supabase for persistence across tabs (primary storage)
+  // Store ONLY in Supabase for real-time persistence across tabs
   try {
     const { secureDataManager } = await import('../utils/secureDataManager');
     await secureDataManager.setData(key, tokens, { ttl: 3600000 }); // 1 hour TTL
   } catch (error) {
     console.error('Failed to persist auth tokens to Supabase:', error);
+    throw error; // Propagate error so caller knows storage failed
   }
 };
 
-// User info storage utilities
+// User info storage utilities - ONLY use Supabase, no sessionStorage
 export const storeUserInfo = async (country: string, provider: string, userInfo: UserInfo): Promise<void> => {
   // Microsoft user info is global (same account for all countries)
   const key = provider === 'microsoft'
     ? `email_userinfo_global_microsoft`
     : `email_userinfo_${country}_${provider}`;
-  
-  // Store in sessionStorage for immediate use within the same tab
-  sessionStorage.setItem(key, JSON.stringify(userInfo));
   
   // Store in Supabase for persistence across tabs (primary storage)
   try {
@@ -496,19 +491,19 @@ export const getStoredUserInfo = (country: string, provider: string): UserInfo |
   }
 };
 
-export const clearUserInfo = (country: string, provider: string): void => {
+export const clearUserInfo = async (country: string, provider: string): Promise<void> => {
   // Microsoft user info is global (same account for all countries)
   const key = provider === 'microsoft'
     ? `email_userinfo_global_microsoft`
     : `email_userinfo_${country}_${provider}`;
   
-  // Clear from sessionStorage
-  sessionStorage.removeItem(key);
-  
-  // Also clear from Supabase
-  import('../utils/secureDataManager').then(({ secureDataManager }) => {
-    secureDataManager.removeData(key);
-  });
+  // Clear ONLY from Supabase
+  try {
+    const { secureDataManager } = await import('../utils/secureDataManager');
+    await secureDataManager.removeData(key);
+  } catch (error) {
+    console.error('Failed to clear user info from Supabase:', error);
+  }
 };
 
 export const getStoredAuthTokens = (country: string, provider: string): AuthTokens | null => {
@@ -611,7 +606,7 @@ export const refreshMicrosoftToken = async (country: string, refreshToken: strin
  * Get valid access token, refreshing if necessary (Microsoft only)
  */
 export const getValidAccessToken = async (country: string, provider: 'google' | 'microsoft'): Promise<string | null> => {
-  const tokens = getStoredAuthTokens(country, provider);
+  const tokens = await getStoredAuthTokens(country, provider);
 
   if (!tokens) {
     return null;

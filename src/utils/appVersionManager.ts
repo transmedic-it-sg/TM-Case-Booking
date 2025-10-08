@@ -35,7 +35,7 @@ const getStoredVersion = async (): Promise<string | null> => {
       .select('setting_value')
       .eq('setting_key', 'client_app_version')
       .eq('user_id', user?.id || null)
-      .single();
+      .maybeSingle();
     
     if (error || !data) return null;
     return data.setting_value as string;
@@ -64,7 +64,7 @@ const setStoredVersion = async (version: string): Promise<void> => {
       .select('id')
       .eq('setting_key', 'client_app_version')
       .eq('user_id', user?.id || null)
-      .single();
+      .maybeSingle();
     
     if (existing) {
       // Update existing

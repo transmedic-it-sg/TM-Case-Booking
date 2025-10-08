@@ -40,6 +40,64 @@ interface DataEntity {
   icon: string;
 }
 
+// Define data entities as a constant outside the component to avoid temporal dead zone
+const DATA_ENTITIES: DataEntity[] = [
+  {
+    name: 'Case Bookings',
+    description: 'All case booking records with status history and attachments',
+    table: 'case_bookings',
+    exportEnabled: true,
+    importEnabled: true,
+    requiresAdmin: false,
+    icon: '📋'
+  },
+  {
+    name: 'Users',
+    description: 'User accounts with roles and department assignments',
+    table: 'users',
+    exportEnabled: true,
+    importEnabled: true,
+    requiresAdmin: true,
+    icon: '👥'
+  },
+  {
+    name: 'Code Tables',
+    description: 'Hospitals, departments, procedures, and other reference data',
+    table: 'code_table_items',
+    exportEnabled: true,
+    importEnabled: true,
+    requiresAdmin: false,
+    icon: '📊'
+  },
+  {
+    name: 'Permission Matrix',
+    description: 'Role-based permissions configuration',
+    table: 'permissions',
+    exportEnabled: true,
+    importEnabled: true,
+    requiresAdmin: true,
+    icon: '🔐'
+  },
+  {
+    name: 'Audit Logs',
+    description: 'System activity audit trail',
+    table: 'audit_logs',
+    exportEnabled: true,
+    importEnabled: false,
+    requiresAdmin: true,
+    icon: '📝'
+  },
+  {
+    name: 'System Settings',
+    description: 'Application configuration and email settings',
+    table: 'app_settings',
+    exportEnabled: true,
+    importEnabled: true,
+    requiresAdmin: true,
+    icon: '⚙️'
+  }
+];
+
 const DataExportImport: React.FC = () => {
   const currentUser = getCurrentUserSync();
   const { showSuccess, showError, showWarning, showInfo } = useToast();
@@ -63,71 +121,11 @@ const DataExportImport: React.FC = () => {
   const canExportData = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EXPORT_DATA) : false;
   const canImportData = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.IMPORT_DATA) : false;
   const isAdmin = currentUser?.role === 'admin';
+  
+  // Use the DATA_ENTITIES constant defined outside the component
+  const dataEntities = DATA_ENTITIES;
 
-  const dataEntities: DataEntity[] = [
-    {
-      name: 'Case Bookings',
-      description: 'All case booking records with status history and attachments',
-      table: 'case_bookings',
-      exportEnabled: true,
-      importEnabled: true,
-      requiresAdmin: false,
-      icon: '📋'
-    },
-    {
-      name: 'Users',
-      description: 'User accounts with roles and department assignments',
-      table: 'users',
-      exportEnabled: true,
-      importEnabled: true,
-      requiresAdmin: true,
-      icon: '👥'
-    },
-    {
-      name: 'Code Tables',
-      description: 'Hospitals, departments, procedures, and other reference data',
-      table: 'code_table_items',
-      exportEnabled: true,
-      importEnabled: true,
-      requiresAdmin: false,
-      icon: '📊'
-    },
-    {
-      name: 'Permission Matrix',
-      description: 'Role-based permissions configuration',
-      table: 'permissions',
-      exportEnabled: true,
-      importEnabled: true,
-      requiresAdmin: true,
-      icon: '🔐'
-    },
-    {
-      name: 'Audit Logs',
-      description: 'System activity audit trail',
-      table: 'audit_logs',
-      exportEnabled: true,
-      importEnabled: false,
-      requiresAdmin: true,
-      icon: '📝'
-    },
-    {
-      name: 'System Settings',
-      description: 'Application configuration and email settings',
-      table: 'app_settings',
-      exportEnabled: true,
-      importEnabled: true,
-      requiresAdmin: true,
-      icon: '⚙️'
-    }
-  ];
-
-  // Load current data preview on mount
-  useEffect(() => {
-    if (canExportData) {
-      loadDataPreview();
-    }
-  }, [canExportData]);
-
+  // Define loadDataPreview function before useEffect
   const loadDataPreview = async () => {
     try {
       const preview: any = {};
@@ -135,21 +133,87 @@ const DataExportImport: React.FC = () => {
       // Get counts for each entity
       for (const entity of dataEntities) {
         if (entity.exportEnabled) {
-          const { count, error } = await supabase
-            .from(entity.table)
-            .select('*', { count: 'exact', head: true });
-          
-          if (!error) {
-            preview[entity.table] = count || 0;
+          try {
+            // For tables that might have RLS issues, try different approaches
+            let count = 0;
+            
+            if (entity.table === 'code_tables') {
+              // Use a simple select to get approximate count
+              const { data, error } = await supabase
+                .from(entity.table)
+                .select('id')
+                .limit(1000);
+              
+              if (!error && data) {
+                count = data.length;
+                // If we get 1000 records, there might be more
+                if (data.length === 1000) {
+                  count = 1000; // Show 1000+ 
+                }
+              }
+            } else if (entity.table === 'users') {
+              // For users table, try count query with user context
+              const { count: userCount, error } = await supabase
+                .from(entity.table)
+                .select('*', { count: 'exact', head: true });
+              
+              if (!error) {
+                count = userCount || 0;
+              } else {
+                // Fallback: try to get visible users
+                const { data } = await supabase
+                  .from(entity.table)
+                  .select('id')
+                  .limit(100);
+                count = data?.length || 0;
+              }
+            } else {
+              // Standard count query for other tables
+              const { count: tableCount, error } = await supabase
+                .from(entity.table)
+                .select('*', { count: 'exact', head: true });
+              
+              if (!error) {
+                count = tableCount || 0;
+              } else {
+                console.warn(`Failed to count ${entity.table}:`, error);
+                // For tables we can't count, show estimated count
+                const { data } = await supabase
+                  .from(entity.table)
+                  .select('id')
+                  .limit(10);
+                count = data?.length || 0;
+              }
+            }
+            
+            preview[entity.table] = count;
+          } catch (entityError) {
+            console.warn(`Error loading preview for ${entity.table}:`, entityError);
+            preview[entity.table] = 0;
           }
         }
       }
       
       setCurrentDataPreview(preview);
     } catch (error) {
-      // Failed to load data preview
+      console.error('Failed to load data preview:', error);
+      // Set default preview with 0 counts
+      const preview: any = {};
+      dataEntities.forEach(entity => {
+        if (entity.exportEnabled) {
+          preview[entity.table] = 0;
+        }
+      });
+      setCurrentDataPreview(preview);
     }
   };
+
+  // Load current data preview on mount
+  useEffect(() => {
+    if (canExportData) {
+      loadDataPreview();
+    }
+  }, [canExportData]);
 
   const handleExportData = async () => {
     if (!canExportData) {
@@ -769,7 +833,29 @@ const DataExportImport: React.FC = () => {
       )}
 
         {/* Modal for confirmations */}
-        {modal}
+        <CustomModal
+          isOpen={modal.isOpen}
+          onClose={closeModal}
+          title={modal.title}
+          message={modal.message}
+          type={modal.type}
+          actions={modal.type === 'confirm' ? [
+            {
+              label: 'Cancel',
+              onClick: closeModal,
+              style: 'secondary'
+            },
+            {
+              label: modal.confirmLabel || 'Confirm',
+              onClick: () => {
+                if (modal.onConfirm) modal.onConfirm();
+              },
+              style: 'danger'
+            }
+          ] : undefined}
+          autoClose={modal.autoClose}
+          autoCloseDelay={modal.autoCloseDelay}
+        />
       </>
     </div>
   );
