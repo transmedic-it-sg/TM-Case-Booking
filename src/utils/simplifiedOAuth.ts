@@ -60,8 +60,8 @@ const OAUTH_PROVIDERS: Record<'google' | 'microsoft', OAuthProvider> = {
   },
   microsoft: {
     name: 'Microsoft',
-    authUrl: `https://login.microsoftonline.com/${process.env.REACT_APP_MICROSOFT_TENANT_ID || 'd213fe2b-9fcd-42cf-90a4-8ea84de3103e'}/oauth2/v2.0/authorize`,
-    tokenUrl: `https://login.microsoftonline.com/${process.env.REACT_APP_MICROSOFT_TENANT_ID || 'd213fe2b-9fcd-42cf-90a4-8ea84de3103e'}/oauth2/v2.0/token`,
+    authUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+    tokenUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
     userInfoUrl: 'https://graph.microsoft.com/v1.0/me',
     config: {
       clientId: process.env.REACT_APP_MICROSOFT_CLIENT_ID || '',
@@ -443,36 +443,33 @@ class SimplifiedOAuthManager {
   }
 }
 
-// Token storage utilities - ONLY use Supabase, no sessionStorage
-export const storeAuthTokens = async (country: string, provider: string, tokens: AuthTokens): Promise<void> => {
+// Token storage utilities
+export const storeAuthTokens = (country: string, provider: string, tokens: AuthTokens): void => {
   // Microsoft auth is global (same account for all countries)
   const key = provider === 'microsoft' 
     ? `email_auth_global_microsoft` 
     : `email_auth_${country}_${provider}`;
   
-  // Store ONLY in Supabase for real-time persistence across tabs
   try {
-    const { secureDataManager } = await import('../utils/secureDataManager');
-    await secureDataManager.setData(key, tokens, { ttl: 3600000 }); // 1 hour TTL
+    // Use sessionStorage for security - tokens expire when browser session ends
+    sessionStorage.setItem(key, JSON.stringify(tokens));
   } catch (error) {
-    console.error('Failed to persist auth tokens to Supabase:', error);
-    throw error; // Propagate error so caller knows storage failed
+    console.warn('Failed to store auth tokens:', error);
   }
 };
 
-// User info storage utilities - ONLY use Supabase, no sessionStorage
-export const storeUserInfo = async (country: string, provider: string, userInfo: UserInfo): Promise<void> => {
+// User info storage utilities
+export const storeUserInfo = (country: string, provider: string, userInfo: UserInfo): void => {
   // Microsoft user info is global (same account for all countries)
   const key = provider === 'microsoft'
     ? `email_userinfo_global_microsoft`
     : `email_userinfo_${country}_${provider}`;
   
-  // Store in Supabase for persistence across tabs (primary storage)
   try {
-    const { secureDataManager } = await import('../utils/secureDataManager');
-    await secureDataManager.setData(key, userInfo, { ttl: 86400000 }); // 24 hour TTL
+    // Use sessionStorage for security - info expires when browser session ends
+    sessionStorage.setItem(key, JSON.stringify(userInfo));
   } catch (error) {
-    console.error('Failed to persist user info to Supabase:', error);
+    console.warn('Failed to store user info:', error);
   }
 };
 
@@ -481,28 +478,26 @@ export const getStoredUserInfo = (country: string, provider: string): UserInfo |
   const key = provider === 'microsoft'
     ? `email_userinfo_global_microsoft`
     : `email_userinfo_${country}_${provider}`;
-  const stored = sessionStorage.getItem(key);
-  if (!stored) return null;
-
+  
   try {
+    const stored = sessionStorage.getItem(key);
+    if (!stored) return null;
     return JSON.parse(stored);
-  } catch {
+  } catch (error) {
+    console.warn('Failed to retrieve user info:', error);
     return null;
   }
 };
 
-export const clearUserInfo = async (country: string, provider: string): Promise<void> => {
-  // Microsoft user info is global (same account for all countries)
+export const clearUserInfo = (country: string, provider: string): void => {
   const key = provider === 'microsoft'
     ? `email_userinfo_global_microsoft`
     : `email_userinfo_${country}_${provider}`;
   
-  // Clear ONLY from Supabase
   try {
-    const { secureDataManager } = await import('../utils/secureDataManager');
-    await secureDataManager.removeData(key);
+    sessionStorage.removeItem(key);
   } catch (error) {
-    console.error('Failed to clear user info from Supabase:', error);
+    console.warn('Failed to clear user info:', error);
   }
 };
 
@@ -511,32 +506,29 @@ export const getStoredAuthTokens = (country: string, provider: string): AuthToke
   const key = provider === 'microsoft'
     ? `email_auth_global_microsoft`
     : `email_auth_${country}_${provider}`;
-  const stored = sessionStorage.getItem(key);
-  if (!stored) return null;
-
+  
   try {
+    const stored = sessionStorage.getItem(key);
+    if (!stored) return null;
     return JSON.parse(stored);
-  } catch {
+  } catch (error) {
+    console.warn('Failed to retrieve auth tokens:', error);
     return null;
   }
 };
 
 export const clearAuthTokens = (country: string, provider: string): void => {
-  // Microsoft auth is global (same account for all countries)
   const key = provider === 'microsoft'
     ? `email_auth_global_microsoft`
     : `email_auth_${country}_${provider}`;
   
-  // Clear from sessionStorage
-  sessionStorage.removeItem(key);
-  
-  // Also clear from Supabase
-  import('../utils/secureDataManager').then(({ secureDataManager }) => {
-    secureDataManager.removeData(key);
-  });
-  
-  // Also clear user info when clearing tokens
-  clearUserInfo(country, provider);
+  try {
+    sessionStorage.removeItem(key);
+    // Also clear user info when clearing tokens
+    clearUserInfo(country, provider);
+  } catch (error) {
+    console.warn('Failed to clear auth tokens:', error);
+  }
 };
 
 export const isTokenExpired = (tokens: AuthTokens): boolean => {
@@ -595,8 +587,7 @@ export const refreshMicrosoftToken = async (country: string, refreshToken: strin
     };
 
     // Store the new tokens
-    storeAuthTokens(country, 'microsoft', newTokens);
-    return newTokens;
+    storeAuthTokens(country, 'microsoft', newTokens);return newTokens;
   } catch (error) {
     return null;
   }
@@ -606,25 +597,20 @@ export const refreshMicrosoftToken = async (country: string, refreshToken: strin
  * Get valid access token, refreshing if necessary (Microsoft only)
  */
 export const getValidAccessToken = async (country: string, provider: 'google' | 'microsoft'): Promise<string | null> => {
-  const tokens = await getStoredAuthTokens(country, provider);
+  const tokens = getStoredAuthTokens(country, provider);
 
-  if (!tokens) {
-    return null;
+  if (!tokens) {return null;
   }
 
   // If token is not expired, return it
-  if (!isTokenExpired(tokens)) {
-    return tokens.accessToken;
+  if (!isTokenExpired(tokens)) {return tokens.accessToken;
   }
 
   // Token is expired - try to refresh if it's Microsoft and has refresh token
-  if (provider === 'microsoft' && tokens.refreshToken) {
-    const newTokens = await refreshMicrosoftToken(country, tokens.refreshToken);
+  if (provider === 'microsoft' && tokens.refreshToken) {const newTokens = await refreshMicrosoftToken(country, tokens.refreshToken);
 
-    if (newTokens) {
-      return newTokens.accessToken;
-    } else {
-      clearAuthTokens(country, provider);
+    if (newTokens) {return newTokens.accessToken;
+    } else {clearAuthTokens(country, provider);
       return null;
     }
   }
@@ -664,17 +650,9 @@ export const authenticateWithPopup = async (
         }
 
         if ((event.data.type === 'oauth_success' || event.data.type === 'sso_auth_success') && event.data.code) {
-          try {
-            const tokens = await oauth.exchangeCodeForTokens(event.data.code);
-            const userInfo = await oauth.getUserInfo(tokens.accessToken);
-            
-            // Store tokens and user info (await to ensure Supabase storage completes)
-            await storeAuthTokens(country, provider, tokens);
-            await storeUserInfo(country, provider, userInfo);
-            
-            window.removeEventListener('message', messageHandler);
-            popup.close();
-            resolve({ tokens, userInfo });
+          try {const tokens = await oauth.exchangeCodeForTokens(event.data.code);const userInfo = await oauth.getUserInfo(tokens.accessToken);// Store tokens and user infostoreAuthTokens(country, provider, tokens);
+            storeUserInfo(country, provider, userInfo);window.removeEventListener('message', messageHandler);
+            popup.close();resolve({ tokens, userInfo });
           } catch (error) {
             window.removeEventListener('message', messageHandler);
             popup.close();
@@ -689,32 +667,19 @@ export const authenticateWithPopup = async (
 
       // Check if popup was closed manually
       const checkClosed = setInterval(() => {
-        try {
-          // Try to access popup.closed - may be blocked by COOP policy
-          if (popup.closed) {
-            clearInterval(checkClosed);
-            window.removeEventListener('message', messageHandler);
-            reject(new Error('Authentication cancelled'));
-          }
-        } catch (e) {
-          // COOP policy blocks access - ignore and rely on message handler
+        if (popup.closed) {clearInterval(checkClosed);
+          window.removeEventListener('message', messageHandler);
+          reject(new Error('Authentication cancelled'));
         }
       }, 1000);
 
       // Add timeout protection
       setTimeout(() => {
-        try {
-          if (!popup.closed) {
-            clearInterval(checkClosed);
-            window.removeEventListener('message', messageHandler);
-            popup.close();
-            reject(new Error('Authentication timeout - please try again'));
-          }
-        } catch (e) {
-          // COOP policy blocks access - cleanup anyway
+        if (!popup.closed) {
           clearInterval(checkClosed);
           window.removeEventListener('message', messageHandler);
-          try { popup.close(); } catch (e2) { }
+          popup.close();
+          reject(new Error('Authentication timeout - please try again'));
         }
       }, 120000); // 2 minute timeout
     });
