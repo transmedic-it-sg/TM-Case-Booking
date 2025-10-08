@@ -212,9 +212,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
 
                 <div className="mobile-menu-section">
                   <h3>Status Colors</h3>
-                  <div className="mobile-menu-section">
-                    <StatusLegend />
-                  </div>
+                  <StatusLegend />
                 </div>
 
                 {(hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) ||

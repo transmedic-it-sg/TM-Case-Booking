@@ -444,35 +444,41 @@ class SimplifiedOAuthManager {
 }
 
 // Token storage utilities
-export const storeAuthTokens = (country: string, provider: string, tokens: AuthTokens): void => {
+export const storeAuthTokens = async (country: string, provider: string, tokens: AuthTokens): Promise<void> => {
   // Microsoft auth is global (same account for all countries)
   const key = provider === 'microsoft' 
     ? `email_auth_global_microsoft` 
     : `email_auth_${country}_${provider}`;
   
-  // Store in sessionStorage for immediate use
+  // Store in sessionStorage for immediate use within the same tab
   sessionStorage.setItem(key, JSON.stringify(tokens));
   
-  // Also store in Supabase for persistence across tabs
-  import('../utils/secureDataManager').then(({ secureDataManager }) => {
-    secureDataManager.setData(key, tokens, { ttl: 3600000 }); // 1 hour TTL
-  });
+  // Store in Supabase for persistence across tabs (primary storage)
+  try {
+    const { secureDataManager } = await import('../utils/secureDataManager');
+    await secureDataManager.setData(key, tokens, { ttl: 3600000 }); // 1 hour TTL
+  } catch (error) {
+    console.error('Failed to persist auth tokens to Supabase:', error);
+  }
 };
 
 // User info storage utilities
-export const storeUserInfo = (country: string, provider: string, userInfo: UserInfo): void => {
+export const storeUserInfo = async (country: string, provider: string, userInfo: UserInfo): Promise<void> => {
   // Microsoft user info is global (same account for all countries)
   const key = provider === 'microsoft'
     ? `email_userinfo_global_microsoft`
     : `email_userinfo_${country}_${provider}`;
   
-  // Store in sessionStorage
+  // Store in sessionStorage for immediate use within the same tab
   sessionStorage.setItem(key, JSON.stringify(userInfo));
   
-  // Also store in Supabase for persistence
-  import('../utils/secureDataManager').then(({ secureDataManager }) => {
-    secureDataManager.setData(key, userInfo, { ttl: 86400000 }); // 24 hour TTL
-  });
+  // Store in Supabase for persistence across tabs (primary storage)
+  try {
+    const { secureDataManager } = await import('../utils/secureDataManager');
+    await secureDataManager.setData(key, userInfo, { ttl: 86400000 }); // 24 hour TTL
+  } catch (error) {
+    console.error('Failed to persist user info to Supabase:', error);
+  }
 };
 
 export const getStoredUserInfo = (country: string, provider: string): UserInfo | null => {
@@ -663,9 +669,17 @@ export const authenticateWithPopup = async (
         }
 
         if ((event.data.type === 'oauth_success' || event.data.type === 'sso_auth_success') && event.data.code) {
-          try {const tokens = await oauth.exchangeCodeForTokens(event.data.code);const userInfo = await oauth.getUserInfo(tokens.accessToken);// Store tokens and user infostoreAuthTokens(country, provider, tokens);
-            storeUserInfo(country, provider, userInfo);window.removeEventListener('message', messageHandler);
-            popup.close();resolve({ tokens, userInfo });
+          try {
+            const tokens = await oauth.exchangeCodeForTokens(event.data.code);
+            const userInfo = await oauth.getUserInfo(tokens.accessToken);
+            
+            // Store tokens and user info (await to ensure Supabase storage completes)
+            await storeAuthTokens(country, provider, tokens);
+            await storeUserInfo(country, provider, userInfo);
+            
+            window.removeEventListener('message', messageHandler);
+            popup.close();
+            resolve({ tokens, userInfo });
           } catch (error) {
             window.removeEventListener('message', messageHandler);
             popup.close();

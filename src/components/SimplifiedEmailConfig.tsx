@@ -600,7 +600,7 @@ Best regards,
         const key = 'email_auth_global_microsoft';
         const persistedTokens = await secureDataManager.getData(key);
         if (persistedTokens) {
-          storeAuthTokens(selectedCountry, 'microsoft', persistedTokens as AuthTokens);
+          await storeAuthTokens(selectedCountry, 'microsoft', persistedTokens as AuthTokens);
         }
       }
       
@@ -609,7 +609,7 @@ Best regards,
         const key = 'email_userinfo_global_microsoft';
         const persistedInfo = await secureDataManager.getData(key);
         if (persistedInfo) {
-          storeUserInfo(selectedCountry, 'microsoft', persistedInfo as UserInfo);
+          await storeUserInfo(selectedCountry, 'microsoft', persistedInfo as UserInfo);
         }
       }
       
@@ -618,7 +618,7 @@ Best regards,
         const key = `email_auth_${selectedCountry}_google`;
         const persistedTokens = await secureDataManager.getData(key);
         if (persistedTokens) {
-          storeAuthTokens(selectedCountry, 'google', persistedTokens as AuthTokens);
+          await storeAuthTokens(selectedCountry, 'google', persistedTokens as AuthTokens);
         }
       }
       
@@ -626,7 +626,7 @@ Best regards,
         const key = `email_userinfo_${selectedCountry}_google`;
         const persistedInfo = await secureDataManager.getData(key);
         if (persistedInfo) {
-          storeUserInfo(selectedCountry, 'google', persistedInfo as UserInfo);
+          await storeUserInfo(selectedCountry, 'google', persistedInfo as UserInfo);
         }
       }
       
@@ -950,9 +950,15 @@ Best regards,
     }
 
     const activeProvider = currentConfig.activeProvider;
+    
+    if (!activeProvider || !currentConfig.providers || !currentConfig.providers[activeProvider]) {
+      showError('Configuration Error', 'Email provider configuration is not properly set up');
+      return;
+    }
+    
     const providerConfig = currentConfig.providers[activeProvider];
 
-    if (!providerConfig.isAuthenticated) {
+    if (!providerConfig || !providerConfig.isAuthenticated) {
       showError('Not Authenticated', `Please authenticate with ${activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)} first`);
       return;
     }

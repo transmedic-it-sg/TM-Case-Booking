@@ -15,14 +15,14 @@
 
 .mobile-nav-container {
   display: flex;
-  justify-content: space-evenly;
+  justify-content: space-around;
   align-items: center;
   max-width: 100%;
   margin: 0 auto;
   height: 60px;
   position: relative;
-  padding: 0 8px;
-  gap: 8px;
+  padding: 0 4px;
+  gap: 0;
 }
 
 .mobile-nav-item {
