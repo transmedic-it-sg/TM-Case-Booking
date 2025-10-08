@@ -116,7 +116,14 @@
       "Bash(CI=false npm run build)",
       "Bash(export CI=false)",
       "mcp__supabase__deploy_edge_function",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(git commit:*)",
+      "Bash(echo:*)",
+      "Bash(grep:*)",
+      "mcp__supabase__get_project_url",
+      "Bash(npx vercel:*)",
+      "Bash(nslookup:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": [],
