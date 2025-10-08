@@ -718,7 +718,10 @@ Best regards,
       }));
     };
 
-    initializeEmailConfig();
+    // Call initializeEmailConfig after loading auth data
+    loadPersistedAuth().then(() => {
+      initializeEmailConfig();
+    });
 
     // Load email notification matrix configs from database
     const loadNotificationMatrix = async () => {
