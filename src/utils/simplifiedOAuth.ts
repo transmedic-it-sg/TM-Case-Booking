@@ -536,6 +536,97 @@ export const isTokenExpired = (tokens: AuthTokens): boolean => {
 };
 
 /**
+ * Validate Microsoft access token in real-time with Microsoft servers
+ * Makes actual API call to verify token is still valid
+ */
+export const validateMicrosoftTokenOnline = async (accessToken: string): Promise<boolean> => {
+  try {
+    // Make a lightweight call to Microsoft Graph /me endpoint
+    const response = await fetch('https://graph.microsoft.com/v1.0/me', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    // If we get a successful response, token is valid
+    if (response.ok) {
+      return true;
+    }
+
+    // Check for specific authentication errors
+    if (response.status === 401) {
+      // Unauthorized - token is invalid or expired
+      return false;
+    }
+
+    // For other errors, assume token might still be valid (network issues, etc.)
+    console.warn('Token validation returned unexpected status:', response.status);
+    return false;
+  } catch (error) {
+    // Network error or other issues - assume token is invalid to be safe
+    console.error('Error validating Microsoft token online:', error);
+    return false;
+  }
+};
+
+/**
+ * Validate Google access token in real-time with Google servers
+ * Makes actual API call to verify token is still valid
+ */
+export const validateGoogleTokenOnline = async (accessToken: string): Promise<boolean> => {
+  try {
+    // Make a lightweight call to Google's tokeninfo endpoint
+    const response = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`);
+
+    if (response.ok) {
+      const data = await response.json();
+      // Check if token has proper scope and is not expired
+      return data.expires_in && parseInt(data.expires_in) > 0;
+    }
+
+    return false;
+  } catch (error) {
+    console.error('Error validating Google token online:', error);
+    return false;
+  }
+};
+
+/**
+ * Check authentication status in real-time by validating with provider servers
+ * This provides true real-time status instead of relying on local expiration times
+ */
+export const checkAuthenticationStatusOnline = async (
+  country: string, 
+  provider: 'google' | 'microsoft'
+): Promise<boolean> => {
+  const tokens = getStoredAuthTokens(country, provider);
+  
+  if (!tokens || !tokens.accessToken) {
+    return false;
+  }
+
+  // First check local expiration to avoid unnecessary API calls
+  if (isTokenExpired(tokens)) {
+    return false;
+  }
+
+  // Make real-time validation call to provider
+  try {
+    if (provider === 'microsoft') {
+      return await validateMicrosoftTokenOnline(tokens.accessToken);
+    } else if (provider === 'google') {
+      return await validateGoogleTokenOnline(tokens.accessToken);
+    }
+  } catch (error) {
+    console.error(`Error checking ${provider} authentication status online:`, error);
+  }
+
+  return false;
+};
+
+/**
  * Check if token is about to expire within the next 5 minutes
  */
 export const isTokenExpiringSoon = (tokens: AuthTokens): boolean => {

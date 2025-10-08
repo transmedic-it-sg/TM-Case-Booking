@@ -114,9 +114,16 @@ class DynamicConstantsService {
   async getCountries(): Promise<string[]> {
     try {
       const countries = await this.getDynamicConstant('available_countries');
-      return countries || ['Singapore', 'Malaysia'];
+      if (countries && Array.isArray(countries) && countries.length > 0) {
+        return countries;
+      }
+      // Fallback to all supported countries
+      const { SUPPORTED_COUNTRIES } = await import('../utils/countryUtils');
+      return [...SUPPORTED_COUNTRIES];
     } catch (error) {
-      return ['Singapore', 'Malaysia'];
+      // Error fallback to all supported countries
+      const { SUPPORTED_COUNTRIES } = await import('../utils/countryUtils');
+      return [...SUPPORTED_COUNTRIES];
     }
   }
 

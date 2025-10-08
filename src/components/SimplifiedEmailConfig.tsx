@@ -20,6 +20,7 @@ import {
   getStoredUserInfo,
   createOAuthManager,
   getValidAccessToken,
+  checkAuthenticationStatusOnline,
   UserInfo,
   AuthTokens
 } from '../utils/simplifiedOAuth';
@@ -457,15 +458,15 @@ Best regards,
 
         return {
           status,
-          enabled: isKeyStatus, // Enable key statuses by default
+          enabled: false, // All rules disabled by default per user request
           recipients: {
-            roles: defaultRoles,
+            roles: [], // All roles unchecked by default per user request
             specificEmails: [],
-            includeSubmitter: status === CASE_STATUSES.CASE_BOOKED, // Include submitter for new cases
+            includeSubmitter: false, // All options disabled by default per user request
             departmentFilter: [],
-            requireSameDepartment: false, // Allow cross-department notifications for most statuses
-            adminOverride: true, // Allow admin users to bypass role restrictions
-            adminGlobalAccess: true, // Allow admin users to bypass country restrictions
+            requireSameDepartment: false, // All options disabled by default per user request
+            adminOverride: false, // All options disabled by default per user request
+            adminGlobalAccess: false, // All options disabled by default per user request
             legacyRoleMapping: {
               'operation-manager': 'operations-manager' // Handle legacy role names
             }
@@ -595,22 +596,36 @@ Best regards,
       
       // No need for separate persistence loading - all data comes from Supabase now
 
-      // Enhanced token validation - check if tokens are valid or can be refreshed
+      // Enhanced token validation with real-time server verification
       const validateTokens = async (tokens: AuthTokens | null, provider: 'google' | 'microsoft') => {
-      if (!tokens) return false;
+        if (!tokens) return false;
 
-      // If token is still valid, return true
-      if (!isTokenExpired(tokens)) {
-        return true;
-      }
+        // First check local expiration to avoid unnecessary API calls
+        if (isTokenExpired(tokens)) {
+          // If token is expired but we have a refresh token (Microsoft), try to refresh
+          if (provider === 'microsoft' && tokens.refreshToken) {
+            const validToken = await getValidAccessToken(selectedCountry, provider);
+            return !!validToken;
+          }
+          // Token is expired and can't be refreshed
+          return false;
+        }
 
-      // If token is expired but we have a refresh token (Microsoft), try to refresh
-      if (provider === 'microsoft' && tokens.refreshToken) {const validToken = await getValidAccessToken(selectedCountry, provider);
-        return !!validToken;
-      }
-
-      // Token is expired and can't be refreshedreturn false;
-    };
+        // Token appears valid locally, now check with provider servers for real-time status
+        try {
+          const isValidOnline = await checkAuthenticationStatusOnline(selectedCountry, provider);
+          if (!isValidOnline) {
+            // Token is invalid online - clear it and return false
+            clearAuthTokens(selectedCountry, provider);
+            return false;
+          }
+          return true;
+        } catch (error) {
+          // If real-time check fails, fallback to local validation
+          console.warn(`Real-time validation failed for ${provider}, using local validation:`, error);
+          return !isTokenExpired(tokens);
+        }
+      };
 
     // Load saved email configurations from database
     const loadEmailConfigs = async () => {
@@ -961,12 +976,17 @@ Best regards,
       }// Create OAuth manager for sending email
       const oauth = createOAuthManager(activeProvider);
 
-      // Get current user's email if available
-      const recipientEmail = currentUser?.email || providerConfig.userInfo.email;
+      // Get current user's email - test email should go to logged-in user, not OAuth account
+      const recipientEmail = currentUser?.email;
+      
+      if (!recipientEmail) {
+        showError('No Recipient Email', 'Current user does not have an email address configured. Cannot send test email.');
+        return;
+      }
       
       // Prepare test email data
       const emailData = {
-        to: [recipientEmail], // Send to current user or OAuth email
+        to: [recipientEmail], // Send to logged-in user
         subject: `Test Email from ${providerConfig.fromName}`,
         body: `
           <h2>✅ Email Configuration Test</h2>
