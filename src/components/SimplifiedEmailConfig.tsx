@@ -11,6 +11,8 @@ import dynamicConstantsService from '../services/dynamicConstantsService';
 import {
   authenticateWithPopup,
   getStoredAuthTokens,
+  storeAuthTokens,
+  storeUserInfo,
   clearAuthTokens,
   isTokenExpired,
   isTokenExpiringSoon,
@@ -1117,7 +1119,22 @@ Best regards,
     );
   }
 
-  const currentConfig = emailConfigs[selectedCountry];
+  const currentConfig = emailConfigs[selectedCountry] || {
+    country: selectedCountry,
+    providers: {
+      google: {
+        provider: 'google' as const,
+        isAuthenticated: false,
+        fromName: 'Case Booking System'
+      },
+      microsoft: {
+        provider: 'microsoft' as const,
+        isAuthenticated: false,
+        fromName: 'Case Booking System'
+      }
+    },
+    activeProvider: undefined
+  };
 
   // Check OAuth configuration status
   const isGoogleConfigured = !!process.env.REACT_APP_GOOGLE_CLIENT_ID;
@@ -1263,7 +1280,7 @@ Best regards,
                     <span className="status-icon">✅</span>
                     <div className="auth-info">
                       <div>Authenticated as:</div>
-                      <strong>{currentConfig.providers.google.userInfo?.email}</strong>
+                      <strong>{currentConfig?.providers?.google?.userInfo?.email}</strong>
                     </div>
                   </div>
                 ) : (
@@ -1278,10 +1295,10 @@ Best regards,
                 {currentConfig?.providers.google.isAuthenticated ? (
                   <>
                     <div className="form-group">
-                      <label>From Name:</label>
+                      <label title="This name will appear as the sender name in emails">From Name (Display Name in Emails):</label>
                       <input
                         type="text"
-                        value={currentConfig.providers.google.fromName}
+                        value={currentConfig?.providers?.google?.fromName || 'Case Booking System'}
                         onChange={(e) => handleFromNameChange('google', e.target.value)}
                         className="form-control"
                         placeholder="Case Booking System"
@@ -1353,10 +1370,10 @@ Best regards,
                     <span className="status-icon">✅</span>
                     <div className="auth-info">
                       <div>Authenticated as:</div>
-                      <strong>{currentConfig.providers.microsoft.userInfo?.email}</strong>
-                      {currentConfig.providers.microsoft.tokens && (
+                      <strong>{currentConfig?.providers?.microsoft?.userInfo?.email}</strong>
+                      {currentConfig?.providers?.microsoft?.tokens && (
                         <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '4px' }}>
-                          {isTokenExpiringSoon(currentConfig.providers.microsoft.tokens) ? (
+                          {currentConfig?.providers?.microsoft?.tokens && isTokenExpiringSoon(currentConfig.providers.microsoft.tokens) ? (
                             <span style={{ color: '#ffc107' }}>⚠️ Token expires soon</span>
                           ) : (
                             <span style={{ color: '#28a745' }}>🔄 Auto-refresh enabled</span>
@@ -1377,10 +1394,10 @@ Best regards,
                 {currentConfig?.providers.microsoft.isAuthenticated ? (
                   <>
                     <div className="form-group">
-                      <label>From Name:</label>
+                      <label title="This name will appear as the sender name in emails">From Name (Display Name in Emails):</label>
                       <input
                         type="text"
-                        value={currentConfig.providers.microsoft.fromName}
+                        value={currentConfig?.providers?.microsoft?.fromName || 'Case Booking System'}
                         onChange={(e) => handleFromNameChange('microsoft', e.target.value)}
                         className="form-control"
                         placeholder="Case Booking System"
