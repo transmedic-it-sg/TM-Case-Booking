@@ -480,7 +480,7 @@ export const getStoredUserInfo = (country: string, provider: string): UserInfo |
   const key = provider === 'microsoft'
     ? `email_userinfo_global_microsoft`
     : `email_userinfo_${country}_${provider}`;
-  const stored = null /* OAuth tokens should be in secure backend */;
+  const stored = sessionStorage.getItem(key);
   if (!stored) return null;
 
   try {
@@ -491,8 +491,18 @@ export const getStoredUserInfo = (country: string, provider: string): UserInfo |
 };
 
 export const clearUserInfo = (country: string, provider: string): void => {
-  // NO-OP: User info is managed via Supabase, not localStorage
-  // Kept for backward compatibility
+  // Microsoft user info is global (same account for all countries)
+  const key = provider === 'microsoft'
+    ? `email_userinfo_global_microsoft`
+    : `email_userinfo_${country}_${provider}`;
+  
+  // Clear from sessionStorage
+  sessionStorage.removeItem(key);
+  
+  // Also clear from Supabase
+  import('../utils/secureDataManager').then(({ secureDataManager }) => {
+    secureDataManager.removeData(key);
+  });
 };
 
 export const getStoredAuthTokens = (country: string, provider: string): AuthTokens | null => {
@@ -500,7 +510,7 @@ export const getStoredAuthTokens = (country: string, provider: string): AuthToke
   const key = provider === 'microsoft'
     ? `email_auth_global_microsoft`
     : `email_auth_${country}_${provider}`;
-  const stored = null /* OAuth tokens should be in secure backend */;
+  const stored = sessionStorage.getItem(key);
   if (!stored) return null;
 
   try {
@@ -511,7 +521,19 @@ export const getStoredAuthTokens = (country: string, provider: string): AuthToke
 };
 
 export const clearAuthTokens = (country: string, provider: string): void => {
-  // NO-OP: Auth tokens are managed via Supabase, not localStorage
+  // Microsoft auth is global (same account for all countries)
+  const key = provider === 'microsoft'
+    ? `email_auth_global_microsoft`
+    : `email_auth_${country}_${provider}`;
+  
+  // Clear from sessionStorage
+  sessionStorage.removeItem(key);
+  
+  // Also clear from Supabase
+  import('../utils/secureDataManager').then(({ secureDataManager }) => {
+    secureDataManager.removeData(key);
+  });
+  
   // Also clear user info when clearing tokens
   clearUserInfo(country, provider);
 };
@@ -572,7 +594,8 @@ export const refreshMicrosoftToken = async (country: string, refreshToken: strin
     };
 
     // Store the new tokens
-    storeAuthTokens(country, 'microsoft', newTokens);return newTokens;
+    storeAuthTokens(country, 'microsoft', newTokens);
+    return newTokens;
   } catch (error) {
     return null;
   }
@@ -584,18 +607,23 @@ export const refreshMicrosoftToken = async (country: string, refreshToken: strin
 export const getValidAccessToken = async (country: string, provider: 'google' | 'microsoft'): Promise<string | null> => {
   const tokens = getStoredAuthTokens(country, provider);
 
-  if (!tokens) {return null;
+  if (!tokens) {
+    return null;
   }
 
   // If token is not expired, return it
-  if (!isTokenExpired(tokens)) {return tokens.accessToken;
+  if (!isTokenExpired(tokens)) {
+    return tokens.accessToken;
   }
 
   // Token is expired - try to refresh if it's Microsoft and has refresh token
-  if (provider === 'microsoft' && tokens.refreshToken) {const newTokens = await refreshMicrosoftToken(country, tokens.refreshToken);
+  if (provider === 'microsoft' && tokens.refreshToken) {
+    const newTokens = await refreshMicrosoftToken(country, tokens.refreshToken);
 
-    if (newTokens) {return newTokens.accessToken;
-    } else {clearAuthTokens(country, provider);
+    if (newTokens) {
+      return newTokens.accessToken;
+    } else {
+      clearAuthTokens(country, provider);
       return null;
     }
   }
