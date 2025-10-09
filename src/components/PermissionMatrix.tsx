@@ -57,6 +57,11 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
 
   const handlePermissionToggle = (actionId: string, roleId: string) => {
     if (readonly || !onPermissionChange) return;
+    
+    // Admin role permissions cannot be modified via UI - they are managed via SQL
+    if (roleId === 'admin') {
+      return;
+    }
 
     const currentPermission = getPermission(actionId, roleId);
     const newAllowed = !currentPermission?.allowed;
@@ -186,14 +191,19 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
                 {roles.map(role => {
                   const permission = getPermission(action.id, role.id);
                   const isAllowed = permission?.allowed || false;
+                  const isAdminRole = role.id === 'admin';
 
                   return (
                     <td key={`${action.id}-${role.id}`} className="permission-cell">
                       <button
-                        className={`permission-toggle ${getPermissionClass(isAllowed)} ${readonly ? 'readonly' : ''}`}
+                        className={`permission-toggle ${getPermissionClass(isAllowed)} ${readonly || isAdminRole ? 'readonly' : ''} ${isAdminRole ? 'admin-permission' : ''}`}
                         onClick={() => handlePermissionToggle(action.id, role.id)}
-                        disabled={readonly}
-                        title={`${isAllowed ? 'Allowed' : 'Denied'} for ${role.displayName}`}
+                        disabled={readonly || isAdminRole}
+                        title={
+                          isAdminRole 
+                            ? `Admin permissions are managed via SQL only - ${isAllowed ? 'Allowed' : 'Denied'}`
+                            : `${isAllowed ? 'Allowed' : 'Denied'} for ${role.displayName}`
+                        }
                       >
                         <span className="permission-icon">
                           {getPermissionIcon(isAllowed)}

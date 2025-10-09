@@ -90,11 +90,7 @@ export const hasPermission = (roleId: string, actionId: string): boolean => {
 
 // Check if a role has permission for a specific action with user context
 export const hasPermissionForUser = (roleId: string, actionId: string, userId: string = 'system'): boolean => {
-  // Admin has all permissions (hardcoded as root user) - ALWAYS ALLOW
-  if (roleId === 'admin') {
-    permissionLog('Admin access granted', { role: roleId, action: actionId, userId });
-    return true;
-  }
+  // Admin privileges are now stored in database - no hardcoded logic
 
   // Use global cache for non-user-specific permissions
   const cacheToUse = globalPermissionsCache;
@@ -298,18 +294,13 @@ export const PERMISSION_ACTIONS = {
 
 // Check if user can manage attachments for a specific case
 export const canManageAttachments = (userId: string, userRole: string, caseSubmittedBy: string): boolean => {
-  // Admin can manage all attachments
-  if (userRole === 'admin') {
-    return true;
-  }
-
   // Case creator can manage attachments
   if (userId === caseSubmittedBy) {
     return true;
   }
 
-  // Managers can manage attachments (manager role or users with MANAGE_ATTACHMENTS permission)
-  if (userRole === 'manager' || hasPermission(userRole, PERMISSION_ACTIONS.MANAGE_ATTACHMENTS)) {
+  // Check database permissions for attachment management
+  if (hasPermission(userRole, PERMISSION_ACTIONS.MANAGE_ATTACHMENTS)) {
     return true;
   }
 
@@ -318,11 +309,6 @@ export const canManageAttachments = (userId: string, userRole: string, caseSubmi
 
 // Check if user can view/download attachments (more permissive)
 export const canViewAttachments = (userId: string, userRole: string): boolean => {
-  // Admin can view all attachments
-  if (userRole === 'admin') {
-    return true;
-  }
-
   // Users with download permission can view attachments
   if (hasPermission(userRole, PERMISSION_ACTIONS.DOWNLOAD_FILES)) {
     return true;

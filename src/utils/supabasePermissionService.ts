@@ -99,15 +99,15 @@ const parseActionId = (actionId: string): { resource: string; action: string } |
     case 'manage-attachments':
       return { resource: 'attachments', action: 'manage' };
     
-    // Granular Edit Sets permissions
+    // Granular Edit Sets permissions - map to proper resources
     case 'manage-doctors':
-      return { resource: 'other', action: 'manage-doctors' };
+      return { resource: 'doctors', action: 'manage' };
     case 'manage-procedure-types':
-      return { resource: 'other', action: 'manage-procedure-types' };
+      return { resource: 'procedures', action: 'manage' };
     case 'manage-surgery-implants':
-      return { resource: 'other', action: 'manage-surgery-implants' };
+      return { resource: 'surgery-implants', action: 'manage' };
     case 'edit-sets':
-      return { resource: 'other', action: 'edit-sets' };
+      return { resource: 'sets', action: 'edit' };
     
     default:
       // For unmapped actions, don't try to parse - just return a safe fallback
@@ -306,13 +306,81 @@ export const getSupabasePermissions = async (): Promise<Permission[]> => {
       } else if (resource === 'attachments' && action === 'manage') {
         actionId = 'manage-attachments';
       
-      // Granular Edit Sets permissions
+      // CRITICAL: Add missing resource mappings that are causing production errors
+      // Edit Sets related resources
+      } else if (resource === 'sets' && action === 'edit') {
+        actionId = 'edit-sets';
+      } else if (resource === 'sets' && action === 'view') {
+        actionId = 'edit-sets'; // Same permission for viewing sets
+      } else if (resource === 'sets' && action === 'manage') {
+        actionId = 'edit-sets';
+      
+      // Doctor management resources
+      } else if (resource === 'doctors' && action === 'edit') {
+        actionId = 'manage-doctors';
+      } else if (resource === 'doctors' && action === 'manage') {
+        actionId = 'manage-doctors';
+      } else if (resource === 'doctors' && action === 'view') {
+        actionId = 'manage-doctors';
+      
+      // Procedure management resources
+      } else if (resource === 'procedures' && action === 'edit') {
+        actionId = 'manage-procedure-types';
+      } else if (resource === 'procedures' && action === 'manage') {
+        actionId = 'manage-procedure-types';
+      } else if (resource === 'procedures' && action === 'view') {
+        actionId = 'manage-procedure-types';
+      } else if (resource === 'procedure-types' && action === 'edit') {
+        actionId = 'manage-procedure-types';
+      } else if (resource === 'procedure-types' && action === 'manage') {
+        actionId = 'manage-procedure-types';
+      
+      // Surgery & Implants resources
+      } else if (resource === 'surgery-implants' && action === 'edit') {
+        actionId = 'manage-surgery-implants';
+      } else if (resource === 'surgery-implants' && action === 'manage') {
+        actionId = 'manage-surgery-implants';
+      } else if (resource === 'surgery-implants' && action === 'view') {
+        actionId = 'manage-surgery-implants';
+      } else if (resource === 'implants' && action === 'edit') {
+        actionId = 'manage-surgery-implants';
+      } else if (resource === 'implants' && action === 'manage') {
+        actionId = 'manage-surgery-implants';
+      
+      // Order related resources
+      } else if (resource === 'order' && action === 'create') {
+        actionId = 'process-order';
+      } else if (resource === 'order' && action === 'process') {
+        actionId = 'process-order';
+      } else if (resource === 'order' && action === 'edit') {
+        actionId = 'process-order';
+      } else if (resource === 'order' && action === 'view') {
+        actionId = 'process-order';
+      } else if (resource === 'order' && action === 'processed') {
+        actionId = 'order-processed';
+      
+      // Delivery related resources
+      } else if (resource === 'delivery' && action === 'pending-hospital') {
+        actionId = 'pending-delivery-hospital';
+      } else if (resource === 'delivery' && action === 'hospital') {
+        actionId = 'delivered-hospital';
+      } else if (resource === 'delivery' && action === 'pending-office') {
+        actionId = 'pending-delivery-office';
+      } else if (resource === 'delivery' && action === 'office') {
+        actionId = 'delivered-office';
+      } else if (resource === 'delivery' && action === 'manage') {
+        actionId = 'pending-delivery-hospital'; // Default delivery permission
+      } else if (resource === 'delivery' && action === 'view') {
+        actionId = 'pending-delivery-hospital';
+      
+      // Granular Edit Sets permissions (legacy)
       } else if (resource === 'other') {
         // For "other" resource, use the action as-is (for granular permissions)
         actionId = action;
       } else {
-        // Fallback to basic format - log for debugging
-        console.warn(`Unknown permission combination: resource=${resource}, action=${action}`);
+        // Fallback to basic format - log for debugging but don't spam console
+        // console.warn(`Unknown permission combination: resource=${resource}, action=${action}`);
+        // Create a safe actionId for unmapped combinations
         actionId = `${action}-${resource}`;
       }
       

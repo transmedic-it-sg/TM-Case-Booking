@@ -1114,7 +1114,12 @@ const ModernEditSets: React.FC = () => {
           <button
             onClick={() => setShowAddForm(!showAddForm)}
             className="add-button"
-            disabled={false}
+            disabled={!selectedDoctor || !selectedProcedure}
+            title={
+              !selectedDoctor ? 'Please select a doctor first' :
+              !selectedProcedure ? 'Please select a procedure type first' :
+              `Add ${itemType}`
+            }
           >
             + Add {itemType}
           </button>
@@ -1227,6 +1232,11 @@ const ModernEditSets: React.FC = () => {
           className="add-button"
           disabled={!selectedDepartment || (activeTab === TABS.PROCEDURES && !selectedDoctor)}
           aria-label={`Add new ${activeTab.slice(0, -1)}`}
+          title={
+            !selectedDepartment ? 'Please select a department first' :
+            (activeTab === TABS.PROCEDURES && !selectedDoctor) ? 'Please select a doctor first' :
+            `Add new ${activeTab === TABS.DOCTORS ? 'doctor' : 'procedure type'}`
+          }
         >
           + Add {activeTab === TABS.DOCTORS ? 'Doctor' : 'Procedure'}
         </button>

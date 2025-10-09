@@ -1,11 +1,12 @@
 # TM Case Booking System - Complete Documentation
-**Version 1.3.2 - Mobile UX & Data Management Enhancement**
+**Version 1.3.3 - Authentication & Permission Management Enhancement**
 
 ## 📋 Table of Contents
 1. [Project Overview](#project-overview)
-2. [Version 1.3.2 Latest Updates](#version-132-latest-updates)
-3. [Version 1.3.1 Critical Fixes](#version-131-critical-fixes)
-4. [Version 1.3.0 New Features](#version-130-new-features)
+2. [Version 1.3.3 Latest Updates](#version-133-latest-updates)
+3. [Version 1.3.2 Critical Fixes](#version-132-critical-fixes)
+4. [Version 1.3.1 Critical Fixes](#version-131-critical-fixes)
+5. [Version 1.3.0 New Features](#version-130-new-features)
 4. [Architecture & Technical Stack](#architecture--technical-stack)
 5. [Installation & Setup](#installation--setup)
 6. [User Features](#user-features)
@@ -32,7 +33,147 @@ The TM Case Booking System is a comprehensive enterprise-grade application for m
 
 ---
 
-## 🚀 Version 1.3.2 Latest Updates
+## 🚀 Version 1.3.3 Latest Updates
+
+**Release Date**: October 2025  
+**Focus**: Authentication Security & Permission Management Enhancement
+
+### 🎯 Major Achievements
+
+#### 1. **Complete Authentication Security Overhaul**
+**Achievement**: Enterprise-grade authentication with proper password security
+```typescript
+// Before: Plain text passwords in database
+password: "Admin123" // Stored as plain text - MAJOR SECURITY RISK
+
+// After: bcrypt hashed passwords with salt rounds
+password_hash: "$2b$12$KsV3Jn6RORx1Np1oR2bC9edFcal6JlKXk6a36U13Ks8b1b54d9LI2" // Secure
+```
+**Impact**:
+- ✅ All user passwords now use bcrypt hashing with 12 salt rounds
+- ✅ Temporary password reset functionality with forced password change
+- ✅ User management PATCH request errors (400 Bad Request) completely resolved
+- ✅ Added missing `password_reset_at` column to profiles table
+- ✅ Fixed authentication failures that were blocking admin and user access
+
+#### 2. **Permission Matrix Access & Admin Logic Modernization**
+**Achievement**: Database-driven permission system with admin role integration
+```typescript
+// Before: Hardcoded admin logic throughout application
+if (userRole === 'admin') {
+  return true; // Hardcoded access - not maintainable
+}
+
+// After: Database-driven permissions with admin protection
+const hasPermission = (roleId: string, actionId: string): boolean => {
+  // All permissions checked against database
+  const permission = permissionsCache.find(p => 
+    p.roleId === roleId && p.actionId === actionId
+  );
+  return permission?.allowed || false;
+};
+```
+**Impact**:
+- ✅ Admin role now has 63 database permissions covering all system functions
+- ✅ Permission Matrix is accessible to admin users (was showing access denied)
+- ✅ Admin column in Permission Matrix is read-only (can only be modified via SQL)
+- ✅ Removed hardcoded admin logic from 18+ components and utilities
+- ✅ Softcoded admin permissions while maintaining SQL-only modification security
+
+#### 3. **Edit Sets Validation Enhancement**
+**Achievement**: Improved user experience with proper dropdown validation
+```typescript
+// Before: Users could add items without selecting prerequisites
+<button onClick={() => setShowAddForm(!showAddForm)} disabled={false}>
+  + Add Doctor
+</button>
+
+// After: Validation prevents actions without proper selections
+<button 
+  disabled={!selectedDepartment || (activeTab === TABS.PROCEDURES && !selectedDoctor)}
+  title={
+    !selectedDepartment ? 'Please select a department first' :
+    (activeTab === TABS.PROCEDURES && !selectedDoctor) ? 'Please select a doctor first' :
+    'Add new doctor'
+  }
+>
+  + Add Doctor
+</button>
+```
+**Impact**:
+- ✅ Dropdown selection required before adding doctors, procedures, or surgery sets
+- ✅ Clear user feedback with tooltip messages explaining requirements
+- ✅ Prevents invalid data entry and improves data consistency
+
+#### 4. **Data Export/Import System Refinement**
+**Achievement**: Focused mass settings management with improved security
+```typescript
+// Before: Exported operational data (cases, audit logs)
+const DATA_ENTITIES = [
+  { name: 'Case Bookings', table: 'case_bookings', exportEnabled: true },
+  { name: 'Audit Logs', table: 'audit_logs', exportEnabled: true },
+  // ... other entities
+];
+
+// After: Only mass settings data (no operational data)
+const DATA_ENTITIES = [
+  { name: 'Users', table: 'profiles', exportEnabled: true },
+  { name: 'Code Tables', table: 'code_tables', exportEnabled: true },
+  { name: 'Permission Matrix', table: 'permissions', exportEnabled: true },
+  { name: 'System Settings', table: 'app_settings', exportEnabled: true },
+  { name: 'Doctors', table: 'doctors', exportEnabled: true },
+  { name: 'Surgery Sets', table: 'surgery_sets', exportEnabled: true },
+  { name: 'Implant Boxes', table: 'implant_boxes', exportEnabled: true },
+  { name: 'Doctor Procedure Sets', table: 'doctor_procedure_sets', exportEnabled: true }
+  // Excluded: Case bookings, audit logs (operational data)
+];
+```
+**Impact**:
+- ✅ Export/Import limited to configuration data only (Users, Code Tables, Permission Matrix, System Settings, Doctors, Surgery Sets, Implant Boxes, Doctor Procedure Sets)
+- ✅ Operational data (case bookings, audit logs) excluded from export for security
+- ✅ Permission-based access control for export/import functions
+- ✅ Component renamed to "Mass Settings Export & Import" for clarity
+
+#### 5. **Development Environment Organization**
+**Achievement**: Professional .claude directory structure for maintainability
+```bash
+.claude/
+├── scripts/           # All utility and testing scripts
+│   ├── fix-admin-password.js
+│   ├── test-login.js
+│   ├── test-user-management.js
+│   └── ...
+├── testing/          # E2E testing framework
+│   ├── playwright.config.ts
+│   ├── e2e-tests/
+│   └── test-results/
+├── documentation/    # Project documentation
+│   ├── GO-LIVE-SUCCESS.md
+│   ├── technical-roadmap.md
+│   └── ...
+└── README.md        # Directory organization guide
+```
+**Impact**:
+- ✅ Organized 29 files into logical folder structure
+- ✅ Created comprehensive README.md for .claude directory
+- ✅ Improved maintainability and development workflow
+- ✅ Clear separation of scripts, testing, and documentation
+
+### 🔒 Security Enhancements Summary
+- **Authentication**: bcrypt password hashing, temporary password management
+- **Authorization**: Database-driven permissions with admin SQL-only protection  
+- **Data Export**: Limited to configuration data only, no operational data exposure
+- **User Management**: Fixed PATCH request errors and database schema issues
+
+### ⚡ Performance & UX Improvements  
+- **Validation**: Dropdown prerequisites prevent invalid actions
+- **Organization**: Clean development environment structure
+- **Permissions**: Efficient database-driven access control
+- **Export**: Focused mass settings management
+
+---
+
+## 🔧 Version 1.3.2 Critical Fixes
 
 **Release Date**: October 2025  
 **Focus**: Database Integrity & Critical System Fixes

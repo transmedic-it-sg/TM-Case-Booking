@@ -53,8 +53,8 @@ export const roles: Role[] = [
   }
 ];
 
-// Roles for matrix display (excluding Admin since Admin has all permissions)
-export const matrixRoles: Role[] = roles.filter(role => role.id !== 'admin');
+// Roles for matrix display (including Admin but it will be read-only)
+export const matrixRoles: Role[] = roles;
 
 // Define all permission actions
 export const permissionActions: PermissionAction[] = [

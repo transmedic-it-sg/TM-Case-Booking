@@ -1,6 +1,8 @@
 /**
- * DataExportImport Component - Comprehensive data export and import functionality
- * Handles export/import for all system data including cases, users, code tables, and permissions
+ * DataExportImport Component - Mass Settings Export and Import
+ * Handles export/import for mass settings data only: Users, Code Tables, Permission Matrix,
+ * System Settings, Doctors, Surgery Sets, Implant Boxes, and Doctor Procedure Sets
+ * Excludes operational data like case bookings and audit logs
  */
 
 import React, { useState, useEffect } from 'react';
@@ -14,11 +16,9 @@ import '../assets/components/AdminComponents.css';
 import '../assets/components/DataExportImport.css';
 
 interface ExportConfig {
-  cases: boolean;
   users: boolean;
   code_tables: boolean;
   permissions: boolean;
-  audit_logs: boolean;
   app_settings: boolean;
   doctors: boolean;
   surgery_sets: boolean;
@@ -44,13 +44,11 @@ interface DataEntity {
   icon: string;
 }
 
-// Default export configuration
+// Default export configuration - Mass Settings Only
 const DEFAULT_EXPORT_CONFIG: ExportConfig = {
-  cases: true,
   users: true,
   code_tables: true,
   permissions: true,
-  audit_logs: false,
   app_settings: true,
   doctors: true,
   surgery_sets: true,
@@ -58,17 +56,8 @@ const DEFAULT_EXPORT_CONFIG: ExportConfig = {
   doctor_procedure_sets: true
 };
 
-// Define data entities as a constant outside the component to avoid temporal dead zone
+// Define data entities - MASS SETTINGS ONLY (excluding operational data)
 const DATA_ENTITIES: DataEntity[] = [
-  {
-    name: 'Case Bookings',
-    description: 'All case booking records with status history and attachments',
-    table: 'case_bookings',
-    exportEnabled: true,
-    importEnabled: true,
-    requiresAdmin: false,
-    icon: '📋'
-  },
   {
     name: 'Users',
     description: 'User accounts with roles and department assignments',
@@ -95,15 +84,6 @@ const DATA_ENTITIES: DataEntity[] = [
     importEnabled: true,
     requiresAdmin: true,
     icon: '🔐'
-  },
-  {
-    name: 'Audit Logs',
-    description: 'System activity audit trail',
-    table: 'audit_logs',
-    exportEnabled: true,
-    importEnabled: false,
-    requiresAdmin: true,
-    icon: '📝'
   },
   {
     name: 'System Settings',
@@ -167,7 +147,9 @@ const DataExportImport: React.FC = () => {
   // Check permissions
   const canExportData = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EXPORT_DATA) : false;
   const canImportData = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.IMPORT_DATA) : false;
-  const isAdmin = currentUser?.role === 'admin';
+  const canManageUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.VIEW_USERS) : false;
+  const canManagePermissions = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.PERMISSION_MATRIX) : false;
+  const canManageSettings = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) : false;
   
   // Use the DATA_ENTITIES constant defined outside the component
   const dataEntities = DATA_ENTITIES;
@@ -281,25 +263,10 @@ const DataExportImport: React.FC = () => {
         data: {}
       };
 
-      // Export Case Bookings
-      if (exportConfig.cases) {
-        const { data: cases, error } = await supabase
-          .from('case_bookings')
-          .select(`
-            *,
-            status_history (*),
-            attachments (*)
-          `)
-          .order('created_at', { ascending: false });
-
-        if (!error && cases) {
-          exportData.data.case_bookings = cases;
-          showInfo('Exported', `${cases.length} case bookings exported`);
-        }
-      }
+      // Case Bookings removed - operational data, not mass settings
 
       // Export Users
-      if (exportConfig.users && isAdmin) {
+      if (exportConfig.users && canManageUsers) {
         const { data: users, error } = await supabase
           .from('profiles')
           .select('*')
@@ -330,28 +297,16 @@ const DataExportImport: React.FC = () => {
       }
 
       // Export Permissions
-      if (exportConfig.permissions && isAdmin) {
+      if (exportConfig.permissions && canManagePermissions) {
         const permissions = await getRuntimePermissions();
         exportData.data.permissions = permissions;
         showInfo('Exported', `${permissions.length} permissions exported`);
       }
 
-      // Export Audit Logs
-      if (exportConfig.audit_logs && isAdmin) {
-        const { data: logs, error } = await supabase
-          .from('audit_logs')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(10000); // Limit to last 10,000 entries
-
-        if (!error && logs) {
-          exportData.data.audit_logs = logs;
-          showInfo('Exported', `${logs.length} audit log entries exported`);
-        }
-      }
+      // Audit Logs removed - operational data, not mass settings
 
       // Export App Settings
-      if (exportConfig.app_settings && isAdmin) {
+      if (exportConfig.app_settings && canManageSettings) {
         const { data: settings, error } = await supabase
           .from('app_settings')
           .select('*');
@@ -499,32 +454,26 @@ const DataExportImport: React.FC = () => {
         result.errors.push(...codeTableResult.errors);
       }
 
-      // 2. Import Users (if admin)
-      if (importData.data.users && isAdmin) {
+      // 2. Import Users (if has permission)
+      if (importData.data.users && canManageUsers) {
         const userResult = await importUsers(importData.data.users);
         result.imported += userResult.imported;
         result.failed += userResult.failed;
         result.errors.push(...userResult.errors);
       }
 
-      // 3. Import Permissions (if admin)
-      if (importData.data.permissions && isAdmin) {
+      // 3. Import Permissions (if has permission)
+      if (importData.data.permissions && canManagePermissions) {
         const permResult = await importPermissions(importData.data.permissions);
         result.imported += permResult.imported;
         result.failed += permResult.failed;
         result.errors.push(...permResult.errors);
       }
 
-      // 4. Import Case Bookings
-      if (importData.data.case_bookings) {
-        const caseResult = await importCases(importData.data.case_bookings);
-        result.imported += caseResult.imported;
-        result.failed += caseResult.failed;
-        result.errors.push(...caseResult.errors);
-      }
+      // Case Bookings import removed - operational data, not mass settings
 
-      // 5. Import App Settings (if admin)
-      if (importData.data.app_settings && isAdmin) {
+      // 5. Import App Settings (if has permission)
+      if (importData.data.app_settings && canManageSettings) {
         const settingsResult = await importAppSettings(importData.data.app_settings);
         result.imported += settingsResult.imported;
         result.failed += settingsResult.failed;
@@ -643,52 +592,7 @@ const DataExportImport: React.FC = () => {
     return result;
   };
 
-  const importCases = async (data: any[]): Promise<ImportResult> => {
-    const result: ImportResult = { success: false, imported: 0, failed: 0, errors: [], warnings: [] };
-    
-    for (const caseData of data) {
-      try {
-        // Import the main case record
-        const { status_history, attachments, ...mainCase } = caseData;
-        
-        const { error: caseError } = await supabase
-          .from('case_bookings')
-          .upsert(mainCase, { onConflict: 'id' });
-        
-        if (caseError) throw caseError;
-        
-        // Import status history
-        if (status_history && status_history.length > 0) {
-          const { error: historyError } = await supabase
-            .from('status_history')
-            .upsert(status_history, { onConflict: 'id' });
-          
-          if (historyError) {
-            result.warnings.push(`Case ${mainCase.caseReference}: Failed to import status history`);
-          }
-        }
-        
-        // Import attachments
-        if (attachments && attachments.length > 0) {
-          const { error: attachmentError } = await supabase
-            .from('attachments')
-            .upsert(attachments, { onConflict: 'id' });
-          
-          if (attachmentError) {
-            result.warnings.push(`Case ${mainCase.caseReference}: Failed to import attachments`);
-          }
-        }
-        
-        result.imported++;
-      } catch (error) {
-        result.failed++;
-        result.errors.push(`Case ${caseData.caseReference}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    }
-    
-    result.success = result.failed === 0;
-    return result;
-  };
+  // importCases function removed - case bookings are operational data, not mass settings
 
   const importAppSettings = async (data: any[]): Promise<ImportResult> => {
     const result: ImportResult = { success: false, imported: 0, failed: 0, errors: [], warnings: [] };
@@ -834,8 +738,8 @@ const DataExportImport: React.FC = () => {
     <div className="admin-component data-export-import">
       <>
         <div className="component-header">
-          <h2>📦 Data Export & Import</h2>
-          <p>Export system data for backup or import data from previous exports</p>
+          <h2>📦 Mass Settings Export & Import</h2>
+          <p>Export and import mass settings data only: Users, Code Tables, Permission Matrix, System Settings, Doctors, Surgery Sets, Implant Boxes, and Doctor Procedure Sets. Case bookings and audit logs are excluded.</p>
         </div>
 
         {/* Tab Navigation */}
@@ -869,7 +773,10 @@ const DataExportImport: React.FC = () => {
               {dataEntities.map((entity) => {
                 const key = entity.table.replace('_', '') as keyof ExportConfig;
                 const isEnabled = exportConfig[key as keyof ExportConfig];
-                const requiresAdminAccess = entity.requiresAdmin && !isAdmin;
+                const requiresAdminAccess = entity.requiresAdmin && 
+                  ((entity.table === 'profiles' && !canManageUsers) ||
+                   (entity.table === 'permissions' && !canManagePermissions) ||
+                   (entity.table === 'app_settings' && !canManageSettings));
                 const count = currentDataPreview?.[entity.table] || 0;
                 
                 if (!entity.exportEnabled) return null;

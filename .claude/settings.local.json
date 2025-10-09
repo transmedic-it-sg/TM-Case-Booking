@@ -130,7 +130,10 @@
       "Bash(npx stylelint:*)",
       "Bash(node:*)",
       "Bash(vercel:*)",
-      "Bash(CI=true npm run build)"
+      "Bash(CI=true npm run build)",
+      "Bash(ESLINT_NO_DEV_ERRORS=true npm run build)",
+      "Bash(CI=true DISABLE_ESLINT_PLUGIN=true npm run build)",
+      "Bash(CI=false DISABLE_ESLINT_PLUGIN=true npm run build)"
     ],
     "deny": [],
     "ask": [],
