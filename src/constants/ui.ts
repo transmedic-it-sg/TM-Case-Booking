@@ -13,7 +13,7 @@ export const APP_INFO = {
   VERSION: '1.1.5',
   DESCRIPTION: 'Medical case booking and workflow management system',
   AUTHOR: 'TM Medical',
-  SUPPORT_EMAIL: 'support@tmmedical.com'
+  SUPPORT_EMAIL: 'spinecasebooking@transmedicgroup.com'
 } as const;
 
 // Pagination defaults

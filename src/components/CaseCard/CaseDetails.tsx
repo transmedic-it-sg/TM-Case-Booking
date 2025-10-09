@@ -7,6 +7,7 @@ import React from 'react';
 import { CaseDetailsProps } from './types';
 import { useCaseData } from './hooks/useCaseData';
 import { useUserNames } from '../../hooks/useUserNames';
+import { useCaseQuantities } from '../../hooks/useCaseQuantities';
 
 const CaseDetails: React.FC<CaseDetailsProps> = ({
   caseItem,
@@ -32,6 +33,9 @@ const CaseDetails: React.FC<CaseDetailsProps> = ({
   ].filter((id): id is string => Boolean(id));
 
   const { getUserName } = useUserNames(userIds);
+  
+  // Load case quantities
+  const { getQuantityForItem, loading: quantitiesLoading } = useCaseQuantities(caseItem.id);
 
   if (!isExpanded) return null;
 
@@ -91,11 +95,20 @@ const CaseDetails: React.FC<CaseDetailsProps> = ({
           <div className="equipment-list">
             {caseItem.surgerySetSelection?.length ? (
               <div className="equipment-items">
-                {caseItem.surgerySetSelection.map((set, index) => (
-                  <span key={index} className="equipment-tag">
-                    {set}
-                  </span>
-                ))}
+                {caseItem.surgerySetSelection.map((set, index) => {
+                  const quantity = getQuantityForItem(set, 'surgery_set');
+                  return (
+                    <span key={index} className="equipment-tag">
+                      {set}
+                      {quantity > 0 && (
+                        <span className="equipment-quantity"> (Qty: {quantity})</span>
+                      )}
+                      {quantitiesLoading && (
+                        <span className="equipment-loading"> (Loading...)</span>
+                      )}
+                    </span>
+                  );
+                })}
               </div>
             ) : (
               <span className="no-equipment">No surgery sets selected</span>
@@ -108,11 +121,20 @@ const CaseDetails: React.FC<CaseDetailsProps> = ({
           <div className="equipment-list">
             {caseItem.implantBox?.length ? (
               <div className="equipment-items">
-                {caseItem.implantBox.map((implant, index) => (
-                  <span key={index} className="equipment-tag">
-                    {implant}
-                  </span>
-                ))}
+                {caseItem.implantBox.map((implant, index) => {
+                  const quantity = getQuantityForItem(implant, 'implant_box');
+                  return (
+                    <span key={index} className="equipment-tag">
+                      {implant}
+                      {quantity > 0 && (
+                        <span className="equipment-quantity"> (Qty: {quantity})</span>
+                      )}
+                      {quantitiesLoading && (
+                        <span className="equipment-loading"> (Loading...)</span>
+                      )}
+                    </span>
+                  );
+                })}
               </div>
             ) : (
               <span className="no-equipment">No implant boxes selected</span>

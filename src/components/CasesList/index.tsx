@@ -15,6 +15,7 @@ import AmendmentForm from '../CaseCard/AmendmentForm';
 import { useModal } from '../../hooks/useModal';
 import { normalizeCountry } from '../../utils/countryUtils';
 import { amendCase, processCaseOrder } from '../../utils/realTimeStorage'; // Using real-time storage instead
+import StatusLegend from '../StatusLegend';
 
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
@@ -1053,6 +1054,9 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
             {isMutating || isLoading ? '⏳ Loading...' :
              isConnected ? '↻ Refresh' : '⚠️ Force Refresh'}
           </button>
+
+          {/* Status Color Legend - moved from main navigation */}
+          <StatusLegend />
 
         </div>
       </div>

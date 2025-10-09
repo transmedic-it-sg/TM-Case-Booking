@@ -531,7 +531,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       const savedCase = await saveCase(newCase);
 
       if (!savedCase) {
-        showError('Failed to save case. Please try again.');
+        showError('Failed to save case. Please check the console for more details and try again.');
         return;
       }
 

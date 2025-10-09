@@ -120,12 +120,14 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
   }, [caseMutation, enableTesting, testing]);
 
   // Save case with optimistic updates
-  const saveCase = useCallback(async (caseData: CaseBooking) => {setLocalError(null);
+  const saveCase = useCallback(async (caseData: CaseBooking) => {
+    setLocalError(null);
 
     try {
       const savedCase = await realtimeCaseService.saveCase(caseData);
 
-      if (savedCase) {// Trigger refresh to get updated data
+      if (savedCase) {
+        // Trigger refresh to get updated data
         await refetch();
 
         if (enableTesting) {
@@ -136,8 +138,31 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
       return savedCase;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to save case';
-      setLocalError(errorMessage);
-      // Failed to save case
+      console.error('Case save error:', error);
+      
+      // Check if it's a database constraint error or other specific error
+      if (errorMessage.includes('duplicate key') || errorMessage.includes('unique constraint')) {
+        setLocalError('Case reference number already exists. Please try again.');
+      } else if (errorMessage.includes('permission') || errorMessage.includes('RLS')) {
+        setLocalError('Permission denied. Please check your access rights.');
+      } else {
+        setLocalError(errorMessage);
+      }
+      
+      // Try to check if case was actually saved despite error
+      try {
+        // Wait a bit for database to process
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Trigger refresh to see if case appears
+        await refetch();
+        
+        // Check if a case with this reference number exists
+        console.log('Attempting to verify if case was saved despite error...');
+      } catch (refreshError) {
+        console.error('Failed to refresh after save error:', refreshError);
+      }
+      
       return null;
     }
   }, [refetch, enableTesting, testing]);

@@ -36,7 +36,6 @@ import NotificationBell from './components/NotificationBell';
 import Settings from './components/Settings';
 import { initializeVersionManager, handleVersionUpdate, updateStoredAppVersion } from './utils/appVersionManager';
 import VersionUpdatePopup from './components/VersionUpdatePopup';
-import StatusLegend from './components/StatusLegend';
 import MobileNavigation from './components/MobileNavigation';
 import MobileHeader from './components/MobileHeader';
 import MaintenanceMode from './components/MaintenanceMode';
@@ -790,7 +789,6 @@ const AppContent: React.FC = () => {
               📋 View All Cases
             </button>
           )}
-          <StatusLegend />
           {hasPermission(user.role, PERMISSION_ACTIONS.BOOKING_CALENDAR) && (
             <button
               onClick={() => {

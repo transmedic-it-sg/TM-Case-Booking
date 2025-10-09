@@ -41,6 +41,15 @@ interface CountryEmailConfig {
     microsoft: EmailProvider;
   };
   activeProvider?: 'google' | 'microsoft';
+  notificationRules?: Record<string, {
+    enabled: boolean;
+    roles: string[];
+    includeSubmitter: boolean;
+    requireSameDepartment: boolean;
+    adminOverride: boolean;
+    adminGlobalAccess: boolean;
+    departmentFilter?: string[];
+  }>;
 }
 
 interface NotificationRule {
@@ -63,6 +72,38 @@ interface EmailNotificationMatrix {
   country: string;
   rules: NotificationRule[];
 }
+
+// Get email configurations from Supabase app_settings table (external function)
+export const getEmailConfigFromDatabase = async (country?: string): Promise<Record<string, CountryEmailConfig>> => {
+  try {
+    const { supabase } = await import('../lib/supabase');
+    const { userService } = await import('../services');
+    
+    // Get current user ID for RLS policy compliance
+    const user = await userService.getCurrentUser();
+    if (!user?.id) {
+      console.log('User not authenticated for loading email config');
+      // Still try to load global settings
+    }
+    
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'simplified_email_configs')
+      .eq('user_id', user?.id || null)
+      .maybeSingle();
+
+    if (error || !data?.setting_value) {
+      console.log('No email config found for user:', error?.message || 'No data');
+      return {};
+    }
+
+    return data.setting_value;
+  } catch (error) {
+    console.error('Error in getEmailConfigFromDatabase:', error);
+    return {};
+  }
+};
 
 const SimplifiedEmailConfig: React.FC = () => {
   const [selectedCountry, setSelectedCountry] = useState<string>('');
@@ -492,37 +533,7 @@ Best regards,
     }
   }, [currentUser, selectedCountry, availableCountries]);
 
-  // Get email configurations from Supabase app_settings table
-  const getEmailConfigFromDatabase = async (country: string): Promise<Record<string, CountryEmailConfig>> => {
-    try {
-      const { supabase } = await import('../lib/supabase');
-      const { userService } = await import('../services');
-      
-      // Get current user ID for RLS policy compliance
-      const user = await userService.getCurrentUser();
-      if (!user?.id) {
-        console.log('User not authenticated for loading email config');
-        // Still try to load global settings
-      }
-      
-      const { data, error } = await supabase
-        .from('app_settings')
-        .select('setting_value')
-        .eq('setting_key', 'simplified_email_configs')
-        .eq('user_id', user?.id || null)
-        .maybeSingle();
-
-      if (error || !data?.setting_value) {
-        console.log('No email config found for user:', error?.message || 'No data');
-        return {};
-      }
-
-      return data.setting_value;
-    } catch (error) {
-      console.error('Error in getEmailConfigFromDatabase:', error);
-      return {};
-    }
-  };
+  // Load email configurations from database
 
   // Save email configurations to Supabase app_settings table
   const saveEmailConfigToDatabase = async (configs: Record<string, CountryEmailConfig>) => {
@@ -2305,5 +2316,7 @@ Case Booking System`}
     </div>
   );
 };
+
+// getEmailConfigFromDatabase is already exported above
 
 export default SimplifiedEmailConfig;

@@ -278,6 +278,55 @@ export const getDailyUsageForDate = async (
 };
 
 /**
+ * Get case quantities from the database
+ */
+export const getCaseQuantities = async (caseBookingId: string): Promise<CaseQuantity[]> => {
+  try {
+    if (!caseBookingId) {
+      logger.warn('getCaseQuantities: Invalid case booking ID', { caseBookingId });
+      return [];
+    }
+
+    const { data, error } = await supabase.rpc('get_case_booking_quantities', {
+      p_case_booking_id: caseBookingId
+    });
+
+    if (error) {
+      logger.error('Error fetching case quantities', {
+        caseBookingId,
+        error: error.message
+      });
+      return [];
+    }
+
+    if (!data) {
+      return [];
+    }
+
+    // Convert from JSONB format to CaseQuantity array
+    const quantities: CaseQuantity[] = [];
+    Object.entries(data as Record<string, any>).forEach(([itemName, itemData]) => {
+      if (itemData && typeof itemData === 'object' && itemData.type && itemData.quantity) {
+        quantities.push({
+          item_type: itemData.type,
+          item_name: itemName,
+          quantity: parseInt(itemData.quantity, 10) || 0
+        });
+      }
+    });
+
+    return quantities;
+
+  } catch (error) {
+    logger.error('Exception in getCaseQuantities', {
+      caseBookingId,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    return [];
+  }
+};
+
+/**
  * Save case quantities with comprehensive error handling
  */
 export const saveCaseQuantities = async (
@@ -545,6 +594,7 @@ const doctorService = {
   getProceduresForDoctor,
   getSetsForDoctorProcedure,
   getDailyUsageForDate,
+  getCaseQuantities,
   saveCaseQuantities,
   createDoctor,
   addProcedureToDoctor,

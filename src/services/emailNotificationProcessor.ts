@@ -1,0 +1,218 @@
+/**
+ * Email Notification Processor - Connects Email Configuration with Case Updates
+ * Processes notification rules and sends emails when cases change status
+ */
+
+import { CaseBooking, CaseStatus } from '../types';
+import { getAllSupabaseUsers } from '../utils/supabaseUserService';
+import { getEmailConfigFromDatabase } from '../components/SimplifiedEmailConfig';
+import { createOAuthManager, getValidAccessToken } from '../utils/simplifiedOAuth';
+
+interface NotificationRule {
+  enabled: boolean;
+  roles: string[];
+  includeSubmitter: boolean;
+  requireSameDepartment: boolean;
+  adminOverride: boolean;
+  adminGlobalAccess: boolean;
+  departmentFilter?: string[];
+}
+
+interface EmailConfig {
+  [status: string]: NotificationRule;
+}
+
+/**
+ * Process email notifications for case status changes
+ */
+export const processEmailNotifications = async (
+  caseData: CaseBooking,
+  newStatus: CaseStatus,
+  oldStatus?: CaseStatus,
+  changedBy?: string
+): Promise<void> => {
+  try {
+    // Get email configuration for the case's country
+    const emailConfigs = await getEmailConfigFromDatabase(caseData.country);
+    const countryConfig = emailConfigs[caseData.country];
+    
+    if (!countryConfig || !countryConfig.notificationRules) {
+      console.log(`No email configuration found for country: ${caseData.country}`);
+      return;
+    }
+
+    // Get notification rule for this status
+    const notificationRule = countryConfig.notificationRules[newStatus];
+    if (!notificationRule || !notificationRule.enabled) {
+      console.log(`No notification rule enabled for status: ${newStatus}`);
+      return;
+    }
+
+    // Get active email provider for this country
+    const activeProvider = countryConfig.providers.microsoft.isAuthenticated ? 'microsoft' :
+                          countryConfig.providers.google.isAuthenticated ? 'google' : null;
+                          
+    if (!activeProvider) {
+      console.log(`No authenticated email provider for country: ${caseData.country}`);
+      return;
+    }
+
+    // Get valid access token
+    const accessToken = await getValidAccessToken(caseData.country, activeProvider);
+    if (!accessToken) {
+      console.log(`No valid access token for ${activeProvider} in ${caseData.country}`);
+      return;
+    }
+
+    // Get all users to determine who should receive notifications
+    const allUsers = await getAllSupabaseUsers();
+    const recipients: string[] = [];
+
+    // Filter users based on notification rules
+    for (const user of allUsers) {
+      if (!user.email || !user.enabled) {
+        continue; // Skip users without email or disabled users
+      }
+
+      // Check if user has access to this country
+      if (!user.countries.includes(caseData.country)) {
+        // Check admin global access
+        if (!notificationRule.adminGlobalAccess || user.role !== 'admin') {
+          continue;
+        }
+      }
+
+      // Check department filter
+      if (notificationRule.requireSameDepartment) {
+        if (!user.departments.includes(caseData.department)) {
+          continue;
+        }
+      }
+
+      if (notificationRule.departmentFilter && notificationRule.departmentFilter.length > 0) {
+        if (!notificationRule.departmentFilter.some(dept => user.departments.includes(dept))) {
+          continue;
+        }
+      }
+
+      // Check role filter
+      if (notificationRule.roles.length > 0) {
+        if (!notificationRule.roles.includes(user.role)) {
+          // Check admin override
+          if (!notificationRule.adminOverride || user.role !== 'admin') {
+            continue;
+          }
+        }
+      }
+
+      // Add user email to recipients
+      recipients.push(user.email);
+    }
+
+    // Include case submitter if enabled
+    if (notificationRule.includeSubmitter && caseData.submittedBy) {
+      const submitter = allUsers.find(u => u.id === caseData.submittedBy || u.username === caseData.submittedBy);
+      if (submitter && submitter.email && submitter.enabled) {
+        recipients.push(submitter.email);
+      }
+    }
+
+    // Remove duplicates
+    const uniqueRecipients = [...new Set(recipients)];
+
+    if (uniqueRecipients.length === 0) {
+      console.log(`No valid recipients found for case ${caseData.caseReferenceNumber}`);
+      return;
+    }
+
+    // Create email content
+    const subject = `Case ${caseData.caseReferenceNumber} - Status Updated to ${newStatus}`;
+    const body = createEmailBody(caseData, newStatus, oldStatus, changedBy);
+
+    // Send email notification
+    const oauth = createOAuthManager(activeProvider);
+    const success = await oauth.sendEmail(accessToken, {
+      to: uniqueRecipients,
+      subject,
+      body,
+      attachments: []
+    });
+
+    if (success) {
+      console.log(`Email notification sent successfully to ${uniqueRecipients.length} recipients for case ${caseData.caseReferenceNumber}`);
+    } else {
+      console.error(`Failed to send email notification for case ${caseData.caseReferenceNumber}`);
+    }
+
+  } catch (error) {
+    console.error('Error processing email notifications:', error);
+  }
+};
+
+/**
+ * Create email body content
+ */
+const createEmailBody = (
+  caseData: CaseBooking,
+  newStatus: CaseStatus,
+  oldStatus?: CaseStatus,
+  changedBy?: string
+): string => {
+  return `
+<html>
+<body style="font-family: Arial, sans-serif; color: #333;">
+  <h2>Case Status Update Notification</h2>
+  
+  <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
+    <h3>Case Information</h3>
+    <p><strong>Case Reference:</strong> ${caseData.caseReferenceNumber}</p>
+    <p><strong>Hospital:</strong> ${caseData.hospital}</p>
+    <p><strong>Department:</strong> ${caseData.department}</p>
+    <p><strong>Doctor:</strong> ${caseData.doctorName || 'Not specified'}</p>
+    <p><strong>Procedure:</strong> ${caseData.procedureType} - ${caseData.procedureName}</p>
+    <p><strong>Surgery Date:</strong> ${caseData.dateOfSurgery}</p>
+    ${caseData.timeOfProcedure ? `<p><strong>Surgery Time:</strong> ${caseData.timeOfProcedure}</p>` : ''}
+  </div>
+
+  <div style="background-color: #e8f4fd; padding: 15px; border-radius: 5px; margin: 15px 0;">
+    <h3>Status Update</h3>
+    ${oldStatus ? `<p><strong>Previous Status:</strong> ${oldStatus}</p>` : ''}
+    <p><strong>New Status:</strong> <span style="color: #0066cc; font-weight: bold;">${newStatus}</span></p>
+    ${changedBy ? `<p><strong>Updated By:</strong> ${changedBy}</p>` : ''}
+    <p><strong>Updated At:</strong> ${new Date().toLocaleString()}</p>
+  </div>
+
+  ${caseData.surgerySetSelection && caseData.surgerySetSelection.length > 0 ? `
+  <div style="margin: 15px 0;">
+    <h4>Surgery Sets:</h4>
+    <ul>
+      ${caseData.surgerySetSelection.map(set => `<li>${set}</li>`).join('')}
+    </ul>
+  </div>
+  ` : ''}
+
+  ${caseData.implantBox && caseData.implantBox.length > 0 ? `
+  <div style="margin: 15px 0;">
+    <h4>Implant Boxes:</h4>
+    <ul>
+      ${caseData.implantBox.map(implant => `<li>${implant}</li>`).join('')}
+    </ul>
+  </div>
+  ` : ''}
+
+  ${caseData.specialInstruction ? `
+  <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 15px 0;">
+    <h4>Special Instructions:</h4>
+    <p>${caseData.specialInstruction}</p>
+  </div>
+  ` : ''}
+
+  <hr style="margin: 20px 0;">
+  <p style="font-size: 12px; color: #666;">
+    This is an automated notification from the Case Booking System. 
+    Please log in to the system for more details and to take any required actions.
+  </p>
+</body>
+</html>
+  `.trim();
+};

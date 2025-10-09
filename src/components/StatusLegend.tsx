@@ -29,13 +29,18 @@ const StatusLegend: React.FC = () => {
     { status: 'Case Cancelled', description: 'Case cancelled' }
   ];
 
+  // Only show on web view (not mobile) as requested by user
+  if (isMobile) {
+    return null;
+  }
+
   return (
     <>
       <button
-        className={`status-legend-button ${isMobile ? 'mobile-menu-item' : ''}`}
+        className="status-legend-button"
         onClick={() => setShowPopup(true)}
       >
-        <span className={isMobile ? 'mobile-menu-icon' : ''}>📊</span>
+        <span>📊</span>
         <span>Status Colors</span>
       </button>
 

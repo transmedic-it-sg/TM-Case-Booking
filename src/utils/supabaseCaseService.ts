@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { CaseBooking, CaseStatus, StatusHistory, AmendmentHistory } from '../types';
 import { normalizeCountry, getLegacyCountryCode } from './countryUtils';
+import { processEmailNotifications } from '../services/emailNotificationProcessor';
 
 // Interface for Supabase case data
 interface SupabaseCase {
@@ -617,6 +618,56 @@ export const updateSupabaseCaseStatus = async (
           );
         } catch (auditError) {
           // Failed to log status change audit - continue silently
+        }
+      }
+      
+      // Process email notifications for status change
+      if (oldStatus !== newStatus) {
+        try {
+          // Get full case data for email notifications
+          const { data: fullCaseData, error: caseError } = await supabase
+            .from('case_bookings')
+            .select('*')
+            .eq('id', caseId)
+            .single();
+
+          if (!caseError && fullCaseData) {
+            // Transform to CaseBooking format
+            const caseBooking: CaseBooking = {
+              id: fullCaseData.id,
+              caseReferenceNumber: fullCaseData.case_reference_number,
+              hospital: fullCaseData.hospital,
+              department: fullCaseData.department,
+              dateOfSurgery: fullCaseData.date_of_surgery,
+              procedureType: fullCaseData.procedure_type,
+              procedureName: fullCaseData.procedure_name,
+              doctorName: fullCaseData.doctor_name,
+              doctorId: fullCaseData.doctor_id,
+              timeOfProcedure: fullCaseData.time_of_procedure,
+              surgerySetSelection: fullCaseData.surgery_set_selection || [],
+              implantBox: fullCaseData.implant_box || [],
+              specialInstruction: fullCaseData.special_instruction,
+              status: newStatus,
+              submittedBy: fullCaseData.submitted_by,
+              submittedAt: fullCaseData.submitted_at,
+              processedBy: fullCaseData.processed_by,
+              processedAt: fullCaseData.processed_at,
+              processOrderDetails: fullCaseData.process_order_details,
+              country: fullCaseData.country,
+              amendedBy: fullCaseData.amended_by,
+              amendedAt: fullCaseData.amended_at,
+              isAmended: fullCaseData.is_amended
+            };
+
+            // Process email notifications asynchronously (don't block status update)
+            processEmailNotifications(caseBooking, newStatus, oldStatus, actualUser)
+              .catch(emailError => {
+                console.error('Failed to process email notifications:', emailError);
+              });
+          }
+        } catch (emailError) {
+          // Don't fail the status update if email processing fails
+          console.error('Error setting up email notifications:', emailError);
         }
       }
     }

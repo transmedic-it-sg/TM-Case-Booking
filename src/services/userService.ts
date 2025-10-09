@@ -43,7 +43,21 @@ class UserService {
         return null;
       }
 
-      this.currentUser = user;
+      // Transform database row to User interface format
+      const transformedUser: User = {
+        id: user.id,
+        username: user.username,
+        password: '', // Never expose password
+        role: user.role,
+        name: user.name,
+        departments: user.departments || [],
+        countries: user.countries || [],
+        selectedCountry: user.selected_country,
+        enabled: user.enabled,
+        email: user.email // Ensure email field is properly mapped
+      };
+
+      this.currentUser = transformedUser;
       return this.currentUser;
     } catch (error) {
       return null;
