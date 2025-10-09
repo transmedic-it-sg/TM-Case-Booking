@@ -279,11 +279,15 @@ export const getSupabasePermissions = async (): Promise<Permission[]> => {
       // System Settings
       } else if (resource === 'settings' && action === 'system') {
         actionId = 'system-settings';
+      } else if (resource === 'settings' && action === 'system-settings') {
+        actionId = 'system-settings';
       } else if (resource === 'settings' && action === 'email-config') {
         actionId = 'email-config';
       } else if (resource === 'settings' && action === 'code-table-setup') {
         actionId = 'code-table-setup';
       } else if (resource === 'logs' && action === 'audit') {
+        actionId = 'audit-logs';
+      } else if (resource === 'settings' && action === 'audit-logs') {
         actionId = 'audit-logs';
       } else if (resource === 'settings' && action === 'permission-matrix') {
         actionId = 'permission-matrix';
