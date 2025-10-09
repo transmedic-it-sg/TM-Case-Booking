@@ -160,14 +160,22 @@ const ComprehensiveEditSets: React.FC = () => {
   const loadDepartments = async () => {
     try {
       setIsLoading(true);
-      // Use standardized department loading service
-      const { getDepartmentsForCountry } = await import('../../utils/departmentDoctorService');
-      const departmentData = await getDepartmentsForCountry(normalizedCountry);
+      // Use standardized data service - single source of truth for all dropdowns
+      const { getStandardizedDepartments } = await import('../../utils/standardizedDataService');
+      const departmentNames = await getStandardizedDepartments(normalizedCountry);
       
-      if (!departmentData || departmentData.length === 0) {
+      if (!departmentNames || departmentNames.length === 0) {
         setDepartments([]);
         return;
       }
+      
+      // Transform to Department objects for compatibility with existing code
+      const departmentData = departmentNames.map(name => ({
+        id: name,
+        name: name,
+        country: normalizedCountry,
+        doctor_count: 0 // Will be updated when doctors load
+      }));
       
       setDepartments(departmentData);
     } catch (error) {

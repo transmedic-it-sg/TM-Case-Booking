@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import userService from '../services/userService';
+import { User } from '../types';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getAllRoles } from '../data/permissionMatrixData';
 import { useSound } from '../contexts/SoundContext';
@@ -120,7 +121,7 @@ const SimplifiedEmailConfig: React.FC = () => {
 
   const { playSound } = useSound();
   const { showSuccess, showError } = useToast();
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userLoading, setUserLoading] = useState(true);
   
   // Load current user asynchronously

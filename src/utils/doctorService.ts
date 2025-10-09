@@ -334,7 +334,10 @@ export const saveCaseQuantities = async (
   quantities: CaseQuantity[]
 ): Promise<boolean> => {
   try {
+    console.log('DoctorService Debug - saveCaseQuantities called with:', { caseBookingId, quantities });
+    
     if (!caseBookingId || !quantities || quantities.length === 0) {
+      console.log('DoctorService Debug - Invalid parameters, returning false');
       logger.warn('saveCaseQuantities: Invalid parameters', { caseBookingId, quantitiesCount: quantities?.length });
       return false;
     }
@@ -348,6 +351,7 @@ export const saveCaseQuantities = async (
     );
 
     if (validQuantities.length === 0) {
+      console.log('DoctorService Debug - No valid quantities after filtering');
       logger.warn('saveCaseQuantities: No valid quantities provided', { caseBookingId, quantities });
       return false;
     }
@@ -360,13 +364,18 @@ export const saveCaseQuantities = async (
       };
       return acc;
     }, {} as Record<string, any>);
+    
+    console.log('DoctorService Debug - Converted to JSONB format:', quantitiesJsonb);
 
     const { data, error } = await supabase.rpc('save_case_booking_quantities', {
       p_case_booking_id: caseBookingId,
       p_quantities: quantitiesJsonb
     });
 
+    console.log('DoctorService Debug - RPC call result:', { data, error });
+
     if (error) {
+      console.error('DoctorService Debug - RPC error:', error);
       logger.error('Error saving case quantities', {
         caseBookingId,
         quantitiesCount: validQuantities.length,

@@ -167,13 +167,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
     loadDepartments();
   }, []);
 
-  // Load case quantities when case is expanded
+  // Load case quantities for display in both collapsed and expanded views
   useEffect(() => {
     const loadCaseQuantities = async () => {
-      if (!expandedCases.has(caseItem.id)) {
-        return; // Don't load quantities unless case is expanded
-      }
-
       try {
         const { data, error } = await supabase
           .from('case_booking_quantities')
@@ -181,6 +177,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
           .eq('case_booking_id', caseItem.id);
 
         if (error) {
+          setCaseQuantities({});
           return;
         }
 
@@ -199,7 +196,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
     };
 
     loadCaseQuantities();
-  }, [expandedCases, caseItem.id]);
+  }, [caseItem.id]);
 
   // Initialize code tables only once when component mounts
   // Code tables are now initialized at app level via Supabase service
@@ -1784,8 +1781,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   value={salesApprovalComments}
                   onChange={(e) => onSalesApprovalCommentsChange(e.target.value)}
                   placeholder="Enter sales approval comments, notes, or any additional information..."
-                  rows={3}
-                  className="sales-approval-comments-input"
+                  rows={4}
+                  className="process-details-input"
                 />
               </div>
               <div className="form-group">
@@ -1920,9 +1917,99 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   value={hospitalDeliveryComments}
                   onChange={(e) => onHospitalDeliveryCommentsChange(e.target.value)}
                   placeholder="Add any delivery notes or special instructions..."
-                  rows={3}
-                  className="form-control"
+                  rows={4}
+                  className="process-details-input"
                 />
+              </div>
+              <div className="form-group">
+                <label>Attachments (Optional):</label>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files) {
+                      const newAttachments: string[] = [];
+                      Array.from(files).forEach((file, index) => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const fileData = {
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            data: reader.result,
+                            uploadedAt: new Date().toISOString(),
+                            uploadedBy: currentUser?.name || 'Unknown'
+                          };
+                          newAttachments.push(JSON.stringify(fileData));
+                          if (newAttachments.length === files.length) {
+                            onHospitalDeliveryAttachmentsChange([...hospitalDeliveryAttachments, ...newAttachments]);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                    }
+                  }}
+                  className="file-upload-input"
+                />
+                {hospitalDeliveryAttachments.length > 0 && (
+                  <div className="attachment-list">
+                    <p>Uploaded files ({hospitalDeliveryAttachments.length}):</p>
+                    {hospitalDeliveryAttachments.map((attachment, index) => {
+                      try {
+                        const fileData = JSON.parse(attachment);
+                        const isImage = fileData.type.startsWith('image/');
+
+                        return (
+                          <div key={index} className="attachment-item">
+                            {isImage ? (
+                              <img
+                                src={fileData.data}
+                                alt={fileData.name}
+                                className="attachment-thumbnail clickable-image"
+                                style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
+                                onClick={() => {
+                                  const modal = document.createElement('div');
+                                  modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer;';
+                                  modal.innerHTML = `<img src="${fileData.data}" style="max-width: 90%; max-height: 90%; border-radius: 8px;" />`;
+                                  document.body.appendChild(modal);
+                                  modal.addEventListener('click', () => document.body.removeChild(modal));
+                                }}
+                              />
+                            ) : (
+                              <div className="file-icon" style={{ width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fa', border: '1px solid #ddd', borderRadius: '4px' }}>
+                                📄
+                              </div>
+                            )}
+                            <div className="file-info">
+                              <div className="file-name" title={fileData.name}>{fileData.name.length > 20 ? fileData.name.substring(0, 20) + '...' : fileData.name}</div>
+                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                            </div>
+                            <button
+                              className="remove-attachment"
+                              onClick={() => {
+                                const updatedAttachments = hospitalDeliveryAttachments.filter((_, i) => i !== index);
+                                onHospitalDeliveryAttachmentsChange(updatedAttachments);
+                              }}
+                              style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '16px' }}
+                              title="Remove attachment"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      } catch {
+                        return (
+                          <div key={index} className="attachment-item error">
+                            <div className="file-icon">❌</div>
+                            <span>Invalid file data</span>
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                )}
               </div>
               <div className="hospital-delivery-actions">
                 <button
@@ -2190,9 +2277,99 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   value={officeDeliveryComments}
                   onChange={(e) => onOfficeDeliveryCommentsChange(e.target.value)}
                   placeholder="Add any delivery notes or special instructions..."
-                  rows={3}
-                  className="comments-input"
+                  rows={4}
+                  className="process-details-input"
                 />
+              </div>
+              <div className="form-group">
+                <label>Attachments (Optional):</label>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files) {
+                      const newAttachments: string[] = [];
+                      Array.from(files).forEach((file, index) => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const fileData = {
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            data: reader.result,
+                            uploadedAt: new Date().toISOString(),
+                            uploadedBy: currentUser?.name || 'Unknown'
+                          };
+                          newAttachments.push(JSON.stringify(fileData));
+                          if (newAttachments.length === files.length) {
+                            onOfficeDeliveryAttachmentsChange([...officeDeliveryAttachments, ...newAttachments]);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                    }
+                  }}
+                  className="file-upload-input"
+                />
+                {officeDeliveryAttachments.length > 0 && (
+                  <div className="attachment-list">
+                    <p>Uploaded files ({officeDeliveryAttachments.length}):</p>
+                    {officeDeliveryAttachments.map((attachment, index) => {
+                      try {
+                        const fileData = JSON.parse(attachment);
+                        const isImage = fileData.type.startsWith('image/');
+
+                        return (
+                          <div key={index} className="attachment-item">
+                            {isImage ? (
+                              <img
+                                src={fileData.data}
+                                alt={fileData.name}
+                                className="attachment-thumbnail clickable-image"
+                                style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
+                                onClick={() => {
+                                  const modal = document.createElement('div');
+                                  modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer;';
+                                  modal.innerHTML = `<img src="${fileData.data}" style="max-width: 90%; max-height: 90%; border-radius: 8px;" />`;
+                                  document.body.appendChild(modal);
+                                  modal.addEventListener('click', () => document.body.removeChild(modal));
+                                }}
+                              />
+                            ) : (
+                              <div className="file-icon" style={{ width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fa', border: '1px solid #ddd', borderRadius: '4px' }}>
+                                📄
+                              </div>
+                            )}
+                            <div className="file-info">
+                              <div className="file-name" title={fileData.name}>{fileData.name.length > 20 ? fileData.name.substring(0, 20) + '...' : fileData.name}</div>
+                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                            </div>
+                            <button
+                              className="remove-attachment"
+                              onClick={() => {
+                                const updatedAttachments = officeDeliveryAttachments.filter((_, i) => i !== index);
+                                onOfficeDeliveryAttachmentsChange(updatedAttachments);
+                              }}
+                              style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '16px' }}
+                              title="Remove attachment"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      } catch {
+                        return (
+                          <div key={index} className="attachment-item error">
+                            <div className="file-icon">❌</div>
+                            <span>Invalid file data</span>
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                )}
               </div>
               <div className="office-delivery-actions">
                 <button

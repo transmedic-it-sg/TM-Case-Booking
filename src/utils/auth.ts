@@ -29,7 +29,7 @@ export const authenticateUser = async (username: string, password: string): Prom
   try {
     // Use the new authentication function that checks both tables
     const result = await authenticateSupabaseUser(username, password);
-    if (result.success && result.user) {
+    if ((result.success || result.requiresPasswordChange) && result.user) {
       // Convert AuthUser to User format
       return {
         id: result.user.id,
@@ -40,7 +40,9 @@ export const authenticateUser = async (username: string, password: string): Prom
         departments: result.user.departments,
         countries: result.user.countries,
         selectedCountry: result.user.selectedCountry,
-        enabled: result.user.enabled
+        enabled: result.user.enabled,
+        email: result.user.email || '', // Add email field
+        isTemporaryPassword: result.user.isTemporaryPassword || false
       };
     }
     return null;
@@ -269,7 +271,7 @@ export const addUser = async (user: Omit<User, 'id'>): Promise<User> => {
   }
 };
 
-export const authenticate = async (username: string, password: string, country: string): Promise<{ user: User | null; error?: string }> => {
+export const authenticate = async (username: string, password: string, country: string): Promise<{ user: User | null; error?: string; requiresPasswordChange?: boolean; temporaryUser?: User }> => {
   try {
     let user = await authenticateUser(username, password);
 
@@ -282,6 +284,16 @@ export const authenticate = async (username: string, password: string, country: 
     // Check if user account is enabled (default to true for backwards compatibility)
     if (user.enabled === false) {
       return { user: null, error: "Your account has been disabled. Please contact your administrator." };
+    }
+
+    // CRITICAL FIX: Check if user has temporary password that must be changed
+    if (user.isTemporaryPassword) {
+      return { 
+        user: null, 
+        error: "TEMPORARY_PASSWORD_CHANGE_REQUIRED",
+        requiresPasswordChange: true,
+        temporaryUser: user
+      };
     }
 
     // Check if user has access to the selected country

@@ -4,6 +4,7 @@ import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
 import { auditLogin } from '../utils/auditService';
 import { authenticate } from '../utils/auth';
 import SearchableDropdown from './SearchableDropdown';
+import PasswordChangeModal from './PasswordChangeModal';
 
 interface SupabaseLoginProps {
   onLogin: (user: User) => void;
@@ -18,6 +19,8 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
+  const [temporaryUser, setTemporaryUser] = useState<User | null>(null);
   const countrySelectRef = useRef<HTMLSelectElement>(null);
 
   // Load countries on component mount
@@ -36,6 +39,32 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
       );
     }
   }, [country]);
+
+  const handlePasswordChanged = async (user: User) => {
+    // User has successfully changed their password
+    setShowPasswordChangeModal(false);
+    setTemporaryUser(null);
+    
+    try {
+      // Audit the login
+      try {
+        await auditLogin(user.name, user.id, user.role, user.selectedCountry);
+      } catch (auditError) {
+        // Continue with login even if audit fails
+      }
+
+      onLogin(user);
+    } catch (error) {
+      setError('Login failed after password change. Please try again.');
+    }
+  };
+
+  const handlePasswordChangeCancel = () => {
+    // User cancelled password change
+    setShowPasswordChangeModal(false);
+    setTemporaryUser(null);
+    setError('Password change is required to continue.');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +96,14 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
       // Use the authentication service which handles Supabase and localStorage fallbacks
       const result = await authenticate(username, password, country);
 
+      // CRITICAL FIX: Check if password change is required for temporary passwords
+      if (result.requiresPasswordChange && result.temporaryUser) {
+        setTemporaryUser(result.temporaryUser);
+        setShowPasswordChangeModal(true);
+        setIsLoading(false);
+        return;
+      }
+
       if (result.user) {
         // Remember me handled by Supabase auth session persistence
         // Supabase automatically manages session based on rememberMe flag
@@ -89,7 +126,17 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="modern-login-container">
+    <>
+      {/* Password Change Modal */}
+      {showPasswordChangeModal && temporaryUser && (
+        <PasswordChangeModal
+          user={temporaryUser}
+          onPasswordChanged={handlePasswordChanged}
+          onCancel={handlePasswordChangeCancel}
+        />
+      )}
+
+      <div className="modern-login-container">
       <div className="login-split-screen">
         {/* Left Side - Branding */}
         <div className="login-left">
@@ -222,7 +269,8 @@ const SupabaseLogin: React.FC<SupabaseLoginProps> = ({ onLogin }) => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

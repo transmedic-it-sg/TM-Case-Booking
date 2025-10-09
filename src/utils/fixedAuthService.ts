@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { verifyPassword } from './passwordSecurity';
 
 export interface AuthUser {
   id: string;
@@ -15,6 +16,7 @@ export interface AuthUser {
   departments: string[];
   selectedCountry: string;
   enabled: boolean;
+  isTemporaryPassword?: boolean;
 }
 
 export interface LoginCredentials {
@@ -59,8 +61,9 @@ class FixedAuthService {
         };
       }
 
-      // Simple password verification - direct comparison with stored password
-      if (password !== user.password_hash) {
+      // SECURITY: Use bcrypt to verify password against hashed password
+      const isPasswordValid = await verifyPassword(password, user.password_hash);
+      if (!isPasswordValid) {
         return {
           success: false,
           error: 'Invalid username or password'
@@ -75,6 +78,9 @@ class FixedAuthService {
         };
       }
 
+      // Check if user has temporary password that requires change
+      const hasTemporaryPassword = user.is_temporary_password === true;
+
       const authUser: AuthUser = {
         id: user.id,
         username: user.username,
@@ -84,8 +90,19 @@ class FixedAuthService {
         countries: user.countries || [],
         departments: user.departments || [],
         selectedCountry: user.selected_country || user.countries?.[0] || '',
-        enabled: user.enabled !== false
+        enabled: user.enabled !== false,
+        isTemporaryPassword: hasTemporaryPassword
       };
+
+      // If user has temporary password, return early requiring password change
+      if (hasTemporaryPassword) {
+        return {
+          success: false,
+          user: authUser,
+          requiresPasswordChange: true,
+          error: 'Password change required'
+        };
+      }
 
       this.currentUser = authUser;
 
@@ -183,7 +200,8 @@ export const authenticateSupabaseUser = async (username: string, password: strin
   return {
     success: result.success,
     user: result.user,
-    error: result.error
+    error: result.error,
+    requiresPasswordChange: result.requiresPasswordChange
   };
 };
 

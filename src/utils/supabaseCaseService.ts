@@ -172,30 +172,14 @@ const getAmendmentHistoryForCase = async (caseId: string): Promise<AmendmentHist
       return [];
     }
 
-    // Group amendment records by timestamp and amended_by to create grouped amendments
-    const groupedAmendments = new Map<string, AmendmentHistory>();
-
-    data?.forEach(history => {
-      const key = `${history.timestamp}_${history.amended_by}`;
-
-      if (!groupedAmendments.has(key)) {
-        groupedAmendments.set(key, {
-          amendmentId: history.id,
-          timestamp: history.timestamp,
-          amendedBy: history.amended_by,
-          changes: [],
-          reason: history.amendment_reason
-        });
-      }
-
-      groupedAmendments.get(key)!.changes.push({
-        field: history.field_name,
-        oldValue: history.old_value,
-        newValue: history.new_value
-      });
-    });
-
-    return Array.from(groupedAmendments.values());
+    // Transform data correctly - changes are stored as JSONB array in database
+    return data?.map(history => ({
+      amendmentId: history.id,
+      timestamp: history.timestamp,
+      amendedBy: history.amended_by,
+      changes: history.changes || [], // JSONB field already contains array of changes
+      reason: history.reason || 'No reason provided' // Correct field name
+    })) || [];
   } catch (error) {
     return [];
   }
@@ -441,26 +425,28 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
         amended_by: caseData.amendedBy,
         amended_at: caseData.amendedAt
       })
-      .select()
-      .single();
+      .select();
 
     if (insertError) {
       throw insertError;
     }
 
-    if (!insertedCase) {
+    if (!insertedCase || !Array.isArray(insertedCase) || insertedCase.length === 0) {
       throw new Error('Failed to create case - no data returned from database');
     }
+
+    // Get the first (and should be only) inserted record
+    const insertedCaseRecord = insertedCase[0];
 
     // Create initial status history entry - only if it's a new case with "Case Booked" status
     if (caseData.status === 'Case Booked') {
       const { error: historyError } = await supabase
         .from('status_history')
         .insert([{
-          case_id: insertedCase.id,
+          case_id: insertedCaseRecord.id,
           status: caseData.status,
           processed_by: caseData.submittedBy,
-          timestamp: insertedCase.created_at,
+          timestamp: insertedCaseRecord.created_at,
           details: 'Case created'
         }]);
 
@@ -471,34 +457,34 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
 
     // Transform back to CaseBooking interface
     return {
-      id: insertedCase.id,
-      caseReferenceNumber: insertedCase.case_reference_number,
-      hospital: insertedCase.hospital,
-      department: insertedCase.department,
-      dateOfSurgery: insertedCase.date_of_surgery,
-      procedureType: insertedCase.procedure_type,
-      procedureName: insertedCase.procedure_name,
-      doctorName: insertedCase.doctor_name,
-      timeOfProcedure: insertedCase.time_of_procedure,
-      surgerySetSelection: insertedCase.surgery_set_selection || [],
-      implantBox: insertedCase.implant_box || [],
-      specialInstruction: insertedCase.special_instruction,
-      status: insertedCase.status as CaseStatus,
-      submittedBy: insertedCase.submitted_by,
-      submittedAt: insertedCase.submitted_at,
-      processedBy: insertedCase.processed_by,
-      processedAt: insertedCase.processed_at,
-      processOrderDetails: insertedCase.process_order_details,
-      country: insertedCase.country,
-      isAmended: insertedCase.is_amended,
-      amendedBy: insertedCase.amended_by,
-      amendedAt: insertedCase.amended_at,
+      id: insertedCaseRecord.id,
+      caseReferenceNumber: insertedCaseRecord.case_reference_number,
+      hospital: insertedCaseRecord.hospital,
+      department: insertedCaseRecord.department,
+      dateOfSurgery: insertedCaseRecord.date_of_surgery,
+      procedureType: insertedCaseRecord.procedure_type,
+      procedureName: insertedCaseRecord.procedure_name,
+      doctorName: insertedCaseRecord.doctor_name,
+      timeOfProcedure: insertedCaseRecord.time_of_procedure,
+      surgerySetSelection: insertedCaseRecord.surgery_set_selection || [],
+      implantBox: insertedCaseRecord.implant_box || [],
+      specialInstruction: insertedCaseRecord.special_instruction,
+      status: insertedCaseRecord.status as CaseStatus,
+      submittedBy: insertedCaseRecord.submitted_by,
+      submittedAt: insertedCaseRecord.submitted_at,
+      processedBy: insertedCaseRecord.processed_by,
+      processedAt: insertedCaseRecord.processed_at,
+      processOrderDetails: insertedCaseRecord.process_order_details,
+      country: insertedCaseRecord.country,
+      isAmended: insertedCaseRecord.is_amended,
+      amendedBy: insertedCaseRecord.amended_by,
+      amendedAt: insertedCaseRecord.amended_at,
       statusHistory: [
         {
           status: 'Case Booked' as CaseStatus,
-          timestamp: insertedCase.submitted_at,
-          processedBy: insertedCase.submitted_by,
-          user: insertedCase.submitted_by,
+          timestamp: insertedCaseRecord.submitted_at,
+          processedBy: insertedCaseRecord.submitted_by,
+          user: insertedCaseRecord.submitted_by,
           details: 'Case initially submitted',
           attachments: []
         }

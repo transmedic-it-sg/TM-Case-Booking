@@ -8,48 +8,97 @@ const parseActionId = (actionId: string): { resource: string; action: string } |
     return null;
   }
   
-  // Map app format (actionId) to database format (resource, action)
+  // CRITICAL: Map app format (actionId) to database format (resource, action)
+  // This mapping MUST be complete to ensure permissions work correctly
   switch (actionId) {
-    case 'view-cases':
-      return { resource: 'case', action: 'view' };
+    // Case Management
     case 'create-case':
       return { resource: 'case', action: 'create' };
+    case 'view-cases':
+      return { resource: 'case', action: 'view' };
     case 'amend-case':
       return { resource: 'case', action: 'amend' };
+    case 'delete-case':
+      return { resource: 'case', action: 'delete' };
     case 'update-case-status':
       return { resource: 'case', action: 'update-status' };
-    case 'case-cancelled':
+    case 'cancel-case':
       return { resource: 'case', action: 'cancel' };
-    case 'edit-cases':
-      return { resource: 'case', action: 'edit' };
+    
+    // Calendar
     case 'booking-calendar':
       return { resource: 'calendar', action: 'booking' };
+    
+    // Status Transitions
     case 'process-order':
-      return { resource: 'order', action: 'process' };
+      return { resource: 'status', action: 'process-order' };
     case 'order-processed':
-      return { resource: 'order', action: 'processed' };
+      return { resource: 'status', action: 'order-processed' };
+    case 'sales-approval':
+      return { resource: 'status', action: 'sales-approval' };
     case 'pending-delivery-hospital':
-      return { resource: 'delivery', action: 'pending-hospital' };
+      return { resource: 'status', action: 'pending-delivery-hospital' };
     case 'delivered-hospital':
-      return { resource: 'delivery', action: 'delivered-hospital' };
+      return { resource: 'status', action: 'delivered-hospital' };
+    case 'case-completed':
+      return { resource: 'status', action: 'case-completed' };
     case 'pending-delivery-office':
-      return { resource: 'delivery', action: 'pending-office' };
+      return { resource: 'status', action: 'pending-delivery-office' };
     case 'delivered-office':
-      return { resource: 'delivery', action: 'delivered-office' };
+      return { resource: 'status', action: 'delivered-office' };
     case 'to-be-billed':
-      return { resource: 'billing', action: 'to-be-billed' };
+      return { resource: 'status', action: 'to-be-billed' };
     case 'case-closed':
-      return { resource: 'case', action: 'closed' };
+      return { resource: 'status', action: 'case-closed' };
+    
+    // User Management
+    case 'create-user':
+      return { resource: 'user', action: 'create' };
+    case 'edit-user':
+      return { resource: 'user', action: 'edit' };
+    case 'delete-user':
+      return { resource: 'user', action: 'delete' };
+    case 'view-users':
+      return { resource: 'user', action: 'view' };
+    case 'enable-disable-user':
+      return { resource: 'user', action: 'enable-disable' };
+    case 'reset-password':
+      return { resource: 'user', action: 'reset-password' };
+    case 'edit-countries':
+      return { resource: 'countries', action: 'edit' };
+    case 'global-tables':
+      return { resource: 'tables', action: 'global' };
+    
+    // System Settings
+    case 'system-settings':
+      return { resource: 'settings', action: 'system' };
+    case 'email-config':
+      return { resource: 'settings', action: 'email-config' };
+    case 'code-table-setup':
+      return { resource: 'settings', action: 'code-table-setup' };
+    case 'audit-logs':
+      return { resource: 'logs', action: 'audit' };
+    case 'permission-matrix':
+      return { resource: 'settings', action: 'permission-matrix' };
+    
+    // Data Operations
+    case 'export-data':
+      return { resource: 'data', action: 'export' };
+    case 'import-data':
+      return { resource: 'data', action: 'import' };
+    case 'view-reports':
+      return { resource: 'reports', action: 'view' };
+    
+    // File Operations
     case 'upload-files':
       return { resource: 'files', action: 'upload' };
     case 'download-files':
       return { resource: 'files', action: 'download' };
+    case 'delete-files':
+      return { resource: 'files', action: 'delete' };
     case 'manage-attachments':
       return { resource: 'attachments', action: 'manage' };
-    case 'view-reports':
-      return { resource: 'reports', action: 'view' };
-    case 'export-data':
-      return { resource: 'data', action: 'export' };
+    
     // Granular Edit Sets permissions
     case 'manage-doctors':
       return { resource: 'other', action: 'manage-doctors' };
@@ -59,10 +108,11 @@ const parseActionId = (actionId: string): { resource: string; action: string } |
       return { resource: 'other', action: 'manage-surgery-implants' };
     case 'edit-sets':
       return { resource: 'other', action: 'edit-sets' };
-    // Add more mappings as needed
+    
     default:
       // For unmapped actions, don't try to parse - just return a safe fallback
-      // Return the original actionId format to avoid corruption
+      // Log the missing mapping for debugging
+      console.warn(`Missing permission mapping for actionId: ${actionId}`);
       return { resource: 'other', action: actionId };
   }
 };
@@ -129,23 +179,140 @@ export const getSupabasePermissions = async (): Promise<Permission[]> => {
       const resource = perm.resource || 'unknown';
       const action = perm.action || 'unknown';
       
-      // Create proper actionId format that matches the expected format in tests
+      // CRITICAL: Create proper actionId format that matches PERMISSION_ACTIONS
+      // Handle both legacy database formats and new consistent format
       let actionId: string;
-      if (resource === 'case' && action === 'view') {
+      
+      // Handle legacy inconsistent database format (resource=action, action=resource)
+      if (resource === 'create' && action === 'case') {
+        actionId = 'create-case';
+      } else if (resource === 'create' && action === 'user') {
+        actionId = 'create-user';
+      } else if (resource === 'edit' && action === 'user') {
+        actionId = 'edit-user';
+      } else if (resource === 'edit' && action === 'sets') {
+        actionId = 'edit-sets';
+      } else if (resource === 'edit' && action === 'countries') {
+        actionId = 'edit-countries';
+      } else if (resource === 'view' && action === 'cases') {
         actionId = 'view-cases';
+      } else if (resource === 'view' && action === 'users') {
+        actionId = 'view-users';
+      } else if (resource === 'delete' && action === 'case') {
+        actionId = 'delete-case';
+      } else if (resource === 'update' && action === 'case') {
+        actionId = 'update-case-status';
+      } else if (resource === 'amend' && action === 'case') {
+        actionId = 'amend-case';
+      } else if (resource === 'reset' && action === 'password') {
+        actionId = 'reset-password';
+      } else if (resource === 'enable' && action === 'disable') {
+        actionId = 'enable-disable-user';
+      } else if (resource === 'reports' && action === 'view') {
+        actionId = 'view-reports';
+      } else if (resource === 'logs' && action === 'audit') {
+        actionId = 'audit-logs';
+      } else if (resource === 'booking' && action === 'calendar') {
+        actionId = 'booking-calendar';
+      } else if (resource === 'calendar' && action === 'booking') {
+        actionId = 'booking-calendar';
+        
+      // New consistent format handling
+      // Case Management
       } else if (resource === 'case' && action === 'create') {
         actionId = 'create-case';
+      } else if (resource === 'case' && action === 'view') {
+        actionId = 'view-cases';
       } else if (resource === 'case' && action === 'amend') {
         actionId = 'amend-case';
+      } else if (resource === 'case' && action === 'delete') {
+        actionId = 'delete-case';
       } else if (resource === 'case' && action === 'update-status') {
         actionId = 'update-case-status';
       } else if (resource === 'case' && action === 'cancel') {
-        actionId = 'case-cancelled';
+        actionId = 'cancel-case';
+      
+      // Calendar
+      } else if (resource === 'calendar' && action === 'booking') {
+        actionId = 'booking-calendar';
+      
+      // Status Transitions
+      } else if (resource === 'status' && action === 'process-order') {
+        actionId = 'process-order';
+      } else if (resource === 'status' && action === 'order-processed') {
+        actionId = 'order-processed';
+      } else if (resource === 'status' && action === 'sales-approval') {
+        actionId = 'sales-approval';
+      } else if (resource === 'status' && action === 'pending-delivery-hospital') {
+        actionId = 'pending-delivery-hospital';
+      } else if (resource === 'status' && action === 'delivered-hospital') {
+        actionId = 'delivered-hospital';
+      } else if (resource === 'status' && action === 'case-completed') {
+        actionId = 'case-completed';
+      } else if (resource === 'status' && action === 'pending-delivery-office') {
+        actionId = 'pending-delivery-office';
+      } else if (resource === 'status' && action === 'delivered-office') {
+        actionId = 'delivered-office';
+      } else if (resource === 'status' && action === 'to-be-billed') {
+        actionId = 'to-be-billed';
+      } else if (resource === 'status' && action === 'case-closed') {
+        actionId = 'case-closed';
+      
+      // User Management
+      } else if (resource === 'user' && action === 'create') {
+        actionId = 'create-user';
+      } else if (resource === 'user' && action === 'edit') {
+        actionId = 'edit-user';
+      } else if (resource === 'user' && action === 'delete') {
+        actionId = 'delete-user';
+      } else if (resource === 'user' && action === 'view') {
+        actionId = 'view-users';
+      } else if (resource === 'user' && action === 'enable-disable') {
+        actionId = 'enable-disable-user';
+      } else if (resource === 'user' && action === 'reset-password') {
+        actionId = 'reset-password';
+      } else if (resource === 'countries' && action === 'edit') {
+        actionId = 'edit-countries';
+      } else if (resource === 'tables' && action === 'global') {
+        actionId = 'global-tables';
+      
+      // System Settings
+      } else if (resource === 'settings' && action === 'system') {
+        actionId = 'system-settings';
+      } else if (resource === 'settings' && action === 'email-config') {
+        actionId = 'email-config';
+      } else if (resource === 'settings' && action === 'code-table-setup') {
+        actionId = 'code-table-setup';
+      } else if (resource === 'logs' && action === 'audit') {
+        actionId = 'audit-logs';
+      } else if (resource === 'settings' && action === 'permission-matrix') {
+        actionId = 'permission-matrix';
+      
+      // Data Operations
+      } else if (resource === 'data' && action === 'export') {
+        actionId = 'export-data';
+      } else if (resource === 'data' && action === 'import') {
+        actionId = 'import-data';
+      } else if (resource === 'reports' && action === 'view') {
+        actionId = 'view-reports';
+      
+      // File Operations
+      } else if (resource === 'files' && action === 'upload') {
+        actionId = 'upload-files';
+      } else if (resource === 'files' && action === 'download') {
+        actionId = 'download-files';
+      } else if (resource === 'files' && action === 'delete') {
+        actionId = 'delete-files';
+      } else if (resource === 'attachments' && action === 'manage') {
+        actionId = 'manage-attachments';
+      
+      // Granular Edit Sets permissions
       } else if (resource === 'other') {
         // For "other" resource, use the action as-is (for granular permissions)
         actionId = action;
       } else {
-        // Fallback to basic format
+        // Fallback to basic format - log for debugging
+        console.warn(`Unknown permission combination: resource=${resource}, action=${action}`);
         actionId = `${action}-${resource}`;
       }
       

@@ -92,8 +92,7 @@ const ImageAmendmentModal: React.FC<ImageAmendmentModalProps> = ({
       const { error: updateError } = await supabase
         .from('status_history')
         .update({
-          attachments: updatedAttachments,
-          updated_at: new Date().toISOString()
+          attachments: updatedAttachments
         })
         .eq('id', statusHistoryId);
 

@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import { User } from '../types';
 import { Role } from '../components/PermissionMatrix';
 import { ErrorHandler } from './errorHandler';
+import { hashPassword, generateSecurePassword } from './passwordSecurity';
 
 // FIXED: Import the secure authentication service to resolve 406 errors
 import { authenticateSupabaseUser as fixedAuthenticateSupabaseUser } from './fixedAuthService';
@@ -9,11 +10,11 @@ import { authenticateSupabaseUser as fixedAuthenticateSupabaseUser } from './fix
 // Main authentication function - USES FIXED SERVICE (no more 406 errors)
 export const authenticateSupabaseUser = fixedAuthenticateSupabaseUser;
 
-// Get all users from both profiles and users tables
+// Get all users from profiles table
 export const getAllSupabaseUsers = async (): Promise<User[]> => {
   const result = await ErrorHandler.executeWithRetry(
     async () => {
-      // Get users from profiles table first
+      // Get users from profiles table
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
@@ -32,7 +33,8 @@ export const getAllSupabaseUsers = async (): Promise<User[]> => {
           countries: profile.countries || [],
           selectedCountry: profile.selected_country,
           enabled: profile.enabled,
-          email: profile.email
+          email: profile.email,
+          isTemporaryPassword: profile.is_temporary_password || false
         }));
       }
 
@@ -79,34 +81,13 @@ export const getUserById = async (userId: string): Promise<User | null> => {
           countries: profileData.countries || [],
           selectedCountry: profileData.selected_country,
           enabled: profileData.enabled,
-          email: profileData.email
+          email: profileData.email,
+          isTemporaryPassword: profileData.is_temporary_password || false
         };
       }
 
-      // If not found in profiles, try users table as fallback
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (!userError && userData) {
-        return {
-          id: userData.id,
-          username: userData.username,
-          password: '', // Never expose password
-          role: userData.role,
-          name: userData.name,
-          departments: userData.departments || [],
-          countries: userData.countries || [],
-          selectedCountry: userData.selected_country,
-          enabled: userData.enabled,
-          email: userData.email
-        };
-      }
-
-      // If both fail, throw the more relevant error
-      if (profileError && userError) {
+      // No fallback needed - all users are in profiles table only
+      if (profileError) {
         throw profileError;
       }
 
@@ -130,18 +111,22 @@ export const getUserById = async (userId: string): Promise<User | null> => {
 export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User> => {
   const result = await ErrorHandler.executeWithRetry(
     async () => {
+      // SECURITY: Hash password before storing in database
+      const hashedPassword = await hashPassword(userData.password);
+      
       const { data, error } = await supabase
         .from('profiles')
         .insert([{
           username: userData.username,
-          password_hash: userData.password, // Should be hashed in production
+          password_hash: hashedPassword, // Now properly hashed
           role: userData.role,
           name: userData.name,
           departments: userData.departments,
           countries: userData.countries,
           selected_country: userData.selectedCountry,
           enabled: userData.enabled,
-          email: userData.email
+          email: userData.email,
+          is_temporary_password: false // New users set their own password
         }])
         .select()
         .single();
@@ -186,7 +171,12 @@ export const updateSupabaseUser = async (userId: string, userData: Partial<User>
       const updateData: any = {};
 
       if (userData.username) updateData.username = userData.username;
-      if (userData.password) updateData.password_hash = userData.password; // Should be hashed
+      if (userData.password) {
+        // SECURITY: Hash password before storing in database
+        updateData.password_hash = await hashPassword(userData.password);
+        updateData.is_temporary_password = false; // User has set their own password
+        updateData.password_changed_at = new Date().toISOString();
+      }
       if (userData.role) updateData.role = userData.role;
       if (userData.name) updateData.name = userData.name;
       if (userData.departments) updateData.departments = userData.departments;
@@ -267,30 +257,28 @@ export const deleteSupabaseUser = async (userId: string): Promise<boolean> => {
 };
 
 // Reset user password
-export const resetSupabaseUserPassword = async (userId: string, newPassword: string): Promise<boolean> => {
+export const resetSupabaseUserPassword = async (userId: string, newPassword?: string): Promise<boolean> => {
   const result = await ErrorHandler.executeWithRetry(
     async () => {
+      // Generate a secure temporary password if none provided
+      const tempPassword = newPassword || generateSecurePassword(12);
+      
+      // SECURITY: Hash the temporary password before storing
+      const hashedPassword = await hashPassword(tempPassword);
+      
       // Update profiles table with temporary password flag
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          password_hash: newPassword, // Should be hashed in production
+          password_hash: hashedPassword, // Now properly hashed
           is_temporary_password: true, // Mark as temporary - user must change on next login
+          password_reset_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', userId);
 
       if (profileError) {
-        // Try users table as fallback
-        const { error: userError } = await supabase
-          .from('profiles')
-          .update({
-            password: newPassword, // users table uses 'password' column, not 'password_hash'
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', userId);
-
-        if (userError) throw userError;
+        throw profileError;
       }
 
       return true;
@@ -312,11 +300,14 @@ export const resetSupabaseUserPassword = async (userId: string, newPassword: str
 export const updateSupabaseUserPassword = async (userId: string, newPassword: string): Promise<boolean> => {
   const result = await ErrorHandler.executeWithRetry(
     async () => {
+      // SECURITY: Hash the new password before storing
+      const hashedPassword = await hashPassword(newPassword);
+      
       // Update profiles table - clear temporary password flag and update password
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          password_hash: newPassword, // Should be hashed in production
+          password_hash: hashedPassword, // Now properly hashed
           is_temporary_password: false, // Clear temporary flag
           password_changed_at: new Date().toISOString(),
           updated_at: new Date().toISOString()

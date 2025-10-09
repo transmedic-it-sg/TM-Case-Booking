@@ -22,24 +22,32 @@ class UserService {
    * Get current authenticated user from Supabase session (no local storage)
    */
   async getCurrentUser(): Promise<User | null> {
-    if (this.currentUser) {
-      return this.currentUser;
-    }
+    // Always fetch fresh data from database - don't use cache for debugging
+    // if (this.currentUser) {
+    //   return this.currentUser;
+    // }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        return null;
+      }
+      
       if (!session?.user) {
         return null;
       }
 
-      // Fetch user details from profiles table
+      // Fetch user details from profiles table with explicit field selection
       const { data: user, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, username, name, email, role, departments, countries, selected_country, enabled')
         .eq('id', session.user.id)
         .single();
 
       if (error || !user) {
+        console.error('Error fetching user from database:', error);
         return null;
       }
 
@@ -54,7 +62,7 @@ class UserService {
         countries: user.countries || [],
         selectedCountry: user.selected_country,
         enabled: user.enabled,
-        email: user.email // Ensure email field is properly mapped
+        email: user.email || '' // Ensure email field is properly mapped with fallback
       };
 
       this.currentUser = transformedUser;

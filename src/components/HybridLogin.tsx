@@ -91,7 +91,8 @@ const HybridLogin: React.FC<HybridLoginProps> = ({ onLogin }) => {
           departments: profile.departments || [],
           countries: profile.countries || [],
           selectedCountry: profile.countries[0] || 'Singapore',
-          enabled: profile.enabled
+          enabled: profile.enabled,
+          email: profile.email || '' // Add email field from profile
         };
 
         onLogin(user);

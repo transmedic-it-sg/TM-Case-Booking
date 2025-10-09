@@ -386,9 +386,9 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       const userCountry = currentUser.selectedCountry || currentUser.countries?.[0];
       if (userCountry) {
         try {
-          // Use the CORRECT code table service instead of the wrong departments table
-          const { getDepartmentsForCountry } = await import('../utils/supabaseCodeTableService');
-          const countrySpecificDepts = await getDepartmentsForCountry(userCountry);
+          // Use the STANDARDIZED data service - single source of truth for all dropdowns
+          const { getStandardizedDepartments } = await import('../utils/standardizedDataService');
+          const countrySpecificDepts = await getStandardizedDepartments(userCountry);
 
           // Admin and IT users can access all departments for their country
           if (currentUser.role === 'admin' || currentUser.role === 'it') {
@@ -536,6 +536,15 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
       }
 
       // Save quantity data if any sets are selected
+      console.log('CaseBookingForm Debug - Form data:', {
+        surgerySetSelection: formData.surgerySetSelection,
+        implantBox: formData.implantBox,
+        quantities: formData.quantities,
+        surgerySetCount: formData.surgerySetSelection.length,
+        implantBoxCount: formData.implantBox.length,
+        quantitiesKeysCount: Object.keys(formData.quantities).length
+      });
+      
       if ((formData.surgerySetSelection.length > 0 || formData.implantBox.length > 0) && Object.keys(formData.quantities).length > 0) {
         try {
           const { saveCaseQuantities } = await import('../utils/doctorService');
@@ -561,17 +570,27 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             });
           });
 
+          console.log('CaseBookingForm Debug - Quantities to save:', quantities);
+          
           if (quantities.length > 0) {
             // Use the actual case ID from the saved case
+            console.log('CaseBookingForm Debug - Saving quantities for case:', savedCase.id);
             const quantitiesSaved = await saveCaseQuantities(savedCase.id, quantities);
+            console.log('CaseBookingForm Debug - Quantities save result:', quantitiesSaved);
             if (!quantitiesSaved) {
+              console.error('CaseBookingForm Debug - Failed to save quantities');
               // Failed to save case quantities, but case was created successfully
             }
+          } else {
+            console.log('CaseBookingForm Debug - No quantities to save (empty array)');
           }
         } catch (error) {
+          console.error('CaseBookingForm Debug - Exception saving quantities:', error);
           // Error saving case quantities
           // Don't fail the entire operation for quantity saving issues
         }
+      } else {
+        console.log('CaseBookingForm Debug - Skipping quantities save - condition not met');
       }
 
       // Add audit log for case creation

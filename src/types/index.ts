@@ -105,7 +105,7 @@ export interface User {
   name: string;
   departments: string[];
   countries: string[];
-  email?: string;
+  email: string; // Required field - all users must have email
   selectedCountry?: string;
   enabled?: boolean;
   passwordResetRequired?: boolean;
