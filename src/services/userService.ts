@@ -22,10 +22,10 @@ class UserService {
    * Get current authenticated user from Supabase session (no local storage)
    */
   async getCurrentUser(): Promise<User | null> {
-    // Always fetch fresh data from database - don't use cache for debugging
-    // if (this.currentUser) {
-    //   return this.currentUser;
-    // }
+    // Use cached user from custom authentication first
+    if (this.currentUser) {
+      return this.currentUser;
+    }
 
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
