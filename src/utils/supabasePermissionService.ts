@@ -537,10 +537,7 @@ export const resetSupabasePermissions = async (): Promise<boolean> => {
 
 // Check if a role has permission for a specific action
 export const hasSupabasePermission = async (roleId: string, actionId: string): Promise<boolean> => {
-  // Admin has all permissions
-  if (roleId === 'admin') {
-    return true;
-  }
+  // Remove hardcoded admin logic - use database permissions only
 
   try {
     const parsed = parseActionId(actionId);
