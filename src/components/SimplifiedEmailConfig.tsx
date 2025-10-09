@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getCurrentUser } from '../utils/authCompat';
+import userService from '../services/userService';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getAllRoles } from '../data/permissionMatrixData';
 import { useSound } from '../contexts/SoundContext';
@@ -120,7 +120,26 @@ const SimplifiedEmailConfig: React.FC = () => {
 
   const { playSound } = useSound();
   const { showSuccess, showError } = useToast();
-  const currentUser = getCurrentUser();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userLoading, setUserLoading] = useState(true);
+  
+  // Load current user asynchronously
+  useEffect(() => {
+    const loadUser = async () => {
+      setUserLoading(true);
+      try {
+        const user = await userService.getCurrentUser();
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Error loading current user:', error);
+        setCurrentUser(null);
+      } finally {
+        setUserLoading(false);
+      }
+    };
+    
+    loadUser();
+  }, []);
 
   // Check permissions
   const canConfigureEmail = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EMAIL_CONFIG) : false;
@@ -1135,6 +1154,17 @@ Best regards,
     }
   };
 
+  // Show loading while user is being loaded
+  if (userLoading) {
+    return (
+      <div className="email-config-container">
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+          <p>Loading user information...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!canConfigureEmail) {
     return (
       <div className="email-config-container">
@@ -1484,7 +1514,36 @@ Best regards,
                     📧 Test Email
                   </button>
                   <button
-                    onClick={() => {showSuccess('Debug Info', 'Check console for detailed debug information');
+                    onClick={() => {
+                      // Output comprehensive debug information
+                      console.group('🐛 Email Configuration Debug Info');
+                      console.log('Current User:', currentUser);
+                      console.log('Current User Email:', currentUser?.email);
+                      console.log('Selected Country:', selectedCountry);
+                      console.log('Available Countries:', availableCountries);
+                      console.log('Available Departments:', availableDepartments);
+                      console.log('Active Provider:', currentConfig?.activeProvider);
+                      console.log('Provider Config:', currentConfig?.providers);
+                      console.log('Email Configs:', emailConfigs);
+                      console.log('Email Matrix Configs:', emailMatrixConfigs);
+                      console.log('Can Configure Email:', canConfigureEmail);
+                      console.log('Can Switch Countries:', canSwitchCountries);
+                      console.log('User Loading:', userLoading);
+                      console.log('Auth Status - Google:', currentConfig?.providers?.google?.isAuthenticated);
+                      console.log('Auth Status - Microsoft:', currentConfig?.providers?.microsoft?.isAuthenticated);
+                      console.log('Environment - Google Client ID:', !!process.env.REACT_APP_GOOGLE_CLIENT_ID);
+                      console.log('Environment - Microsoft Client ID:', !!process.env.REACT_APP_MICROSOFT_CLIENT_ID);
+                      
+                      // Check stored tokens
+                      const debugActiveProvider = currentConfig?.activeProvider || 'microsoft';
+                      const storedTokens = getStoredAuthTokens(selectedCountry, debugActiveProvider);
+                      console.log('Stored Auth Tokens:', storedTokens);
+                      
+                      const storedUserInfo = getStoredUserInfo(selectedCountry, debugActiveProvider);
+                      console.log('Stored User Info:', storedUserInfo);
+                      
+                      console.groupEnd();
+                      showSuccess('Debug Info', 'Check console for detailed debug information');
                     }}
                     className="btn btn-outline-secondary btn-sm"
                   >

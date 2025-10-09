@@ -36,7 +36,7 @@ export const useCaseQuantities = (caseId: string) => {
 
   const getQuantityForItem = (itemName: string, itemType: 'surgery_set' | 'implant_box'): number => {
     const quantity = quantities.find(q => q.item_name === itemName && q.item_type === itemType);
-    return quantity?.quantity || 0;
+    return quantity?.quantity || 1; // Default to 1 instead of 0 for better UX
   };
 
   return {

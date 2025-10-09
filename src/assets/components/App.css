@@ -8552,3 +8552,11 @@ textarea:focus {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
 }
+
+/* iPad Mini and tablet-specific styles for procedure sets 2-column layout */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .form-section-procedure-sets .procedure-sets-form .form-row,
+  .form-section-procedure-sets .quantities-section .form-row {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}

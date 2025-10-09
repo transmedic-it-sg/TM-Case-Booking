@@ -448,6 +448,10 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
       throw insertError;
     }
 
+    if (!insertedCase) {
+      throw new Error('Failed to create case - no data returned from database');
+    }
+
     // Create initial status history entry - only if it's a new case with "Case Booked" status
     if (caseData.status === 'Case Booked') {
       const { error: historyError } = await supabase

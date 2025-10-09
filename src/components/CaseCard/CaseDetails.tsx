@@ -100,7 +100,7 @@ const CaseDetails: React.FC<CaseDetailsProps> = ({
                   return (
                     <span key={index} className="equipment-tag">
                       {set}
-                      {quantity > 0 && (
+                      {quantity >= 1 && (
                         <span className="equipment-quantity"> (Qty: {quantity})</span>
                       )}
                       {quantitiesLoading && (
@@ -126,7 +126,7 @@ const CaseDetails: React.FC<CaseDetailsProps> = ({
                   return (
                     <span key={index} className="equipment-tag">
                       {implant}
-                      {quantity > 0 && (
+                      {quantity >= 1 && (
                         <span className="equipment-quantity"> (Qty: {quantity})</span>
                       )}
                       {quantitiesLoading && (

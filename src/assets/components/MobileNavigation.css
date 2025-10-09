@@ -411,9 +411,8 @@
   transform: translateX(4px);
 }
 
-/* Small mobile view (below 768x1024) - width OR height based */
-@media screen and (max-width: 767px), 
-       screen and (max-height: 1023px) and (max-width: 1366px) {
+/* Small mobile view (below 768px width) */
+@media screen and (max-width: 767px) {
   .mobile-bottom-nav {
     display: block !important;
   }
@@ -448,11 +447,10 @@
   }
 }
 
-/* Tablet view for iPad Mini to iPad Pro (768x1024 to 1024x1366) */
-@media screen and (min-width: 768px) and (max-width: 1366px),
-       screen and (min-height: 1024px) and (max-height: 1366px),
-       (orientation: portrait) and (min-width: 768px) and (max-width: 1024px),
-       (orientation: landscape) and (min-width: 1024px) and (max-width: 1366px) {
+/* iPad Mini specific targeting - 768x1024 and similar tablets */
+@media screen and (min-width: 768px) and (max-width: 1024px),
+       screen and (min-height: 768px) and (max-height: 1024px),
+       screen and (min-width: 768px) and (max-width: 1366px) and (max-height: 1366px) {
   .mobile-bottom-nav {
     display: block !important;
   }
@@ -562,6 +560,22 @@
   .logout-button {
     padding: 8px 12px;
     font-size: 12px;
+  }
+}
+
+/* Direct iPad Mini targeting - 768x1024 */
+@media screen and (width: 768px) and (height: 1024px),
+       screen and (width: 1024px) and (height: 768px) {
+  .mobile-bottom-nav {
+    display: block !important;
+  }
+  
+  .app-nav {
+    display: none !important;
+  }
+  
+  .app-main {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
   }
 }
 
