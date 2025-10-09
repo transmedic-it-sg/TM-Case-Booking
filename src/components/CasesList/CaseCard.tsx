@@ -279,11 +279,14 @@ const CaseCard: React.FC<CaseCardProps> = ({
     const currentUser = getCurrentUserSync();
     if (!currentUser) return false;
 
-    // Admin can amend any case unlimited times
-    if (currentUser.role === 'admin') return true;
-
-    // For non-admin users, check if case hasn't been amended yet
-    // Simplified logic to avoid permission issues
+    // Check if user has amend-case permission
+    // Note: This is a simplified check, actual permission checking happens at component level
+    const hasAmendPermission = currentUser.role === 'admin' || currentUser.role === 'it' || currentUser.role === 'sales';
+    
+    // Users with amend permission can amend cases, others need the case to not be amended yet
+    if (hasAmendPermission) return true;
+    
+    // For non-privileged users, check if case hasn't been amended yet
     const notAmended = !caseItem.isAmended;
     return notAmended;
   };

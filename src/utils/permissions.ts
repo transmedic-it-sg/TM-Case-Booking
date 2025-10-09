@@ -101,12 +101,20 @@ export const hasPermissionForUser = (roleId: string, actionId: string, userId: s
 
     // For critical actions, allow access during cache refresh to prevent lockouts
     const criticalActions = ['view-cases', 'create-case', 'booking-calendar', 'logout'];
+    const adminCriticalActions = ['email-config', 'system-settings', 'permission-matrix'];
+    
     if (criticalActions.includes(actionId)) {
-
       // Trigger async refresh but don't wait for it
       initializePermissions(false).catch(error => {
       });
-
+      return true;
+    }
+    
+    // Allow admin access to admin-critical actions during cache refresh
+    if (roleId === 'admin' && adminCriticalActions.includes(actionId)) {
+      // Trigger async refresh but don't wait for it
+      initializePermissions(false).catch(error => {
+      });
       return true;
     }
 
