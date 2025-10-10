@@ -413,6 +413,17 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
     // Generate case reference number with fallback
     const caseReferenceNumber = await generateCaseReferenceNumber(caseData.country || 'Singapore');
 
+    console.log('Saving case with data:', {
+      caseReferenceNumber,
+      hospital: caseData.hospital,
+      department: caseData.department,
+      dateOfSurgery: caseData.dateOfSurgery,
+      submittedBy: caseData.submittedBy,
+      country: normalizeCountry(caseData.country || ''),
+      doctorId: caseData.doctorId,
+      doctorName: caseData.doctorName
+    });
+
     // Use direct query instead of secure query
     const { data: insertedCase, error: insertError } = await supabase
       .from('case_bookings')
@@ -441,11 +452,15 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
       })
       .select();
 
+    console.log('Insert result:', { insertedCase, insertError });
+
     if (insertError) {
+      console.error('Database insert error:', insertError);
       throw insertError;
     }
 
     if (!insertedCase || !Array.isArray(insertedCase) || insertedCase.length === 0) {
+      console.error('No data returned from database insert');
       throw new Error('Failed to create case - no data returned from database');
     }
 
