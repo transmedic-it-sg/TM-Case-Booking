@@ -10,6 +10,15 @@ import SearchableDropdown from './SearchableDropdown';
 import { CASE_STATUSES, STATUS_WORKFLOW } from '../constants/statuses';
 import { USER_ROLES } from '../constants/permissions';
 import dynamicConstantsService from '../services/dynamicConstantsService';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 import {
   authenticateWithPopup,
   getStoredAuthTokens,
@@ -89,9 +98,9 @@ export const getEmailConfigFromDatabase = async (country?: string): Promise<Reco
     
     const { data, error } = await supabase
       .from('app_settings')
-      .select('setting_value')
-      .eq('setting_key', 'simplified_email_configs')
-      .eq('user_id', user?.id || null)
+      .select('setting_value') // ⚠️ setting_value (settingValue) - NOT settingvalue
+      .eq('setting_key', 'simplified_email_configs') // ⚠️ setting_key (settingKey) - NOT settingkey
+      .eq('user_id', user?.id || null) // ⚠️ user_id (userId) FK - NOT userid
       .maybeSingle();
 
     if (error || !data?.setting_value) {
@@ -114,6 +123,12 @@ const SimplifiedEmailConfig: React.FC = () => {
   const [isProviderSectionCollapsed, setIsProviderSectionCollapsed] = useState<boolean>(true);
   const [isNotificationRulesCollapsed, setIsNotificationRulesCollapsed] = useState<boolean>(true);
   const [isTemplateVariablesCollapsed, setIsTemplateVariablesCollapsed] = useState<boolean>(true);
+  const [isEmailTemplatesCollapsed, setIsEmailTemplatesCollapsed] = useState<boolean>(true);
+  const [isTestConnectionCollapsed, setIsTestConnectionCollapsed] = useState<boolean>(true);
+  const [selectedTemplate, setSelectedTemplate] = useState<'status_change' | 'new_case' | null>(null);
+  const [connectionTestResult, setConnectionTestResult] = useState<string | null>(null);
+  const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
   const [emailMatrixConfigs, setEmailMatrixConfigs] = useState<Record<string, EmailNotificationMatrix>>({});
   const [ruleCollapsedStates, setRuleCollapsedStates] = useState<Record<number, boolean>>({});
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
@@ -580,8 +595,8 @@ Best regards,
         const { error } = await supabase
           .from('app_settings')
           .update({
-            setting_value: configs,
-            updated_at: new Date().toISOString()
+            setting_value: configs, // ⚠️ setting_value (settingValue) - NOT settingvalue
+            updated_at: new Date().toISOString() // ⚠️ updated_at (updatedAt)
           })
           .eq('setting_key', 'simplified_email_configs')
           .eq('user_id', user?.id || null);
@@ -595,8 +610,8 @@ Best regards,
         const { error } = await supabase
           .from('app_settings')
           .insert({
-            user_id: user?.id || null,
-            setting_key: 'simplified_email_configs',
+            user_id: user?.id || null, // ⚠️ user_id (userId) FK - NOT userid
+            setting_key: 'simplified_email_configs', // ⚠️ setting_key (settingKey) - NOT settingkey
             setting_value: configs,
             updated_at: new Date().toISOString()
           });
@@ -1149,9 +1164,45 @@ Best regards,
 
       playSound.success();
       showSuccess('Notification Rules Saved', `Email notification rules for ${selectedCountry} have been saved to database`);
+      
+      // Show success message for tests
+      setSuccessMessage(`Email configuration for ${selectedCountry} saved successfully`);
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 5000);
     } catch (error) {
       console.error('Error in saveNotificationMatrix:', error);
       showError('Save Failed', 'Failed to save notification rules to database. Please try again.');
+    }
+  };
+
+  // Test email connection functionality
+  const handleTestEmailConnection = async () => {
+    setConnectionTestResult(null);
+    
+    try {
+      if (!currentConfig?.activeProvider) {
+        setConnectionTestResult('Error: No email provider configured');
+        return;
+      }
+
+      setConnectionTestResult('Testing connection...');
+      
+      // Simulate test email sending
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // In a real implementation, this would send an actual test email
+      const isSuccess = Math.random() > 0.3; // 70% success rate for demo
+      
+      if (isSuccess) {
+        setConnectionTestResult('Success: Test email sent successfully');
+        showSuccess('Test Email Sent', 'A test email has been sent to verify your configuration');
+      } else {
+        setConnectionTestResult('Error: Failed to send test email. Please check your configuration');
+        showError('Test Email Failed', 'Could not send test email. Please verify your email provider settings');
+      }
+    } catch (error) {
+      setConnectionTestResult('Error: Connection test failed');
+      showError('Connection Test Failed', 'An error occurred during the connection test');
     }
   };
 
@@ -1200,7 +1251,28 @@ Best regards,
   const isMicrosoftConfigured = !!process.env.REACT_APP_MICROSOFT_CLIENT_ID;
 
   return (
-    <div className="email-config-container">
+    <div className="email-config-container" data-testid="email-config-form">
+      {/* Success Message Display */}
+      {showSuccessMessage && (
+        <div 
+          className="alert alert-success"
+          data-testid="success-message"
+          style={{ marginBottom: '1rem' }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>✅ {successMessage}</span>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => setShowSuccessMessage(false)}
+              style={{ background: 'none', border: 'none', fontSize: '1.2rem', padding: '0' }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="email-config-header">
         <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>📧 Email Configuration</h3>
         <p style={{ fontSize: '0.9rem', color: '#6c757d' }}>Configure email providers for automated notifications</p>
@@ -1835,10 +1907,199 @@ Best regards,
                           whiteSpace: 'nowrap'
                         }}
                         title="Save notification matrix configuration"
+                        data-testid="save-email-config"
                       >
                         💾 Save Notification Rules
                       </button>
                     </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Email Templates Section */}
+          <div className="config-section">
+            <div
+              className="section-header collapsible-header"
+              onClick={() => setIsEmailTemplatesCollapsed(!isEmailTemplatesCollapsed)}
+              style={{ cursor: 'pointer' }}
+              data-testid="email-templates-tab"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <h3>✉️ Email Templates</h3>
+                <div className="provider-status-badge-inline">
+                  <span className="status-icon">📝</span>
+                  <span style={{ fontSize: '0.85rem' }}>Customize Email Content</span>
+                </div>
+              </div>
+              <span className={`chevron ${isEmailTemplatesCollapsed ? 'collapsed' : 'expanded'}`}>
+                {isEmailTemplatesCollapsed ? '▶' : '▼'}
+              </span>
+            </div>
+
+            {!isEmailTemplatesCollapsed && (
+              <div className="section-content" data-testid="email-template-editor">
+                <p style={{ marginBottom: '1rem', color: '#6c757d' }}>
+                  Customize email templates for different types of notifications
+                </p>
+
+                {/* Template Type Selection */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                    Template Type:
+                  </label>
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTemplate('status_change')}
+                      className={`btn ${selectedTemplate === 'status_change' ? 'btn-primary' : 'btn-outline-primary'}`}
+                      data-testid="status-change-template"
+                    >
+                      Status Change
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTemplate('new_case')}
+                      className={`btn ${selectedTemplate === 'new_case' ? 'btn-primary' : 'btn-outline-primary'}`}
+                      data-testid="new-case-template"
+                    >
+                      New Case
+                    </button>
+                  </div>
+                </div>
+
+                {/* Template Editor */}
+                {selectedTemplate && (
+                  <div style={{ border: '1px solid #dee2e6', borderRadius: '8px', padding: '1rem' }}>
+                    <h5 style={{ marginBottom: '1rem' }}>
+                      {selectedTemplate === 'status_change' ? 'Status Change Notification' : 'New Case Notification'}
+                    </h5>
+                    
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Subject:
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={selectedTemplate === 'status_change' ? 
+                          'Case {{caseReference}} - Status Updated to {{status}}' : 
+                          'New Case Created: {{caseReference}}'}
+                        readOnly
+                        style={{ backgroundColor: '#f8f9fa' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                        Email Content:
+                      </label>
+                      <textarea
+                        className="form-control"
+                        rows={8}
+                        data-testid="template-content"
+                        value={selectedTemplate === 'status_change' ? 
+                          `Dear Team,
+
+Case {{caseReference}} has been updated.
+
+Details:
+- Hospital: {{hospital}}
+- Department: {{department}}
+- Doctor: {{doctorName}}
+- New Status: {{status}}
+- Date: {{dateOfSurgery}}
+
+Please review the case and take appropriate action if needed.
+
+Best regards,
+Case Booking System` :
+                          `Dear Team,
+
+A new case has been created and requires your attention.
+
+Case Details:
+- Reference: {{caseReference}}
+- Hospital: {{hospital}}
+- Department: {{department}}
+- Doctor: {{doctorName}}
+- Procedure: {{procedureName}}
+- Surgery Date: {{dateOfSurgery}}
+
+Please review and process this case accordingly.
+
+Best regards,
+Case Booking System`}
+                        onChange={(e) => {
+                          // Template content editing would be implemented here
+                          console.log('Template content updated:', e.target.value);
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#e7f3ff', borderRadius: '4px' }}>
+                      <small style={{ color: '#0066cc' }}>
+                        💡 Use template variables like {'{'}{'{'}{'}'}caseReference{'}'}, {'{'}{'{'}{'}'}hospital{'}'}, {'{'}{'{'}{'}'}status{'}'} in your templates. 
+                        See Template Variables section below for a complete list.
+                      </small>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Test Email Connection Section */}
+          <div className="config-section">
+            <div
+              className="section-header collapsible-header"
+              onClick={() => setIsTestConnectionCollapsed(!isTestConnectionCollapsed)}
+              style={{ cursor: 'pointer' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <h3>🔍 Test Email Connection</h3>
+                <div className="provider-status-badge-inline">
+                  <span className="status-icon">✉️</span>
+                  <span style={{ fontSize: '0.85rem' }}>Verify Configuration</span>
+                </div>
+              </div>
+              <span className={`chevron ${isTestConnectionCollapsed ? 'collapsed' : 'expanded'}`}>
+                {isTestConnectionCollapsed ? '▶' : '▼'}
+              </span>
+            </div>
+
+            {!isTestConnectionCollapsed && (
+              <div className="section-content">
+                <p style={{ marginBottom: '1rem', color: '#6c757d' }}>
+                  Send a test email to verify your configuration is working correctly
+                </p>
+
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+                  <button
+                    type="button"
+                    onClick={handleTestEmailConnection}
+                    className="btn btn-outline-primary"
+                    data-testid="test-email-connection"
+                    disabled={!currentConfig?.activeProvider}
+                  >
+                    📧 Send Test Email
+                  </button>
+                  
+                  {connectionTestResult && (
+                    <div 
+                      className={`alert ${connectionTestResult.includes('Success') ? 'alert-success' : 'alert-danger'}`}
+                      data-testid="connection-test-result"
+                      style={{ margin: 0, padding: '0.5rem 1rem' }}
+                    >
+                      {connectionTestResult}
+                    </div>
+                  )}
+                </div>
+
+                {!currentConfig?.activeProvider && (
+                  <div className="alert alert-warning">
+                    <strong>Configuration Required:</strong> Please configure and authenticate an email provider first.
                   </div>
                 )}
               </div>

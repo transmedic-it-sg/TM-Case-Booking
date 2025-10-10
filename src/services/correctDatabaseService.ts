@@ -4,6 +4,15 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 export interface DatabaseCheckResult {
   table: string;
@@ -47,7 +56,7 @@ class CorrectDatabaseService {
       const { data: invalidDoctorRefs, error } = await supabase
         .from('case_bookings')
         .select('id, doctor_id')
-        .not('doctor_id', 'is', null);
+        .not('doctor_id', 'is', null); // ⚠️ doctor_id (doctorId) FK
 
       if (error) throw error;
 
@@ -135,7 +144,7 @@ class CorrectDatabaseService {
         .select('display_name')
         .eq('table_type', 'hospitals')
         .eq('country', country)
-        .eq('is_active', true);
+        .eq('is_active', true); // ⚠️ is_active (isActive)
 
       if (error) throw error;
       return data?.map(item => item.display_name) || [];

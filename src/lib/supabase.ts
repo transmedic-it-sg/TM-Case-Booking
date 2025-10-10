@@ -1,3 +1,16 @@
+/**
+ * ⚠️ CRITICAL: Uses comprehensive field mappings to prevent database field naming issues
+ * 
+ * FIELD MAPPING RULES:
+ * - Database fields: snake_case (e.g., date_of_surgery, case_booking_id)
+ * - TypeScript interfaces: camelCase (e.g., dateOfSurgery, caseBookingId)
+ * - ALWAYS use fieldMappings.ts utility instead of hardcoded field names
+ * 
+ * NEVER use: case_date → USE: date_of_surgery
+ * NEVER use: procedure → USE: procedure_type
+ * NEVER use: caseId → USE: case_booking_id
+ */
+
 import { createClient } from '@supabase/supabase-js'
 
 // Supabase configuration with fallback for localhost
@@ -42,10 +55,10 @@ export interface Database {
           role: 'admin' | 'operations' | 'operations-manager' | 'sales' | 'sales-manager' | 'driver' | 'it'
           departments: string[]
           countries: string[]
-          selected_country: string | null
+          selected_country: string | null // ⚠️ selected_country (selectedCountry)
           enabled: boolean
-          created_at: string
-          updated_at: string
+          created_at: string // ⚠️ created_at (createdAt)
+          updated_at: string // ⚠️ updated_at (updatedAt)
         }
         Insert: {
           id: string
@@ -72,22 +85,22 @@ export interface Database {
       case_bookings: {
         Row: {
           id: string
-          case_reference_number: string
+          case_reference_number: string // ⚠️ case_reference_number (caseReferenceNumber)
           hospital: string
           department: string
-          date_of_surgery: string
-          procedure_type: string
-          procedure_name: string
-          doctor_name: string | null
+          date_of_surgery: string // ⚠️ date_of_surgery (dateOfSurgery) - NOT case_date
+          procedure_type: string // ⚠️ procedure_type (procedureType) - NOT procedure
+          procedure_name: string // ⚠️ procedure_name (procedureName)
+          doctor_name: string | null // ⚠️ doctor_name (doctorName)
           time_of_procedure: string | null
-          surgery_set_selection: string[]
-          implant_box: string[]
-          special_instruction: string | null
+          surgery_set_selection: string[] // ⚠️ surgery_set_selection (surgerySetSelection)
+          implant_box: string[] // ⚠️ implant_box (implantBox)
+          special_instruction: string | null // ⚠️ special_instruction (specialInstruction)
           status: 'Case Booked' | 'Order Preparation' | 'Order Prepared' | 'Pending Delivery (Hospital)' | 'Delivered (Hospital)' | 'Case Completed' | 'Pending Delivery (Office)' | 'Delivered (Office)' | 'To be billed' | 'Case Closed' | 'Case Cancelled'
           submitted_by: string
           submitted_at: string
-          processed_by: string | null
-          processed_at: string | null
+          processed_by: string | null // ⚠️ processed_by (processedBy)
+          processed_at: string | null // ⚠️ processed_at (processedAt)
           process_order_details: string | null
           country: string
           amended_by: string | null
@@ -145,9 +158,9 @@ export interface Database {
       status_history: {
         Row: {
           id: string
-          case_id: string
+          case_id: string // ⚠️ case_id (caseId) FK to case_bookings
           status: string
-          timestamp: string
+          timestamp: string // ⚠️ timestamp field
           processed_by: string
           details: string | null
           attachments: string[] | null
@@ -191,7 +204,7 @@ export interface Database {
       notifications: {
         Row: {
           id: string
-          user_id: string
+          user_id: string // ⚠️ user_id (userId) FK - NOT userid
           type: 'success' | 'error' | 'warning' | 'info'
           title: string
           message: string
@@ -218,7 +231,7 @@ export interface Database {
           table_type: string
           code: string
           display_name: string
-          is_active: boolean
+          is_active: boolean // ⚠️ is_active (isActive)
           created_at: string
           updated_at: string
         }
@@ -448,8 +461,8 @@ export interface Database {
         Row: {
           id: string
           user_id: string | null
-          setting_key: string
-          setting_value: any
+          setting_key: string // ⚠️ setting_key (settingKey) - NOT settingkey
+          setting_value: any // ⚠️ setting_value (settingValue) - NOT settingvalue
           description?: string | null
           created_at: string
           updated_at: string

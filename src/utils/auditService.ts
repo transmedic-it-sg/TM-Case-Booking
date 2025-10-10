@@ -3,12 +3,34 @@
  * This is independent of the notification system and stores all activity permanently
  */
 
+/**
+ * ⚠️ CRITICAL: Uses comprehensive field mappings to prevent database field naming issues
+ * 
+ * FIELD MAPPING RULES:
+ * - Database fields: snake_case (e.g., date_of_surgery, case_booking_id)
+ * - TypeScript interfaces: camelCase (e.g., dateOfSurgery, caseBookingId)
+ * - ALWAYS use fieldMappings.ts utility instead of hardcoded field names
+ * 
+ * NEVER use: case_date → USE: date_of_surgery
+ * NEVER use: procedure → USE: procedure_type
+ * NEVER use: caseId → USE: case_booking_id
+ */
+
 import { supabase } from '../lib/supabase';
 import { getSystemConfig } from './systemSettingsService';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 export interface AuditLogEntry {
   id: string;
-  timestamp: string;
+  timestamp: string; // ⚠️ timestamp field
   user: string;
   userId: string;
   userRole: string;
@@ -78,8 +100,8 @@ export const addAuditLog = async (
       .insert([{
         id: auditEntry.id,
         timestamp: auditEntry.timestamp,
-        user_name: auditEntry.user,
-        user_id: auditEntry.userId,
+        user_name: auditEntry.user, // ⚠️ user_name (userName)
+        user_id: auditEntry.userId, // ⚠️ user_id (userId) FK - NOT userid
         user_role: auditEntry.userRole,
         action: auditEntry.action,
         category: auditEntry.category,
@@ -112,7 +134,7 @@ export const getAuditLogs = async (): Promise<AuditLogEntry[]> => {
     const { data, error } = await supabase
       .from('audit_logs')
       .select('*')
-      .order('timestamp', { ascending: false })
+      .order('timestamp', { ascending: false }) // ⚠️ timestamp field
       .limit(1000);
 
     if (error) {

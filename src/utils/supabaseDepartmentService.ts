@@ -4,21 +4,30 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 export interface Department {
   id: string;
   name: string;
   country: string;
   description?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  is_active: boolean; // ⚠️ is_active (isActive)
+  created_at: string; // ⚠️ created_at (createdAt)
+  updated_at: string; // ⚠️ updated_at (updatedAt)
 }
 
 export interface ProcedureType {
   id: string;
   department_id: string;
-  procedure_type: string;
+  procedure_type: string; // ⚠️ procedure_type (procedureType) - NOT procedure
   country: string;
   is_active: boolean;
   is_hidden: boolean;
@@ -31,7 +40,7 @@ class SupabaseDepartmentService {
         .from('departments')
         .select('*')
         .eq('country', country)
-        .eq('is_active', true)
+        .eq('is_active', true) // ⚠️ is_active (isActive)
         .order('name');
 
       if (error) throw error;
@@ -45,7 +54,7 @@ class SupabaseDepartmentService {
     try {
       const { data, error } = await supabase
         .from('department_procedure_types')
-        .select('procedure_type')
+        .select('procedure_type') // ⚠️ procedure_type (procedureType) - NOT procedure
         .eq('department_id', departmentId)
         .eq('country', country)
         .eq('is_active', true)

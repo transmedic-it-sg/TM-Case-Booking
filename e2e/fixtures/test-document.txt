@@ -1,0 +1,11 @@
+This is a test document for file attachment testing.
+
+It contains some basic text content to verify that file upload functionality works correctly.
+
+Test details:
+- File name: test-document.txt
+- File type: Plain text
+- Size: Small (under 1KB)
+- Purpose: E2E testing of attachment functionality
+
+This file should be successfully uploaded and displayed in the attachments list.

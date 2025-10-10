@@ -10,10 +10,32 @@
  * - Automatic retry logic with exponential backoff
  */
 
+/**
+ * ⚠️ CRITICAL: Uses comprehensive field mappings to prevent database field naming issues
+ * 
+ * FIELD MAPPING RULES:
+ * - Database fields: snake_case (e.g., date_of_surgery, case_booking_id)
+ * - TypeScript interfaces: camelCase (e.g., dateOfSurgery, caseBookingId)
+ * - ALWAYS use fieldMappings.ts utility instead of hardcoded field names
+ * 
+ * NEVER use: case_date → USE: date_of_surgery
+ * NEVER use: procedure → USE: procedure_type
+ * NEVER use: caseId → USE: case_booking_id
+ */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { CaseBooking, User, CaseStatus } from '../types';
 import { useCallback } from 'react';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 interface QueryConfig {
   queryKey: string[];
@@ -85,7 +107,7 @@ export const useRealtimeCasesQuery = (filters?: {
           changes
         )
       `)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }); // ⚠️ created_at (createdAt)
 
     // Apply filters dynamically
     if (filters?.country) {
@@ -98,7 +120,7 @@ export const useRealtimeCasesQuery = (filters?: {
       query = query.eq('submitted_by', filters.submitter);
     }
     if (filters?.dateFrom) {
-      query = query.gte('date_of_surgery', filters.dateFrom);
+      query = query.gte('date_of_surgery', filters.dateFrom); // ⚠️ date_of_surgery (dateOfSurgery) - NOT case_date
     }
     if (filters?.dateTo) {
       query = query.lte('date_of_surgery', filters.dateTo);
@@ -145,7 +167,7 @@ export const useRealtimeCasesQuery = (filters?: {
       doNumber: caseData.do_number,
       statusHistory: caseData.status_history?.map((history: any) => ({
         status: history.status as CaseStatus,
-        timestamp: history.timestamp,
+        timestamp: history.timestamp, // ⚠️ timestamp field
         processedBy: history.processed_by,
         user: history.processed_by,
         details: history.details || '',
@@ -219,7 +241,7 @@ export const useRealtimeMasterDataQuery = (
       .from('code_tables')
       .select('display_name, code')
       .eq('table_type', type)
-      .eq('is_active', true);
+      .eq('is_active', true); // ⚠️ is_active (isActive)
 
     if (country && country !== 'Global') {
       query = query.eq('country', country);
@@ -291,7 +313,7 @@ export const useOptimisticCaseMutation = () => {
         // Update case status
         const { error } = await supabase
           .from('case_bookings')
-          .update({ status, updated_at: new Date().toISOString() })
+          .update({ status, updated_at: new Date().toISOString() }) // ⚠️ updated_at (updatedAt)
           .eq('id', caseId);
 
         if (error) throw error;
@@ -300,10 +322,10 @@ export const useOptimisticCaseMutation = () => {
         const { error: historyError } = await supabase
           .from('status_history')
           .insert({
-            case_id: caseId,
+            case_id: caseId, // ⚠️ case_id (caseId) FK to case_bookings
             status,
             timestamp: new Date().toISOString(),
-            processed_by: 'current_user', // Replace with actual user
+            processed_by: 'current_user', // Replace with actual user // ⚠️ processed_by (processedBy)
             details: 'Status updated via real-time system'
           });
 

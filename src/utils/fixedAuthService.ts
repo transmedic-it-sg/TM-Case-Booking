@@ -5,6 +5,15 @@
 
 import { supabase } from '../lib/supabase';
 import { verifyPassword } from './passwordSecurity';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 export interface AuthUser {
   id: string;
@@ -170,7 +179,7 @@ class FixedAuthService {
         .from('profiles')
         .update({
           password_hash: newPassword,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString() // ⚠️ updated_at (updatedAt)
         })
         .eq('id', user.id);
 

@@ -9,6 +9,15 @@ import { useUserNames } from '../hooks/useUserNames';
 import FilterDatePicker from './FilterDatePicker';
 import SearchableDropdown from './SearchableDropdown';
 import dynamicConstantsService from '../services/dynamicConstantsService';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 import '../assets/components/Reports.css';
 
 interface ReportFilters {

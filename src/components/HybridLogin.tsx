@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { authenticate } from '../utils/auth'; // Fallback to localStorage
 import { User } from '../types';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 interface HybridLoginProps {
   onLogin: (user: User) => void;

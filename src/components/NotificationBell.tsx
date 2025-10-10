@@ -113,6 +113,7 @@ const NotificationBell: React.FC = () => {
         className={`btn btn-outline-secondary btn-md notification-bell ${unreadCount > 0 ? 'has-unread' : ''}`}
         onClick={handleBellClick}
         title={`${unreadCount} unread notifications`}
+        data-testid="notification-button"
       >
         🔔
         {unreadCount > 0 && (
@@ -123,7 +124,7 @@ const NotificationBell: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="notification-dropdown">
+        <div className="notification-dropdown" data-testid="notification-dropdown">
           <div className="notification-header">
             <h3>Notifications</h3>
             <div className="notification-header-actions">

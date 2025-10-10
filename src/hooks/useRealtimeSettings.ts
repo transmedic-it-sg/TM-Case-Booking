@@ -10,6 +10,15 @@ import { supabase } from '../lib/supabase';
 import { getCurrentUserSync } from '../utils/authCompat';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useTestingValidation } from './useTestingValidation';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 interface UserSettings {
   userId: string;
@@ -67,7 +76,7 @@ const useRealtimeSettingsQuery = (userId?: string) => {
         const { data, error } = await supabase
           .from('app_settings')
           .select('*')
-          .eq('user_id', userId);
+          .eq('user_id', userId); // ⚠️ user_id (userId) FK - NOT userid
 
         if (error) {
           console.warn('Unable to load app_settings, using defaults:', error.message);
@@ -118,9 +127,9 @@ const useOptimisticSettingsMutation = () => {
           const { data, error } = await supabase
             .from('app_settings')
             .upsert({
-              user_id: userId,
-              setting_key: 'user_preferences',
-              setting_value: settings
+              user_id: userId, // ⚠️ user_id (userId) FK - NOT userid
+              setting_key: 'user_preferences', // ⚠️ setting_key (settingKey) - NOT settingkey
+              setting_value: settings // ⚠️ setting_value (settingValue) - NOT settingvalue
             })
             .select()
             .single();

@@ -122,7 +122,7 @@ const CaseDetails: React.FC<CaseDetailsProps> = ({
             {caseItem.implantBox?.length ? (
               <div className="equipment-items">
                 {caseItem.implantBox.map((implant, index) => {
-                  const quantity = getQuantityForItem(implant, 'implant_box');
+                  const quantity = getQuantityForItem(implant, 'implant_box'); // ⚠️ implant_box (implantBox)
                   return (
                     <span key={index} className="equipment-tag">
                       {implant}

@@ -12,6 +12,15 @@ import { useToast } from './ToastContainer';
 import { useModal } from '../hooks/useModal';
 import CustomModal from './CustomModal';
 import { supabase } from '../lib/supabase';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 import '../assets/components/AdminComponents.css';
 import '../assets/components/DataExportImport.css';
 
@@ -608,7 +617,7 @@ const DataExportImport: React.FC = () => {
         
         // Ensure user_id is present for proper RLS
         if (!setting.user_id) {
-          result.warnings.push(`Skipping setting without user_id: ${setting.setting_key}`);
+          result.warnings.push(`Skipping setting without user_id: ${setting.setting_key}`); // ⚠️ user_id (userId) FK - NOT userid
           continue;
         }
         
@@ -616,11 +625,11 @@ const DataExportImport: React.FC = () => {
           .from('app_settings')
           .upsert({
             user_id: setting.user_id,
-            setting_key: setting.setting_key,
-            setting_value: setting.setting_value,
+            setting_key: setting.setting_key, // ⚠️ setting_key (settingKey) - NOT settingkey
+            setting_value: setting.setting_value, // ⚠️ setting_value (settingValue) - NOT settingvalue
             description: setting.description,
-            created_at: setting.created_at,
-            updated_at: new Date().toISOString()
+            created_at: setting.created_at, // ⚠️ created_at (createdAt)
+            updated_at: new Date().toISOString() // ⚠️ updated_at (updatedAt)
           });
         
         if (error) {

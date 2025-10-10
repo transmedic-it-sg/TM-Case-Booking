@@ -55,6 +55,8 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
 
   const [showAttachmentHistory, setShowAttachmentHistory] = useState(false);
   const [replaceFileId, setReplaceFileId] = useState<string | null>(null);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   const {
     attachments,
@@ -94,13 +96,24 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
         if (file) {
           replaceFile(replaceFileId, file);
           setReplaceFileId(null);
+          setShowSuccessMessage(true);
+          setTimeout(() => setShowSuccessMessage(false), 3000);
         }
       } else {
-        // Add mode
-        addFiles(e.target.files);
+        // Add mode - collect files for pending submission
+        setPendingFiles(Array.from(e.target.files));
       }
       // Reset input
       e.target.value = '';
+    }
+  };
+
+  const handleSubmitAttachments = () => {
+    if (pendingFiles.length > 0) {
+      addFiles(pendingFiles);
+      setPendingFiles([]);
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
     }
   };
 
@@ -214,7 +227,7 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
   };
 
   return (
-    <div className="enhanced-attachment-manager">
+    <div className="enhanced-attachment-manager" data-testid="attachment-section">
       <div className="attachment-header">
         <h4 className="attachment-title">
           Attachments ({fileCount}/{maxFiles})
@@ -268,7 +281,7 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
                   onChange={handleFileInput}
                   className="file-input"
                 />
-                <span className="btn btn-outline-primary btn-sm">
+                <span className="btn btn-outline-primary btn-sm" data-testid="attach-file-button">
                   {replaceFileId ? 'Select Replacement File' : 'Browse Files'}
                 </span>
               </label>
@@ -289,9 +302,45 @@ const EnhancedAttachmentManager: React.FC<EnhancedAttachmentManagerProps> = ({
         </div>
       )}
 
+      {/* Pending Files and Submit Button */}
+      {pendingFiles.length > 0 && (
+        <div className="pending-files-section">
+          <h5>Files ready to upload ({pendingFiles.length}):</h5>
+          <div className="pending-files-list">
+            {pendingFiles.map((file, index) => (
+              <div key={index} className="pending-file-item">
+                <span>{file.name}</span>
+                <button
+                  type="button"
+                  className="btn-remove-pending"
+                  onClick={() => setPendingFiles(files => files.filter((_, i) => i !== index))}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleSubmitAttachments}
+            data-testid="submit-attachment-button"
+          >
+            Upload {pendingFiles.length} File{pendingFiles.length > 1 ? 's' : ''}
+          </button>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {showSuccessMessage && (
+        <div className="attachment-success-message" data-testid="attachment-success">
+          ✅ Files uploaded successfully!
+        </div>
+      )}
+
       {/* Attachment List */}
       {fileCount > 0 && (
-        <div className="attachment-list">
+        <div className="attachment-list" data-testid="attachments-list">
           {attachments.map((attachment) => {
             const fileInfo = getFileInfo(attachment);
             return (

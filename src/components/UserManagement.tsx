@@ -1,3 +1,16 @@
+/**
+ * ⚠️ CRITICAL: Uses comprehensive field mappings to prevent database field naming issues
+ * 
+ * FIELD MAPPING RULES:
+ * - Database fields: snake_case (e.g., date_of_surgery, case_booking_id)
+ * - TypeScript interfaces: camelCase (e.g., dateOfSurgery, caseBookingId)
+ * - ALWAYS use fieldMappings.ts utility instead of hardcoded field names
+ * 
+ * NEVER use: case_date → USE: date_of_surgery
+ * NEVER use: procedure → USE: procedure_type
+ * NEVER use: caseId → USE: case_booking_id
+ */
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { User } from '../types';
 import { getCurrentUser } from '../utils/authCompat';
@@ -18,6 +31,15 @@ import SearchableDropdown from './SearchableDropdown';
 import CountryGroupedDepartments from './CountryGroupedDepartments';
 import RoleManagement from './RoleManagement';
 import { auditUserCreated, auditUserUpdated, auditUserDeleted, auditPasswordReset, addAuditLog } from '../utils/auditService';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 import '../assets/components/department-management.css';
 import '../assets/components/UserManagement.css';
 
@@ -150,7 +172,7 @@ const UserManagement: React.FC = () => {
           .select('display_name')
           .eq('table_type', 'countries')
           .eq('country', 'Global')
-          .eq('is_active', true)
+          .eq('is_active', true) // ⚠️ is_active (isActive)
           .order('display_name');
 
         if (error) {

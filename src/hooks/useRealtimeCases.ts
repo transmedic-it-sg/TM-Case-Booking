@@ -9,6 +9,15 @@ import { CaseBooking, CaseStatus, FilterOptions } from '../types';
 import { realtimeCaseService } from '../services/realtimeCaseService';
 import { useRealtimeCasesQuery, useOptimisticCaseMutation } from '../services/realtimeQueryService';
 import { useTestingValidation } from './useTestingValidation';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 interface UseRealtimeCasesOptions {
   autoRefresh?: boolean;

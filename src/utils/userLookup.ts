@@ -1,6 +1,15 @@
 import { User } from '../types';
 import { getUsers } from './auth';
 import { supabase } from '../lib/supabase';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 // Cache for user data to avoid repeated API calls
 let usersCache: User[] | null = null;

@@ -1,49 +1,65 @@
 /**
  * Doctor Service - Handle doctor-procedure-sets hierarchy with comprehensive error handling
  * Ensures robust operation with empty data states and graceful error recovery
+ * 
+ * ⚠️ CRITICAL: Uses comprehensive field mappings to prevent database field naming issues
  */
 
 import { supabase } from '../lib/supabase';
 import { logger } from './logger';
+import { 
+  DOCTORS_FIELDS, 
+  DOCTOR_PROCEDURES_FIELDS, 
+  SURGERY_SETS_FIELDS, 
+  IMPLANT_BOXES_FIELDS,
+  CASE_QUANTITIES_FIELDS,
+  DAILY_USAGE_AGGREGATION_FIELDS
+} from './fieldMappings';
 
+// ⚠️ CRITICAL: Interfaces use database field names - mapped via DOCTORS_FIELDS utility
 export interface Doctor {
-  id: string;
-  name: string;
-  country: string;
-  specialties: string[];
-  is_active: boolean;
+  id: string;                    // → doctors.id
+  name: string;                  // → doctors.name
+  country: string;               // → doctors.country
+  specialties: string[];         // → doctors.specialties
+  is_active: boolean;            // → doctors.is_active ⚠️ CRITICAL: NOT isActive
 }
 
+// ⚠️ CRITICAL: Doctor procedures interface - mapped via DOCTOR_PROCEDURES_FIELDS
 export interface DoctorProcedure {
-  procedure_type: string;
+  procedure_type: string;        // → doctor_procedures.procedure_type ⚠️ CRITICAL: NOT procedureType
 }
 
+// ⚠️ CRITICAL: Surgery sets and implant boxes interface
 export interface ProcedureSet {
-  item_type: 'surgery_set' | 'implant_box';
-  item_id: string;
-  item_name: string;
+  item_type: 'surgery_set' | 'implant_box';  // → item_type ⚠️ CRITICAL: NOT itemType
+  item_id: string;               // → item ID reference
+  item_name: string;             // → item_name ⚠️ CRITICAL: NOT itemName
 }
 
+// ⚠️ CRITICAL: Case quantities interface - mapped via CASE_BOOKING_QUANTITIES_FIELDS
 export interface CaseQuantity {
-  item_type: 'surgery_set' | 'implant_box';
-  item_name: string;
-  quantity: number;
+  item_type: 'surgery_set' | 'implant_box';  // → case_booking_quantities.item_type ⚠️ CRITICAL
+  item_name: string;             // → case_booking_quantities.item_name ⚠️ CRITICAL
+  quantity: number;              // → case_booking_quantities.quantity
 }
 
+// ⚠️ CRITICAL: Daily usage interface - mapped via DAILY_USAGE_AGGREGATION_FIELDS
 export interface DailyUsage {
-  usage_date: string;
-  department: string;
-  surgery_sets_total: number;
-  implant_boxes_total: number;
+  usage_date: string;            // → daily_usage_aggregation.usage_date ⚠️ CRITICAL
+  department: string;            // → daily_usage_aggregation.department
+  surgery_sets_total: number;    // → calculated total
+  implant_boxes_total: number;   // → calculated total
   top_items: Array<{
-    item_type: string;
-    item_name: string;
-    quantity: number;
+    item_type: string;           // → daily_usage_aggregation.item_type ⚠️ CRITICAL
+    item_name: string;           // → daily_usage_aggregation.item_name ⚠️ CRITICAL
+    quantity: number;            // → daily_usage_aggregation.total_quantity
   }>;
 }
 
 /**
  * Get doctors for a specific country with error handling
+ * ⚠️ CRITICAL: Maps RPC results to Doctor interface using correct field names
  */
 export const getDoctorsForCountry = async (country: string): Promise<Doctor[]> => {
   try {
@@ -52,6 +68,7 @@ export const getDoctorsForCountry = async (country: string): Promise<Doctor[]> =
       return [];
     }
 
+    // ⚠️ Using RPC function - returns doctor data with database field names
     const { data, error } = await supabase.rpc('get_doctors_for_country', {
       p_country: country.trim()
     });
@@ -66,12 +83,13 @@ export const getDoctorsForCountry = async (country: string): Promise<Doctor[]> =
       return [];
     }
 
+    // ⚠️ CRITICAL: Map RPC results to interface using database field names
     return data.map((doctor: any) => ({
-      id: doctor.id,
-      name: doctor.name,
-      country: country,
-      specialties: doctor.specialties || [],
-      is_active: true
+      id: doctor.id,                               // → doctors.id
+      name: doctor.name,                           // → doctors.name
+      country: country,                            // → doctors.country
+      specialties: doctor.specialties || [],       // → doctors.specialties
+      is_active: doctor.is_active ?? true          // → doctors.is_active ⚠️ CRITICAL: NOT isActive
     }));
 
   } catch (error) {
@@ -85,6 +103,7 @@ export const getDoctorsForCountry = async (country: string): Promise<Doctor[]> =
 
 /**
  * Get procedures for a specific doctor with error handling
+ * ⚠️ CRITICAL: Maps RPC results to DoctorProcedure interface using correct field names
  */
 export const getProceduresForDoctor = async (doctorId: string, country: string): Promise<DoctorProcedure[]> => {
   try {
@@ -93,9 +112,10 @@ export const getProceduresForDoctor = async (doctorId: string, country: string):
       return [];
     }
 
+    // ⚠️ Using RPC function - returns doctor_procedures data with database field names
     const { data, error } = await supabase.rpc('get_procedures_for_doctor', {
-      p_doctor_id: doctorId,
-      p_country: country.trim()
+      p_doctor_id: doctorId,    // → doctor_procedures.doctor_id ⚠️ CRITICAL FK
+      p_country: country.trim() // → doctor_procedures.country
     });
 
     if (error) {
@@ -108,8 +128,9 @@ export const getProceduresForDoctor = async (doctorId: string, country: string):
       return [];
     }
 
+    // ⚠️ CRITICAL: Map RPC results to interface using database field names
     return data.map((proc: any) => ({
-      procedure_type: proc.procedure_type
+      procedure_type: proc.procedure_type           // → doctor_procedures.procedure_type ⚠️ CRITICAL: NOT procedureType
     }));
 
   } catch (error) {
@@ -287,9 +308,10 @@ export const getCaseQuantities = async (caseBookingId: string): Promise<CaseQuan
       return [];
     }
 
-    const { data, error } = await supabase.rpc('get_case_booking_quantities', {
-      p_case_booking_id: caseBookingId
-    });
+    const { data, error } = await supabase
+      .from('case_booking_quantities')
+      .select('item_type, item_name, quantity')
+      .eq('case_booking_id', caseBookingId); // ⚠️ case_booking_id (caseBookingId) FK - NOT caseId
 
     if (error) {
       logger.error('Error fetching case quantities', {
@@ -299,23 +321,16 @@ export const getCaseQuantities = async (caseBookingId: string): Promise<CaseQuan
       return [];
     }
 
-    if (!data) {
+    if (!data || data.length === 0) {
       return [];
     }
 
-    // Convert from JSONB format to CaseQuantity array
-    const quantities: CaseQuantity[] = [];
-    Object.entries(data as Record<string, any>).forEach(([itemName, itemData]) => {
-      if (itemData && typeof itemData === 'object' && itemData.type && itemData.quantity) {
-        quantities.push({
-          item_type: itemData.type,
-          item_name: itemName,
-          quantity: parseInt(itemData.quantity, 10) || 0
-        });
-      }
-    });
-
-    return quantities;
+    // Convert to CaseQuantity array
+    return data.map(row => ({
+      item_type: row.item_type as 'surgery_set' | 'implant_box',
+      item_name: row.item_name,
+      quantity: row.quantity
+    }));
 
   } catch (error) {
     logger.error('Exception in getCaseQuantities', {
@@ -356,26 +371,30 @@ export const saveCaseQuantities = async (
       return false;
     }
 
-    // Convert to JSONB format expected by the database function
-    const quantitiesJsonb = validQuantities.reduce((acc, q) => {
-      acc[q.item_name] = {
-        type: q.item_type,
-        quantity: q.quantity
-      };
-      return acc;
-    }, {} as Record<string, any>);
-    
-    console.log('DoctorService Debug - Converted to JSONB format:', quantitiesJsonb);
+    // Clear existing quantities for this case
+    await supabase
+      .from('case_booking_quantities')
+      .delete()
+      .eq('case_booking_id', caseBookingId);
 
-    const { data, error } = await supabase.rpc('save_case_booking_quantities', {
-      p_case_booking_id: caseBookingId,
-      p_quantities: quantitiesJsonb
-    });
+    // Insert new quantities using direct table insert
+    const quantityRecords = validQuantities.map(q => ({
+      case_booking_id: caseBookingId, // ⚠️ case_booking_id (caseBookingId) FK - NOT caseId
+      item_type: q.item_type,
+      item_name: q.item_name,
+      quantity: q.quantity
+    }));
 
-    console.log('DoctorService Debug - RPC call result:', { data, error });
+    console.log('DoctorService Debug - Inserting quantity records:', quantityRecords);
+
+    const { data, error } = await supabase
+      .from('case_booking_quantities')
+      .insert(quantityRecords);
+
+    console.log('DoctorService Debug - Insert result:', { data, error });
 
     if (error) {
-      console.error('DoctorService Debug - RPC error:', error);
+      console.error('DoctorService Debug - Insert error:', error);
       logger.error('Error saving case quantities', {
         caseBookingId,
         quantitiesCount: validQuantities.length,
@@ -384,17 +403,12 @@ export const saveCaseQuantities = async (
       return false;
     }
 
-    const success = data === true;
-    if (success) {
-      logger.info('Successfully saved case quantities', {
-        caseBookingId,
-        quantitiesCount: validQuantities.length
-      });
-    } else {
-      logger.warn('Failed to save case quantities', { caseBookingId });
-    }
+    logger.info('Successfully saved case quantities', {
+      caseBookingId,
+      quantitiesCount: validQuantities.length
+    });
 
-    return success;
+    return true;
 
   } catch (error) {
     logger.error('Exception in saveCaseQuantities', {
@@ -534,8 +548,8 @@ export const updateDoctorProcedure = async (
       .update({
         procedure_type: newProcedureType.trim()
       })
-      .eq('doctor_id', doctorId)
-      .eq('procedure_type', oldProcedureType.trim())
+      .eq('doctor_id', doctorId) // ⚠️ doctor_id (doctorId) FK
+      .eq('procedure_type', oldProcedureType.trim()) // ⚠️ procedure_type (procedureType) - NOT procedure
       .eq('country', country.trim());
 
     if (error) {

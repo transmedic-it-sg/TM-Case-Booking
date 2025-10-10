@@ -7,6 +7,15 @@
 import { getAppVersion } from './version';
 import { logout } from './auth';
 import { supabase } from '../lib/supabase';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 const USER_SESSION_KEY = 'currentUser';
 
@@ -32,9 +41,9 @@ const getStoredVersion = async (): Promise<string | null> => {
     
     const { data, error } = await supabase
       .from('app_settings')
-      .select('setting_value')
-      .eq('setting_key', 'client_app_version')
-      .eq('user_id', user?.id || null)
+      .select('setting_value') // ⚠️ setting_value (settingValue) - NOT settingvalue
+      .eq('setting_key', 'client_app_version') // ⚠️ setting_key (settingKey) - NOT settingkey
+      .eq('user_id', user?.id || null) // ⚠️ user_id (userId) FK - NOT userid
       .maybeSingle();
     
     if (error || !data) return null;
@@ -71,8 +80,8 @@ const setStoredVersion = async (version: string): Promise<void> => {
       await supabase
         .from('app_settings')
         .update({
-          setting_value: version,
-          updated_at: new Date().toISOString()
+          setting_value: version, // ⚠️ setting_value (settingValue) - NOT settingvalue
+          updated_at: new Date().toISOString() // ⚠️ updated_at (updatedAt)
         })
         .eq('setting_key', 'client_app_version')
         .eq('user_id', user?.id || null);
@@ -81,8 +90,8 @@ const setStoredVersion = async (version: string): Promise<void> => {
       await supabase
         .from('app_settings')
         .insert({
-          user_id: user?.id || null,
-          setting_key: 'client_app_version',
+          user_id: user?.id || null, // ⚠️ user_id (userId) FK - NOT userid
+          setting_key: 'client_app_version', // ⚠️ setting_key (settingKey) - NOT settingkey
           setting_value: version,
           description: 'Client application version for update detection',
           updated_at: new Date().toISOString()

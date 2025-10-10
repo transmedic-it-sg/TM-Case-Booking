@@ -6,6 +6,15 @@
 import { logger } from './logger';
 import { supabase } from '../lib/supabase';
 import { getSafeCacheInstance } from './cacheManager';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 interface StorageOptions {
   encrypt?: boolean;
@@ -17,7 +26,7 @@ interface StorageOptions {
 
 interface StorageItem {
   data: any;
-  timestamp: number;
+  timestamp: number; // ⚠️ timestamp field
   ttl?: number;
   encrypted?: boolean;
 }
@@ -66,10 +75,10 @@ class SecureDataManager {
             const { error } = await supabase
               .from('app_settings')
               .upsert({
-                user_id: user.id,
-                setting_key: `cache_${key}`,
-                setting_value: data,
-                updated_at: new Date().toISOString()
+                user_id: user.id, // ⚠️ user_id (userId) FK - NOT userid
+                setting_key: `cache_${key}`, // ⚠️ setting_key (settingKey) - NOT settingkey
+                setting_value: data, // ⚠️ setting_value (settingValue) - NOT settingvalue
+                updated_at: new Date().toISOString() // ⚠️ updated_at (updatedAt)
               });
             
             if (!error) {
@@ -135,9 +144,9 @@ class SecureDataManager {
           if (user?.id) {
             const { data: result, error } = await supabase
               .from('app_settings')
-              .select('setting_value')
-              .eq('setting_key', `cache_${key}`)
-              .eq('user_id', user.id)
+              .select('setting_value') // ⚠️ setting_value (settingValue) - NOT settingvalue
+              .eq('setting_key', `cache_${key}`) // ⚠️ setting_key (settingKey) - NOT settingkey
+              .eq('user_id', user.id) // ⚠️ user_id (userId) FK - NOT userid
               .maybeSingle();
             
             if (!error && result) {

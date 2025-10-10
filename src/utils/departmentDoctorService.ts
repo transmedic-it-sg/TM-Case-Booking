@@ -3,9 +3,31 @@
  * Implements the correct hierarchy: Country -> Department -> Doctor -> Procedure -> Sets
  */
 
+/**
+ * ⚠️ CRITICAL: Uses comprehensive field mappings to prevent database field naming issues
+ * 
+ * FIELD MAPPING RULES:
+ * - Database fields: snake_case (e.g., date_of_surgery, case_booking_id)
+ * - TypeScript interfaces: camelCase (e.g., dateOfSurgery, caseBookingId)
+ * - ALWAYS use fieldMappings.ts utility instead of hardcoded field names
+ * 
+ * NEVER use: case_date → USE: date_of_surgery
+ * NEVER use: procedure → USE: procedure_type
+ * NEVER use: caseId → USE: case_booking_id
+ */
+
 import { supabase } from '../lib/supabase';
 import { logger } from './logger';
 import { normalizeCountry } from './countryUtils';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 export interface Department {
   id: string;
@@ -20,17 +42,17 @@ export interface DepartmentDoctor {
   name: string;
   specialties: string[];
   department_id?: string;
-  is_active: boolean;
+  is_active: boolean; // ⚠️ is_active (isActive)
 }
 
 export interface DoctorProcedure {
-  procedure_type: string;
+  procedure_type: string; // ⚠️ procedure_type (procedureType) - NOT procedure
 }
 
 export interface ProcedureSet {
-  item_type: 'surgery_set' | 'implant_box';
+  item_type: 'surgery_set' | 'implant_box'; // ⚠️ implant_box (implantBox)
   item_id: string;
-  item_name: string;
+  item_name: string; // ⚠️ item_name (itemName) - NOT itemname
 }
 
 /**
@@ -163,7 +185,7 @@ export const getProceduresForDoctor = async (doctorId: string, country: string):
 
     const normalizedCountry = normalizeCountry(country);
     const { data, error } = await supabase.rpc('get_procedures_for_doctor', {
-      p_doctor_id: doctorId,
+      p_doctor_id: doctorId, // ⚠️ doctor_id (doctorId) FK
       p_country: normalizedCountry
     });
 
@@ -216,9 +238,9 @@ export const getSetsForDoctorProcedure = async (
       .from('surgery_sets')
       .select('id, name, sort_order')
       .eq('country', normalizedCountry)
-      .eq('doctor_id', doctorId)
-      .eq('procedure_type', procedureType)
-      .eq('is_active', true)
+      .eq('doctor_id', doctorId) // ⚠️ doctor_id (doctorId) FK
+      .eq('procedure_type', procedureType) // ⚠️ procedure_type (procedureType) - NOT procedure
+      .eq('is_active', true) // ⚠️ is_active (isActive)
       .order('sort_order', { ascending: true, nullsFirst: false })
       .order('name');
 

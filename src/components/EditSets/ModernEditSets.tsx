@@ -21,6 +21,15 @@ import { useRealtimeDepartments } from '../../hooks/useRealtimeDepartments';
 import FuzzySearchDropdown from './FuzzySearchDropdown';
 import { supabase } from '../../lib/supabase';
 import { normalizeCountry } from '../../utils/countryUtils';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../../utils/fieldMappings';
 import './ModernEditSets.css';
 
 // Helper function to format doctor names consistently
@@ -51,14 +60,14 @@ interface DoctorRecord {
   specialties: string[];
   department_id: string;
   country: string;
-  is_active: boolean;
+  is_active: boolean; // ⚠️ is_active (isActive)
   sort_order?: number;
 }
 
 interface ProcedureRecord {
   id: string;
-  procedure_type: string;
-  doctor_id: string;
+  procedure_type: string; // ⚠️ procedure_type (procedureType) - NOT procedure
+  doctor_id: string; // ⚠️ doctor_id (doctorId) FK
   country: string;
   is_active: boolean;
   sort_order?: number;
@@ -202,7 +211,7 @@ const ModernEditSets: React.FC = () => {
           .select('id, name, specialties, department_id, country, is_active, sort_order')
           .eq('department_id', selectedDepartment.id)
           .eq('country', normalizedCountry)
-          .eq('is_active', true)
+          .eq('is_active', true) // ⚠️ is_active (isActive)
           .order('sort_order', { ascending: true, nullsFirst: false })
           .order('name');
 
@@ -241,7 +250,7 @@ const ModernEditSets: React.FC = () => {
           .eq('country', normalizedCountry)
           .eq('is_active', true)
           .order('sort_order', { ascending: true, nullsFirst: false })
-          .order('procedure_type');
+          .order('procedure_type'); // ⚠️ procedure_type (procedureType) - NOT procedure
 
         if (error) throw error;
 
@@ -390,7 +399,7 @@ const ModernEditSets: React.FC = () => {
             const { data: existingProcs } = await supabase
               .from('doctor_procedures')
               .select('sort_order')
-              .eq('doctor_id', selectedDoctor.id)
+              .eq('doctor_id', selectedDoctor.id) // ⚠️ doctor_id (doctorId) FK
               .eq('country', normalizedCountry)
               .eq('is_active', true);
               

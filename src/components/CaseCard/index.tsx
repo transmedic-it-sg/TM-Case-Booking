@@ -192,15 +192,50 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <button
                 className="section-toggle"
                 onClick={handleToggleAmendmentHistory}
+                data-testid="amendment-history-tab"
               >
                 <span>📝 Amendment History</span>
                 <span className={`toggle-arrow ${showAmendmentHistory ? 'open' : ''}`}>▼</span>
               </button>
 
-              {showAmendmentHistory && caseData.amendmentInfo && (
-                <div className="amendment-history-details">
-                  <div>Amended by: {getUserName(caseData.amendmentInfo.amendedBy || '')}</div>
-                  <div>Date: {caseData.amendmentInfo.amendedAt}</div>
+              {showAmendmentHistory && (
+                <div className="amendment-history-details" data-testid="amendment-history-section">
+                  {/* Show full amendment history if available */}
+                  {caseData.amendmentHistory && caseData.amendmentHistory.length > 0 ? (
+                    caseData.amendmentHistory.map((amendment, index) => (
+                      <div key={index} className="amendment-history-item" data-testid="amendment-history-item">
+                        <div className="amendment-header">
+                          <div className="amendment-user">Amended by: {getUserName(amendment.amendedBy)}</div>
+                          <div className="amendment-time">{new Date(amendment.timestamp).toLocaleString()}</div>
+                        </div>
+                        {amendment.reason && (
+                          <div className="amendment-reason">Reason: {amendment.reason}</div>
+                        )}
+                        {amendment.changes && amendment.changes.length > 0 && (
+                          <div className="amendment-changes">
+                            <div className="changes-label">Changes:</div>
+                            <div className="changes-grid">
+                              {amendment.changes.map((change, changeIndex) => (
+                                <div key={changeIndex} className="change-item">
+                                  <div className="change-field">{change.field}:</div>
+                                  <div className="change-from">From: {change.oldValue || 'N/A'}</div>
+                                  <div className="change-to">To: {change.newValue || 'N/A'}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    /* Fallback to basic amendment info if full history not available */
+                    caseData.amendmentInfo && (
+                      <div className="amendment-history-item" data-testid="amendment-history-item">
+                        <div>Amended by: {getUserName(caseData.amendmentInfo.amendedBy || '')}</div>
+                        <div>Date: {caseData.amendmentInfo.amendedAt}</div>
+                      </div>
+                    )
+                  )}
                 </div>
               )}
             </div>

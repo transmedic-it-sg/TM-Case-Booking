@@ -4,6 +4,15 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 interface DynamicConstant {
   key: string;
@@ -28,8 +37,8 @@ class DynamicConstantsService {
     try {
       let query = supabase
         .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', key);
+        .select('setting_value') // ⚠️ setting_value (settingValue) - NOT settingvalue
+        .eq('setting_key', key); // ⚠️ setting_key (settingKey) - NOT settingkey
 
       const { data, error } = await query;
 
@@ -60,9 +69,9 @@ class DynamicConstantsService {
       const { error } = await supabase
         .from('system_settings')
         .upsert({
-          setting_key: key,
-          setting_value: value,
-          updated_at: new Date().toISOString()
+          setting_key: key, // ⚠️ setting_key (settingKey) - NOT settingkey
+          setting_value: value, // ⚠️ setting_value (settingValue) - NOT settingvalue
+          updated_at: new Date().toISOString() // ⚠️ updated_at (updatedAt)
         }, { onConflict: 'setting_key' });
 
       if (error) throw error;

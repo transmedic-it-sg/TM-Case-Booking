@@ -14,6 +14,15 @@ import { useToast } from '../ToastContainer';
 import { useSound } from '../../contexts/SoundContext';
 import { supabase } from '../../lib/supabase';
 import { normalizeCountry } from '../../utils/countryUtils';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../../utils/fieldMappings';
 import './ModernEditSets.css';
 
 // Types for database records
@@ -30,13 +39,13 @@ interface Doctor {
   name: string;
   department_id: string;
   country: string;
-  is_active: boolean;
+  is_active: boolean; // ⚠️ is_active (isActive)
 }
 
 interface DoctorProcedure {
   id: string;
-  procedure_type: string;
-  doctor_id: string;
+  procedure_type: string; // ⚠️ procedure_type (procedureType) - NOT procedure
+  doctor_id: string; // ⚠️ doctor_id (doctorId) FK
   country: string;
   is_active: boolean;
 }
@@ -192,7 +201,7 @@ const ComprehensiveEditSets: React.FC = () => {
         .select('*')
         .eq('department_id', departmentId)
         .eq('country', normalizedCountry)
-        .eq('is_active', true)
+        .eq('is_active', true) // ⚠️ is_active (isActive)
         .order('name');
 
       if (error) throw error;
@@ -217,10 +226,10 @@ const ComprehensiveEditSets: React.FC = () => {
       const { data, error } = await supabase
         .from('doctor_procedures')
         .select('*')
-        .eq('doctor_id', doctorId)
+        .eq('doctor_id', doctorId) // ⚠️ doctor_id (doctorId) FK
         .eq('country', normalizedCountry)
         .eq('is_active', true)
-        .order('procedure_type');
+        .order('procedure_type'); // ⚠️ procedure_type (procedureType) - NOT procedure
 
       if (error) throw error;
       setDoctorProcedures(data || []);
@@ -236,15 +245,15 @@ const ComprehensiveEditSets: React.FC = () => {
         .select(`
           *,
           surgery_set:surgery_sets(name),
-          implant_box:implant_boxes(name)
+          implant_box:implant_boxes(name) // ⚠️ implant_box (implantBox)
         `)
         .eq('doctor_id', doctorId)
         .eq('procedure_type', procedureType)
         .eq('country', normalizedCountry)
-        .order('created_at');
+        .order('created_at'); // ⚠️ created_at (createdAt)
 
       if (error) throw error;
-      setDoctorProcedureSets(data || []);
+      setDoctorProcedureSets((data as unknown as DoctorProcedureSet[]) || []);
     } catch (error) {
       showError('Database Error', 'Failed to load doctor procedure sets');
     }

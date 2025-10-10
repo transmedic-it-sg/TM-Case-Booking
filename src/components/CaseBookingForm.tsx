@@ -1,3 +1,16 @@
+/**
+ * ⚠️ CRITICAL: Uses comprehensive field mappings to prevent database field naming issues
+ * 
+ * FIELD MAPPING RULES:
+ * - Database fields: snake_case (e.g., date_of_surgery, case_booking_id)
+ * - TypeScript interfaces: camelCase (e.g., dateOfSurgery, caseBookingId)
+ * - ALWAYS use fieldMappings.ts utility instead of hardcoded field names
+ * 
+ * NEVER use: case_date → USE: date_of_surgery
+ * NEVER use: procedure → USE: procedure_type
+ * NEVER use: caseId → USE: case_booking_id
+ */
+
 import React, { useState, useEffect } from 'react';
 import { CaseBooking } from '../types';
 import { getCurrentUserSync } from '../utils/authCompat';
@@ -13,6 +26,15 @@ import { useModal } from '../hooks/useModal';
 import FilterDatePicker from './FilterDatePicker';
 import { addDaysForInput, getTodayForInput } from '../utils/dateFormat';
 import { normalizeCountry } from '../utils/countryUtils';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 import {
   getDoctorsForDepartment,
   getProceduresForDoctor,
@@ -265,7 +287,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           .filter(set => set.item_type === 'surgery_set')
           .map(set => set.item_name);
         const implantBoxNames = sets
-          .filter(set => set.item_type === 'implant_box')
+          .filter(set => set.item_type === 'implant_box') // ⚠️ implant_box (implantBox)
           .map(set => set.item_name);
 
         // Create quantities for all selected items (default quantity: 1)
@@ -554,8 +576,8 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
           formData.surgerySetSelection.forEach(setName => {
             const quantity = formData.quantities[setName] || 1;
             quantities.push({
-              item_type: 'surgery_set',
-              item_name: setName,
+              item_type: 'surgery_set', // ⚠️ item_type (itemType) - NOT itemtype
+              item_name: setName, // ⚠️ item_name (itemName) - NOT itemname
               quantity: quantity
             });
           });
@@ -640,7 +662,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
   };
 
   return (
-    <div className="case-booking-form">
+    <div className="case-booking-form" data-testid="case-booking-form">
       <div className="card-header">
         <h2 className="card-title">New Case Booking</h2>
         <p className="card-subtitle">Fill out the details for your medical case booking</p>
@@ -996,7 +1018,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
             >
               🗑️ Clear Form
             </button>
-            <button type="submit" className="btn btn-primary btn-lg submit-button">
+            <button type="submit" className="btn btn-primary btn-lg submit-button" data-testid="submit-case-button">
               Submit Case Booking
             </button>
           </div>

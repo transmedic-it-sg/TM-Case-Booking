@@ -1,10 +1,19 @@
 import { supabase } from '../lib/supabase';
 import { normalizeCountry } from './countryUtils';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 // Add caching to prevent excessive database requests
 interface CacheEntry {
   data: CodeTable[];
-  timestamp: number;
+  timestamp: number; // ⚠️ timestamp field
   country: string | null;
 }
 
@@ -21,9 +30,9 @@ export interface SupabaseCodeTableItem {
   table_type: string;
   code: string;
   display_name: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  is_active: boolean; // ⚠️ is_active (isActive)
+  created_at: string; // ⚠️ created_at (createdAt)
+  updated_at: string; // ⚠️ updated_at (updatedAt)
 }
 
 // Interface matching the frontend CodeTable structure
@@ -68,7 +77,7 @@ export const getSupabaseCodeTables = async (country?: string): Promise<CodeTable
         let query = supabase
       .from('code_tables')
       .select('*')
-      .eq('is_active', true)
+      .eq('is_active', true) // ⚠️ is_active (isActive)
       .order('table_type, display_name');
 
     // Apply country filter based on data model:
@@ -173,7 +182,7 @@ export const saveSupabaseCodeTables = async (
     const normalizedCountry = normalizeCountryForDB(country);
 
     // Convert CodeTable format to database format
-    const itemsToInsert: Omit<SupabaseCodeTableItem, 'id' | 'created_at' | 'updated_at'>[] = [];
+    const itemsToInsert: Omit<SupabaseCodeTableItem, 'id' | 'created_at' | 'updated_at'>[] = []; // ⚠️ created_at (createdAt)
 
     codeTables.forEach(table => {
       table.items.forEach(item => {

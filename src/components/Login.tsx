@@ -151,11 +151,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <p className="welcome-subtitle">Please sign in to your account</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="modern-login-form">
+            <form onSubmit={handleSubmit} className="modern-login-form" data-testid="login-form">
               <div className="floating-input-group">
                 <input
                   type="text"
                   id="username"
+                  name="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className={username ? 'has-value' : ''}
@@ -170,6 +171,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="password"
+                  name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className={password ? 'has-value' : ''}
@@ -219,7 +221,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
 
               {error && (
-                <div className="modern-error-message">
+                <div className="modern-error-message" data-testid="error-message">
                   <span className="error-icon">⚠️</span>
                   {error}
                 </div>

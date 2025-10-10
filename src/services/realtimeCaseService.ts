@@ -9,6 +9,15 @@ import { auditCaseAmended } from '../utils/auditService';
 import userService from './userService';
 import notificationService from './notificationService';
 import { hasPermission } from '../utils/permissions';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 import {
   getSupabaseCases,
   saveSupabaseCase,
@@ -91,7 +100,7 @@ class RealtimeCaseService {
           title: 'Case Saved',
           message: `Case ${caseData.caseReferenceNumber} has been saved successfully`,
           type: 'success',
-          timestamp: new Date().toISOString(),
+          timestamp: new Date().toISOString(), // ⚠️ timestamp field
           read: false
         });
       }

@@ -28,6 +28,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   onLogout
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMoreSectionOpen, setIsMoreSectionOpen] = useState(false);
 
   // Close menu function
   const closeMenu = () => {
@@ -203,8 +204,20 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 </div>
 
                 <div className="mobile-menu-section">
-                  <h3>Reference</h3>
-                  <StatusLegend />
+                  <button
+                    onClick={() => setIsMoreSectionOpen(!isMoreSectionOpen)}
+                    className="mobile-menu-item"
+                    data-testid="more-section"
+                  >
+                    <span className="mobile-menu-icon">{isMoreSectionOpen ? '▼' : '▶'}</span>
+                    More
+                  </button>
+                  
+                  {isMoreSectionOpen && (
+                    <div className="mobile-more-content" data-testid="status-colors">
+                      <StatusLegend />
+                    </div>
+                  )}
                 </div>
 
                 {(hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) ||
@@ -262,6 +275,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                       <button
                         onClick={() => handleMenuNavigate('email-config')}
                         className={`mobile-menu-item ${activePage === 'email-config' ? 'active' : ''}`}
+                        data-testid="email-config-link"
                       >
                         <span className="mobile-menu-icon">📧</span>
                         Email Config

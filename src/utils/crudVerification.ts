@@ -6,6 +6,15 @@
 
 import { supabase } from '../lib/supabase';
 import { realtimeCaseService } from '../services/realtimeCaseService';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 interface CRUDTestResult {
   operation: 'CREATE' | 'READ' | 'UPDATE' | 'DELETE';
@@ -61,12 +70,12 @@ class CRUDVerificationService {
   private async testCaseBookings(): Promise<void> {// CREATE
     try {
       const testCase = {
-        case_reference_number: `TEST_${Date.now()}`,
+        case_reference_number: `TEST_${Date.now()}`, // ⚠️ case_reference_number (caseReferenceNumber)
         hospital: 'Test Hospital',
         department: 'Test Department',
-        date_of_surgery: new Date().toISOString().split('T')[0],
-        procedure_type: 'Test Procedure',
-        procedure_name: 'Test Procedure Name',
+        date_of_surgery: new Date().toISOString().split('T')[0], // ⚠️ date_of_surgery (dateOfSurgery) - NOT case_date
+        procedure_type: 'Test Procedure', // ⚠️ procedure_type (procedureType) - NOT procedure
+        procedure_name: 'Test Procedure Name', // ⚠️ procedure_name (procedureName)
         submitted_by: 'Test User',
         country: 'Singapore',
         status: 'Case Booked' as const
@@ -106,7 +115,7 @@ class CRUDVerificationService {
         // UPDATE (safe update)
         const { error: updateError } = await supabase
           .from('profiles')
-          .update({ updated_at: new Date().toISOString() })
+          .update({ updated_at: new Date().toISOString() }) // ⚠️ updated_at (updatedAt)
           .eq('id', profiles[0].id);
 
         this.addResult('UPDATE', 'profiles', !updateError, updateError?.message);
@@ -162,7 +171,7 @@ class CRUDVerificationService {
           name: testName,
           country: 'Singapore',
           description: 'Test department for CRUD verification',
-          is_active: true
+          is_active: true // ⚠️ is_active (isActive)
         })
         .select()
         .single();
@@ -278,7 +287,7 @@ class CRUDVerificationService {
       const { data: newProcedure, error: createError } = await supabase
         .from('doctor_procedures')
         .insert({
-          doctor_id: doctors[0].id,
+          doctor_id: doctors[0].id, // ⚠️ doctor_id (doctorId) FK
           procedure_type: testProcedure,
           country: 'Singapore',
           is_active: true
@@ -417,8 +426,8 @@ class CRUDVerificationService {
       const { data: newSetting, error: createError } = await supabase
         .from('system_settings')
         .insert({
-          setting_key: testKey,
-          setting_value: { test: true },
+          setting_key: testKey, // ⚠️ setting_key (settingKey) - NOT settingkey
+          setting_value: { test: true }, // ⚠️ setting_value (settingValue) - NOT settingvalue
           description: 'Test setting for CRUD verification'
         })
         .select()
@@ -510,9 +519,9 @@ class CRUDVerificationService {
         .from('audit_logs')
         .insert({
           id: testId,
-          timestamp: new Date().toISOString(),
-          user_name: 'Test User',
-          user_id: '550e8400-e29b-41d4-a716-446655440000', // Valid UUID
+          timestamp: new Date().toISOString(), // ⚠️ timestamp field
+          user_name: 'Test User', // ⚠️ user_name (userName)
+          user_id: '550e8400-e29b-41d4-a716-446655440000', // Valid UUID // ⚠️ user_id (userId) FK - NOT userid
           user_role: 'operations',
           action: 'crud_verification',
           category: 'testing',

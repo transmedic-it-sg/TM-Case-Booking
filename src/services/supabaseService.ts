@@ -9,6 +9,15 @@ import { ErrorHandler } from '../utils/errorHandler';
 
 // Import the corrected database service
 import correctDatabaseService from './correctDatabaseService';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 export interface CaseBooking {
   id: string;
@@ -17,15 +26,15 @@ export interface CaseBooking {
   surgeon_name: string;
   patient_name: string;
   department: string;
-  procedure_type: string;
-  date_of_surgery: string;
+  procedure_type: string; // ⚠️ procedure_type (procedureType) - NOT procedure
+  date_of_surgery: string; // ⚠️ date_of_surgery (dateOfSurgery) - NOT case_date
   surgery_sets: string[];
   implant_boxes: string[];
   status: string;
   country: string;
   submitted_by: string;
-  created_at: string;
-  updated_at: string;
+  created_at: string; // ⚠️ created_at (createdAt)
+  updated_at: string; // ⚠️ updated_at (updatedAt)
 }
 
 export interface CaseFilters {
@@ -105,7 +114,7 @@ const supabaseService = {
     let query = supabase
       .from('case_bookings')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }); // ⚠️ created_at (createdAt)
 
     if (filters?.country) {
       query = query.eq('country', filters.country);
@@ -120,7 +129,7 @@ const supabaseService = {
     }
 
     if (filters?.dateFrom) {
-      query = query.gte('date_of_surgery', filters.dateFrom);
+      query = query.gte('date_of_surgery', filters.dateFrom); // ⚠️ date_of_surgery (dateOfSurgery) - NOT case_date
     }
 
     if (filters?.dateTo) {
@@ -144,7 +153,7 @@ const supabaseService = {
     return data;
   },
 
-  async createCase(caseData: Omit<CaseBooking, 'id' | 'created_at' | 'updated_at'>): Promise<CaseBooking> {
+  async createCase(caseData: Omit<CaseBooking, 'id' | 'created_at' | 'updated_at'>): Promise<CaseBooking> { // ⚠️ updated_at (updatedAt)
     const { data, error } = await supabase
       .from('case_bookings')
       .insert(caseData)

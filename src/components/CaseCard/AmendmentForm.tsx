@@ -11,6 +11,15 @@ import MultiSelectDropdown from '../MultiSelectDropdown';
 import SearchableDropdown from '../SearchableDropdown';
 import { supabase } from '../../lib/supabase';
 import { normalizeCountry } from '../../utils/countryUtils';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../../utils/fieldMappings';
 import {
   getDoctorsForDepartment,
   getProceduresForDoctor,
@@ -92,7 +101,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
         const { data, error } = await supabase
           .from('case_booking_quantities')
           .select('item_name, quantity')
-          .eq('case_booking_id', caseItem.id);
+          .eq('case_booking_id', caseItem.id); // ⚠️ case_booking_id (caseBookingId) FK - NOT caseId
 
         if (error) {
         } else if (data && data.length > 0) {
@@ -150,7 +159,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
                 .filter(set => set.item_type === 'surgery_set')
                 .map(set => set.item_name);
               const implantBoxNames = sets
-                .filter(set => set.item_type === 'implant_box')
+                .filter(set => set.item_type === 'implant_box') // ⚠️ implant_box (implantBox)
                 .map(set => set.item_name);
               
               setSurgerySetOptions(surgerySetNames);
@@ -268,7 +277,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
             .from('surgery_sets')
             .select('name, sort_order')
             .eq('country', normalizedCountry)
-            .eq('is_active', true)
+            .eq('is_active', true) // ⚠️ is_active (isActive)
             .order('sort_order', { ascending: true, nullsFirst: false })
             .order('name');
 

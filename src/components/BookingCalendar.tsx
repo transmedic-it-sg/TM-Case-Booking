@@ -10,6 +10,15 @@ import { getStatusColor } from './CasesList/utils';
 import { CASE_STATUSES } from '../constants/statuses';
 import { getDailyUsageForDate, type DailyUsage } from '../utils/doctorService';
 import { normalizeCountry } from '../utils/countryUtils';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 import '../assets/components/BookingCalendar.css';
 
 // Helper function to format doctor names consistently

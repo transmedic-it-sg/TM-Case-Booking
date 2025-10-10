@@ -8,6 +8,15 @@ import { CaseBooking, FilterOptions } from '../types';
 import { realtimeCaseService } from '../services/realtimeCaseService';
 import { supabase } from '../lib/supabase';
 import { getCurrentUserSync } from './authCompat';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 /**
  * Real-time case operations - NO localStorage fallbacks
@@ -89,7 +98,7 @@ export const getSurgerySets = async (country: string): Promise<string[]> => {try
       .from('surgery_sets')
       .select('name')
       .eq('country', country)
-      .eq('is_active', true);
+      .eq('is_active', true); // ⚠️ is_active (isActive)
 
     if (error) throw error;
 

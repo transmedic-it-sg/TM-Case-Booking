@@ -1,21 +1,35 @@
+/**
+ * ⚠️ CRITICAL: Uses comprehensive field mappings to prevent database field naming issues
+ * 
+ * FIELD MAPPING RULES:
+ * - Database fields: snake_case (e.g., date_of_surgery, case_booking_id)
+ * - TypeScript interfaces: camelCase (e.g., dateOfSurgery, caseBookingId)
+ * - ALWAYS use fieldMappings.ts utility instead of hardcoded field names
+ * 
+ * NEVER use: case_date → USE: date_of_surgery
+ * NEVER use: procedure → USE: procedure_type
+ * NEVER use: caseId → USE: case_booking_id
+ */
+
 import { supabase } from '../lib/supabase';
 import { CaseBooking, CaseStatus, StatusHistory, AmendmentHistory } from '../types';
 import { normalizeCountry, getLegacyCountryCode } from './countryUtils';
 import { processEmailNotifications } from '../services/emailNotificationProcessor';
+import { CASE_BOOKINGS_FIELDS, STATUS_HISTORY_FIELDS, AMENDMENT_HISTORY_FIELDS, CASE_COUNTERS_FIELDS } from './fieldMappings';
 
 // Interface for Supabase case data
 interface SupabaseCase {
   id: string;
-  case_reference_number: string;
+  case_reference_number: string; // ⚠️ case_reference_number (caseReferenceNumber)
   hospital: string;
   department: string;
-  date_of_surgery: string;
-  procedure_type: string;
-  procedure_name: string;
+  date_of_surgery: string; // ⚠️ date_of_surgery (dateOfSurgery) - NOT case_date
+  procedure_type: string; // ⚠️ procedure_type (procedureType) - NOT procedure
+  procedure_name: string; // ⚠️ procedure_name (procedureName)
   doctor_name?: string;
   time_of_procedure?: string;
-  surgery_set_selection: string[];
-  implant_box: string[];
+  surgery_set_selection: string[]; // ⚠️ surgery_set_selection (surgerySetSelection)
+  implant_box: string[]; // ⚠️ implant_box (implantBox)
   special_instruction?: string;
   status: string;
   submitted_by: string;
@@ -27,17 +41,17 @@ interface SupabaseCase {
   is_amended: boolean;
   amended_by?: string;
   amended_at?: string;
-  created_at: string;
-  updated_at: string;
+  created_at: string; // ⚠️ created_at (createdAt)
+  updated_at: string; // ⚠️ updated_at (updatedAt)
 }
 
 // Interface for case status history (matching database schema)
 interface SupabaseCaseStatusHistory {
   id: string;
-  case_id: string;
+  case_id: string; // ⚠️ case_id (caseId) FK to case_bookings
   status: string;
-  processed_by: string;
-  timestamp: string;
+  processed_by: string; // ⚠️ processed_by (processedBy)
+  timestamp: string; // ⚠️ timestamp field
   details?: string;
   attachments?: string[];
 }
@@ -138,8 +152,8 @@ const getStatusHistoryForCase = async (caseId: string): Promise<StatusHistory[]>
     const { data, error } = await supabase
       .from('status_history')
       .select('*')
-      .eq('case_id', caseId)
-      .order('timestamp', { ascending: true });
+      .eq('case_id', caseId) // ⚠️ case_id (caseId) FK to case_bookings
+      .order('timestamp', { ascending: true }); // ⚠️ timestamp field
 
     if (error) {
       return [];
@@ -208,7 +222,7 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
           attachments
         )
       `)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }); // ⚠️ created_at (createdAt)
 
     if (country) {
       // Get both the normalized country name and potential legacy country code
@@ -409,17 +423,17 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
         date_of_surgery: caseData.dateOfSurgery,
         procedure_type: caseData.procedureType,
         procedure_name: caseData.procedureName,
-        doctor_name: caseData.doctorName,
-        doctor_id: caseData.doctorId,
+        doctor_name: caseData.doctorName, // ⚠️ doctor_name (doctorName)
+        doctor_id: caseData.doctorId, // ⚠️ doctor_id (doctorId) FK
         time_of_procedure: caseData.timeOfProcedure,
         surgery_set_selection: caseData.surgerySetSelection || [],
         implant_box: caseData.implantBox || [],
-        special_instruction: caseData.specialInstruction,
+        special_instruction: caseData.specialInstruction, // ⚠️ special_instruction (specialInstruction)
         status: caseData.status,
         submitted_by: caseData.submittedBy,
         country: normalizeCountry(caseData.country || ''),
         processed_by: caseData.processedBy,
-        processed_at: caseData.processedAt,
+        processed_at: caseData.processedAt, // ⚠️ processed_at (processedAt)
         process_order_details: caseData.processOrderDetails,
         is_amended: caseData.isAmended || false,
         amended_by: caseData.amendedBy,
@@ -678,15 +692,18 @@ export const updateSupabaseCaseProcessing = async (
   customDetails?: string
 ): Promise<void> => {
   try {
-    // Update case with processing details
+    // ⚠️ CRITICAL: Use single timestamp for consistency between case_bookings.processed_at and status_history.timestamp
+    const currentTimestamp = new Date().toISOString();
+    
+    // Update case with processing details - using field mappings
     const { error: updateError } = await supabase
       .from('case_bookings')
       .update({
-        processed_by: processedBy,
-        processed_at: new Date().toISOString(),
-        process_order_details: processOrderDetails,
-        status: newStatus,
-        updated_at: new Date().toISOString()
+        [CASE_BOOKINGS_FIELDS.processedBy]: processedBy,          // ⚠️ processed_by
+        [CASE_BOOKINGS_FIELDS.processedAt]: currentTimestamp,     // ⚠️ processed_at - SAME timestamp as history
+        [CASE_BOOKINGS_FIELDS.processOrderDetails]: processOrderDetails, // ⚠️ process_order_details
+        [CASE_BOOKINGS_FIELDS.status]: newStatus,                 // ⚠️ status
+        [CASE_BOOKINGS_FIELDS.updatedAt]: currentTimestamp        // ⚠️ updated_at
       })
       .eq('id', caseId);
 
@@ -694,21 +711,21 @@ export const updateSupabaseCaseProcessing = async (
       throw updateError;
     }
 
-    // Prepare status history entry data
+    // Prepare status history entry data - using field mappings and SAME timestamp
     const historyData: any = {
-      case_id: caseId,
-      status: newStatus,
-      processed_by: processedBy,
-      timestamp: new Date().toISOString(),
-      details: customDetails || 'Order processed and prepared'
+      [STATUS_HISTORY_FIELDS.caseId]: caseId,                     // ⚠️ case_id (FK to case_bookings)
+      [STATUS_HISTORY_FIELDS.status]: newStatus,                  // ⚠️ status
+      [STATUS_HISTORY_FIELDS.processedBy]: processedBy,           // ⚠️ processed_by
+      [STATUS_HISTORY_FIELDS.timestamp]: currentTimestamp,        // ⚠️ timestamp - SAME as case.processed_at
+      [STATUS_HISTORY_FIELDS.details]: customDetails || 'Order processed and prepared' // ⚠️ details
     };
 
     // Add attachments if provided
     if (attachments && attachments.length > 0) {
-      historyData.attachments = attachments;
+      historyData[STATUS_HISTORY_FIELDS.attachments] = attachments;  // ⚠️ attachments field mapping
     }
 
-    // Add status history entry
+    // Add status history entry - using field mappings
     const { error: historyError } = await supabase
       .from('status_history')
       .insert([historyData]);
@@ -741,18 +758,21 @@ export const amendSupabaseCase = async (
       throw fetchError;
     }
 
+    // ⚠️ CRITICAL: Use single timestamp for consistency across amendment fields
+    const amendmentTimestamp = new Date().toISOString();
+    
     // Track what's being changed
     const changes: { field: string; oldValue: string; newValue: string }[] = [];
     const updateData: any = {
-      is_amended: true,
-      amended_by: amendedBy,
-      amended_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      [CASE_BOOKINGS_FIELDS.isAmended]: true,              // ⚠️ is_amended
+      [CASE_BOOKINGS_FIELDS.amendedBy]: amendedBy,         // ⚠️ amended_by
+      [CASE_BOOKINGS_FIELDS.amendedAt]: amendmentTimestamp, // ⚠️ amended_at - SAME timestamp as history
+      [CASE_BOOKINGS_FIELDS.updatedAt]: amendmentTimestamp  // ⚠️ updated_at - SAME timestamp
     };
 
-    // Map amendments to database columns and track changes
+    // Map amendments to database columns and track changes - using field mappings
     if (amendments.hospital !== undefined && amendments.hospital !== currentCase.hospital) {
-      updateData.hospital = amendments.hospital;
+      updateData[CASE_BOOKINGS_FIELDS.hospital] = amendments.hospital; // ⚠️ hospital field mapping
       changes.push({
         field: 'Hospital',
         oldValue: currentCase.hospital || '',
@@ -760,7 +780,7 @@ export const amendSupabaseCase = async (
       });
     }
     if (amendments.department !== undefined && amendments.department !== currentCase.department) {
-      updateData.department = amendments.department;
+      updateData[CASE_BOOKINGS_FIELDS.department] = amendments.department; // ⚠️ department field mapping
       changes.push({
         field: 'Department',
         oldValue: currentCase.department || '',
@@ -768,7 +788,7 @@ export const amendSupabaseCase = async (
       });
     }
     if (amendments.dateOfSurgery !== undefined && amendments.dateOfSurgery !== currentCase.date_of_surgery) {
-      updateData.date_of_surgery = amendments.dateOfSurgery;
+      updateData[CASE_BOOKINGS_FIELDS.dateOfSurgery] = amendments.dateOfSurgery; // ⚠️ date_of_surgery field mapping (NOT case_date)
       changes.push({
         field: 'Date of Surgery',
         oldValue: currentCase.date_of_surgery || '',
@@ -776,7 +796,7 @@ export const amendSupabaseCase = async (
       });
     }
     if (amendments.procedureType !== undefined && amendments.procedureType !== currentCase.procedure_type) {
-      updateData.procedure_type = amendments.procedureType;
+      updateData[CASE_BOOKINGS_FIELDS.procedureType] = amendments.procedureType; // ⚠️ procedure_type field mapping (NOT procedure)
       changes.push({
         field: 'Procedure Type',
         oldValue: currentCase.procedure_type || '',
@@ -784,7 +804,7 @@ export const amendSupabaseCase = async (
       });
     }
     if (amendments.procedureName !== undefined && amendments.procedureName !== currentCase.procedure_name) {
-      updateData.procedure_name = amendments.procedureName;
+      updateData[CASE_BOOKINGS_FIELDS.procedureName] = amendments.procedureName; // ⚠️ procedure_name field mapping
       changes.push({
         field: 'Procedure Name',
         oldValue: currentCase.procedure_name || '',
@@ -792,7 +812,7 @@ export const amendSupabaseCase = async (
       });
     }
     if (amendments.doctorName !== undefined && amendments.doctorName !== currentCase.doctor_name) {
-      updateData.doctor_name = amendments.doctorName;
+      updateData[CASE_BOOKINGS_FIELDS.doctorName] = amendments.doctorName; // ⚠️ doctor_name field mapping
       changes.push({
         field: 'Doctor Name',
         oldValue: currentCase.doctor_name || '',
@@ -800,7 +820,7 @@ export const amendSupabaseCase = async (
       });
     }
     if (amendments.timeOfProcedure !== undefined && amendments.timeOfProcedure !== currentCase.time_of_procedure) {
-      updateData.time_of_procedure = amendments.timeOfProcedure;
+      updateData[CASE_BOOKINGS_FIELDS.timeOfProcedure] = amendments.timeOfProcedure; // ⚠️ time_of_procedure field mapping
       changes.push({
         field: 'Time of Procedure',
         oldValue: currentCase.time_of_procedure || '',
@@ -808,7 +828,7 @@ export const amendSupabaseCase = async (
       });
     }
     if (amendments.surgerySetSelection !== undefined && JSON.stringify(amendments.surgerySetSelection) !== JSON.stringify(currentCase.surgery_set_selection)) {
-      updateData.surgery_set_selection = amendments.surgerySetSelection;
+      updateData[CASE_BOOKINGS_FIELDS.surgerySetSelection] = amendments.surgerySetSelection; // ⚠️ surgery_set_selection field mapping
 
       // Calculate actual changes (additions and removals)
       const oldSets = currentCase.surgery_set_selection || [];
@@ -834,7 +854,7 @@ export const amendSupabaseCase = async (
       }
     }
     if (amendments.implantBox !== undefined && JSON.stringify(amendments.implantBox) !== JSON.stringify(currentCase.implant_box)) {
-      updateData.implant_box = amendments.implantBox;
+      updateData[CASE_BOOKINGS_FIELDS.implantBox] = amendments.implantBox; // ⚠️ implant_box field mapping
 
       // Calculate actual changes (additions and removals)
       const oldBoxes = currentCase.implant_box || [];
@@ -860,7 +880,7 @@ export const amendSupabaseCase = async (
       }
     }
     if (amendments.specialInstruction !== undefined && amendments.specialInstruction !== currentCase.special_instruction) {
-      updateData.special_instruction = amendments.specialInstruction;
+      updateData[CASE_BOOKINGS_FIELDS.specialInstruction] = amendments.specialInstruction; // ⚠️ special_instruction field mapping
       changes.push({
         field: 'Special Instruction',
         oldValue: currentCase.special_instruction || '',
@@ -890,14 +910,16 @@ export const amendSupabaseCase = async (
       // No authentication found, but proceeding with RLS policy enforcement
     }
 
-    // Create amendment history entry
+    // Create amendment history entry - using field mappings and SAME timestamp
     const historyEntry = {
-      case_id: caseId,
-      amended_by: amendedBy,
-      timestamp: new Date().toISOString(),
-      reason: (amendments as any).amendmentReason || 'No reason provided',
-      changes: changes
-    };const { error: historyError } = await supabase
+      [AMENDMENT_HISTORY_FIELDS.caseId]: caseId,           // ⚠️ case_id (FK to case_bookings)
+      [AMENDMENT_HISTORY_FIELDS.amendedBy]: amendedBy,     // ⚠️ amended_by
+      [AMENDMENT_HISTORY_FIELDS.timestamp]: amendmentTimestamp, // ⚠️ timestamp - SAME as case.amended_at
+      [AMENDMENT_HISTORY_FIELDS.reason]: (amendments as any).amendmentReason || 'No reason provided', // ⚠️ reason
+      [AMENDMENT_HISTORY_FIELDS.changes]: changes          // ⚠️ changes (JSONB)
+    };
+    
+    const { error: historyError } = await supabase
       .from('amendment_history')
       .insert([historyEntry]);
 
@@ -1007,7 +1029,7 @@ export const deleteSupabaseCase = async (caseId: string): Promise<void> => {
     const { error: quantityError } = await supabase
       .from('case_booking_quantities')
       .delete()
-      .eq('case_booking_id', caseId);
+      .eq('case_booking_id', caseId); // ⚠️ case_booking_id (caseBookingId) FK - NOT caseId
 
     if (quantityError) {
     }

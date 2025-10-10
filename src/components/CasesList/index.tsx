@@ -1,3 +1,16 @@
+/**
+ * ⚠️ CRITICAL: Uses comprehensive field mappings to prevent database field naming issues
+ * 
+ * FIELD MAPPING RULES:
+ * - Database fields: snake_case (e.g., date_of_surgery, case_booking_id)
+ * - TypeScript interfaces: camelCase (e.g., dateOfSurgery, caseBookingId)
+ * - ALWAYS use fieldMappings.ts utility instead of hardcoded field names
+ * 
+ * NEVER use: case_date → USE: date_of_surgery
+ * NEVER use: procedure → USE: procedure_type
+ * NEVER use: caseId → USE: case_booking_id
+ */
+
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { CaseBooking, FilterOptions, CaseStatus } from '../../types';
 import { CASE_STATUSES } from '../../constants/statuses';
@@ -16,6 +29,15 @@ import { useModal } from '../../hooks/useModal';
 import { normalizeCountry } from '../../utils/countryUtils';
 import { amendCase, processCaseOrder } from '../../utils/realTimeStorage'; // Using real-time storage instead
 import StatusLegend from '../StatusLegend';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../../utils/fieldMappings';
 
 const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highlightedCaseId, onClearHighlight, onNavigateToPermissions }) => {
   const { addNotification } = useNotifications();
@@ -1030,7 +1052,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   return (
-    <div className="cases-list">
+    <div className="cases-list" data-testid="cases-list">
       <div className="cases-header">
         <h2>All Submitted Cases</h2>
         <div className="header-controls">

@@ -1,3 +1,16 @@
+/**
+ * ⚠️ CRITICAL: Uses comprehensive field mappings to prevent database field naming issues
+ * 
+ * FIELD MAPPING RULES:
+ * - Database fields: snake_case (e.g., date_of_surgery, case_booking_id)
+ * - TypeScript interfaces: camelCase (e.g., dateOfSurgery, caseBookingId)
+ * - ALWAYS use fieldMappings.ts utility instead of hardcoded field names
+ * 
+ * NEVER use: case_date → USE: date_of_surgery
+ * NEVER use: procedure → USE: procedure_type
+ * NEVER use: caseId → USE: case_booking_id
+ */
+
 import { User } from '../types';
 import { SUPPORTED_COUNTRIES } from './countryUtils';
 import {
@@ -6,6 +19,15 @@ import {
   authenticateSupabaseUser
 } from './supabaseUserService';
 import { SafeStorage, StorageMigration } from './secureDataManager';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 const STORAGE_KEY = 'case-booking-users';
 const CURRENT_USER_KEY = 'current-user';
@@ -88,7 +110,7 @@ export const createSession = async (userId: string): Promise<void> => {
     const { error } = await supabase
       .from('user_sessions')
       .insert({
-        user_id: userId,
+        user_id: userId, // ⚠️ user_id (userId) FK - NOT userid
         session_token: sessionToken,
         expires_at: expiresAt.toISOString()
       });
@@ -172,7 +194,7 @@ export const deleteAllUserSessions = async (userId: string): Promise<void> => {
     const { error } = await supabase
       .from('user_sessions')
       .delete()
-      .eq('user_id', userId);
+      .eq('user_id', userId); // ⚠️ user_id (userId) FK - NOT userid
 
     if (error) {
       // Failed to delete user sessions

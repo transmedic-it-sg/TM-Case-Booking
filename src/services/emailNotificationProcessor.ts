@@ -7,6 +7,15 @@ import { CaseBooking, CaseStatus } from '../types';
 import { getAllSupabaseUsers } from '../utils/supabaseUserService';
 import { getEmailConfigFromDatabase } from '../components/SimplifiedEmailConfig';
 import { createOAuthManager, getValidAccessToken } from '../utils/simplifiedOAuth';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 interface NotificationRule {
   enabled: boolean;

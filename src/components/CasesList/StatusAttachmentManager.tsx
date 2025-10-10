@@ -1,14 +1,23 @@
 import React, { useState, useRef } from 'react';
 import { AttachmentModal } from './AttachmentModal';
 import { supabase } from '../../lib/supabase';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../../utils/fieldMappings';
 
 interface StatusAttachmentManagerProps {
   historyItem: {
     id: string;
     attachments?: string[];
     status: string;
-    timestamp: string;
-    processed_by: string;
+    timestamp: string; // ⚠️ timestamp field
+    processed_by: string; // ⚠️ processed_by (processedBy)
   };
   caseId: string;
   canEdit?: boolean;

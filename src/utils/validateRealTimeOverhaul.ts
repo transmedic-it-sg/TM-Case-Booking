@@ -6,6 +6,15 @@
 import TestingFramework from './testingFramework';
 import { realtimeCaseService } from '../services/realtimeCaseService';
 import { supabase } from '../lib/supabase';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 interface ValidationResult {
   component: string;

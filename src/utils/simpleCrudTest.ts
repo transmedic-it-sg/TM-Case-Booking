@@ -4,6 +4,15 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 interface TestResult {
   table: string;
@@ -33,8 +42,8 @@ export async function runSimpleCRUDTests(): Promise<TestResult[]> {
     const { data: newSetting, error: createError } = await supabase
       .from('system_settings')
       .insert({
-        setting_key: testKey,
-        setting_value: { test: true },
+        setting_key: testKey, // ⚠️ setting_key (settingKey) - NOT settingkey
+        setting_value: { test: true }, // ⚠️ setting_value (settingValue) - NOT settingvalue
         description: 'CRUD test setting'
       })
       .select()
@@ -102,7 +111,7 @@ export async function runSimpleCRUDTests(): Promise<TestResult[]> {
     if (profiles && profiles.length > 0) {
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ updated_at: new Date().toISOString() })
+        .update({ updated_at: new Date().toISOString() }) // ⚠️ updated_at (updatedAt)
         .eq('id', profiles[0].id);
 
       results.push({
@@ -144,7 +153,7 @@ export async function runSimpleCRUDTests(): Promise<TestResult[]> {
         name: testName,
         country: 'Singapore',
         description: 'CRUD test department',
-        is_active: true
+        is_active: true // ⚠️ is_active (isActive)
       })
       .select()
       .single();
@@ -282,12 +291,12 @@ export async function runSimpleCRUDTests(): Promise<TestResult[]> {
     const { data: newCase, error: createError } = await supabase
       .from('case_bookings')
       .insert({
-        case_reference_number: testRef,
+        case_reference_number: testRef, // ⚠️ case_reference_number (caseReferenceNumber)
         hospital: 'CRUD Test Hospital',
         department: 'Test Department',
-        date_of_surgery: new Date().toISOString().split('T')[0],
-        procedure_type: 'CRUD Test Procedure',
-        procedure_name: 'CRUD Test Procedure Name',
+        date_of_surgery: new Date().toISOString().split('T')[0], // ⚠️ date_of_surgery (dateOfSurgery) - NOT case_date
+        procedure_type: 'CRUD Test Procedure', // ⚠️ procedure_type (procedureType) - NOT procedure
+        procedure_name: 'CRUD Test Procedure Name', // ⚠️ procedure_name (procedureName)
         submitted_by: 'CRUD Test User',
         country: 'Singapore',
         status: 'Case Booked'

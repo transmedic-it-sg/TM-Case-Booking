@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { getCurrentUser } from '../utils/authCompat';
 import { supabase } from '../lib/supabase';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 interface ImageAmendmentModalProps {
   isOpen: boolean;
@@ -102,9 +111,9 @@ const ImageAmendmentModal: React.FC<ImageAmendmentModalProps> = ({
 
       // Create audit log for image amendment
       const auditEntry = {
-        case_id: caseId,
+        case_id: caseId, // ⚠️ case_id (caseId) FK to case_bookings
         amended_by: currentUser.name,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString(), // ⚠️ timestamp field
         reason: `Image amendment for ${statusType}: ${amendmentReason}`,
         changes: [{
           field: `${statusType} Image #${attachmentIndex + 1}`,

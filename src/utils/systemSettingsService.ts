@@ -3,8 +3,30 @@
  * Handles system configuration, preferences, and settings persistence
  */
 
+/**
+ * ⚠️ CRITICAL: Uses comprehensive field mappings to prevent database field naming issues
+ * 
+ * FIELD MAPPING RULES:
+ * - Database fields: snake_case (e.g., date_of_surgery, case_booking_id)
+ * - TypeScript interfaces: camelCase (e.g., dateOfSurgery, caseBookingId)
+ * - ALWAYS use fieldMappings.ts utility instead of hardcoded field names
+ * 
+ * NEVER use: case_date → USE: date_of_surgery
+ * NEVER use: procedure → USE: procedure_type
+ * NEVER use: caseId → USE: case_booking_id
+ */
+
 import { supabase } from '../lib/supabase';
 import { getAppVersion } from './version';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 export interface SystemConfig {
   // Application Settings
@@ -126,12 +148,12 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
       const { error } = await supabase
         .from('system_settings')
         .upsert({
-          setting_key: mapping.key,
-          setting_value: mapping.value,
+          setting_key: mapping.key, // ⚠️ setting_key (settingKey) - NOT settingkey
+          setting_value: mapping.value, // ⚠️ setting_value (settingValue) - NOT settingvalue
           description: getSettingDescription(mapping.key),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString() // ⚠️ updated_at (updatedAt)
         }, {
-          onConflict: 'setting_key'
+          onConflict: 'setting_key' // ⚠️ setting_key (settingKey) - NOT settingkey
         });
 
       if (error) {

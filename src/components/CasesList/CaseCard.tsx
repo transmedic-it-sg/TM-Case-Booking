@@ -1,3 +1,16 @@
+/**
+ * ⚠️ CRITICAL: Uses comprehensive field mappings to prevent database field naming issues
+ * 
+ * FIELD MAPPING RULES:
+ * - Database fields: snake_case (e.g., date_of_surgery, case_booking_id)
+ * - TypeScript interfaces: camelCase (e.g., dateOfSurgery, caseBookingId)
+ * - ALWAYS use fieldMappings.ts utility instead of hardcoded field names
+ * 
+ * NEVER use: case_date → USE: date_of_surgery
+ * NEVER use: procedure → USE: procedure_type
+ * NEVER use: caseId → USE: case_booking_id
+ */
+
 import React, { useEffect, useMemo, useState } from 'react';
 import { CaseCardProps } from './types';
 import { getStatusColor, getNextResponsibleRole, formatDateTime } from './utils';
@@ -10,6 +23,16 @@ import TimePicker from '../common/TimePicker';
 import { formatDate, getTodayForInput } from '../../utils/dateFormat';
 import { supabase } from '../../lib/supabase';
 import { StatusAttachmentManager } from './StatusAttachmentManager';
+import { AttachmentRenderer, parseAttachments, type ParsedAttachment } from './AttachmentRenderer';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../../utils/fieldMappings';
 
 const CaseCard: React.FC<CaseCardProps> = ({
   caseItem,
@@ -174,7 +197,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
         const { data, error } = await supabase
           .from('case_booking_quantities')
           .select('item_name, quantity')
-          .eq('case_booking_id', caseItem.id);
+          .eq('case_booking_id', caseItem.id); // ⚠️ case_booking_id (caseBookingId) FK - NOT caseId
 
         if (error) {
           setCaseQuantities({});
@@ -206,21 +229,15 @@ const CaseCard: React.FC<CaseCardProps> = ({
   const parsedStatusHistory = useMemo(() => {
     return caseItem.statusHistory?.map(historyItem => {
       let parsedDetails = null;
-      let parsedAttachments = [];
+      let parsedAttachments: any[] = [];
 
       if (historyItem.details) {
         try {
           parsedDetails = JSON.parse(historyItem.details);
 
-          // Pre-parse attachments if they exist
+          // ⚠️ FIXED: Use centralized attachment parsing for status history attachments
           if (parsedDetails.attachments) {
-            parsedAttachments = parsedDetails.attachments.map((attachment: string) => {
-              try {
-                return JSON.parse(attachment);
-              } catch {
-                return null;
-              }
-            }).filter(Boolean);
+            parsedAttachments = parseAttachments(parsedDetails.attachments); // ⚠️ Centralized parsing
           }
         } catch {
           parsedDetails = null;
@@ -250,13 +267,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
     });
 
     if (historyWithAttachments?.parsedDetails?.attachments) {
-      return historyWithAttachments.parsedDetails.attachments.map((attachment: string) => {
-        try {
-          return JSON.parse(attachment);
-        } catch {
-          return null;
-        }
-      }).filter(Boolean);
+      // ⚠️ FIXED: Use centralized attachment parsing for current attachments
+      return parseAttachments(historyWithAttachments.parsedDetails.attachments); // ⚠️ Centralized parsing
     }
 
     return [];
@@ -265,14 +277,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
   // Memoize attachment parsing for forms to prevent repeated JSON.parse operations
 
   
+  // ⚠️ FIXED: Use centralized attachment parsing to prevent repeated JSON.parse operations
   const parsedAttachments = useMemo(() => {
-    return attachments.map(attachment => {
-      try {
-        return JSON.parse(attachment);
-      } catch {
-        return null;
-      }
-    }).filter(Boolean);
+    return parseAttachments(attachments); // ⚠️ Uses centralized AttachmentRenderer parsing
   }, [attachments]);
 
   const canAmendCase = (caseItem: any): boolean => {
@@ -313,6 +320,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
       id={`case-${caseItem.id}`}
       className="case-card"
       data-case-id={caseItem.id}
+      data-testid={`case-card-${caseItem.caseReferenceNumber}`}
       style={{ '--status-color': getStatusColor(caseItem.status) } as React.CSSProperties}
     >
       <div className="case-summary" onClick={() => onToggleExpansion(caseItem.id)}>
@@ -320,7 +328,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
           <div className="case-title">
             <span className="case-title-label">Submitted by:</span>
             <strong>{getUserName(caseItem.submittedBy)}</strong>
-            <span className="case-reference">#{caseItem.caseReferenceNumber}</span>
+            <span className="case-reference" data-testid="case-reference">#{caseItem.caseReferenceNumber}</span>
             <div className="case-status">
               <div
                 className="status-text"
@@ -342,13 +350,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   </div>
                   </div>
                   <div className="case-meta">
-            <span>Procedure Type: {caseItem.procedureType}</span>
+            <span data-testid="case-procedure">Procedure Type: {caseItem.procedureType}</span>
             <span>Procedure Name: {caseItem.procedureName || 'Not specified'}</span>
-            <span>Surgery Date: {formatDate(caseItem.dateOfSurgery)}</span>
-            <span>Hospital: {caseItem.hospital}</span>
+            <span data-testid="case-date">Surgery Date: {formatDate(caseItem.dateOfSurgery)}</span>
+            <span data-testid="case-hospital">Hospital: {caseItem.hospital}</span>
             <span>Department: {caseItem.department}</span>
             {currentUser?.role === 'admin' && (
-              <span>Country: {caseItem.country}</span>
+              <span data-testid="case-country">Country: {caseItem.country}</span>
             )}
           </div>
         <div className="expand-icon">
@@ -374,7 +382,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
             {caseItem.doctorName && (
               <div className="detail-item">
                 <span className="detail-label">Doctor Name: </span>
-                <span className="detail-value">{caseItem.doctorName}</span>
+                <span className="detail-value" data-testid="case-doctor">{caseItem.doctorName}</span>
               </div>
             )}
             <div className="detail-item">
@@ -384,7 +392,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   <li key={set} className="set-item-with-quantity">
                     <span className="set-name">{set}</span>
                     {caseQuantities[set] && (
-                      <span className="quantity-badge" title={`Quantity: ${caseQuantities[set]}`}>
+                      <span className="quantity-badge" data-testid="surgery-set-quantity" title={`Quantity: ${caseQuantities[set]}`}>
                         ×{caseQuantities[set]}
                       </span>
                     )}
@@ -399,7 +407,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   <li key={box} className="set-item-with-quantity">
                     <span className="set-name">{box}</span>
                     {caseQuantities[box] && (
-                      <span className="quantity-badge" title={`Quantity: ${caseQuantities[box]}`}>
+                      <span className="quantity-badge" data-testid="implant-box-quantity" title={`Quantity: ${caseQuantities[box]}`}>
                         ×{caseQuantities[box]}
                       </span>
                     )}
@@ -531,90 +539,12 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                       return (
                                         <div>
                                           <strong>Delivery Details:</strong> {comments}
-                                          {attachments && attachments.length > 0 && (
-                                            <div>
-                                              <strong>Attachments ({attachments.length}):</strong>
-                                              <div className="attachment-preview-grid">
-                                                {attachments.map((attachment: string, index: number) => {
-                                                  try {
-                                                    const fileData = JSON.parse(attachment);
-                                                    const isImage = fileData.type.startsWith('image/');
-
-                                                    return (
-                                                      <div key={index} className="attachment-preview-item">
-                                                        {isImage ? (
-                                                          <div className="image-attachment">
-                                                            <img
-                                                              src={fileData.data}
-                                                              alt={fileData.name}
-                                                              className="attachment-thumbnail clickable-image"
-                                                              style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
-                                                              onClick={() => {
-                                                                const modal = document.createElement('div');
-                                                                modal.className = 'image-modal';
-                                                                modal.innerHTML = `
-                                                                  <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                                                                    <div style="position: relative; max-width: 90%; max-height: 90%;">
-                                                                      <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
-                                                                      <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
-                                                                        <button onclick="event.stopPropagation(); const link = document.createElement('a'); link.href = '${fileData.data}'; link.download = '${fileData.name}'; link.click();" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">📥 Download</button>
-                                                                        <button onclick="document.body.removeChild(this.closest('.image-modal'));" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✕ Close</button>
-                                                                      </div>
-                                                                    </div>
-                                                                  </div>
-                                                                `;
-                                                                document.body.appendChild(modal);
-                                                                modal.addEventListener('click', (e) => {
-                                                                  if (e.target === modal.querySelector('.image-modal-backdrop')) {
-                                                                    document.body.removeChild(modal);
-                                                                  }
-                                                                });
-                                                              }}
-                                                            />
-                                                            <div className="attachment-info">
-                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
-                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
-                                                            </div>
-                                                          </div>
-                                                        ) : (
-                                                          <div className="file-attachment">
-                                                            <div className="file-icon">📄</div>
-                                                            <div className="attachment-info">
-                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
-                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
-                                                            </div>
-                                                            <button
-                                                              onClick={() => {
-                                                                const link = document.createElement('a');
-                                                                link.href = fileData.data;
-                                                                link.download = fileData.name;
-                                                                link.click();
-                                                              }}
-                                                              className="download-button"
-                                                              title="Download file"
-                                                            >
-                                                              📥
-                                                            </button>
-                                                          </div>
-                                                        )}
-                                                      </div>
-                                                    );
-                                                  } catch {
-                                                    return (
-                                                      <div key={index} className="attachment-preview-item">
-                                                        <div className="file-attachment error">
-                                                          <div className="file-icon">❌</div>
-                                                          <div className="attachment-info">
-                                                            <div className="file-name">Invalid file data</div>
-                                                          </div>
-                                                        </div>
-                                                      </div>
-                                                    );
-                                                  }
-                                                })}
-                                              </div>
-                                            </div>
-                                          )}
+                                          {/* ⚠️ FIXED: Replaced duplicated attachment rendering with centralized AttachmentRenderer */}
+                                          <AttachmentRenderer 
+                                            attachments={attachments} 
+                                            title="Attachments"
+                                            showCount={true}
+                                          />
                                         </div>
                                       );
                                     } else if (parsedDetails.orderSummary || parsedDetails.doNumber) {
@@ -1010,8 +940,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                 id: `status-${caseItem.id}-${index}`,
                                 attachments: historyItem.attachments,
                                 status: historyItem.status,
-                                timestamp: historyItem.timestamp,
-                                processed_by: historyItem.processedBy || 'System'
+                                timestamp: historyItem.timestamp, // ⚠️ timestamp field
+                                processed_by: historyItem.processedBy || 'System' // ⚠️ processed_by (processedBy)
                               }}
                               caseId={caseItem.id}
                               canEdit={currentUser?.role === 'admin' || currentUser?.role === 'operations-manager'}
@@ -1056,90 +986,12 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                       return (
                                         <div>
                                           <strong>Delivery Details:</strong> {comments}
-                                          {attachments && attachments.length > 0 && (
-                                            <div>
-                                              <strong>Attachments ({attachments.length}):</strong>
-                                              <div className="attachment-preview-grid">
-                                                {attachments.map((attachment: string, index: number) => {
-                                                  try {
-                                                    const fileData = JSON.parse(attachment);
-                                                    const isImage = fileData.type.startsWith('image/');
-
-                                                    return (
-                                                      <div key={index} className="attachment-preview-item">
-                                                        {isImage ? (
-                                                          <div className="image-attachment">
-                                                            <img
-                                                              src={fileData.data}
-                                                              alt={fileData.name}
-                                                              className="attachment-thumbnail clickable-image"
-                                                              style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
-                                                              onClick={() => {
-                                                                const modal = document.createElement('div');
-                                                                modal.className = 'image-modal';
-                                                                modal.innerHTML = `
-                                                                  <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                                                                    <div style="position: relative; max-width: 90%; max-height: 90%;">
-                                                                      <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
-                                                                      <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
-                                                                        <button onclick="event.stopPropagation(); const link = document.createElement('a'); link.href = '${fileData.data}'; link.download = '${fileData.name}'; link.click();" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">📥 Download</button>
-                                                                        <button onclick="document.body.removeChild(this.closest('.image-modal'));" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✕ Close</button>
-                                                                      </div>
-                                                                    </div>
-                                                                  </div>
-                                                                `;
-                                                                document.body.appendChild(modal);
-                                                                modal.addEventListener('click', (e) => {
-                                                                  if (e.target === modal.querySelector('.image-modal-backdrop')) {
-                                                                    document.body.removeChild(modal);
-                                                                  }
-                                                                });
-                                                              }}
-                                                            />
-                                                            <div className="attachment-info">
-                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
-                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
-                                                            </div>
-                                                          </div>
-                                                        ) : (
-                                                          <div className="file-attachment">
-                                                            <div className="file-icon">📄</div>
-                                                            <div className="attachment-info">
-                                                              <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
-                                                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
-                                                            </div>
-                                                            <button
-                                                              onClick={() => {
-                                                                const link = document.createElement('a');
-                                                                link.href = fileData.data;
-                                                                link.download = fileData.name;
-                                                                link.click();
-                                                              }}
-                                                              className="download-button"
-                                                              title="Download file"
-                                                            >
-                                                              📥
-                                                            </button>
-                                                          </div>
-                                                        )}
-                                                      </div>
-                                                    );
-                                                  } catch {
-                                                    return (
-                                                      <div key={index} className="attachment-preview-item">
-                                                        <div className="file-attachment error">
-                                                          <div className="file-icon">❌</div>
-                                                          <div className="attachment-info">
-                                                            <div className="file-name">Invalid file data</div>
-                                                          </div>
-                                                        </div>
-                                                      </div>
-                                                    );
-                                                  }
-                                                })}
-                                              </div>
-                                            </div>
-                                          )}
+                                          {/* ⚠️ FIXED: Replaced duplicated attachment rendering with centralized AttachmentRenderer */}
+                                          <AttachmentRenderer 
+                                            attachments={attachments} 
+                                            title="Attachments"
+                                            showCount={true}
+                                          />
                                         </div>
                                       );
                                     } else if (parsedDetails.orderSummary || parsedDetails.doNumber) {

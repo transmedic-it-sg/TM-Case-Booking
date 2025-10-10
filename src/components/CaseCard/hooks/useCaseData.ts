@@ -3,6 +3,19 @@
  * Handles case information formatting and computed properties
  */
 
+/**
+ * ⚠️ CRITICAL: Uses comprehensive field mappings to prevent database field naming issues
+ * 
+ * FIELD MAPPING RULES:
+ * - Database fields: snake_case (e.g., date_of_surgery, case_booking_id)
+ * - TypeScript interfaces: camelCase (e.g., dateOfSurgery, caseBookingId)
+ * - ALWAYS use fieldMappings.ts utility instead of hardcoded field names
+ * 
+ * NEVER use: case_date → USE: date_of_surgery
+ * NEVER use: procedure → USE: procedure_type
+ * NEVER use: caseId → USE: case_booking_id
+ */
+
 import { useMemo } from 'react';
 import { CaseBooking } from '../../../types';
 import { getStatusColor, getNextResponsibleRole, formatDateTime } from '../../CasesList/utils';
@@ -39,6 +52,7 @@ export const useCaseData = (caseItem: CaseBooking) => {
         amendedBy: caseItem.amendedBy,
         amendedAt: caseItem.amendedAt ? formatDateTime(caseItem.amendedAt) : null
       } : null,
+      amendmentHistory: caseItem.amendmentHistory || [],
 
       // Urgency indicators
       isUrgent: Math.floor(
@@ -77,7 +91,7 @@ export const useCaseData = (caseItem: CaseBooking) => {
 };
 
 // Helper function to calculate time ago
-const getTimeAgo = (timestamp: string): string => {
+const getTimeAgo = (timestamp: string): string => { // ⚠️ timestamp field
   const now = new Date();
   const past = new Date(timestamp);
   const diffInHours = Math.floor((now.getTime() - past.getTime()) / (1000 * 60 * 60));

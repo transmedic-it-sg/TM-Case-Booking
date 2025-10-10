@@ -634,6 +634,7 @@ const AppContent: React.FC = () => {
                       className={`header-admin-toggle ${adminPanelExpanded ? 'expanded' : ''}`}
                       onClick={toggleAdminPanel}
                       title="Admin Panel"
+                      data-testid="admin-menu"
                     >
                       <span className="admin-icon">👑</span>
                       <span className="admin-label">Admin</span>
@@ -752,10 +753,10 @@ const AppContent: React.FC = () => {
               <span className="logged-in-label">Logged in as:</span>
               <span className="user-display-name">{user.name}</span>
             </div>
-            <div className="header-actions">
+            <div className="header-actions" data-testid="user-menu">
               <NotificationBell />
               <Settings />
-              <button onClick={handleLogout} className="logout-button">
+              <button onClick={handleLogout} className="logout-button" data-testid="logout-button">
                 Logout
               </button>
             </div>
@@ -775,6 +776,7 @@ const AppContent: React.FC = () => {
                 playSound.click();
               }}
               className={activePage === 'booking' ? 'active' : ''}
+              data-testid="new-case-button"
             >
               📝 New Case Booking
             </button>
@@ -787,6 +789,7 @@ const AppContent: React.FC = () => {
               }}
               className={activePage === 'cases' ? 'active' : ''}
               data-page="cases"
+              data-testid="view-all-cases"
             >
               📋 View All Cases
             </button>
@@ -816,7 +819,7 @@ const AppContent: React.FC = () => {
         </div>
       </nav>
 
-      <main className="app-main">
+      <main className="app-main" data-testid="main-dashboard">
         {activePage === 'booking' && (() => {
           const canCreate = hasPermission(user.role, PERMISSION_ACTIONS.CREATE_CASE);
           return canCreate;

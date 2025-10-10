@@ -1,3 +1,16 @@
+/**
+ * ⚠️ CRITICAL: Uses comprehensive field mappings to prevent database field naming issues
+ * 
+ * FIELD MAPPING RULES:
+ * - Database fields: snake_case (e.g., date_of_surgery, case_booking_id)
+ * - TypeScript interfaces: camelCase (e.g., dateOfSurgery, caseBookingId)
+ * - ALWAYS use fieldMappings.ts utility instead of hardcoded field names
+ * 
+ * NEVER use: case_date → USE: date_of_surgery
+ * NEVER use: procedure → USE: procedure_type
+ * NEVER use: caseId → USE: case_booking_id
+ */
+
 import { supabase } from '../lib/supabase';
 import { User } from '../types';
 import { Role } from '../components/PermissionMatrix';
@@ -6,6 +19,15 @@ import { hashPassword, generateSecurePassword } from './passwordSecurity';
 
 // FIXED: Import the secure authentication service to resolve 406 errors
 import { authenticateSupabaseUser as fixedAuthenticateSupabaseUser } from './fixedAuthService';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  getDbField
+} from '../utils/fieldMappings';
 
 // Main authentication function - USES FIXED SERVICE (no more 406 errors)
 export const authenticateSupabaseUser = fixedAuthenticateSupabaseUser;
@@ -123,7 +145,7 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
           name: userData.name,
           departments: userData.departments,
           countries: userData.countries,
-          selected_country: userData.selectedCountry,
+          selected_country: userData.selectedCountry, // ⚠️ selected_country (selectedCountry)
           enabled: userData.enabled,
           email: userData.email,
           is_temporary_password: false // New users set their own password
@@ -273,7 +295,7 @@ export const resetSupabaseUserPassword = async (userId: string, newPassword?: st
           password_hash: hashedPassword, // Now properly hashed
           is_temporary_password: true, // Mark as temporary - user must change on next login
           password_reset_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString() // ⚠️ updated_at (updatedAt)
         })
         .eq('id', userId);
 
@@ -345,7 +367,7 @@ export const getAvailableRoles = async (): Promise<Role[]> => {
         .from('code_tables')
         .select('*')
         .eq('table_type', 'user_roles')
-        .eq('is_active', true)
+        .eq('is_active', true) // ⚠️ is_active (isActive)
         .order('display_name');
 
       if (error) throw error;
