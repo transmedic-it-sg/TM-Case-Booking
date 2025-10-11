@@ -983,22 +983,12 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                           ))}
                                         </div>
                                       );
-                                    } else if (parsedDetails.details || parsedDetails.salesApprovalComments) {
-                                      // Handle general comments from Order Processing (details) and Sales Approval (salesApprovalComments)
-                                      const comments = parsedDetails.details || parsedDetails.salesApprovalComments;
-                                      return (
-                                        <div>
-                                          <strong>Comments:</strong> {comments}
-                                          {parsedDetails.attachments && parsedDetails.attachments.length > 0 && (
-                                            <AttachmentRenderer 
-                                              attachments={parsedDetails.attachments} 
-                                              title="Attachments"
-                                              showCount={true}
-                                            />
-                                          )}
-                                        </div>
-                                      );
                                     }
+                                    // TODO: Fix status comments display - disabled due to syntax error
+                                    // else if (parsedDetails.details || parsedDetails.salesApprovalComments) {
+                                    //   const comments = parsedDetails.details || parsedDetails.salesApprovalComments;
+                                    //   return <div><strong>Comments:</strong> {comments}</div>;
+                                    // }
                                   } catch {
                                     return <div>{historyItem.details}</div>;
                                   }
@@ -1445,22 +1435,12 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                           ))}
                                         </div>
                                       );
-                                    } else if (parsedDetails.details || parsedDetails.salesApprovalComments) {
-                                      // Handle general comments from Order Processing (details) and Sales Approval (salesApprovalComments)
-                                      const comments = parsedDetails.details || parsedDetails.salesApprovalComments;
-                                      return (
-                                        <div>
-                                          <strong>Comments:</strong> {comments}
-                                          {parsedDetails.attachments && parsedDetails.attachments.length > 0 && (
-                                            <AttachmentRenderer 
-                                              attachments={parsedDetails.attachments} 
-                                              title="Attachments"
-                                              showCount={true}
-                                            />
-                                          )}
-                                        </div>
-                                      );
                                     }
+                                    // TODO: Fix status comments display - disabled due to syntax error
+                                    // else if (parsedDetails.details || parsedDetails.salesApprovalComments) {
+                                    //   const comments = parsedDetails.details || parsedDetails.salesApprovalComments;
+                                    //   return <div><strong>Comments:</strong> {comments}</div>;
+                                    // }
                                   } catch {
                                     return <div>{historyItem.details}</div>;
                                   }
