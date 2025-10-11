@@ -100,7 +100,7 @@ export const processEmailNotifications = async (
       if (notificationRule.recipients.departments && 
           !notificationRule.recipients.departments.includes('all') && 
           notificationRule.recipients.departments.length > 0) {
-        if (!notificationRule.recipients.departments.some(dept => user.departments.includes(dept))) {
+        if (!notificationRule.recipients.departments.some((dept: string) => user.departments.includes(dept))) {
           continue;
         }
       }
