@@ -65,6 +65,18 @@ const DEFAULT_EXPORT_CONFIG: ExportConfig = {
   doctor_procedure_sets: true
 };
 
+// Clear all configuration for reset functionality
+const CLEAR_EXPORT_CONFIG: ExportConfig = {
+  users: false,
+  code_tables: false,
+  permissions: false,
+  app_settings: false,
+  doctors: false,
+  surgery_sets: false,
+  implant_boxes: false,
+  doctor_procedure_sets: false
+};
+
 // Define data entities - MASS SETTINGS ONLY (excluding operational data)
 const DATA_ENTITIES: DataEntity[] = [
   {
@@ -832,7 +844,7 @@ const DataExportImport: React.FC = () => {
               
               <button
                 className="btn btn-secondary"
-                onClick={() => setExportConfig({...DEFAULT_EXPORT_CONFIG})}
+                onClick={() => setExportConfig({...CLEAR_EXPORT_CONFIG})}
               >
                 🔄 Reset Selection
               </button>

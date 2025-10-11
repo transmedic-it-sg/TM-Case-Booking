@@ -1506,7 +1506,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
           {/* Processing Form */}
           {processingCase === caseItem.id && (
-            <div className="processing-form">
+            <div className="sales-approval-form">
               <h4>Order Processing Details</h4>
               <div className="form-group">
                 <label>Enter processing details:</label>

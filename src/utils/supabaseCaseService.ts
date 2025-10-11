@@ -208,7 +208,7 @@ const getAmendmentHistoryForCase = async (caseId: string): Promise<AmendmentHist
  */
 export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]> => {
   try {
-    // Fetch cases with status history to enable versioning history display
+    // Fetch cases with status history and amendment history to enable versioning history display
     let query = supabase
       .from('case_bookings')
       .select(`
@@ -220,6 +220,13 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
           timestamp,
           details,
           attachments
+        ),
+        amendment_history (
+          id,
+          amended_by,
+          timestamp,
+          reason,
+          changes
         )
       `)
       .order('created_at', { ascending: false }); // ⚠️ created_at (createdAt)
@@ -288,7 +295,33 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
         details: history.details || '',
         attachments: history.attachments || []
       }))?.sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) || [],
-      amendmentHistory: [] // Will add amendment history separately if needed
+      // Transform amendment history from the relation
+      amendmentHistory: (() => {
+        if (!caseData.amendment_history || caseData.amendment_history.length === 0) {
+          return [];
+        }
+
+        // Group amendment records by timestamp and amended_by
+        const groupedAmendments = new Map<string, AmendmentHistory>();
+
+        caseData.amendment_history.forEach((history: any) => {
+          const key = `${history.timestamp}_${history.amended_by}`;
+
+          if (!groupedAmendments.has(key)) {
+            groupedAmendments.set(key, {
+              amendmentId: history.id,
+              timestamp: history.timestamp,
+              amendedBy: history.amended_by,
+              changes: history.changes || [],
+              reason: history.reason || 'No reason provided'
+            });
+          }
+        });
+
+        return Array.from(groupedAmendments.values()).sort((a, b) => 
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+      })()
     }));
   } catch (error) {
     return [];
@@ -775,7 +808,7 @@ export const updateSupabaseCaseProcessing = async (
       [STATUS_HISTORY_FIELDS.status]: newStatus,                  // ⚠️ status
       [STATUS_HISTORY_FIELDS.processedBy]: processedBy,           // ⚠️ processed_by
       [STATUS_HISTORY_FIELDS.timestamp]: currentTimestamp,        // ⚠️ timestamp - SAME as case.processed_at
-      [STATUS_HISTORY_FIELDS.details]: customDetails || 'Order processed and prepared' // ⚠️ details
+      [STATUS_HISTORY_FIELDS.details]: customDetails || null // ⚠️ details - Use actual user input, not hardcoded text
     };
 
     // Add attachments if provided

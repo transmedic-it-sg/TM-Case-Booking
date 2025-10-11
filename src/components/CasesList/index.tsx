@@ -515,10 +515,25 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setAmendmentData({});
   };
 
-  const handleOrderProcessed = (caseId: string) => {
-    setProcessingCase(caseId);
-    setProcessDetails('');
-    setProcessAttachments([]);
+  const handleOrderProcessed = async (caseId: string) => {
+    const currentUser = getCurrentUserSync();
+    if (!currentUser) return;
+
+    try {
+      // First update the status to "Order Processing" to show in history when button is clicked
+      await updateCaseStatus(caseId, 'Order Processing' as CaseStatus, 'Order processing started');
+      
+      // Then show the form
+      setProcessingCase(caseId);
+      setProcessDetails('');
+      setProcessAttachments([]);
+      refreshCases();
+    } catch (error) {
+      // If status update fails, still show the form
+      setProcessingCase(caseId);
+      setProcessDetails('');
+      setProcessAttachments([]);
+    }
   };
 
   const handleSaveProcessDetails = async (caseId: string) => {
@@ -586,6 +601,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       return;
     }
 
+    // Prevent double submission by checking if already processing
+    if (isMutating) {
+      return;
+    }
+
     try {
       // Prepare status update details
       const updateDetails = {
@@ -595,7 +615,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
         processedAt: new Date().toISOString()
       };
 
-      // Use real-time hook for instant UI updates
+      // Use real-time hook for instant UI updates - no refreshCases needed as hook handles it
       await updateCaseStatus(caseId, CASE_STATUSES.SALES_APPROVAL, JSON.stringify(updateDetails));
 
       // Reset form state
