@@ -749,6 +749,33 @@
   color: #16a34a;
 }
 
+/* Amendment change type specific styling */
+.change-added {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.change-removed {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.change-addition {
+  border-left: 4px solid #16a34a;
+}
+
+.change-removal {
+  border-left: 4px solid #dc2626;
+}
+
+.change-modification {
+  border-left: 4px solid #3b82f6;
+}
+
 .amendment-header-container {
   display: flex;
   justify-content: space-between;

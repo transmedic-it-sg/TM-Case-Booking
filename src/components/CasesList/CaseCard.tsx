@@ -194,12 +194,25 @@ const CaseCard: React.FC<CaseCardProps> = ({
   useEffect(() => {
     const loadCaseQuantities = async () => {
       try {
+        console.log('🔍 CaseCard Debug - Loading quantities for case:', {
+          caseId: caseItem.id,
+          caseRef: caseItem.caseReferenceNumber
+        });
+
         const { data, error } = await supabase
           .from('case_booking_quantities')
           .select('item_name, quantity')
           .eq('case_booking_id', caseItem.id); // ⚠️ case_booking_id (caseBookingId) FK - NOT caseId
 
+        console.log('🔍 CaseCard Debug - Quantities query result:', {
+          caseRef: caseItem.caseReferenceNumber,
+          data,
+          error,
+          dataLength: data?.length
+        });
+
         if (error) {
+          console.error('🔍 CaseCard Debug - Quantities query error:', error);
           setCaseQuantities({});
           return;
         }
@@ -209,11 +222,17 @@ const CaseCard: React.FC<CaseCardProps> = ({
           data.forEach(item => {
             quantities[item.item_name] = item.quantity;
           });
+          console.log('🔍 CaseCard Debug - Setting quantities:', {
+            caseRef: caseItem.caseReferenceNumber,
+            quantities
+          });
           setCaseQuantities(quantities);
         } else {
+          console.log('🔍 CaseCard Debug - No quantities found, setting empty object');
           setCaseQuantities({});
         }
       } catch (error) {
+        console.error('🔍 CaseCard Debug - Exception loading quantities:', error);
         setCaseQuantities({});
       }
     };
@@ -388,31 +407,49 @@ const CaseCard: React.FC<CaseCardProps> = ({
             <div className="detail-item">
               <span className="detail-label">Surgery Set Selection: </span>
               <ul className="detail-value">
-                {(caseItem.surgerySetSelection || []).map(set => (
-                  <li key={set} className="set-item-with-quantity">
-                    <span className="set-name">{set}</span>
-                    {caseQuantities[set] && (
-                      <span className="quantity-badge" data-testid="surgery-set-quantity" title={`Quantity: ${caseQuantities[set]}`}>
-                        ×{caseQuantities[set]}
-                      </span>
-                    )}
-                  </li>
-                ))}
+                {(caseItem.surgerySetSelection || []).map(set => {
+                  console.log('🔍 CaseCard Debug - Rendering surgery set:', {
+                    caseRef: caseItem.caseReferenceNumber,
+                    set,
+                    quantityExists: !!caseQuantities[set],
+                    quantity: caseQuantities[set],
+                    allQuantities: caseQuantities
+                  });
+                  return (
+                    <li key={set} className="set-item-with-quantity">
+                      <span className="set-name">{set}</span>
+                      {caseQuantities[set] && (
+                        <span className="quantity-badge" data-testid="surgery-set-quantity" title={`Quantity: ${caseQuantities[set]}`}>
+                          ×{caseQuantities[set]}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
             <div className="detail-item">
               <span className="detail-label">Implant Box: </span>
               <ul className="detail-value">
-                {(caseItem.implantBox || []).map(box => (
-                  <li key={box} className="set-item-with-quantity">
-                    <span className="set-name">{box}</span>
-                    {caseQuantities[box] && (
-                      <span className="quantity-badge" data-testid="implant-box-quantity" title={`Quantity: ${caseQuantities[box]}`}>
-                        ×{caseQuantities[box]}
-                      </span>
-                    )}
-                  </li>
-                ))}
+                {(caseItem.implantBox || []).map(box => {
+                  console.log('🔍 CaseCard Debug - Rendering implant box:', {
+                    caseRef: caseItem.caseReferenceNumber,
+                    box,
+                    quantityExists: !!caseQuantities[box],
+                    quantity: caseQuantities[box],
+                    allQuantities: caseQuantities
+                  });
+                  return (
+                    <li key={box} className="set-item-with-quantity">
+                      <span className="set-name">{box}</span>
+                      {caseQuantities[box] && (
+                        <span className="quantity-badge" data-testid="implant-box-quantity" title={`Quantity: ${caseQuantities[box]}`}>
+                          ×{caseQuantities[box]}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
             {caseItem.specialInstruction && (
@@ -457,14 +494,31 @@ const CaseCard: React.FC<CaseCardProps> = ({
                         <div className="amendment-changes">
                           <strong>Changes:</strong>
                           <div className="changes-grid">
-                            {(amendment.changes || []).map((change, changeIndex) => (
-                              <div key={changeIndex} className="change-item">
-                                <span className="change-field">{change.field}: </span>
-                                <span className="change-from">{change.oldValue} </span>
-                                <span className="change-arrow"> → </span>
-                                <span className="change-to">{change.newValue} </span>
-                              </div>
-                            ))}
+                            {(amendment.changes || []).map((change, changeIndex) => {
+                              // Determine change type based on old and new values
+                              const isAddition = !change.oldValue && change.newValue;
+                              const isRemoval = change.oldValue && !change.newValue;
+                              const isModification = change.oldValue && change.newValue;
+                              
+                              return (
+                                <div key={changeIndex} className={`change-item ${isAddition ? 'change-addition' : isRemoval ? 'change-removal' : 'change-modification'}`}>
+                                  <span className="change-field">{change.field}: </span>
+                                  {isAddition && (
+                                    <span className="change-to change-added">+ {change.newValue}</span>
+                                  )}
+                                  {isRemoval && (
+                                    <span className="change-from change-removed">- {change.oldValue}</span>
+                                  )}
+                                  {isModification && (
+                                    <>
+                                      <span className="change-from">{change.oldValue} </span>
+                                      <span className="change-arrow"> → </span>
+                                      <span className="change-to">{change.newValue} </span>
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
@@ -928,6 +982,21 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                           ))}
                                         </div>
                                       );
+                                    } else if (parsedDetails.details || parsedDetails.salesApprovalComments) {
+                                      // Handle general comments from Order Processing (details) and Sales Approval (salesApprovalComments)
+                                      const comments = parsedDetails.details || parsedDetails.salesApprovalComments;
+                                      return (
+                                        <div>
+                                          <strong>Comments:</strong> {comments}
+                                          {parsedDetails.attachments && parsedDetails.attachments.length > 0 && (
+                                            <AttachmentRenderer 
+                                              attachments={parsedDetails.attachments} 
+                                              title="Attachments"
+                                              showCount={true}
+                                            />
+                                          )}
+                                        </div>
+                                      );
                                     }
                                   } catch {
                                     return <div>{historyItem.details}</div>;
@@ -1373,6 +1442,21 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                               )}
                                             </div>
                                           ))}
+                                        </div>
+                                      );
+                                    } else if (parsedDetails.details || parsedDetails.salesApprovalComments) {
+                                      // Handle general comments from Order Processing (details) and Sales Approval (salesApprovalComments)
+                                      const comments = parsedDetails.details || parsedDetails.salesApprovalComments;
+                                      return (
+                                        <div>
+                                          <strong>Comments:</strong> {comments}
+                                          {parsedDetails.attachments && parsedDetails.attachments.length > 0 && (
+                                            <AttachmentRenderer 
+                                              attachments={parsedDetails.attachments} 
+                                              title="Attachments"
+                                              showCount={true}
+                                            />
+                                          )}
                                         </div>
                                       );
                                     }
