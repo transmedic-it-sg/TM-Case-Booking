@@ -124,9 +124,7 @@ const SimplifiedEmailConfig: React.FC = () => {
   const [isNotificationRulesCollapsed, setIsNotificationRulesCollapsed] = useState<boolean>(true);
   const [isTemplateVariablesCollapsed, setIsTemplateVariablesCollapsed] = useState<boolean>(true);
   const [isEmailTemplatesCollapsed, setIsEmailTemplatesCollapsed] = useState<boolean>(true);
-  const [isTestConnectionCollapsed, setIsTestConnectionCollapsed] = useState<boolean>(true);
   const [selectedTemplate, setSelectedTemplate] = useState<'status_change' | 'new_case' | null>(null);
-  const [connectionTestResult, setConnectionTestResult] = useState<string | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [emailMatrixConfigs, setEmailMatrixConfigs] = useState<Record<string, EmailNotificationMatrix>>({});
@@ -1175,36 +1173,6 @@ Best regards,
     }
   };
 
-  // Test email connection functionality
-  const handleTestEmailConnection = async () => {
-    setConnectionTestResult(null);
-    
-    try {
-      if (!currentConfig?.activeProvider) {
-        setConnectionTestResult('Error: No email provider configured');
-        return;
-      }
-
-      setConnectionTestResult('Testing connection...');
-      
-      // Simulate test email sending
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // In a real implementation, this would send an actual test email
-      const isSuccess = Math.random() > 0.3; // 70% success rate for demo
-      
-      if (isSuccess) {
-        setConnectionTestResult('Success: Test email sent successfully');
-        showSuccess('Test Email Sent', 'A test email has been sent to verify your configuration');
-      } else {
-        setConnectionTestResult('Error: Failed to send test email. Please check your configuration');
-        showError('Test Email Failed', 'Could not send test email. Please verify your email provider settings');
-      }
-    } catch (error) {
-      setConnectionTestResult('Error: Connection test failed');
-      showError('Connection Test Failed', 'An error occurred during the connection test');
-    }
-  };
 
   // Show loading while user is being loaded
   if (userLoading) {
@@ -2050,61 +2018,6 @@ Case Booking System`}
             )}
           </div>
 
-          {/* Test Email Connection Section */}
-          <div className="config-section">
-            <div
-              className="section-header collapsible-header"
-              onClick={() => setIsTestConnectionCollapsed(!isTestConnectionCollapsed)}
-              style={{ cursor: 'pointer' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <h3>🔍 Test Email Connection</h3>
-                <div className="provider-status-badge-inline">
-                  <span className="status-icon">✉️</span>
-                  <span style={{ fontSize: '0.85rem' }}>Verify Configuration</span>
-                </div>
-              </div>
-              <span className={`chevron ${isTestConnectionCollapsed ? 'collapsed' : 'expanded'}`}>
-                {isTestConnectionCollapsed ? '▶' : '▼'}
-              </span>
-            </div>
-
-            {!isTestConnectionCollapsed && (
-              <div className="section-content">
-                <p style={{ marginBottom: '1rem', color: '#6c757d' }}>
-                  Send a test email to verify your configuration is working correctly
-                </p>
-
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
-                  <button
-                    type="button"
-                    onClick={handleTestEmailConnection}
-                    className="btn btn-outline-primary"
-                    data-testid="test-email-connection"
-                    disabled={!currentConfig?.activeProvider}
-                  >
-                    📧 Send Test Email
-                  </button>
-                  
-                  {connectionTestResult && (
-                    <div 
-                      className={`alert ${connectionTestResult.includes('Success') ? 'alert-success' : 'alert-danger'}`}
-                      data-testid="connection-test-result"
-                      style={{ margin: 0, padding: '0.5rem 1rem' }}
-                    >
-                      {connectionTestResult}
-                    </div>
-                  )}
-                </div>
-
-                {!currentConfig?.activeProvider && (
-                  <div className="alert alert-warning">
-                    <strong>Configuration Required:</strong> Please configure and authenticate an email provider first.
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
 
           {/* Template Variables Reference Section */}
           <div className="config-section">

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tm-case-booking-v1.3.3-cache-1.0.7';
+const CACHE_NAME = 'tm-case-booking-v1.3.3-cache-FORCE-CLEAR-' + Date.now();
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -75,8 +75,9 @@ self.addEventListener('fetch', (event) => {
           event.request.url.includes('.css') || 
           event.request.url.includes('main.') ||
           event.request.url.includes('chunk.')) {
-        // Always fetch from network for critical files, with cache-busting
-        const request = new Request(event.request.url + '?v=' + Date.now(), {
+        // Always fetch from network for critical files, with aggressive cache-busting
+        const cacheBuster = Date.now() + Math.random();
+        const request = new Request(event.request.url + '?v=' + cacheBuster, {
           method: event.request.method,
           headers: event.request.headers,
           body: event.request.body,
