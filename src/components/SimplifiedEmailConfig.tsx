@@ -365,7 +365,7 @@ Best regards,
           };
         } else if (status === CASE_STATUSES.ORDER_PREPARATION) {
           template = {
-            subject: `📋 Order Preparation Started: {{caseReference}} - {{hospital}}`,
+            subject: `📋 Preparing Order Started: {{caseReference}} - {{hospital}}`,
             body: `Dear Operations Team,
 
 Order preparation has started for the following case.

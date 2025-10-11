@@ -138,29 +138,38 @@ export const processEmailNotifications = async (
     const body = replaceTemplateVariables(notificationRule.template.body, caseData, changedBy);
 
     // Send email notification via Supabase Edge Function (not direct OAuth)
-    console.log('📧 Email Debug - Attempting to send notification:', {
+    console.log('🔍 E2E DEBUG - Email notification attempt:', {
       activeProvider,
       recipientCount: uniqueRecipients.length,
       recipients: uniqueRecipients,
       subject,
       countryConfig: countryConfig?.providers?.[activeProvider],
-      caseRef: caseData.caseReferenceNumber
-    });
-
-    const { data, error: emailError } = await supabase.functions.invoke('send-email', {
-      body: {
-        to: uniqueRecipients,
-        subject,
-        body,
-        fromName: countryConfig.providers[activeProvider].fromName || 'TM Case Booking System'
+      caseRef: caseData.caseReferenceNumber,
+      emailConfig: {
+        enabled: countryConfig?.providers?.[activeProvider]?.enabled,
+        isAuthenticated: countryConfig?.providers?.[activeProvider]?.isAuthenticated
       }
     });
 
-    console.log('📧 Email Debug - Response from Edge Function:', {
+    const emailPayload = {
+      to: uniqueRecipients,
+      subject,
+      body,
+      fromName: countryConfig.providers[activeProvider].fromName || 'TM Case Booking System'
+    };
+
+    console.log('🔍 E2E DEBUG - Email payload:', JSON.stringify(emailPayload, null, 2));
+
+    const { data, error: emailError } = await supabase.functions.invoke('send-email', {
+      body: emailPayload
+    });
+
+    console.log('🔍 E2E DEBUG - Email Edge Function Response:', {
       data,
       error: emailError,
       success: data?.success,
-      errorMessage: data?.error || emailError?.message
+      errorMessage: data?.error || emailError?.message,
+      fullError: emailError
     });
 
     const success = data?.success && !emailError;

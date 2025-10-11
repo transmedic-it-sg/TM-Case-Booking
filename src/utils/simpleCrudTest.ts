@@ -315,7 +315,7 @@ export async function runSimpleCRUDTests(): Promise<TestResult[]> {
       // UPDATE
       const { error: updateError } = await supabase
         .from('case_bookings')
-        .update({ status: 'Order Preparation' })
+        .update({ status: 'Preparing Order' })
         .eq('id', newCase.id);
 
       results.push({

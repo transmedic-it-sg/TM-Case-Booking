@@ -112,13 +112,13 @@ export const permissionActions: PermissionAction[] = [
   {
     id: 'process-order',
     name: 'Process Order',
-    description: 'Case Booked → Order Preparation',
+    description: 'Case Booked → Preparing Order',
     category: 'Status Transitions'
   },
   {
     id: 'order-processed',
-    name: 'Order Processed',
-    description: 'Order Preparation → Order Prepared',
+    name: 'Order Prepared',
+    description: 'Preparing Order → Order Prepared',
     category: 'Status Transitions'
   },
   {
@@ -172,7 +172,7 @@ export const permissionActions: PermissionAction[] = [
   {
     id: 'cancel-case',
     name: 'Cancel Case',
-    description: 'Cancel cases in Process Order, Order Processed, Pending Delivery, or Delivered status',
+    description: 'Cancel cases in Process Order, Order Prepared, Pending Delivery, or Delivered status',
     category: 'Case Management'
   },
 

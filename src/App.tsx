@@ -512,7 +512,7 @@ const AppContent: React.FC = () => {
     setProcessingCase(null);
     setActivePage('cases');
     playSound.statusChange();
-    showSuccess('Order Processed!', 'The order has been successfully prepared and is ready for delivery.');
+    showSuccess('Order Prepared!', 'The order has been successfully prepared and is ready for delivery.');
     addNotification({
       title: 'Order Processing Complete',
       message: 'An order has been successfully processed and prepared for delivery.',

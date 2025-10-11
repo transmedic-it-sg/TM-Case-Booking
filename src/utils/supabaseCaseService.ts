@@ -496,10 +496,27 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
       .insert(insertData)
       .select();
 
-    console.log('Insert result:', { insertedCase, insertError });
+    console.log('🔍 E2E DEBUG - Insert result:', { 
+      insertedCase, 
+      insertError,
+      hasData: !!insertedCase,
+      dataLength: insertedCase?.length,
+      insertedCaseData: insertedCase?.[0],
+      arrayFields: {
+        surgerySetSelection: insertedCase?.[0]?.surgery_set_selection,
+        implantBox: insertedCase?.[0]?.implant_box
+      }
+    });
 
     if (insertError) {
-      console.error('Database insert error:', insertError);
+      console.error('❌ E2E DEBUG - Database insert error:', {
+        error: insertError,
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code,
+        insertData: JSON.stringify(insertData, null, 2)
+      });
       throw insertError;
     }
 
@@ -653,6 +670,18 @@ export const updateSupabaseCaseStatus = async (
 
     // Update case status 
     const newUpdatedAt = new Date().toISOString();
+    
+    console.log('🔍 E2E DEBUG - Status Update:', {
+      caseId,
+      caseRef,
+      oldStatus,
+      newStatus,
+      updateData: {
+        status: newStatus,
+        updated_at: newUpdatedAt
+      }
+    });
+    
     const { data: updateResult, error: updateError } = await supabase
       .from('case_bookings')
       .update({
@@ -662,7 +691,23 @@ export const updateSupabaseCaseStatus = async (
       .eq('id', caseId)
       .select('updated_at');
 
+    console.log('🔍 E2E DEBUG - Status Update Result:', {
+      updateResult,
+      updateError,
+      hasData: !!updateResult,
+      dataLength: updateResult?.length
+    });
+
     if (updateError) {
+      console.error('❌ E2E DEBUG - Status update error:', {
+        error: updateError,
+        message: updateError.message,
+        details: updateError.details,
+        code: updateError.code,
+        caseId,
+        oldStatus,
+        newStatus
+      });
       throw updateError;
     }
 

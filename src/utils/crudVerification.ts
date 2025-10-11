@@ -90,7 +90,7 @@ class CRUDVerificationService {
         this.addResult('READ', 'case_bookings', !!fetchedCase);
 
         // UPDATE
-        const updated = await realtimeCaseService.updateCaseStatus(savedCase.id, 'Order Preparation');
+        const updated = await realtimeCaseService.updateCaseStatus(savedCase.id, 'Preparing Order');
         this.addResult('UPDATE', 'case_bookings', updated);
 
         // DELETE

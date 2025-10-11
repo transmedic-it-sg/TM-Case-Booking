@@ -275,7 +275,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   // Find the most recent attachments for statuses without active forms
   const currentAttachments = useMemo(() => {
     // Only show for specific statuses that don't have their own forms
-    const statusesWithoutForms = ['Order Prepared', 'Order Processed', 'Sales Approval'];
+    const statusesWithoutForms = ['Order Prepared', 'Sales Approval'];
 
     if (!statusesWithoutForms.includes(caseItem.status)) {
       return [];

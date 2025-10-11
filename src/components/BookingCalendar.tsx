@@ -898,7 +898,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
               <strong>Department: {selectedDepartment}</strong>
               {viewMode === 'usage' && (
                 <span className="usage-info">
-                  • Showing quantity aggregation for cases in "Order Preparation" status
+                  • Showing quantity aggregation for cases in "Preparing Order" status
                 </span>
               )}
             </div>

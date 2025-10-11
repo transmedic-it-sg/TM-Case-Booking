@@ -96,7 +96,7 @@ export interface Database {
           surgery_set_selection: string[] // ⚠️ surgery_set_selection (surgerySetSelection)
           implant_box: string[] // ⚠️ implant_box (implantBox)
           special_instruction: string | null // ⚠️ special_instruction (specialInstruction)
-          status: 'Case Booked' | 'Order Preparation' | 'Order Prepared' | 'Pending Delivery (Hospital)' | 'Delivered (Hospital)' | 'Case Completed' | 'Pending Delivery (Office)' | 'Delivered (Office)' | 'To be billed' | 'Case Closed' | 'Case Cancelled'
+          status: 'Case Booked' | 'Preparing Order' | 'Order Prepared' | 'Pending Delivery (Hospital)' | 'Delivered (Hospital)' | 'Case Completed' | 'Pending Delivery (Office)' | 'Delivered (Office)' | 'To be billed' | 'Case Closed' | 'Case Cancelled'
           submitted_by: string
           submitted_at: string
           processed_by: string | null // ⚠️ processed_by (processedBy)
@@ -126,7 +126,7 @@ export interface Database {
           surgery_set_selection?: string[]
           implant_box?: string[]
           special_instruction?: string | null
-          status?: 'Case Booked' | 'Order Preparation' | 'Order Prepared' | 'Pending Delivery (Hospital)' | 'Delivered (Hospital)' | 'Case Completed' | 'Pending Delivery (Office)' | 'Delivered (Office)' | 'To be billed' | 'Case Closed' | 'Case Cancelled'
+          status?: 'Case Booked' | 'Preparing Order' | 'Order Prepared' | 'Pending Delivery (Hospital)' | 'Delivered (Hospital)' | 'Case Completed' | 'Pending Delivery (Office)' | 'Delivered (Office)' | 'To be billed' | 'Case Closed' | 'Case Cancelled'
           submitted_by: string
           country: string
         }
@@ -141,7 +141,7 @@ export interface Database {
           surgery_set_selection?: string[]
           implant_box?: string[]
           special_instruction?: string | null
-          status?: 'Case Booked' | 'Order Preparation' | 'Order Prepared' | 'Pending Delivery (Hospital)' | 'Delivered (Hospital)' | 'Case Completed' | 'Pending Delivery (Office)' | 'Delivered (Office)' | 'To be billed' | 'Case Closed' | 'Case Cancelled'
+          status?: 'Case Booked' | 'Preparing Order' | 'Order Prepared' | 'Pending Delivery (Hospital)' | 'Delivered (Hospital)' | 'Case Completed' | 'Pending Delivery (Office)' | 'Delivered (Office)' | 'To be billed' | 'Case Closed' | 'Case Cancelled'
           processed_by?: string | null
           processed_at?: string | null
           process_order_details?: string | null

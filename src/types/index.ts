@@ -3,7 +3,7 @@ import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
 
 export type CaseStatus =
   | 'Case Booked'
-  | 'Order Preparation'
+  | 'Preparing Order'
   | 'Order Prepared'
   | 'Pending Delivery (Hospital)'
   | 'Delivered (Hospital)'

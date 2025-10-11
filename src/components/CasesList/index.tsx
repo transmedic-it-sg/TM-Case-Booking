@@ -62,6 +62,22 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
   });
 
+  // E2E DEBUG: Log cases data changes
+  useEffect(() => {
+    console.log('🔍 E2E DEBUG - CasesList cases update:', {
+      casesCount: cases.length,
+      isLoading,
+      isMutating,
+      userCountry: currentUser?.selectedCountry,
+      casesPreview: cases.slice(0, 3).map(c => ({
+        id: c.id,
+        ref: c.caseReferenceNumber,
+        status: c.status,
+        hospital: c.hospital
+      }))
+    });
+  }, [cases, isLoading, isMutating, currentUser?.selectedCountry]);
+
   // Real-time connection status - prioritize cases connection for this component
   const { overallConnected, casesConnected, forceRefreshAll } = useRealtime();
   const isConnected = casesConnected || overallConnected;
@@ -387,8 +403,33 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     if (!currentUser) return;
 
     const caseItem = cases.find(c => c.id === caseId);
-    await updateCaseStatus(caseId, newStatus);
-    refreshCases();
+    
+    console.log('🔍 E2E DEBUG - Frontend Status Change:', {
+      caseId,
+      newStatus,
+      oldStatus: caseItem?.status,
+      caseRef: caseItem?.caseReferenceNumber,
+      currentUser: {
+        id: currentUser.id,
+        name: currentUser.name,
+        role: currentUser.role,
+        country: currentUser.selectedCountry
+      }
+    });
+
+    try {
+      await updateCaseStatus(caseId, newStatus);
+      console.log('✅ E2E DEBUG - Status update completed successfully');
+      refreshCases();
+    } catch (error) {
+      console.error('❌ E2E DEBUG - Status update failed:', {
+        error,
+        caseId,
+        newStatus,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
 
     // Reset to page 1 and expand the updated case
     setCurrentPage(1);
@@ -578,7 +619,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
       // Add notification for status change
       addNotification({
-        title: 'Order Processed',
+        title: 'Order Prepared',
         message: `Case ${caseItem?.caseReferenceNumber || caseId} has been processed and is now ready for delivery by ${currentUser.name}`,
         type: 'success'
       });

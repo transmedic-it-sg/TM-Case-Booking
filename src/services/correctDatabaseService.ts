@@ -156,7 +156,7 @@ class CorrectDatabaseService {
   async getCaseStatuses(): Promise<string[]> {
     return [
       'Case Booked',
-      'Order Preparation',
+      'Preparing Order',
       'Order Prepared',
       'Pending Delivery (Hospital)',
       'Delivered (Hospital)',
