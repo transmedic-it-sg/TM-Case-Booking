@@ -62,17 +62,31 @@ export const getUserNamesByIds = async (userIds: string[]): Promise<Record<strin
       'System': 'System'
     };
 
-    // Separate special cases from UUIDs
-    const uuids = userIds.filter(id => id && id.includes('-'));
-    const nonUuids = userIds.filter(id => id && !id.includes('-'));
+    // Separate special cases from UUIDs, emails, and usernames
+    const uuids = userIds.filter(id => id && id.includes('-') && !id.includes('@'));
+    const emails = userIds.filter(id => id && id.includes('@'));
+    const usernames = userIds.filter(id => id && !id.includes('-') && !id.includes('@'));
 
-    // Handle non-UUID cases (like username lookups)
-    if (nonUuids.length > 0) {
-      // Try to look up by username
+    // Handle email lookups
+    if (emails.length > 0) {
+      const { data: profilesByEmail } = await supabase
+        .from('profiles')
+        .select('email, name')
+        .in('email', emails);
+      
+      if (profilesByEmail) {
+        profilesByEmail.forEach(profile => {
+          result[profile.email] = profile.name;
+        });
+      }
+    }
+
+    // Handle username lookups
+    if (usernames.length > 0) {
       const { data: profilesByUsername } = await supabase
         .from('profiles')
         .select('username, name')
-        .in('username', nonUuids);
+        .in('username', usernames);
       
       if (profilesByUsername) {
         profilesByUsername.forEach(profile => {

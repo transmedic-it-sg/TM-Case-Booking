@@ -123,6 +123,11 @@ export const processEmailNotifications = async (
       recipients.push(user.email);
     }
 
+    // Add case submitter if includeSubmitter is enabled
+    if (notificationRule.recipients.includeSubmitter && caseData.submittedBy) {
+      recipients.push(caseData.submittedBy);
+    }
+
     // Remove duplicates
     const uniqueRecipients = [...new Set(recipients)];
 
