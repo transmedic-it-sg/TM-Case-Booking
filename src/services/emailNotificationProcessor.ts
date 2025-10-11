@@ -40,6 +40,14 @@ export const processEmailNotifications = async (
   oldStatus?: CaseStatus,
   changedBy?: string
 ): Promise<void> => {
+  console.log('📬 processEmailNotifications called:', {
+    caseRef: caseData.caseReferenceNumber,
+    newStatus,
+    oldStatus,
+    changedBy,
+    submittedBy: caseData.submittedBy
+  });
+  
   try {
     // Get email configuration for the case's country
     const emailConfigs = await getEmailConfigFromDatabase(caseData.country);
@@ -125,7 +133,13 @@ export const processEmailNotifications = async (
 
     // Add case submitter if includeSubmitter is enabled
     if (notificationRule.recipients.includeSubmitter && caseData.submittedBy) {
+      console.log('📬 Adding case submitter to recipients:', caseData.submittedBy);
       recipients.push(caseData.submittedBy);
+    } else {
+      console.log('📬 Not adding submitter:', {
+        includeSubmitter: notificationRule.recipients.includeSubmitter,
+        submittedBy: caseData.submittedBy
+      });
     }
 
     // Remove duplicates
