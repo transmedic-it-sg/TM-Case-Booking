@@ -45,15 +45,23 @@ export const processEmailNotifications = async (
     const emailConfigs = await getEmailConfigFromDatabase(caseData.country);
     const countryConfig = emailConfigs[caseData.country];
     
-    if (!countryConfig || !countryConfig.notificationRules) {
+    if (!countryConfig) {
       console.log(`No email configuration found for country: ${caseData.country}`);
       return;
     }
 
-    // Get notification rule for this status
-    const notificationRule = countryConfig.notificationRules[newStatus];
-    if (!notificationRule || !notificationRule.enabled) {
-      console.log(`No notification rule enabled for status: ${newStatus}`);
+    // Get notification rule from email_notification_rules table
+    const { supabase } = await import('../lib/supabase');
+    const { data: notificationRule, error } = await supabase
+      .from('email_notification_rules')
+      .select('*')
+      .eq('country', caseData.country)
+      .eq('status', newStatus)
+      .eq('enabled', true)
+      .single();
+
+    if (error || !notificationRule) {
+      console.log(`No notification rule enabled for status: ${newStatus} in ${caseData.country}`, error);
       return;
     }
 
@@ -77,7 +85,7 @@ export const processEmailNotifications = async (
     const allUsers = await getAllSupabaseUsers();
     const recipients: string[] = [];
 
-    // Filter users based on notification rules
+    // Filter users based on notification rules from database
     for (const user of allUsers) {
       if (!user.email || !user.enabled) {
         continue; // Skip users without email or disabled users
@@ -85,45 +93,34 @@ export const processEmailNotifications = async (
 
       // Check if user has access to this country
       if (!user.countries.includes(caseData.country)) {
-        // Check admin global access
-        if (!notificationRule.adminGlobalAccess || user.role !== 'admin') {
-          continue;
-        }
+        continue; // Skip users not in this country
       }
 
       // Check department filter
-      if (notificationRule.requireSameDepartment) {
-        if (!user.departments.includes(caseData.department)) {
-          continue;
-        }
-      }
-
-      if (notificationRule.departmentFilter && notificationRule.departmentFilter.length > 0) {
-        if (!notificationRule.departmentFilter.some(dept => user.departments.includes(dept))) {
+      if (notificationRule.recipients.departments && 
+          !notificationRule.recipients.departments.includes('all') && 
+          notificationRule.recipients.departments.length > 0) {
+        if (!notificationRule.recipients.departments.some(dept => user.departments.includes(dept))) {
           continue;
         }
       }
 
       // Check role filter
-      if (notificationRule.roles.length > 0) {
-        if (!notificationRule.roles.includes(user.role)) {
-          // Check admin override
-          if (!notificationRule.adminOverride || user.role !== 'admin') {
-            continue;
-          }
+      if (notificationRule.recipients.roles && notificationRule.recipients.roles.length > 0) {
+        if (!notificationRule.recipients.roles.includes(user.role)) {
+          continue;
+        }
+      }
+
+      // Check specific members filter
+      if (notificationRule.recipients.members && notificationRule.recipients.members.length > 0) {
+        if (!notificationRule.recipients.members.includes(user.email)) {
+          continue;
         }
       }
 
       // Add user email to recipients
       recipients.push(user.email);
-    }
-
-    // Include case submitter if enabled
-    if (notificationRule.includeSubmitter && caseData.submittedBy) {
-      const submitter = allUsers.find(u => u.id === caseData.submittedBy || u.username === caseData.submittedBy);
-      if (submitter && submitter.email && submitter.enabled) {
-        recipients.push(submitter.email);
-      }
     }
 
     // Remove duplicates
@@ -134,9 +131,11 @@ export const processEmailNotifications = async (
       return;
     }
 
-    // Create email content
-    const subject = `Case ${caseData.caseReferenceNumber} - Status Updated to ${newStatus}`;
-    const body = createEmailBody(caseData, newStatus, oldStatus, changedBy);
+    console.log(`Found ${uniqueRecipients.length} recipients for ${newStatus} notification:`, uniqueRecipients);
+
+    // Create email content using template from notification rule
+    const subject = replaceTemplateVariables(notificationRule.template.subject, caseData, changedBy);
+    const body = replaceTemplateVariables(notificationRule.template.body, caseData, changedBy);
 
     // Send email notification
     const oauth = createOAuthManager(activeProvider);
@@ -224,4 +223,26 @@ const createEmailBody = (
 </body>
 </html>
   `.trim();
+};
+
+/**
+ * Replace template variables with actual case data
+ */
+const replaceTemplateVariables = (
+  template: string,
+  caseData: CaseBooking,
+  changedBy?: string
+): string => {
+  return template
+    .replace(/\{\{caseReferenceNumber\}\}/g, caseData.caseReferenceNumber)
+    .replace(/\{\{hospital\}\}/g, caseData.hospital)
+    .replace(/\{\{department\}\}/g, caseData.department)
+    .replace(/\{\{doctorName\}\}/g, caseData.doctorName || 'Not specified')
+    .replace(/\{\{dateOfSurgery\}\}/g, caseData.dateOfSurgery)
+    .replace(/\{\{procedureType\}\}/g, caseData.procedureType)
+    .replace(/\{\{procedureName\}\}/g, caseData.procedureName)
+    .replace(/\{\{status\}\}/g, caseData.status)
+    .replace(/\{\{processedBy\}\}/g, changedBy || 'System')
+    .replace(/\{\{processedAt\}\}/g, new Date().toLocaleString())
+    .replace(/\{\{submittedBy\}\}/g, caseData.submittedBy);
 };
