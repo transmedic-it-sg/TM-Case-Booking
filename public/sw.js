@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tm-case-booking-v1.3.3-cache-FORCE-CLEAR-' + Date.now();
+const CACHE_NAME = 'tm-case-booking-COMPLETE-RESET-' + Date.now() + '-' + Math.random();
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -37,19 +37,26 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up ALL old caches aggressively
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating...');
+  console.log('Service Worker activating... FORCING COMPLETE CACHE RESET');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
+      console.log('Found caches:', cacheNames);
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
+          console.log('DELETING cache:', cacheName);
+          return caches.delete(cacheName);
         })
       );
+    }).then(() => {
+      console.log('ALL CACHES DELETED - Fresh start');
+      // Force all clients to reload
+      return self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({type: 'CACHE_RESET', action: 'reload'});
+        });
+      });
     })
   );
   // Ensure the new service worker takes control immediately
@@ -90,8 +97,8 @@ self.addEventListener('fetch', (event) => {
         return fetch(request)
           .then((response) => {
             if (response && response.status === 200) {
-              // Don't cache JS/CSS files to ensure fresh content
-              console.log('🔄 Serving fresh JS/CSS from network:', event.request.url);
+              // NEVER cache JS/CSS files - ALWAYS fresh
+              console.log('🔄 Serving UNCACHED fresh JS/CSS from network:', event.request.url);
             }
             return response;
           })

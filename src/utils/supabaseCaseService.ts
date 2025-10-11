@@ -754,9 +754,20 @@ export const updateSupabaseCaseStatus = async (
             };
 
             // Process email notifications asynchronously (don't block status update)
+            console.log('🚀 About to process email notifications for status change:', {
+              caseRef: caseBooking.caseReferenceNumber,
+              oldStatus,
+              newStatus,
+              actualUser,
+              country: caseBooking.country
+            });
+            
             processEmailNotifications(caseBooking, newStatus, oldStatus, actualUser)
+              .then(() => {
+                console.log('✅ Email notification processing completed for:', caseBooking.caseReferenceNumber);
+              })
               .catch(emailError => {
-                console.error('Failed to process email notifications:', emailError);
+                console.error('❌ Failed to process email notifications:', emailError);
               });
           }
         } catch (emailError) {
