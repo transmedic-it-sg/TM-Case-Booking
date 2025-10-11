@@ -280,6 +280,7 @@ export const getSupabaseCases = async (country?: string): Promise<CaseBooking[]>
       doNumber: caseData.do_number,
       // Use the nested status history from the relation
       statusHistory: caseData.status_history?.map((history: any) => ({
+        id: history.id, // Include database ID for attachments
         status: history.status as CaseStatus,
         timestamp: history.timestamp,
         processedBy: history.processed_by,
@@ -364,6 +365,7 @@ export const getSupabaseCasesOriginal = async (country?: string): Promise<CaseBo
       amendedBy: caseData.amended_by,
       amendedAt: caseData.amended_at,
       statusHistory: caseData.status_history?.map((history: SupabaseCaseStatusHistory) => ({
+        id: history.id, // Include database ID for attachments
         status: history.status as CaseStatus,
         timestamp: history.timestamp,
         processedBy: history.processed_by,

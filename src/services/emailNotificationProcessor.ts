@@ -82,12 +82,15 @@ export const processEmailNotifications = async (
       return;
     }
 
-    // Get valid access token
-    const accessToken = await getValidAccessToken(caseData.country, activeProvider);
-    if (!accessToken) {
+    // Get valid access token from database (not sessionStorage)
+    const tokenData = countryConfig.providers[activeProvider].tokens;
+    if (!tokenData || !tokenData.accessToken) {
       console.log(`No valid access token for ${activeProvider} in ${caseData.country}`);
       return;
     }
+    
+    const accessToken = tokenData.accessToken;
+    console.log(`📬 Using access token for ${activeProvider}:`, accessToken ? 'Token found' : 'No token');
 
     // Get all users to determine who should receive notifications
     const allUsers = await getAllSupabaseUsers();

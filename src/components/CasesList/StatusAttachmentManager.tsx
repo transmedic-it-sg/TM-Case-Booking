@@ -13,7 +13,7 @@ import {
 
 interface StatusAttachmentManagerProps {
   historyItem: {
-    id: string;
+    id?: string; // Optional since some history items might not have database IDs
     attachments?: string[];
     status: string;
     timestamp: string; // ⚠️ timestamp field
@@ -42,7 +42,7 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
 
   const handleFileAdd = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (file && historyItem.id) { // Check if ID exists
       setIsAddingAttachment(true);
       try {
         const reader = new FileReader();
@@ -83,7 +83,7 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
   };
 
   const handleReplaceAttachment = async (newFile: File) => {
-    if (!selectedAttachment) return;
+    if (!selectedAttachment || !historyItem.id) return;
 
     const reader = new FileReader();
     reader.onloadend = async () => {
@@ -111,7 +111,7 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
   };
 
   const handleDeleteAttachment = async () => {
-    if (!selectedAttachment) return;
+    if (!selectedAttachment || !historyItem.id) return;
 
     const updatedAttachments = historyItem.attachments?.filter((_, idx) => idx !== selectedAttachment.index);
 
@@ -131,7 +131,7 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
         <div>
           <div className="attachments-header">
             <strong>Attachments ({historyItem.attachments.length}):</strong>
-            {canEdit && (
+            {canEdit && historyItem.id && (
               <button
                 className="btn-add-attachment"
                 onClick={handleAddAttachment}
@@ -233,7 +233,7 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
         </div>
       )}
 
-      {canEdit && (!historyItem.attachments || historyItem.attachments.length === 0) && (
+      {canEdit && historyItem.id && (!historyItem.attachments || historyItem.attachments.length === 0) && (
         <button
           className="btn-add-first-attachment"
           onClick={handleAddAttachment}

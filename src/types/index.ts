@@ -77,6 +77,7 @@ export const PROCEDURE_TYPE_MAPPINGS = {
 } as const;
 
 export interface StatusHistory {
+  id?: string; // Database ID for status history entry
   status: CaseStatus;
   timestamp: string;
   processedBy: string;
