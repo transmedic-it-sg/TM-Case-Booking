@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tm-case-booking-v1.2.9-cache-1.0.5';
+const CACHE_NAME = 'tm-case-booking-v1.3.3-cache-1.0.7';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -69,53 +69,87 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        if (response) {
-          console.log('Serving from cache:', event.request.url);
-          return response;
-        }
+    // Force network-first for JavaScript files and CSS files to ensure latest version
+    (function() {
+      if (event.request.url.includes('.js') || 
+          event.request.url.includes('.css') || 
+          event.request.url.includes('main.') ||
+          event.request.url.includes('chunk.')) {
+        // Always fetch from network for critical files, with cache-busting
+        const request = new Request(event.request.url + '?v=' + Date.now(), {
+          method: event.request.method,
+          headers: event.request.headers,
+          body: event.request.body,
+          mode: 'cors',
+          credentials: event.request.credentials,
+          cache: 'no-cache',
+          redirect: 'follow'
+        });
         
-        return fetch(event.request)
+        return fetch(request)
           .then((response) => {
-            // Don't cache if not a valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
+            if (response && response.status === 200) {
+              // Don't cache JS/CSS files to ensure fresh content
+              console.log('🔄 Serving fresh JS/CSS from network:', event.request.url);
             }
-
-            // Clone the response
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              })
-              .catch((error) => {
-                console.warn('Cache put failed:', error);
-              });
-
             return response;
           })
           .catch((error) => {
-            console.warn('Fetch failed:', error);
-            // If both cache and network fail, return offline page
-            if (event.request.destination === 'document') {
-              return caches.match('/').then((cachedResponse) => {
-                return cachedResponse || new Response('Offline - App not available', {
-                  status: 200,
-                  headers: { 'Content-Type': 'text/html' }
-                });
-              });
-            }
-            // For other requests, return empty response
-            return new Response('', { status: 404 });
+            console.warn('⚠️ Network failed for JS/CSS, trying original request:', error);
+            // Try original request without cache-busting as fallback
+            return fetch(event.request);
           });
-      })
-      .catch((error) => {
-        console.warn('Cache match failed:', error);
-        return new Response('Cache Error', { status: 500 });
-      })
+      }
+      
+      // For non-critical files, use cache-first strategy
+      return caches.match(event.request)
+        .then((response) => {
+          // Return cached version for other files or fetch from network
+          if (response) {
+            console.log('Serving from cache:', event.request.url);
+            return response;
+          }
+          
+          return fetch(event.request)
+            .then((response) => {
+              // Don't cache if not a valid response
+              if (!response || response.status !== 200 || response.type !== 'basic') {
+                return response;
+              }
+
+              // Clone the response
+              const responseToCache = response.clone();
+
+              caches.open(CACHE_NAME)
+                .then((cache) => {
+                  cache.put(event.request, responseToCache);
+                })
+                .catch((error) => {
+                  console.warn('Cache put failed:', error);
+                });
+
+              return response;
+            })
+            .catch((error) => {
+              console.warn('Fetch failed:', error);
+              // If both cache and network fail, return offline page
+              if (event.request.destination === 'document') {
+                return caches.match('/').then((cachedResponse) => {
+                  return cachedResponse || new Response('Offline - App not available', {
+                    status: 200,
+                    headers: { 'Content-Type': 'text/html' }
+                  });
+                });
+              }
+              // For other requests, return empty response
+              return new Response('', { status: 404 });
+            });
+        })
+        .catch((error) => {
+          console.warn('Cache match failed:', error);
+          return new Response('Cache Error', { status: 500 });
+        });
+    })()
   );
 });
 
