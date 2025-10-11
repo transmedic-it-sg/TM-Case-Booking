@@ -50,8 +50,6 @@ export const getUserNameById = async (userId: string): Promise<string> => {
  * Convert multiple user IDs to names
  */
 export const getUserNamesByIds = async (userIds: string[]): Promise<Record<string, string>> => {
-  console.log('🔍 getUserNamesByIds called with:', userIds);
-  
   const result: Record<string, string> = {};
   
   try {
@@ -70,18 +68,14 @@ export const getUserNamesByIds = async (userIds: string[]): Promise<Record<strin
 
     // Handle email lookups
     if (emails.length > 0) {
-      console.log('📧 Looking up emails:', emails);
       const { data: profilesByEmail, error: emailError } = await supabase
         .from('profiles')
         .select('email, name')
         .in('email', emails);
       
-      console.log('📧 Email lookup result:', profilesByEmail, 'Error:', emailError);
-      
       if (profilesByEmail) {
         profilesByEmail.forEach(profile => {
           result[profile.email] = profile.name;
-          console.log(`📧 Mapped ${profile.email} -> ${profile.name}`);
         });
       }
     }
@@ -142,14 +136,12 @@ export const getUserNamesByIds = async (userIds: string[]): Promise<Record<strin
       }
     });
   } catch (error) {
-    console.error('🚨 getUserNamesByIds error:', error);
     // Fallback to userIds as names
     userIds.forEach(userId => {
       result[userId] = userId;
     });
   }
   
-  console.log('✅ Final getUserNamesByIds result:', result);
   return result;
 };
 

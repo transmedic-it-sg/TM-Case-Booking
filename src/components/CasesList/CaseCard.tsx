@@ -193,17 +193,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
   // Load case quantities for display in both collapsed and expanded views
   useEffect(() => {
     const loadCaseQuantities = async () => {
-      console.log('🔢 Loading quantities for case:', caseItem.caseReferenceNumber, 'ID:', caseItem.id);
       try {
         const { data, error } = await supabase
           .from('case_booking_quantities')
           .select('item_name, quantity')
           .eq('case_booking_id', caseItem.id); // ⚠️ case_booking_id (caseBookingId) FK - NOT caseId
 
-        console.log('🔢 Quantities query result:', { data, error });
-
         if (error) {
-          console.error('🔢 Quantities query error:', error);
           setCaseQuantities({});
           return;
         }
@@ -212,12 +208,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
           const quantities: Record<string, number> = {};
           data.forEach(item => {
             quantities[item.item_name] = item.quantity;
-            console.log(`🔢 Mapped quantity: ${item.item_name} -> ${item.quantity}`);
           });
           setCaseQuantities(quantities);
-          console.log('🔢 Final quantities state:', quantities);
         } else {
-          console.log('🔢 No quantities found for case');
           setCaseQuantities({});
         }
       } catch (error) {

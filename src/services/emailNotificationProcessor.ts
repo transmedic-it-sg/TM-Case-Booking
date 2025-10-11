@@ -6,7 +6,7 @@
 import { CaseBooking, CaseStatus } from '../types';
 import { getAllSupabaseUsers } from '../utils/supabaseUserService';
 import { getEmailConfigFromDatabase } from '../components/SimplifiedEmailConfig';
-import { createOAuthManager, getValidAccessToken } from '../utils/simplifiedOAuth';
+// Email sent via Supabase Edge Function - OAuth imports removed
 import { 
   CASE_BOOKINGS_FIELDS, 
   CASE_QUANTITIES_FIELDS, 
@@ -40,14 +40,6 @@ export const processEmailNotifications = async (
   oldStatus?: CaseStatus,
   changedBy?: string
 ): Promise<void> => {
-  console.log('📬 processEmailNotifications called:', {
-    caseRef: caseData.caseReferenceNumber,
-    newStatus,
-    oldStatus,
-    changedBy,
-    submittedBy: caseData.submittedBy
-  });
-  
   try {
     // Get email configuration for the case's country
     const emailConfigs = await getEmailConfigFromDatabase(caseData.country);
@@ -82,15 +74,7 @@ export const processEmailNotifications = async (
       return;
     }
 
-    // Get valid access token from database (not sessionStorage)
-    const tokenData = countryConfig.providers[activeProvider].tokens;
-    if (!tokenData || !tokenData.accessToken) {
-      console.log(`No valid access token for ${activeProvider} in ${caseData.country}`);
-      return;
-    }
-    
-    const accessToken = tokenData.accessToken;
-    console.log(`📬 Using access token for ${activeProvider}:`, accessToken ? 'Token found' : 'No token');
+    // Email will be sent via Supabase Edge Function using service principal authentication
 
     // Get all users to determine who should receive notifications
     const allUsers = await getAllSupabaseUsers();
@@ -136,13 +120,7 @@ export const processEmailNotifications = async (
 
     // Add case submitter if includeSubmitter is enabled
     if (notificationRule.recipients.includeSubmitter && caseData.submittedBy) {
-      console.log('📬 Adding case submitter to recipients:', caseData.submittedBy);
       recipients.push(caseData.submittedBy);
-    } else {
-      console.log('📬 Not adding submitter:', {
-        includeSubmitter: notificationRule.recipients.includeSubmitter,
-        submittedBy: caseData.submittedBy
-      });
     }
 
     // Remove duplicates
@@ -159,14 +137,17 @@ export const processEmailNotifications = async (
     const subject = replaceTemplateVariables(notificationRule.template.subject, caseData, changedBy);
     const body = replaceTemplateVariables(notificationRule.template.body, caseData, changedBy);
 
-    // Send email notification
-    const oauth = createOAuthManager(activeProvider);
-    const success = await oauth.sendEmail(accessToken, {
-      to: uniqueRecipients,
-      subject,
-      body,
-      attachments: []
+    // Send email notification via Supabase Edge Function (not direct OAuth)
+    const { data, error: emailError } = await supabase.functions.invoke('send-email', {
+      body: {
+        to: uniqueRecipients,
+        subject,
+        body,
+        fromName: countryConfig.providers[activeProvider].fromName || 'TM Case Booking System'
+      }
     });
+
+    const success = data?.success && !emailError;
 
     if (success) {
       console.log(`Email notification sent successfully to ${uniqueRecipients.length} recipients for case ${caseData.caseReferenceNumber}`);

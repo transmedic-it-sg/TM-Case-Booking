@@ -461,13 +461,13 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
       throw insertError;
     }
 
-    if (!insertedCase || !Array.isArray(insertedCase) || insertedCase.length === 0) {
+    if (!insertedCase) {
       console.error('No data returned from database insert');
       throw new Error('Failed to create case - no data returned from database');
     }
 
-    // Get the first (and should be only) inserted record
-    const insertedCaseRecord = insertedCase[0];
+    // Handle both single object and array returns from Supabase
+    const insertedCaseRecord = Array.isArray(insertedCase) ? insertedCase[0] : insertedCase;
 
     // Create initial status history entry - only if it's a new case with "Case Booked" status
     if (caseData.status === 'Case Booked') {
@@ -549,33 +549,48 @@ export const updateSupabaseCaseStatus = async (
         // Details is not JSON or doesn't have processedBy, use changedBy
       }
     }
-    // Get current case data for audit logging
+    // Get current case data for audit logging and optimistic locking
     const { data: currentCase, error: fetchError } = await supabase
       .from('case_bookings')
-      .select('status, case_reference_number, country, department')
+      .select('status, case_reference_number, country, department, updated_at')
       .eq('id', caseId)
       .single();
 
     if (fetchError) {
-      // Continue with status update even if we can't fetch current data
+      throw new Error(`Failed to fetch case data for status update: ${fetchError.message}`);
     }
 
     const oldStatus = currentCase?.status;
     const caseRef = currentCase?.case_reference_number;
     const country = currentCase?.country;
     const department = currentCase?.department;
+    const lastUpdatedAt = currentCase?.updated_at;
 
-    // Update case status
-    const { error: updateError } = await supabase
+    // Skip update if status hasn't actually changed
+    if (oldStatus === newStatus) {
+      console.log(`Status update skipped - case ${caseRef} already has status: ${newStatus}`);
+      return;
+    }
+
+    // Update case status with optimistic locking to prevent race conditions
+    const newUpdatedAt = new Date().toISOString();
+    const { data: updateResult, error: updateError } = await supabase
       .from('case_bookings')
       .update({
         status: newStatus,
-        updated_at: new Date().toISOString()
+        updated_at: newUpdatedAt
       })
-      .eq('id', caseId);
+      .eq('id', caseId)
+      .eq('updated_at', lastUpdatedAt) // Optimistic locking
+      .select('updated_at');
 
     if (updateError) {
       throw updateError;
+    }
+
+    // Check if the update actually happened (optimistic lock succeeded)
+    if (!updateResult || updateResult.length === 0) {
+      throw new Error(`Status update failed - case ${caseRef} was modified by another process. Please refresh and try again.`);
     }
 
     // Check if this is a status change that might create duplicates
