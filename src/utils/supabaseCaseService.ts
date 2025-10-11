@@ -426,32 +426,41 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
       doctorName: caseData.doctorName
     });
 
+    // Prepare insert data with proper validation
+    const insertData: any = {
+      case_reference_number: caseReferenceNumber,
+      hospital: caseData.hospital,
+      department: caseData.department,
+      date_of_surgery: caseData.dateOfSurgery,
+      procedure_type: caseData.procedureType,
+      procedure_name: caseData.procedureName,
+      doctor_name: caseData.doctorName, // ⚠️ doctor_name (doctorName)
+      time_of_procedure: caseData.timeOfProcedure,
+      surgery_set_selection: caseData.surgerySetSelection || [],
+      implant_box: caseData.implantBox || [],
+      special_instruction: caseData.specialInstruction, // ⚠️ special_instruction (specialInstruction)
+      status: caseData.status,
+      submitted_by: caseData.submittedBy,
+      country: normalizeCountry(caseData.country || ''),
+      processed_by: caseData.processedBy,
+      processed_at: caseData.processedAt, // ⚠️ processed_at (processedAt)
+      process_order_details: caseData.processOrderDetails,
+      is_amended: caseData.isAmended || false,
+      amended_by: caseData.amendedBy,
+      amended_at: caseData.amendedAt
+    };
+
+    // Only include doctor_id if it's a valid UUID, otherwise let it be NULL
+    if (caseData.doctorId && caseData.doctorId.length > 0 && caseData.doctorId !== 'undefined') {
+      insertData.doctor_id = caseData.doctorId;
+    }
+
+    console.log('Final insert data:', insertData);
+
     // Use direct query instead of secure query
     const { data: insertedCase, error: insertError } = await supabase
       .from('case_bookings')
-      .insert({
-        case_reference_number: caseReferenceNumber,
-        hospital: caseData.hospital,
-        department: caseData.department,
-        date_of_surgery: caseData.dateOfSurgery,
-        procedure_type: caseData.procedureType,
-        procedure_name: caseData.procedureName,
-        doctor_name: caseData.doctorName, // ⚠️ doctor_name (doctorName)
-        doctor_id: caseData.doctorId, // ⚠️ doctor_id (doctorId) FK
-        time_of_procedure: caseData.timeOfProcedure,
-        surgery_set_selection: caseData.surgerySetSelection || [],
-        implant_box: caseData.implantBox || [],
-        special_instruction: caseData.specialInstruction, // ⚠️ special_instruction (specialInstruction)
-        status: caseData.status,
-        submitted_by: caseData.submittedBy,
-        country: normalizeCountry(caseData.country || ''),
-        processed_by: caseData.processedBy,
-        processed_at: caseData.processedAt, // ⚠️ processed_at (processedAt)
-        process_order_details: caseData.processOrderDetails,
-        is_amended: caseData.isAmended || false,
-        amended_by: caseData.amendedBy,
-        amended_at: caseData.amendedAt
-      })
+      .insert(insertData)
       .select();
 
     console.log('Insert result:', { insertedCase, insertError });
@@ -461,13 +470,30 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
       throw insertError;
     }
 
-    if (!insertedCase) {
+    let finalInsertedCase = insertedCase;
+
+    if (!finalInsertedCase || finalInsertedCase.length === 0) {
       console.error('No data returned from database insert');
-      throw new Error('Failed to create case - no data returned from database');
+      console.error('Possible causes: RLS policy blocking insert, foreign key constraint failure, or invalid data');
+      
+      // Try to verify if the case was actually created
+      console.log('Attempting to verify if case was saved despite error...');
+      const { data: verificationData } = await supabase
+        .from('case_bookings')
+        .select('*')
+        .eq('case_reference_number', caseReferenceNumber)
+        .single();
+      
+      if (verificationData) {
+        console.log('Case was actually saved, using verification data:', verificationData);
+        finalInsertedCase = [verificationData];
+      } else {
+        throw new Error('Failed to create case - no data returned from database');
+      }
     }
 
     // Handle both single object and array returns from Supabase
-    const insertedCaseRecord = Array.isArray(insertedCase) ? insertedCase[0] : insertedCase;
+    const insertedCaseRecord = Array.isArray(finalInsertedCase) ? finalInsertedCase[0] : finalInsertedCase;
 
     // Create initial status history entry - only if it's a new case with "Case Booked" status
     if (caseData.status === 'Case Booked') {
