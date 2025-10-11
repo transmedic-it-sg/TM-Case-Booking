@@ -156,7 +156,7 @@ export const processCaseOrder = async (
 ): Promise<boolean> => {try {
     return await realtimeCaseService.updateCaseStatus(
       caseId,
-      'Order Prepared' as any,
+      'Order Preparation' as any,
       JSON.stringify({ details, attachments, processedBy: userId }),
       attachments
     );

@@ -10,6 +10,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
   onAmendCase,
   onDeleteCase,
   onOrderProcessed,
+  onMarkOrderProcessed,
   onSalesApproval,
   onOrderDelivered,
   onOrderReceived,
@@ -32,7 +33,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
             disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.PROCESS_ORDER)}
           >
             <button
-              onClick={() => onStatusChange(caseItem.id, 'Order Preparation')}
+              onClick={() => onOrderProcessed(caseItem.id)}
               className={`case-action-button process-order-button ${
                 !hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.PROCESS_ORDER)
                   ? 'disabled' : ''
@@ -50,7 +51,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
             disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.ORDER_PROCESSED)}
           >
             <button
-              onClick={() => onOrderProcessed(caseItem.id)}
+              onClick={() => onMarkOrderProcessed(caseItem.id)}
               className={`case-action-button process-button ${
                 !hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.ORDER_PROCESSED)
                   ? 'disabled' : ''

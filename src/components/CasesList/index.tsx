@@ -515,13 +515,13 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setAmendmentData({});
   };
 
-  const handleOrderProcessed = async (caseId: string) => {
+  const handleProcessOrder = async (caseId: string) => {
     const currentUser = getCurrentUserSync();
     if (!currentUser) return;
 
     try {
-      // First update the status to "Order Processing" to show in history when button is clicked
-      await updateCaseStatus(caseId, 'Order Processing' as CaseStatus, 'Order processing started');
+      // First update the status to "Order Preparation" to show in history when button is clicked
+      await updateCaseStatus(caseId, 'Order Preparation' as CaseStatus, 'Order processing started');
       
       // Then show the form
       setProcessingCase(caseId);
@@ -533,6 +533,19 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       setProcessingCase(caseId);
       setProcessDetails('');
       setProcessAttachments([]);
+    }
+  };
+
+  const handleOrderProcessed = async (caseId: string) => {
+    const currentUser = getCurrentUserSync();
+    if (!currentUser) return;
+
+    try {
+      // Update status from "Order Preparation" to "Order Prepared" 
+      await updateCaseStatus(caseId, 'Order Prepared' as CaseStatus, 'Order processing completed');
+      refreshCases();
+    } catch (error) {
+      console.error('Failed to mark order as processed:', error);
     }
   };
 
@@ -1172,7 +1185,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
                     onAmendCase={handleAmendCase}
                     onSaveAmendment={handleSaveAmendment}
                     onCancelAmendment={() => setAmendingCase(null)}
-                    onOrderProcessed={handleOrderProcessed}
+                    onOrderProcessed={handleProcessOrder}
+                    onMarkOrderProcessed={handleOrderProcessed}
                     onSaveProcessDetails={handleSaveProcessDetails}
                     onCancelProcessing={handleCancelProcessing}
                     salesApprovalCase={salesApprovalCase}

@@ -49,6 +49,7 @@ export interface CaseCardProps {
   onSaveAmendment: (amendmentData: any) => void;
   onCancelAmendment: () => void;
   onOrderProcessed: (caseId: string) => void;
+  onMarkOrderProcessed: (caseId: string) => void;
   onSaveProcessDetails: (caseId: string) => void;
   onCancelProcessing: () => void;
   onSalesApproval: (caseId: string) => void;
@@ -101,6 +102,7 @@ export interface CaseActionsProps {
   onAmendCase: (caseItem: CaseBooking) => void;
   onDeleteCase: (caseId: string, caseItem: CaseBooking) => void;
   onOrderProcessed: (caseId: string) => void;
+  onMarkOrderProcessed: (caseId: string) => void;
   onSalesApproval: (caseId: string) => void;
   onOrderDelivered: (caseId: string) => void;
   onOrderReceived: (caseId: string) => void;

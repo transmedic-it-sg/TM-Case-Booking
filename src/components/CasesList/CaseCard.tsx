@@ -73,6 +73,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   onSaveAmendment,
   onCancelAmendment,
   onOrderProcessed,
+  onMarkOrderProcessed,
   onSaveProcessDetails,
   onCancelProcessing,
   onSalesApproval,
@@ -2335,6 +2336,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
             onAmendCase={onAmendCase}
             onDeleteCase={onDeleteCase}
             onOrderProcessed={onOrderProcessed}
+            onMarkOrderProcessed={onMarkOrderProcessed}
             onSalesApproval={onSalesApproval}
             onOrderDelivered={onOrderDelivered}
             onOrderReceived={onOrderReceived}
