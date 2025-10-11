@@ -546,7 +546,7 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
     }
 
     // Transform back to CaseBooking interface
-    return {
+    const newCaseBooking: CaseBooking = {
       id: insertedCaseRecord.id,
       caseReferenceNumber: insertedCaseRecord.case_reference_number,
       hospital: insertedCaseRecord.hospital,
@@ -580,6 +580,26 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
         }
       ]
     };
+
+    // Process email notifications for new case creation (async, don't block response)
+    if (caseData.status === 'Case Booked') {
+      console.log('🚀 About to process email notifications for new case creation:', {
+        caseRef: newCaseBooking.caseReferenceNumber,
+        status: newCaseBooking.status,
+        submittedBy: newCaseBooking.submittedBy,
+        country: newCaseBooking.country
+      });
+      
+      processEmailNotifications(newCaseBooking, newCaseBooking.status, undefined, newCaseBooking.submittedBy)
+        .then(() => {
+          console.log('✅ Email notification processing completed for new case:', newCaseBooking.caseReferenceNumber);
+        })
+        .catch(emailError => {
+          console.error('❌ Failed to process email notifications for new case:', emailError);
+        });
+    }
+
+    return newCaseBooking;
   } catch (error) {
     throw error;
   }
