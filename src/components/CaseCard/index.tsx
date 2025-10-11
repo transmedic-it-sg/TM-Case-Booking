@@ -321,6 +321,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
             onAmendCase={(caseItem) => onAmendCase(caseItem.id)}
             onDeleteCase={(caseId, caseItem) => {/* Handle delete */}}
             onOrderProcessed={() => onOrderProcessed(caseItem.id)}
+            onMarkOrderProcessed={() => {/* Handle mark order processed */}}
             onSalesApproval={() => {/* Handle sales approval */}}
             onOrderDelivered={() => onOrderDelivered(caseItem.id)}
             onOrderReceived={() => onOrderReceived(caseItem.id)}
