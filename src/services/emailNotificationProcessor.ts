@@ -138,6 +138,15 @@ export const processEmailNotifications = async (
     const body = replaceTemplateVariables(notificationRule.template.body, caseData, changedBy);
 
     // Send email notification via Supabase Edge Function (not direct OAuth)
+    console.log('📧 Email Debug - Attempting to send notification:', {
+      activeProvider,
+      recipientCount: uniqueRecipients.length,
+      recipients: uniqueRecipients,
+      subject,
+      countryConfig: countryConfig?.providers?.[activeProvider],
+      caseRef: caseData.caseReferenceNumber
+    });
+
     const { data, error: emailError } = await supabase.functions.invoke('send-email', {
       body: {
         to: uniqueRecipients,
@@ -147,12 +156,24 @@ export const processEmailNotifications = async (
       }
     });
 
+    console.log('📧 Email Debug - Response from Edge Function:', {
+      data,
+      error: emailError,
+      success: data?.success,
+      errorMessage: data?.error || emailError?.message
+    });
+
     const success = data?.success && !emailError;
 
     if (success) {
-      console.log(`Email notification sent successfully to ${uniqueRecipients.length} recipients for case ${caseData.caseReferenceNumber}`);
+      console.log(`📧 Email notification sent successfully to ${uniqueRecipients.length} recipients for case ${caseData.caseReferenceNumber}`);
     } else {
-      console.error(`Failed to send email notification for case ${caseData.caseReferenceNumber}`);
+      console.error(`📧 Failed to send email notification for case ${caseData.caseReferenceNumber}:`, {
+        edgeFunctionData: data,
+        edgeFunctionError: emailError,
+        activeProvider,
+        providerConfig: countryConfig?.providers?.[activeProvider]
+      });
     }
 
   } catch (error) {

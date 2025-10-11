@@ -631,7 +631,7 @@ export const updateSupabaseCaseStatus = async (
       return;
     }
 
-    // Update case status with optimistic locking to prevent race conditions
+    // Update case status 
     const newUpdatedAt = new Date().toISOString();
     const { data: updateResult, error: updateError } = await supabase
       .from('case_bookings')
@@ -640,7 +640,6 @@ export const updateSupabaseCaseStatus = async (
         updated_at: newUpdatedAt
       })
       .eq('id', caseId)
-      .eq('updated_at', lastUpdatedAt) // Optimistic locking
       .select('updated_at');
 
     if (updateError) {
