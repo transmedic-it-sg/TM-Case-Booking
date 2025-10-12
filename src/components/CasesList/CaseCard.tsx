@@ -1714,7 +1714,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   </div>
                 )}
               </div>
-              <div className="processing-actions">
+              <div className="sales-approval-actions">
                 <button
                   onClick={() => onSaveProcessDetails(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
@@ -1975,7 +1975,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   </div>
                 )}
               </div>
-              <div className="processing-actions">
+              <div className="sales-approval-actions">
                 <button
                   onClick={() => onSaveOrderPrepared(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
@@ -1995,7 +1995,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
           {/* Hospital Delivery Form */}
           {hospitalDeliveryCase === caseItem.id && (
-            <div className="hospital-delivery-form">
+            <div className="sales-approval-form">
               <h4>Pending Delivery to Hospital</h4>
               <div className="form-group">
                 <label>Comments (Optional):</label>
@@ -2097,7 +2097,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   </div>
                 )}
               </div>
-              <div className="hospital-delivery-actions">
+              <div className="sales-approval-actions">
                 <button
                   onClick={() => onSaveHospitalDelivery(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
@@ -2116,7 +2116,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
           {/* Received Form */}
           {receivedCase === caseItem.id && (
-            <div className="received-form">
+            <div className="sales-approval-form">
               <h4>Order Received at Hospital</h4>
               <div className="form-group">
                 <label>Delivery Details:</label>
@@ -2149,7 +2149,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   </div>
                 )}
               </div>
-              <div className="received-actions">
+              <div className="sales-approval-actions">
                 <button
                   onClick={() => onSaveOrderReceived(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
@@ -2169,7 +2169,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
           {/* Completed Form */}
           {completedCase === caseItem.id && (
-            <div className="completed-form">
+            <div className="sales-approval-form">
               <h4>Case Completion</h4>
               <div className="form-group">
                 <label>Attachments (Optional):</label>
@@ -2237,7 +2237,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   className="do-number-input"
                 />
               </div>
-              <div className="completed-actions">
+              <div className="sales-approval-actions">
                 <button
                   onClick={() => onSaveCaseCompleted(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
@@ -2257,7 +2257,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
           {/* Pending Delivery (Office) Form */}
           {pendingOfficeCase === caseItem.id && (
-            <div className="pending-office-form">
+            <div className="sales-approval-form">
               <h4>Pending Delivery to Office</h4>
               <div className="form-group">
                 <label>Attachments (Optional):</label>
@@ -2336,7 +2336,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   className="comments-input"
                 />
               </div>
-              <div className="pending-office-actions">
+              <div className="sales-approval-actions">
                 <button
                   onClick={() => onSavePendingOffice(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
@@ -2355,7 +2355,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
           {/* Office Delivery Form */}
           {officeDeliveryCase === caseItem.id && (
-            <div className="office-delivery-form">
+            <div className="sales-approval-form">
               <h4>Delivery to Office</h4>
               <div className="form-group">
                 <label>Comments (Optional):</label>
@@ -2457,7 +2457,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   </div>
                 )}
               </div>
-              <div className="office-delivery-actions">
+              <div className="sales-approval-actions">
                 <button
                   onClick={() => onSaveOfficeDelivery(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
