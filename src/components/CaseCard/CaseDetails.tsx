@@ -34,8 +34,31 @@ const CaseDetails: React.FC<CaseDetailsProps> = ({
 
   const { getUserName } = useUserNames(userIds);
   
-  // Load case quantities
+  // Load case quantities with debugging
   const { getQuantityForItem, loading: quantitiesLoading } = useCaseQuantities(caseItem.id);
+  
+  // Debug quantities
+  React.useEffect(() => {
+    console.log('🔢 QUANTITIES DEBUG - CaseDetails:', {
+      caseId: caseItem.id,
+      caseRef: caseItem.caseReferenceNumber,
+      quantitiesLoading,
+      surgerySetCount: caseItem.surgerySetSelection?.length || 0,
+      implantBoxCount: caseItem.implantBox?.length || 0,
+      surgerySetItems: caseItem.surgerySetSelection || [],
+      implantBoxItems: caseItem.implantBox || [],
+      sampleQuantities: {
+        firstSurgerySet: caseItem.surgerySetSelection?.[0] ? {
+          item: caseItem.surgerySetSelection[0],
+          quantity: getQuantityForItem(caseItem.surgerySetSelection[0], 'surgery_set')
+        } : null,
+        firstImplantBox: caseItem.implantBox?.[0] ? {
+          item: caseItem.implantBox[0],
+          quantity: getQuantityForItem(caseItem.implantBox[0], 'implant_box')
+        } : null
+      }
+    });
+  }, [caseItem, getQuantityForItem, quantitiesLoading]);
 
   if (!isExpanded) return null;
 

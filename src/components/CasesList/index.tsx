@@ -62,21 +62,32 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
   });
 
-  // E2E DEBUG: Log cases data changes
+  // E2E DEBUG: Comprehensive View All Cases logging
   useEffect(() => {
-    console.log('🔍 E2E DEBUG - CasesList cases update:', {
+    console.log('🔍 VIEW ALL CASES DEBUG - Data Update:', {
+      timestamp: new Date().toISOString(),
       casesCount: cases.length,
       isLoading,
       isMutating,
       userCountry: currentUser?.selectedCountry,
-      casesPreview: cases.slice(0, 3).map(c => ({
+      userId: currentUser?.id,
+      userRole: currentUser?.role,
+      casesDetailedPreview: cases.slice(0, 3).map(c => ({
         id: c.id,
         ref: c.caseReferenceNumber,
         status: c.status,
-        hospital: c.hospital
-      }))
+        hospital: c.hospital,
+        submittedBy: c.submittedBy,
+        surgerySetSelection: c.surgerySetSelection,
+        implantBox: c.implantBox,
+        statusHistory: c.statusHistory?.length || 0,
+        amendmentHistory: c.amendmentHistory?.length || 0,
+        attachments: c.attachments?.length || 0
+      })),
+      allStatuses: [...new Set(cases.map(c => c.status))],
+      allHospitals: [...new Set(cases.map(c => c.hospital))]
     });
-  }, [cases, isLoading, isMutating, currentUser?.selectedCountry]);
+  }, [cases, isLoading, isMutating, currentUser]);
 
   // Real-time connection status - prioritize cases connection for this component
   const { overallConnected, casesConnected, forceRefreshAll } = useRealtime();
@@ -400,33 +411,57 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
   const handleStatusChange = async (caseId: string, newStatus: CaseStatus) => {
     const currentUser = getCurrentUserSync();
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.error('❌ STATUS CHANGE DEBUG - No current user found');
+      return;
+    }
 
     const caseItem = cases.find(c => c.id === caseId);
     
-    console.log('🔍 E2E DEBUG - Frontend Status Change:', {
+    console.log('🔍 STATUS CHANGE DEBUG - Starting Status Change:', {
+      timestamp: new Date().toISOString(),
       caseId,
       newStatus,
       oldStatus: caseItem?.status,
       caseRef: caseItem?.caseReferenceNumber,
+      hospital: caseItem?.hospital,
       currentUser: {
         id: currentUser.id,
         name: currentUser.name,
         role: currentUser.role,
-        country: currentUser.selectedCountry
-      }
+        country: currentUser.selectedCountry,
+        email: currentUser.email
+      },
+      caseSubmittedBy: caseItem?.submittedBy,
+      caseCountry: caseItem?.country,
+      caseDepartment: caseItem?.department,
+      existingStatusHistory: caseItem?.statusHistory?.length || 0
+    });
+
+    // Check for email notification rules
+    console.log('📧 EMAIL DEBUG - Checking notification rules for status change:', {
+      fromStatus: caseItem?.status,
+      toStatus: newStatus,
+      country: caseItem?.country,
+      expectedEmailTrigger: newStatus === 'Case Booked' || newStatus === 'Order Preparation' || newStatus === 'Order Prepared'
     });
 
     try {
+      console.log('🔄 STATUS CHANGE DEBUG - Calling updateCaseStatus...');
       await updateCaseStatus(caseId, newStatus);
-      console.log('✅ E2E DEBUG - Status update completed successfully');
+      console.log('✅ STATUS CHANGE DEBUG - updateCaseStatus completed successfully');
+      
+      console.log('🔄 STATUS CHANGE DEBUG - Refreshing cases...');
       refreshCases();
+      console.log('✅ STATUS CHANGE DEBUG - Cases refreshed');
     } catch (error) {
-      console.error('❌ E2E DEBUG - Status update failed:', {
+      console.error('❌ STATUS CHANGE DEBUG - Status update failed:', {
         error,
         caseId,
         newStatus,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
       });
       throw error;
     }

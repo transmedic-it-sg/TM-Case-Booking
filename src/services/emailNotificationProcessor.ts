@@ -40,17 +40,68 @@ export const processEmailNotifications = async (
   oldStatus?: CaseStatus,
   changedBy?: string
 ): Promise<void> => {
+  console.log('📧 EMAIL PROCESSOR DEBUG - Function Entry:', {
+    timestamp: new Date().toISOString(),
+    caseId: caseData.id,
+    caseRef: caseData.caseReferenceNumber,
+    newStatus,
+    oldStatus,
+    changedBy,
+    country: caseData.country,
+    hospital: caseData.hospital,
+    department: caseData.department,
+    hasGetEmailConfigFromDatabase: typeof getEmailConfigFromDatabase === 'function'
+  });
+
   try {
     // Get email configuration for the case's country
+    console.log('📧 EMAIL PROCESSOR DEBUG - Fetching email config:', {
+      country: caseData.country,
+      functionName: getEmailConfigFromDatabase.name
+    });
+
     const emailConfigs = await getEmailConfigFromDatabase(caseData.country);
+    
+    console.log('📧 EMAIL PROCESSOR DEBUG - Email config retrieved:', {
+      country: caseData.country,
+      hasEmailConfigs: !!emailConfigs,
+      configKeys: emailConfigs ? Object.keys(emailConfigs) : [],
+      emailConfigsType: typeof emailConfigs,
+      emailConfigsLength: emailConfigs ? Object.keys(emailConfigs).length : 0
+    });
+
     const countryConfig = emailConfigs[caseData.country];
     
+    console.log('📧 EMAIL PROCESSOR DEBUG - Country config check:', {
+      country: caseData.country,
+      hasCountryConfig: !!countryConfig,
+      countryConfigKeys: countryConfig ? Object.keys(countryConfig) : [],
+      providersAvailable: countryConfig?.providers ? Object.keys(countryConfig.providers) : []
+    });
+    
     if (!countryConfig) {
-      console.log(`No email configuration found for country: ${caseData.country}`);
+      console.log('❌ EMAIL PROCESSOR DEBUG - No email configuration found:', {
+        country: caseData.country,
+        availableCountries: emailConfigs ? Object.keys(emailConfigs) : [],
+        emailConfigsStructure: emailConfigs
+      });
       return;
     }
 
     // Get notification rule from email_notification_rules table
+    console.log('📧 EMAIL PROCESSOR DEBUG - Fetching notification rule:', {
+      country: caseData.country,
+      status: newStatus,
+      queryParams: {
+        table: 'email_notification_rules',
+        filters: {
+          country: caseData.country,
+          status: newStatus,
+          enabled: true
+        }
+      }
+    });
+
     const { supabase } = await import('../lib/supabase');
     const { data: notificationRule, error } = await supabase
       .from('email_notification_rules')
@@ -60,8 +111,24 @@ export const processEmailNotifications = async (
       .eq('enabled', true)
       .single();
 
+    console.log('📧 EMAIL PROCESSOR DEBUG - Notification rule query result:', {
+      country: caseData.country,
+      status: newStatus,
+      hasNotificationRule: !!notificationRule,
+      error: error,
+      notificationRule: notificationRule,
+      querySuccess: !error && !!notificationRule
+    });
+
     if (error || !notificationRule) {
-      console.log(`No notification rule enabled for status: ${newStatus} in ${caseData.country}`, error);
+      console.log('❌ EMAIL PROCESSOR DEBUG - No notification rule found:', {
+        country: caseData.country,
+        status: newStatus,
+        error: error,
+        errorMessage: error?.message,
+        errorCode: error?.code,
+        notificationRule: notificationRule
+      });
       return;
     }
 

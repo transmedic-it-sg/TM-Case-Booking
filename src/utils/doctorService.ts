@@ -302,18 +302,54 @@ export const getDailyUsageForDate = async (
  * Get case quantities from the database
  */
 export const getCaseQuantities = async (caseBookingId: string): Promise<CaseQuantity[]> => {
+  console.log('🔢 GET CASE QUANTITIES DEBUG - Function called:', {
+    caseBookingId,
+    hasCaseBookingId: !!caseBookingId,
+    caseBookingIdType: typeof caseBookingId,
+    timestamp: new Date().toISOString()
+  });
+
   try {
     if (!caseBookingId) {
+      console.log('❌ GET CASE QUANTITIES DEBUG - Invalid case booking ID:', {
+        caseBookingId,
+        reason: 'No caseBookingId provided'
+      });
       logger.warn('getCaseQuantities: Invalid case booking ID', { caseBookingId });
       return [];
     }
+
+    console.log('🔍 GET CASE QUANTITIES DEBUG - Querying database:', {
+      table: 'case_booking_quantities',
+      select: 'item_type, item_name, quantity',
+      filter: { case_booking_id: caseBookingId },
+      timestamp: new Date().toISOString()
+    });
 
     const { data, error } = await supabase
       .from('case_booking_quantities')
       .select('item_type, item_name, quantity')
       .eq('case_booking_id', caseBookingId); // ⚠️ case_booking_id (caseBookingId) FK - NOT caseId
 
+    console.log('🔍 GET CASE QUANTITIES DEBUG - Database response:', {
+      caseBookingId,
+      hasData: !!data,
+      dataLength: data?.length || 0,
+      error: error,
+      errorMessage: error?.message,
+      rawData: data,
+      timestamp: new Date().toISOString()
+    });
+
     if (error) {
+      console.error('❌ GET CASE QUANTITIES DEBUG - Database error:', {
+        caseBookingId,
+        error: error,
+        errorMessage: error.message,
+        errorCode: error.code,
+        errorDetails: error.details,
+        timestamp: new Date().toISOString()
+      });
       logger.error('Error fetching case quantities', {
         caseBookingId,
         error: error.message
@@ -322,17 +358,44 @@ export const getCaseQuantities = async (caseBookingId: string): Promise<CaseQuan
     }
 
     if (!data || data.length === 0) {
+      console.log('📭 GET CASE QUANTITIES DEBUG - No quantities found:', {
+        caseBookingId,
+        hasData: !!data,
+        dataLength: data?.length || 0,
+        isEmptyArray: Array.isArray(data) && data.length === 0,
+        timestamp: new Date().toISOString()
+      });
       return [];
     }
 
     // Convert to CaseQuantity array
-    return data.map(row => ({
+    const convertedData = data.map(row => ({
       item_type: row.item_type as 'surgery_set' | 'implant_box',
       item_name: row.item_name,
       quantity: row.quantity
     }));
 
+    console.log('✅ GET CASE QUANTITIES DEBUG - Conversion successful:', {
+      caseBookingId,
+      originalDataLength: data.length,
+      convertedDataLength: convertedData.length,
+      sampleConvertedData: convertedData.slice(0, 3),
+      allItemTypes: convertedData.map(d => d.item_type),
+      allItemNames: convertedData.map(d => d.item_name),
+      allQuantities: convertedData.map(d => d.quantity),
+      timestamp: new Date().toISOString()
+    });
+
+    return convertedData;
+
   } catch (error) {
+    console.error('❌ GET CASE QUANTITIES DEBUG - Exception occurred:', {
+      caseBookingId,
+      error: error,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorStack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
     logger.error('Exception in getCaseQuantities', {
       caseBookingId,
       error: error instanceof Error ? error.message : 'Unknown error'

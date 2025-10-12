@@ -600,19 +600,44 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
 
     // Process email notifications for new case creation (async, don't block response)
     if (caseData.status === 'Case Booked') {
-      console.log('🚀 About to process email notifications for new case creation:', {
+      console.log('📧 EMAIL DEBUG - New Case Email Notification Trigger:', {
+        timestamp: new Date().toISOString(),
+        caseId: newCaseBooking.id,
         caseRef: newCaseBooking.caseReferenceNumber,
         status: newCaseBooking.status,
         submittedBy: newCaseBooking.submittedBy,
-        country: newCaseBooking.country
+        country: newCaseBooking.country,
+        hospital: newCaseBooking.hospital,
+        department: newCaseBooking.department,
+        emailFunctionAvailable: typeof processEmailNotifications === 'function',
+        processEmailNotificationsName: processEmailNotifications.name
       });
       
       processEmailNotifications(newCaseBooking, newCaseBooking.status, undefined, newCaseBooking.submittedBy)
         .then(() => {
-          console.log('✅ Email notification processing completed for new case:', newCaseBooking.caseReferenceNumber);
+          console.log('✅ EMAIL DEBUG - New case email notification SUCCESS:', {
+            caseRef: newCaseBooking.caseReferenceNumber,
+            status: newCaseBooking.status,
+            submittedBy: newCaseBooking.submittedBy,
+            country: newCaseBooking.country,
+            timestamp: new Date().toISOString(),
+            completionMessage: 'Email notification processing completed successfully'
+          });
         })
         .catch(emailError => {
-          console.error('❌ Failed to process email notifications for new case:', emailError);
+          console.error('❌ EMAIL DEBUG - New case email notification FAILED:', {
+            caseRef: newCaseBooking.caseReferenceNumber,
+            status: newCaseBooking.status,
+            submittedBy: newCaseBooking.submittedBy,
+            country: newCaseBooking.country,
+            error: {
+              message: emailError.message,
+              stack: emailError.stack,
+              name: emailError.name
+            },
+            timestamp: new Date().toISOString(),
+            originalError: emailError
+          });
         });
     }
 
@@ -751,13 +776,45 @@ export const updateSupabaseCaseStatus = async (
         timestamp: new Date().toISOString(),
         details: details || null,
         attachments: attachments || null
-      };const { error: historyError } = await supabase
+      };
+
+      console.log('📋 STATUS HISTORY DEBUG - Creating history entry:', {
+        caseId,
+        newStatus,
+        oldStatus,
+        actualUser,
+        detailsProvided: details,
+        detailsType: typeof details,
+        detailsLength: details?.length || 0,
+        attachmentsProvided: attachments,
+        attachmentsCount: attachments?.length || 0,
+        historyEntry,
+        timestamp: new Date().toISOString()
+      });
+
+      const { error: historyError } = await supabase
         .from('status_history')
         .insert([historyEntry]);
 
       if (historyError) {
+        console.error('❌ STATUS HISTORY DEBUG - History insert failed:', {
+          caseId,
+          newStatus,
+          historyEntry,
+          error: historyError,
+          errorMessage: historyError.message,
+          timestamp: new Date().toISOString()
+        });
         throw historyError;
-      }// Add audit log for status change (only if history entry was added)
+      } else {
+        console.log('✅ STATUS HISTORY DEBUG - History entry created successfully:', {
+          caseId,
+          newStatus,
+          detailsSaved: details,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }// Add audit log for status change (only if history entry was added)
       if (caseRef && oldStatus !== newStatus) {
         try {
           const { auditCaseStatusChange } = await import('./auditService');
@@ -819,20 +876,49 @@ export const updateSupabaseCaseStatus = async (
             };
 
             // Process email notifications asynchronously (don't block status update)
-            console.log('🚀 About to process email notifications for status change:', {
+            console.log('📧 EMAIL DEBUG - Status Change Email Notification Trigger:', {
+              timestamp: new Date().toISOString(),
+              caseId: caseBooking.id,
               caseRef: caseBooking.caseReferenceNumber,
               oldStatus,
               newStatus,
               actualUser,
-              country: caseBooking.country
+              country: caseBooking.country,
+              hospital: caseBooking.hospital,
+              department: caseBooking.department,
+              submittedBy: caseBooking.submittedBy,
+              emailFunctionAvailable: typeof processEmailNotifications === 'function',
+              processEmailNotificationsName: processEmailNotifications.name,
+              statusChangeType: oldStatus ? 'status_update' : 'initial_status'
             });
             
             processEmailNotifications(caseBooking, newStatus, oldStatus, actualUser)
               .then(() => {
-                console.log('✅ Email notification processing completed for:', caseBooking.caseReferenceNumber);
+                console.log('✅ EMAIL DEBUG - Status change email notification SUCCESS:', {
+                  caseRef: caseBooking.caseReferenceNumber,
+                  oldStatus,
+                  newStatus,
+                  actualUser,
+                  country: caseBooking.country,
+                  timestamp: new Date().toISOString(),
+                  completionMessage: 'Email notification processing completed successfully for status change'
+                });
               })
               .catch(emailError => {
-                console.error('❌ Failed to process email notifications:', emailError);
+                console.error('❌ EMAIL DEBUG - Status change email notification FAILED:', {
+                  caseRef: caseBooking.caseReferenceNumber,
+                  oldStatus,
+                  newStatus,
+                  actualUser,
+                  country: caseBooking.country,
+                  error: {
+                    message: emailError.message,
+                    stack: emailError.stack,
+                    name: emailError.name
+                  },
+                  timestamp: new Date().toISOString(),
+                  originalError: emailError
+                });
               });
           }
         } catch (emailError) {
