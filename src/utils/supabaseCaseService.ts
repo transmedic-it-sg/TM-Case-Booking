@@ -750,29 +750,80 @@ export const updateSupabaseCaseStatus = async (
       throw new Error(`Status update failed - case ${caseRef} was modified by another process. Please refresh and try again.`);
     }
 
-    // Check if this is a status change that might create duplicates
+    // ENHANCED DUPLICATE PREVENTION - Check for same status within short time window
     let shouldAddHistoryEntry = true;
 
-    // Prevent duplicate entries, especially for "Case Booked"
+    // Check for existing status history entries with the same status very recently
     const { data: existingHistory } = await supabase
       .from('status_history')
       .select('*')
       .eq('case_id', caseId)
-      .eq('status', newStatus);
+      .eq('status', newStatus)
+      .gte('timestamp', new Date(new Date().getTime() - 30000).toISOString()) // Last 30 seconds only
+      .order('timestamp', { ascending: false });
 
     if (existingHistory && existingHistory.length > 0) {
-      // For "Case Booked", always prevent duplicates
-      if (newStatus === 'Case Booked') {
-        shouldAddHistoryEntry = false;} else {
-        // For other statuses, check if it's a recent duplicate (within 1 minute)
-        const recentDuplicate = existingHistory.find(entry => {
-        const entryTime = new Date(entry.timestamp).getTime();
-        const now = new Date().getTime();
-        return (now - entryTime) < 60000; // 1 minute
+      console.log('🚫 DUPLICATE PREVENTION - Recent identical status found:', {
+        caseId,
+        status: newStatus,
+        existingEntries: existingHistory.length,
+        mostRecentEntry: existingHistory[0],
+        timeDiff: new Date().getTime() - new Date(existingHistory[0].timestamp).getTime(),
+        preventingDuplicate: true
+      });
+      shouldAddHistoryEntry = false;
+    } else {
+      // Also check for any status entry within the last 5 seconds as additional protection
+      const { data: veryRecentHistory } = await supabase
+        .from('status_history')
+        .select('*')
+        .eq('case_id', caseId)
+        .gte('timestamp', new Date(new Date().getTime() - 5000).toISOString()) // Last 5 seconds
+        .order('timestamp', { ascending: false })
+        .limit(1);
+
+      if (veryRecentHistory && veryRecentHistory.length > 0) {
+        console.log('🚫 DUPLICATE PREVENTION - Very recent status entry found:', {
+          caseId,
+          newStatus,
+          recentStatus: veryRecentHistory[0].status,
+          timeDiff: new Date().getTime() - new Date(veryRecentHistory[0].timestamp).getTime(),
+          preventingRapidUpdates: true
+        });
+        // Only prevent if it's the exact same status
+        if (veryRecentHistory[0].status === newStatus) {
+          shouldAddHistoryEntry = false;
+        }
+      }
+    }
+
+    // Legacy duplicate check for backwards compatibility
+    if (shouldAddHistoryEntry) {
+      const { data: legacyCheck } = await supabase
+        .from('status_history')
+        .select('*')
+        .eq('case_id', caseId)
+        .eq('status', newStatus)
+        .order('timestamp', { ascending: false })
+        .limit(1);
+
+      if (legacyCheck && legacyCheck.length > 0) {
+        const recentDuplicate = legacyCheck.find(entry => {
+          const entryTime = new Date(entry.timestamp).getTime();
+          const now = new Date().getTime();
+          return (now - entryTime) < 60000; // 1 minute threshold
         });
 
         if (recentDuplicate) {
-        shouldAddHistoryEntry = false;}
+          console.log('🚫 DUPLICATE PREVENTION - Very recent entry found:', {
+            caseId,
+            status: newStatus,
+            recentEntry: recentDuplicate,
+            timeDiff: new Date().getTime() - new Date(recentDuplicate.timestamp).getTime(),
+            preventingDuplicate: true
+          });
+          shouldAddHistoryEntry = false;
+        }
       }
     }
 
@@ -1008,6 +1059,14 @@ export const amendSupabaseCase = async (
   amendments: Partial<CaseBooking>,
   amendedBy: string
 ): Promise<void> => {
+  console.log('🔧 AMENDMENT DEBUG - Function Entry:', {
+    timestamp: new Date().toISOString(),
+    caseId,
+    amendedBy,
+    amendments: JSON.stringify(amendments, null, 2),
+    amendmentsKeys: Object.keys(amendments)
+  });
+
   try {
     // First, get the current case data to track changes
     const { data: currentCase, error: fetchError } = await supabase
@@ -1016,7 +1075,15 @@ export const amendSupabaseCase = async (
       .eq('id', caseId)
       .single();
 
+    console.log('🔧 AMENDMENT DEBUG - Current Case Fetch:', {
+      caseId,
+      hasCurrentCase: !!currentCase,
+      fetchError: fetchError,
+      currentCaseFields: currentCase ? Object.keys(currentCase) : []
+    });
+
     if (fetchError) {
+      console.error('🔧 AMENDMENT DEBUG - Fetch Error:', fetchError);
       throw fetchError;
     }
 
@@ -1033,6 +1100,14 @@ export const amendSupabaseCase = async (
     };
 
     // Map amendments to database columns and track changes - using field mappings
+    console.log('🔧 AMENDMENT DEBUG - Field Comparison - Hospital:', {
+      amendmentsHospital: amendments.hospital,
+      currentCaseHospital: currentCase.hospital,
+      isUndefined: amendments.hospital === undefined,
+      areEqual: amendments.hospital === currentCase.hospital,
+      willCreateChange: amendments.hospital !== undefined && amendments.hospital !== currentCase.hospital
+    });
+    
     if (amendments.hospital !== undefined && amendments.hospital !== currentCase.hospital) {
       updateData[CASE_BOOKINGS_FIELDS.hospital] = amendments.hospital; // ⚠️ hospital field mapping
       changes.push({
@@ -1141,6 +1216,14 @@ export const amendSupabaseCase = async (
         });
       }
     }
+    console.log('🔧 AMENDMENT DEBUG - Field Comparison - Special Instruction:', {
+      amendmentsSpecialInstruction: amendments.specialInstruction,
+      currentCaseSpecialInstruction: currentCase.special_instruction,
+      isUndefined: amendments.specialInstruction === undefined,
+      areEqual: amendments.specialInstruction === currentCase.special_instruction,
+      willCreateChange: amendments.specialInstruction !== undefined && amendments.specialInstruction !== currentCase.special_instruction
+    });
+    
     if (amendments.specialInstruction !== undefined && amendments.specialInstruction !== currentCase.special_instruction) {
       updateData[CASE_BOOKINGS_FIELDS.specialInstruction] = amendments.specialInstruction; // ⚠️ special_instruction field mapping
       changes.push({
@@ -1150,8 +1233,17 @@ export const amendSupabaseCase = async (
       });
     }
 
+    console.log('🔧 AMENDMENT DEBUG - Changes Detection:', {
+      changesDetected: changes.length,
+      changes: JSON.stringify(changes, null, 2),
+      updateData: JSON.stringify(updateData, null, 2),
+      updateDataKeys: Object.keys(updateData)
+    });
+
     // Only proceed if there are actual changes
-    if (changes.length === 0) {return;
+    if (changes.length === 0) {
+      console.log('🔧 AMENDMENT DEBUG - No Changes Detected - Exiting');
+      return;
     }
 
     // Update case
@@ -1162,6 +1254,87 @@ export const amendSupabaseCase = async (
 
     if (updateError) {
       throw updateError;
+    }
+
+    // UPDATE QUANTITIES if surgery sets or implant boxes were changed
+    if (amendments.surgerySetSelection !== undefined || amendments.implantBox !== undefined) {
+      console.log('🔢 AMENDMENT QUANTITIES DEBUG - Updating quantities for amended case:', {
+        caseId,
+        oldSurgerySets: currentCase.surgery_set_selection,
+        newSurgerySets: amendments.surgerySetSelection,
+        oldImplantBoxes: currentCase.implant_box,
+        newImplantBoxes: amendments.implantBox
+      });
+
+      // Delete existing quantities for this case
+      const deleteQuantitiesQuery = supabase
+        .from('case_booking_quantities')
+        .delete()
+        .eq('case_booking_id', caseId);
+      
+      const { error: deleteQuantitiesError } = await deleteQuantitiesQuery;
+
+      if (deleteQuantitiesError) {
+        console.error('🔢 AMENDMENT QUANTITIES DEBUG - Failed to delete old quantities:', deleteQuantitiesError);
+      }
+
+      // Insert new quantities based on updated selections
+      const quantitiesToInsert = [];
+      
+      // Add surgery set quantities
+      const updatedSurgerySets = amendments.surgerySetSelection !== undefined 
+        ? amendments.surgerySetSelection 
+        : currentCase.surgery_set_selection || [];
+      
+      for (const setName of updatedSurgerySets) {
+        quantitiesToInsert.push({
+          case_booking_id: caseId,
+          item_type: 'surgery_set',
+          item_name: setName,
+          quantity: 1
+        });
+      }
+
+      // Add implant box quantities
+      const updatedImplantBoxes = amendments.implantBox !== undefined 
+        ? amendments.implantBox 
+        : currentCase.implant_box || [];
+      
+      for (const boxName of updatedImplantBoxes) {
+        quantitiesToInsert.push({
+          case_booking_id: caseId,
+          item_type: 'implant_box',
+          item_name: boxName,
+          quantity: 1
+        });
+      }
+
+      console.log('🔢 AMENDMENT QUANTITIES DEBUG - Inserting new quantities:', {
+        quantitiesToInsert,
+        quantityCount: quantitiesToInsert.length
+      });
+
+      if (quantitiesToInsert.length > 0) {
+        const { error: insertQuantitiesError } = await supabase
+          .from('case_booking_quantities')
+          .insert(quantitiesToInsert);
+
+        if (insertQuantitiesError) {
+          console.error('🔢 AMENDMENT QUANTITIES DEBUG - Failed to insert new quantities:', insertQuantitiesError);
+        } else {
+          console.log('✅ AMENDMENT QUANTITIES DEBUG - Successfully updated quantities');
+          
+          // Trigger usage recalculation for the surgery date
+          const surgeryDate = amendments.dateOfSurgery || currentCase.date_of_surgery;
+          const country = amendments.country || currentCase.country;
+          const department = amendments.department || currentCase.department;
+          
+          if (surgeryDate && country && department) {
+            await recalculateUsageForDate(surgeryDate, country, department);
+            console.log('✅ AMENDMENT QUANTITIES DEBUG - Usage recalculation triggered');
+          }
+        }
+      }
     }
 
     // Get the current authenticated user (with fallback for session)
@@ -1181,11 +1354,36 @@ export const amendSupabaseCase = async (
       [AMENDMENT_HISTORY_FIELDS.changes]: changes          // ⚠️ changes (JSONB)
     };
     
+    console.log('🔧 AMENDMENT DEBUG - History Entry Preparation:', {
+      historyEntry: JSON.stringify(historyEntry, null, 2),
+      fieldMappings: {
+        caseId: AMENDMENT_HISTORY_FIELDS.caseId,
+        amendedBy: AMENDMENT_HISTORY_FIELDS.amendedBy,
+        timestamp: AMENDMENT_HISTORY_FIELDS.timestamp,
+        reason: AMENDMENT_HISTORY_FIELDS.reason,
+        changes: AMENDMENT_HISTORY_FIELDS.changes
+      },
+      amendmentReason: (amendments as any).amendmentReason
+    });
+    
     const { error: historyError } = await supabase
       .from('amendment_history')
       .insert([historyEntry]);
 
+    console.log('🔧 AMENDMENT DEBUG - History Insert Result:', {
+      historyError: historyError,
+      insertSuccess: !historyError,
+      errorMessage: historyError?.message,
+      errorCode: historyError?.code,
+      errorDetails: historyError?.details
+    });
+
     if (historyError) {
+      console.log('🔧 AMENDMENT DEBUG - Trying Upsert Fallback:', {
+        originalError: historyError,
+        historyEntry: JSON.stringify(historyEntry, null, 2)
+      });
+      
       // Try alternative approach - use upsert instead of insert
       const { error: upsertError } = await supabase
         .from('amendment_history')
@@ -1194,11 +1392,32 @@ export const amendSupabaseCase = async (
         id: `${caseId}_${Date.now()}` // Generate unique ID
         }]);
 
+      console.log('🔧 AMENDMENT DEBUG - Upsert Result:', {
+        upsertError: upsertError,
+        upsertSuccess: !upsertError,
+        finalSuccess: !upsertError
+      });
+
       if (upsertError) {
+        console.error('🔧 AMENDMENT DEBUG - Both Insert and Upsert Failed:', {
+          originalError: historyError,
+          upsertError: upsertError
+        });
         throw historyError; // Throw original error
       }
+    } else {
+      console.log('🔧 AMENDMENT DEBUG - Amendment History Insert Success');
     }
   } catch (error) {
+    console.error('🔧 AMENDMENT DEBUG - Function Error:', {
+      error: error,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorStack: error instanceof Error ? error.stack : 'No stack trace',
+      caseId,
+      amendedBy,
+      amendments: JSON.stringify(amendments),
+      timestamp: new Date().toISOString()
+    });
     throw error;
   }
 };

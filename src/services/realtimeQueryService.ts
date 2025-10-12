@@ -310,38 +310,178 @@ export const useOptimisticCaseMutation = () => {
       const { caseId, status, data } = variables;
 
       if (status) {
-        // Update case status
-        const { error } = await supabase
+        // Update case status using proper field mappings
+        console.log('🔧 REALTIME QUERY DEBUG - Status update attempt:', {
+          caseId,
+          status,
+          timestamp: new Date().toISOString(),
+          operation: 'PATCH /rest/v1/case_bookings',
+          fieldMappings: {
+            status: CASE_BOOKINGS_FIELDS.status,
+            updatedAt: CASE_BOOKINGS_FIELDS.updatedAt
+          }
+        });
+
+        // Use field mapping utility for consistency
+        const updateData = { 
+          [CASE_BOOKINGS_FIELDS.status]: status, 
+          [CASE_BOOKINGS_FIELDS.updatedAt]: new Date().toISOString() 
+        };
+        console.log('🔧 REALTIME QUERY DEBUG - Update data with field mappings:', {
+          updateData,
+          rawFieldNames: Object.keys(updateData),
+          fieldMappingUsed: true
+        });
+
+        const { data: updateResult, error } = await supabase
           .from('case_bookings')
-          .update({ status, updated_at: new Date().toISOString() }) // ⚠️ updated_at (updatedAt)
-          .eq('id', caseId);
+          .update(updateData)
+          .eq('id', caseId)
+          .select(); // Add select to see what was updated
 
-        if (error) throw error;
-
-        // Add to status history
-        const { error: historyError } = await supabase
-          .from('status_history')
-          .insert({
-            case_id: caseId, // ⚠️ case_id (caseId) FK to case_bookings
+        if (error) {
+          console.error('❌ REALTIME QUERY DEBUG - Update failed:', {
+            error: error,
+            message: error.message,
+            details: error.details,
+            code: error.code,
+            hint: error.hint,
+            caseId,
             status,
-            timestamp: new Date().toISOString(),
-            processed_by: 'current_user', // Replace with actual user // ⚠️ processed_by (processedBy)
-            details: 'Status updated via real-time system'
+            updateData,
+            possibleCauses: [
+              'RLS policy blocking update',
+              'Invalid status value for enum constraint',
+              'Field name mismatch',
+              'Missing user authentication'
+            ]
+          });
+          throw error;
+        }
+
+        console.log('✅ REALTIME QUERY DEBUG - Status update successful:', {
+          caseId,
+          status,
+          updateResult,
+          rowsAffected: updateResult?.length || 0
+        });
+
+        // Add to status history with proper details and attachments
+        let statusDetails = 'Status updated via real-time system';
+        let statusAttachments = null;
+        
+        // Extract details and attachments from processOrderDetails if available
+        if (data?.processOrderDetails) {
+          try {
+            const orderDetails = JSON.parse(data.processOrderDetails as string);
+            
+            // Handle nested details (Sales Approval format)
+            if (orderDetails.details) {
+              try {
+                // Try to parse details as JSON (Sales Approval format)
+                const nestedDetails = JSON.parse(orderDetails.details);
+                if (nestedDetails.salesApprovalComments) {
+                  statusDetails = nestedDetails.salesApprovalComments;
+                } else if (typeof nestedDetails === 'string') {
+                  statusDetails = nestedDetails;
+                }
+              } catch {
+                // If not JSON, treat as plain text (Order Prepared format)
+                statusDetails = orderDetails.details;
+              }
+            }
+            
+            // Handle attachments
+            if (orderDetails.attachments && orderDetails.attachments.length > 0) {
+              statusAttachments = orderDetails.attachments;
+            }
+          } catch (error) {
+            console.warn('Failed to parse processOrderDetails:', error);
+          }
+        }
+
+        // DUPLICATE PREVENTION: Check for existing status history entries with the same status very recently
+        console.log('🔧 REALTIME QUERY DEBUG - Checking for duplicate status entries before insertion');
+        
+        const { data: existingHistory } = await supabase
+          .from('status_history')
+          .select('*')
+          .eq(STATUS_HISTORY_FIELDS.caseId, caseId)
+          .eq(STATUS_HISTORY_FIELDS.status, status)
+          .gte(STATUS_HISTORY_FIELDS.timestamp, new Date(new Date().getTime() - 30000).toISOString()) // Last 30 seconds
+          .order(STATUS_HISTORY_FIELDS.timestamp, { ascending: false });
+
+        if (existingHistory && existingHistory.length > 0) {
+          console.log('🚫 REALTIME QUERY DEBUG - Duplicate status prevented:', {
+            caseId,
+            status,
+            existingEntries: existingHistory.length,
+            mostRecentEntry: existingHistory[0],
+            timeDiff: new Date().getTime() - new Date(existingHistory[0].timestamp).getTime()
+          });
+          // Skip status history insertion to prevent duplicate
+        } else {
+          // Insert status history using proper field mappings
+          const statusHistoryData = {
+            [STATUS_HISTORY_FIELDS.caseId]: caseId,
+            [STATUS_HISTORY_FIELDS.status]: status,
+            [STATUS_HISTORY_FIELDS.timestamp]: new Date().toISOString(),
+            [STATUS_HISTORY_FIELDS.processedBy]: 'current_user', // TODO: Replace with actual user
+            [STATUS_HISTORY_FIELDS.details]: statusDetails,
+            [STATUS_HISTORY_FIELDS.attachments]: statusAttachments
+          };
+
+          console.log('🔧 REALTIME QUERY DEBUG - Status history insertion:', {
+            statusHistoryData,
+            fieldMappings: STATUS_HISTORY_FIELDS
           });
 
-        if (historyError) {
-          // Failed to record status history
+          const { error: historyError } = await supabase
+            .from('status_history')
+            .insert(statusHistoryData);
+
+          if (historyError) {
+            console.error('❌ REALTIME QUERY DEBUG - Status history insertion failed:', {
+              error: historyError,
+              statusHistoryData
+            });
+          } else {
+            console.log('✅ REALTIME QUERY DEBUG - Status history inserted successfully');
+          }
         }
+
+        // Status history handling completed
       }
 
       if (data) {
-        // Update case data
+        // Update case data using field mappings
+        const caseUpdateData = { 
+          ...data, 
+          [CASE_BOOKINGS_FIELDS.updatedAt]: new Date().toISOString() 
+        };
+        
+        console.log('🔧 REALTIME QUERY DEBUG - Case data update:', {
+          caseId,
+          caseUpdateData,
+          fieldMappingUsed: true
+        });
+
         const { error } = await supabase
           .from('case_bookings')
-          .update({ ...data, updated_at: new Date().toISOString() })
+          .update(caseUpdateData)
           .eq('id', caseId);
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ REALTIME QUERY DEBUG - Case data update failed:', {
+            error: error,
+            message: error.message,
+            caseId,
+            caseUpdateData
+          });
+          throw error;
+        }
+
+        console.log('✅ REALTIME QUERY DEBUG - Case data update successful');
       }
 
       return { caseId, status, data };

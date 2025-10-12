@@ -121,6 +121,9 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   const [salesApprovalCase, setSalesApprovalCase] = useState<string | null>(null);
   const [salesApprovalAttachments, setSalesApprovalAttachments] = useState<string[]>([]);
   const [salesApprovalComments, setSalesApprovalComments] = useState('');
+  const [orderPreparedCase, setOrderPreparedCase] = useState<string | null>(null);
+  const [orderPreparedAttachments, setOrderPreparedAttachments] = useState<string[]>([]);
+  const [orderPreparedComments, setOrderPreparedComments] = useState('');
 
   // Filter cases function - moved inside useEffect to avoid infinite loops
   const filterCasesLocally = useCallback((casesToFilter: CaseBooking[], filterOptions: FilterOptions, userRole?: string) => {
@@ -515,6 +518,13 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   };
 
   const handleSaveAmendment = async (amendmentFormData: any) => {
+    console.log('🔧 UI AMENDMENT DEBUG - handleSaveAmendment called:', {
+      timestamp: new Date().toISOString(),
+      amendmentFormData: JSON.stringify(amendmentFormData, null, 2),
+      amendingCase,
+      hasCurrentUser: !!getCurrentUserSync()
+    });
+
     const currentUser = getCurrentUserSync();
     if (!currentUser || !amendingCase) return;
 
@@ -522,6 +532,13 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       // Extract caseId from amendmentFormData if provided, otherwise use amendingCase
       const caseId = amendmentFormData.caseId || amendingCase;
       const { caseId: _, ...amendments } = amendmentFormData; // Remove caseId from amendments
+
+      console.log('🔧 UI AMENDMENT DEBUG - Processed amendment data:', {
+        caseId,
+        amendments: JSON.stringify(amendments, null, 2),
+        amendmentsKeys: Object.keys(amendments),
+        currentUserName: currentUser.name
+      });
 
       const caseItem = cases.find(c => c.id === caseId);
 
@@ -595,20 +612,16 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     const currentUser = getCurrentUserSync();
     if (!currentUser) return;
 
+    // Directly change status to "Preparing Order" without requiring additional input
     try {
-      // First update the status to "Preparing Order" to show in history when button is clicked
-      await updateCaseStatus(caseId, CASE_STATUSES.ORDER_PREPARATION, 'Order processing started');
-      
-      // Then show the form
-      setProcessingCase(caseId);
-      setProcessDetails('');
-      setProcessAttachments([]);
-      refreshCases();
+      await handleStatusChange(caseId, 'Preparing Order');
     } catch (error) {
-      // If status update fails, still show the form
-      setProcessingCase(caseId);
-      setProcessDetails('');
-      setProcessAttachments([]);
+      console.error('❌ PREPARING ORDER DEBUG - Failed to update status:', error);
+      addNotification({
+        title: 'Status Update Failed',
+        message: 'Failed to update case status to Preparing Order',
+        type: 'error'
+      });
     }
   };
 
@@ -616,13 +629,10 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     const currentUser = getCurrentUserSync();
     if (!currentUser) return;
 
-    try {
-      // Update status from "Preparing Order" to "Order Prepared" 
-      await updateCaseStatus(caseId, 'Order Prepared' as CaseStatus, 'Order processing completed');
-      refreshCases();
-    } catch (error) {
-      console.error('Failed to mark order as processed:', error);
-    }
+    // Just show the form - status will be updated when form is saved
+    setOrderPreparedCase(caseId);
+    setOrderPreparedComments('');
+    setOrderPreparedAttachments([]);
   };
 
   const handleSaveProcessDetails = async (caseId: string) => {
@@ -672,6 +682,44 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setProcessAttachments([]);
   };
 
+  const handleSaveOrderPrepared = async (caseId: string) => {
+    if (!orderPreparedComments.trim()) {
+      return;
+    }
+    const currentUser = getCurrentUserSync();
+    if (!currentUser) {
+      return;
+    }
+
+    try {
+      // Update status from "Preparing Order" to "Order Prepared" with comments and attachments
+      await updateCaseStatus(caseId, 'Order Prepared' as CaseStatus, orderPreparedComments, orderPreparedAttachments);
+      setOrderPreparedCase(null);
+      setOrderPreparedComments('');
+      setOrderPreparedAttachments([]);
+      refreshCases();
+
+      addNotification({
+        title: 'Order Prepared',
+        message: `Case has been marked as Order Prepared with comments and attachments`,
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Failed to save order prepared details:', error);
+      addNotification({
+        title: 'Error',
+        message: 'Failed to save order prepared details',
+        type: 'error'
+      });
+    }
+  };
+
+  const handleCancelOrderPrepared = () => {
+    setOrderPreparedCase(null);
+    setOrderPreparedComments('');
+    setOrderPreparedAttachments([]);
+  };
+
   // Sales Approval workflow
   const handleSalesApproval = (caseId: string) => {
     const currentUser = getCurrentUserSync();
@@ -686,53 +734,86 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
   const handleSaveSalesApproval = async (caseId: string) => {
     const currentUser = getCurrentUserSync();
+    
+    console.log('🔄 SALES APPROVAL DEBUG - Function called:', {
+      caseId,
+      timestamp: new Date().toISOString(),
+      isMutating,
+      currentUser: currentUser?.email
+    });
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.SALES_APPROVAL)) {
+      console.log('❌ SALES APPROVAL DEBUG - Permission denied:', {
+        hasUser: !!currentUser,
+        userRole: currentUser?.role,
+        hasPermission: hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.SALES_APPROVAL)
+      });
       return;
     }
 
     // Prevent double submission by checking if already processing
     if (isMutating) {
+      console.log('🚫 SALES APPROVAL DEBUG - Blocked due to mutation in progress');
       return;
     }
 
     try {
-      // Prepare status update details
-      const updateDetails = {
-        salesApprovalComments: salesApprovalComments.trim(),
-        attachments: salesApprovalAttachments,
-        processedBy: currentUser.name,
-        processedAt: new Date().toISOString()
-      };
+      const startTime = performance.now();
+      console.log('⚡ SALES APPROVAL DEBUG - Starting status update...');
 
-      // Use real-time hook for instant UI updates - no refreshCases needed as hook handles it
-      await updateCaseStatus(caseId, CASE_STATUSES.SALES_APPROVAL, JSON.stringify(updateDetails));
+      // Prepare status update details - optimize by only including necessary data
+      const updateDetails = salesApprovalComments.trim() || salesApprovalAttachments.length > 0 
+        ? JSON.stringify({
+            salesApprovalComments: salesApprovalComments.trim(),
+            attachments: salesApprovalAttachments,
+            processedBy: currentUser.name,
+            processedAt: new Date().toISOString()
+          })
+        : `Sales approval by ${currentUser.name}`;
 
-      // Reset form state
+      console.log('📝 SALES APPROVAL DEBUG - Details prepared:', {
+        hasComments: !!salesApprovalComments.trim(),
+        attachmentCount: salesApprovalAttachments.length,
+        detailsSize: updateDetails.length
+      });
+
+      // Single status update call - no manual refresh needed due to real-time
+      await updateCaseStatus(caseId, CASE_STATUSES.SALES_APPROVAL, updateDetails, salesApprovalAttachments);
+
+      const statusUpdateTime = performance.now();
+      console.log('✅ SALES APPROVAL DEBUG - Status update completed:', {
+        duration: `${(statusUpdateTime - startTime).toFixed(2)}ms`
+      });
+
+      // Batch state updates to reduce re-renders
       setSalesApprovalCase(null);
       setSalesApprovalComments('');
       setSalesApprovalAttachments([]);
-
-      // Reset to page 1 and expand the updated case
       setCurrentPage(1);
-      setExpandedCases(prev => new Set([...Array.from(prev), caseId]));
+      
+      // Optimize set operation
+      setExpandedCases(prev => {
+        const newSet = new Set(prev);
+        newSet.add(caseId);
+        return newSet;
+      });
 
-      // Show success popup
-      setSuccessMessage('Case successfully submitted for Sales Approval');
-      setShowSuccessPopup(true);
-
-      // Add notification for status change
+      // Single notification instead of popup + notification
       addNotification({
-        title: 'Sales Approval',
-        message: `Case submitted for sales approval`,
+        title: 'Sales Approval Submitted',
+        message: `Case ${caseId} successfully submitted for sales approval`,
         type: 'success'
       });
 
-      // Email notifications are handled automatically by the Email Notification Rules system
+      const totalTime = performance.now();
+      console.log('🎉 SALES APPROVAL DEBUG - Complete function finished:', {
+        totalDuration: `${(totalTime - startTime).toFixed(2)}ms`
+      });
+
     } catch (error) {
-      // Failed to update case status to Sales Approval
+      console.error('❌ SALES APPROVAL DEBUG - Error occurred:', error);
       addNotification({
-        title: 'Error',
-        message: 'Failed to submit case for sales approval',
+        title: 'Sales Approval Failed',
+        message: 'Failed to submit case for sales approval. Please try again.',
         type: 'error'
       });
     }
@@ -1271,6 +1352,11 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
                     onSalesApproval={handleSalesApproval}
                     onSaveSalesApproval={handleSaveSalesApproval}
                     onCancelSalesApproval={handleCancelSalesApproval}
+                    orderPreparedCase={orderPreparedCase}
+                    orderPreparedAttachments={orderPreparedAttachments}
+                    orderPreparedComments={orderPreparedComments}
+                    onSaveOrderPrepared={handleSaveOrderPrepared}
+                    onCancelOrderPrepared={handleCancelOrderPrepared}
                     onOrderDelivered={handleOpenHospitalDeliveryModal}
                     onOrderReceived={handleOrderReceived}
                     onSaveOrderReceived={handleSaveOrderReceived}
@@ -1296,6 +1382,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
                     onProcessCommentsChange={setProcessComments}
                     onSalesApprovalAttachmentsChange={setSalesApprovalAttachments}
                     onSalesApprovalCommentsChange={setSalesApprovalComments}
+                    onOrderPreparedAttachmentsChange={setOrderPreparedAttachments}
+                    onOrderPreparedCommentsChange={setOrderPreparedComments}
                     onSaveHospitalDelivery={handleOrderDelivered}
                     onCancelHospitalDelivery={handleCancelHospitalDelivery}
                     onHospitalDeliveryAttachmentsChange={setHospitalDeliveryAttachments}

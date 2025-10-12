@@ -132,12 +132,11 @@ export const processEmailNotifications = async (
       return;
     }
 
-    // Get active email provider for this country
-    const activeProvider = countryConfig.providers.microsoft.isAuthenticated ? 'microsoft' :
-                          countryConfig.providers.google.isAuthenticated ? 'google' : null;
+    // Get active email provider for this country (Microsoft-only)
+    const activeProvider = countryConfig.providers.microsoft.isAuthenticated ? 'microsoft' : null;
                           
     if (!activeProvider) {
-      console.log(`No authenticated email provider for country: ${caseData.country}`);
+      console.log(`Microsoft email provider not authenticated for country: ${caseData.country}`);
       return;
     }
 
@@ -222,11 +221,29 @@ export const processEmailNotifications = async (
       }
     });
 
+    // Get authentication tokens for the active provider
+    const authTokens = countryConfig.providers[activeProvider]?.tokens;
+    const userInfo = countryConfig.providers[activeProvider]?.userInfo;
+
+    console.log('🔍 E2E DEBUG - Auth tokens check:', {
+      activeProvider,
+      hasTokens: !!authTokens,
+      hasAccessToken: !!authTokens?.accessToken,
+      hasUserInfo: !!userInfo,
+      userEmail: userInfo?.email,
+      tokenExpiry: authTokens?.expiresAt,
+      isExpired: authTokens?.expiresAt ? Date.now() > authTokens.expiresAt : 'unknown'
+    });
+
     const emailPayload = {
       to: uniqueRecipients,
       subject,
       body,
-      fromName: countryConfig.providers[activeProvider].fromName || 'TM Case Booking System'
+      fromName: countryConfig.providers[activeProvider].fromName || 'TM Case Booking System',
+      // Include authentication tokens for Edge Function
+      authTokens: authTokens,
+      userInfo: userInfo,
+      provider: activeProvider
     };
 
     console.log('🔍 E2E DEBUG - Email payload:', JSON.stringify(emailPayload, null, 2));
@@ -337,16 +354,46 @@ const replaceTemplateVariables = (
   caseData: CaseBooking,
   changedBy?: string
 ): string => {
+  // Format surgery set selection and implant box arrays
+  const formatArray = (arr: string[] | undefined) => arr?.length ? arr.join(', ') : 'None selected';
+  
   return template
+    .replace(/\{\{caseReference\}\}/g, caseData.caseReferenceNumber)
     .replace(/\{\{caseReferenceNumber\}\}/g, caseData.caseReferenceNumber)
     .replace(/\{\{hospital\}\}/g, caseData.hospital)
     .replace(/\{\{department\}\}/g, caseData.department)
     .replace(/\{\{doctorName\}\}/g, caseData.doctorName || 'Not specified')
     .replace(/\{\{dateOfSurgery\}\}/g, caseData.dateOfSurgery)
+    .replace(/\{\{timeOfProcedure\}\}/g, caseData.timeOfProcedure || 'Not specified')
     .replace(/\{\{procedureType\}\}/g, caseData.procedureType)
     .replace(/\{\{procedureName\}\}/g, caseData.procedureName)
+    .replace(/\{\{surgerySetSelection\}\}/g, formatArray(caseData.surgerySetSelection))
+    .replace(/\{\{implantBox\}\}/g, formatArray(caseData.implantBox))
+    .replace(/\{\{specialInstruction\}\}/g, caseData.specialInstruction || 'None')
     .replace(/\{\{status\}\}/g, caseData.status)
+    .replace(/\{\{submittedBy\}\}/g, getSubmitterName(caseData.submittedBy) || caseData.submittedBy)
+    .replace(/\{\{submittedAt\}\}/g, formatTimestamp(caseData.submittedAt))
+    .replace(/\{\{country\}\}/g, caseData.country)
     .replace(/\{\{processedBy\}\}/g, changedBy || 'System')
-    .replace(/\{\{processedAt\}\}/g, new Date().toLocaleString())
-    .replace(/\{\{submittedBy\}\}/g, caseData.submittedBy);
+    .replace(/\{\{processedAt\}\}/g, new Date().toLocaleString());
+};
+
+/**
+ * Get submitter name from user ID
+ */
+const getSubmitterName = (submitterId?: string): string | null => {
+  // This would need to be enhanced to fetch actual user name
+  // For now, return the ID
+  return submitterId || null;
+};
+
+/**
+ * Format timestamp for display
+ */
+const formatTimestamp = (timestamp: string): string => {
+  try {
+    return new Date(timestamp).toLocaleString();
+  } catch {
+    return timestamp;
+  }
 };

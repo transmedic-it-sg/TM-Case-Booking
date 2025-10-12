@@ -33,6 +33,7 @@ import {
   DOCTORS_FIELDS,
   getDbField
 } from '../../utils/fieldMappings';
+import { getCaseQuantities } from '../../utils/doctorService';
 
 const CaseCard: React.FC<CaseCardProps> = ({
   caseItem,
@@ -49,6 +50,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
   salesApprovalCase,
   salesApprovalAttachments,
   salesApprovalComments,
+  orderPreparedCase,
+  orderPreparedAttachments,
+  orderPreparedComments,
   hospitalDeliveryCase,
   hospitalDeliveryAttachments,
   hospitalDeliveryComments,
@@ -79,6 +83,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
   onSalesApproval,
   onSaveSalesApproval,
   onCancelSalesApproval,
+  onSaveOrderPrepared,
+  onCancelOrderPrepared,
   onOrderDelivered,
   onOrderReceived,
   onSaveOrderReceived,
@@ -104,6 +110,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
   onProcessCommentsChange,
   onSalesApprovalAttachmentsChange,
   onSalesApprovalCommentsChange,
+  onOrderPreparedAttachmentsChange,
+  onOrderPreparedCommentsChange,
   onSaveHospitalDelivery,
   onCancelHospitalDelivery,
   onHospitalDeliveryAttachmentsChange,
@@ -147,6 +155,73 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
   // State for case quantities
   const [caseQuantities, setCaseQuantities] = useState<Record<string, number>>({});
+
+  // Load case quantities when case changes
+  useEffect(() => {
+    const loadCaseQuantities = async () => {
+      console.log('🔢 CASE CARD QUANTITIES DEBUG - Loading quantities for case:', {
+        caseId: caseItem.id,
+        caseRef: caseItem.caseReferenceNumber,
+        hasCaseId: !!caseItem.id,
+        timestamp: new Date().toISOString()
+      });
+
+      if (!caseItem.id) {
+        console.log('🔢 CASE CARD QUANTITIES DEBUG - No case ID, clearing quantities');
+        setCaseQuantities({});
+        return;
+      }
+
+      try {
+        const quantities = await getCaseQuantities(caseItem.id);
+        console.log('🔢 CASE CARD QUANTITIES DEBUG - Quantities loaded:', {
+          caseId: caseItem.id,
+          quantitiesReceived: quantities,
+          quantitiesCount: quantities?.length || 0,
+          timestamp: new Date().toISOString()
+        });
+
+        // Convert array to object for easy lookup
+        const quantitiesMap: Record<string, number> = {};
+        quantities.forEach(q => {
+          quantitiesMap[q.item_name] = q.quantity;
+        });
+
+        console.log('🔢 CASE CARD QUANTITIES DEBUG - Quantities mapped:', {
+          caseId: caseItem.id,
+          quantitiesMap,
+          mapKeys: Object.keys(quantitiesMap),
+          surgerySetSelection: caseItem.surgerySetSelection,
+          implantBox: caseItem.implantBox,
+          nameMatches: {
+            surgerySetMatches: (caseItem.surgerySetSelection || []).map(set => ({
+              name: set,
+              hasQuantity: set in quantitiesMap,
+              quantity: quantitiesMap[set]
+            })),
+            implantBoxMatches: (caseItem.implantBox || []).map(box => ({
+              name: box,
+              hasQuantity: box in quantitiesMap,
+              quantity: quantitiesMap[box]
+            }))
+          },
+          timestamp: new Date().toISOString()
+        });
+
+        setCaseQuantities(quantitiesMap);
+      } catch (error) {
+        console.error('❌ CASE CARD QUANTITIES DEBUG - Failed to load quantities:', {
+          caseId: caseItem.id,
+          error: error,
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString()
+        });
+        setCaseQuantities({});
+      }
+    };
+
+    loadCaseQuantities();
+  }, [caseItem.id]);
 
   // Load departments using Supabase service
   useEffect(() => {
@@ -401,15 +476,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <span className="detail-label">Surgery Set Selection: </span>
               <ul className="detail-value">
                 {(caseItem.surgerySetSelection || []).map(set => {
-                  // Removed debug log to prevent infinite rendering
+                  const quantity = caseQuantities[set] || 1; // Default to 1 if not found
                   return (
                     <li key={set} className="set-item-with-quantity">
                       <span className="set-name">{set}</span>
-                      {caseQuantities[set] && (
-                        <span className="quantity-badge" data-testid="surgery-set-quantity" title={`Quantity: ${caseQuantities[set]}`}>
-                          ×{caseQuantities[set]}
-                        </span>
-                      )}
+                      <span className="quantity-badge" data-testid="surgery-set-quantity" title={`Quantity: ${quantity}`}>
+                        ×{quantity}
+                      </span>
                     </li>
                   );
                 })}
@@ -419,15 +492,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <span className="detail-label">Implant Box: </span>
               <ul className="detail-value">
                 {(caseItem.implantBox || []).map(box => {
-                  // Removed debug log to prevent infinite rendering
+                  const quantity = caseQuantities[box] || 1; // Default to 1 if not found
                   return (
                     <li key={box} className="set-item-with-quantity">
                       <span className="set-name">{box}</span>
-                      {caseQuantities[box] && (
-                        <span className="quantity-badge" data-testid="implant-box-quantity" title={`Quantity: ${caseQuantities[box]}`}>
-                          ×{caseQuantities[box]}
-                        </span>
-                      )}
+                      <span className="quantity-badge" data-testid="implant-box-quantity" title={`Quantity: ${quantity}`}>
+                        ×{quantity}
+                      </span>
                     </li>
                   );
                 })}
@@ -964,11 +1035,6 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                         </div>
                                       );
                                     }
-                                    // TODO: Fix status comments display - disabled due to syntax error
-                                    // else if (parsedDetails.details || parsedDetails.salesApprovalComments) {
-                                    //   const comments = parsedDetails.details || parsedDetails.salesApprovalComments;
-                                    //   return <div><strong>Comments:</strong> {comments}</div>;
-                                    // }
                                   } catch {
                                     return <div>{historyItem.details}</div>;
                                   }
@@ -1416,11 +1482,6 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                         </div>
                                       );
                                     }
-                                    // TODO: Fix status comments display - disabled due to syntax error
-                                    // else if (parsedDetails.details || parsedDetails.salesApprovalComments) {
-                                    //   const comments = parsedDetails.details || parsedDetails.salesApprovalComments;
-                                    //   return <div><strong>Comments:</strong> {comments}</div>;
-                                    // }
                                   } catch {
                                     return <div>{historyItem.details}</div>;
                                   }
@@ -1799,6 +1860,131 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 </button>
                 <button
                   onClick={onCancelSalesApproval}
+                  className="btn btn-outline-secondary btn-md cancel-button"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Order Prepared Form */}
+          {orderPreparedCase === caseItem.id && (
+            <div className="sales-approval-form">
+              <h4>Order Prepared Details</h4>
+              <div className="form-group">
+                <label>Comments (Required):</label>
+                <textarea
+                  value={orderPreparedComments}
+                  onChange={(e) => onOrderPreparedCommentsChange(e.target.value)}
+                  placeholder="Enter order preparation details, completion notes, and any additional information..."
+                  rows={4}
+                  className="process-details-input"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Attachments (Optional):</label>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files) {
+                      const newAttachments: string[] = [];
+                      Array.from(files).forEach((file, index) => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const fileData = {
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            data: reader.result,
+                            uploadedAt: new Date().toISOString(),
+                            uploadedBy: currentUser?.name || 'Unknown'
+                          };
+                          newAttachments.push(JSON.stringify(fileData));
+                          if (newAttachments.length === files.length) {
+                            onOrderPreparedAttachmentsChange([...orderPreparedAttachments, ...newAttachments]);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                    }
+                  }}
+                  className="file-upload-input"
+                />
+                {orderPreparedAttachments.length > 0 && (
+                  <div className="attachment-list">
+                    <p>Uploaded files ({orderPreparedAttachments.length}):</p>
+                    {orderPreparedAttachments.map((attachment, index) => {
+                      try {
+                        const fileData = JSON.parse(attachment);
+                        const isImage = fileData.type.startsWith('image/');
+                        
+                        return (
+                          <div key={index} className="attachment-preview-item">
+                            {isImage ? (
+                              <div className="image-attachment">
+                                <img
+                                  src={fileData.data}
+                                  alt={fileData.name}
+                                  className="attachment-thumbnail"
+                                  style={{ maxWidth: '50px', maxHeight: '50px', borderRadius: '4px' }}
+                                />
+                                <div className="attachment-info">
+                                  <div className="file-name">{fileData.name}</div>
+                                  <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="file-attachment">
+                                <div className="file-icon">📄</div>
+                                <div className="attachment-info">
+                                  <div className="file-name">{fileData.name}</div>
+                                  <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                </div>
+                              </div>
+                            )}
+                            <button
+                              onClick={() => {
+                                const newAttachments = orderPreparedAttachments.filter((_, i) => i !== index);
+                                onOrderPreparedAttachmentsChange(newAttachments);
+                              }}
+                              className="remove-attachment-button"
+                              title="Remove attachment"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      } catch {
+                        return (
+                          <div key={index} className="attachment-preview-item">
+                            <div className="file-attachment error">
+                              <div className="file-icon">❌</div>
+                              <div className="attachment-info">
+                                <div className="file-name">Invalid file data</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="processing-actions">
+                <button
+                  onClick={() => onSaveOrderPrepared(caseItem.id)}
+                  className="btn btn-primary btn-md primary-button"
+                  disabled={!orderPreparedComments.trim()}
+                >
+                  Mark as Order Prepared
+                </button>
+                <button
+                  onClick={onCancelOrderPrepared}
                   className="btn btn-outline-secondary btn-md cancel-button"
                 >
                   Cancel
