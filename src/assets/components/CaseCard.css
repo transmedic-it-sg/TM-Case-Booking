@@ -794,19 +794,28 @@
   letter-spacing: 0.5px;
 }
 
-/* Quantity Badge Override - Fix white text color issue */
-.case-card .quantity-badge {
-  background: var(--primary);
-  color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  margin-left: 8px;
-  display: inline-block;
-  line-height: 1.2;
-  min-width: 20px;
-  text-align: center;
+/* Quantity Badge Override - Fix white text color issue with maximum specificity */
+.case-card .quantity-badge,
+.case-card .set-item-with-quantity .quantity-badge,
+.case-card li .quantity-badge,
+.case-card .detail-item .quantity-badge {
+  background: #20b2aa !important;  /* Solid color instead of CSS variable */
+  color: #ffffff !important;       /* Pure white text */
+  padding: 2px 8px !important;
+  border-radius: 12px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  margin-left: 8px !important;
+  display: inline-block !important;
+  line-height: 1.2 !important;
+  min-width: 20px !important;
+  text-align: center !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  
+  /* Force override any conflicting styles */
+  background-color: #20b2aa !important;
+  text-shadow: none !important;
 }
 
 /* Ensure proper contrast for quantity badges in case cards */

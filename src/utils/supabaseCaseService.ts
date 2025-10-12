@@ -1233,15 +1233,56 @@ export const amendSupabaseCase = async (
       });
     }
 
+    // ⚠️ CRITICAL FIX: Check for quantity changes independently
+    let quantityChangesDetected = false;
+    if (amendments.quantities) {
+      console.log('🔢 AMENDMENT DEBUG - Checking quantity changes:', {
+        providedQuantities: amendments.quantities,
+        quantitiesKeys: Object.keys(amendments.quantities)
+      });
+
+      // Get current quantities from database
+      const { data: currentQuantities } = await supabase
+        .from('case_booking_quantities')
+        .select('item_name, quantity')
+        .eq('case_booking_id', caseId);
+
+      console.log('🔢 AMENDMENT DEBUG - Current database quantities:', {
+        currentQuantities,
+        currentQuantitiesCount: currentQuantities?.length || 0
+      });
+
+      // Build current quantities map
+      const currentQuantitiesMap: Record<string, number> = {};
+      (currentQuantities || []).forEach(q => {
+        currentQuantitiesMap[q.item_name] = q.quantity;
+      });
+
+      // Compare quantities
+      for (const [itemName, newQuantity] of Object.entries(amendments.quantities)) {
+        const currentQuantity = currentQuantitiesMap[itemName] || 1;
+        if (newQuantity !== currentQuantity) {
+          quantityChangesDetected = true;
+          changes.push({
+            field: `${itemName} Quantity`,
+            oldValue: currentQuantity.toString(),
+            newValue: newQuantity.toString()
+          });
+          console.log(`🔢 AMENDMENT DEBUG - Quantity change detected: ${itemName} ${currentQuantity} → ${newQuantity}`);
+        }
+      }
+    }
+
     console.log('🔧 AMENDMENT DEBUG - Changes Detection:', {
       changesDetected: changes.length,
+      quantityChangesDetected,
       changes: JSON.stringify(changes, null, 2),
       updateData: JSON.stringify(updateData, null, 2),
       updateDataKeys: Object.keys(updateData)
     });
 
-    // Only proceed if there are actual changes
-    if (changes.length === 0) {
+    // Only proceed if there are actual changes (including quantity changes)
+    if (changes.length === 0 && !quantityChangesDetected) {
       console.log('🔧 AMENDMENT DEBUG - No Changes Detected - Exiting');
       return;
     }
@@ -1256,8 +1297,8 @@ export const amendSupabaseCase = async (
       throw updateError;
     }
 
-    // UPDATE QUANTITIES if surgery sets or implant boxes were changed
-    if (amendments.surgerySetSelection !== undefined || amendments.implantBox !== undefined) {
+    // UPDATE QUANTITIES if surgery sets, implant boxes, or quantities were changed
+    if (amendments.surgerySetSelection !== undefined || amendments.implantBox !== undefined || quantityChangesDetected) {
       console.log('🔢 AMENDMENT QUANTITIES DEBUG - Updating quantities for amended case:', {
         caseId,
         oldSurgerySets: currentCase.surgery_set_selection,
@@ -1287,11 +1328,12 @@ export const amendSupabaseCase = async (
         : currentCase.surgery_set_selection || [];
       
       for (const setName of updatedSurgerySets) {
+        const quantity = amendments.quantities?.[setName] || 1; // Use provided quantity or default to 1
         quantitiesToInsert.push({
           case_booking_id: caseId,
           item_type: 'surgery_set',
           item_name: setName,
-          quantity: 1
+          quantity: quantity
         });
       }
 
@@ -1301,11 +1343,12 @@ export const amendSupabaseCase = async (
         : currentCase.implant_box || [];
       
       for (const boxName of updatedImplantBoxes) {
+        const quantity = amendments.quantities?.[boxName] || 1; // Use provided quantity or default to 1
         quantitiesToInsert.push({
           case_booking_id: caseId,
           item_type: 'implant_box',
           item_name: boxName,
-          quantity: 1
+          quantity: quantity
         });
       }
 

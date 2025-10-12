@@ -154,6 +154,7 @@ export interface CaseBooking {
   };
   amendmentHistory?: AmendmentHistory[];
   amendmentReason?: string;
+  quantities?: Record<string, number>; // For amendment form quantity changes
 }
 
 export interface FilterOptions {

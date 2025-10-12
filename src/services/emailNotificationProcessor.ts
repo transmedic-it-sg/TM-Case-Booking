@@ -196,18 +196,20 @@ export const processEmailNotifications = async (
           notificationRule.recipients.members.includes(user.email)) {
         shouldIncludeUser = true;
         console.log(`📧 EMAIL DEBUG - User ${user.email} explicitly included in members list`);
-      } else {
-        // Check department filter for role-based users
+      }
+      
+      // Also check role-based inclusion (members can be included by role too, non-members checked for roles)
+      if (!shouldIncludeUser) {
+        // Check department filter first
+        let departmentPassed = true;
         if (notificationRule.recipients.departments && 
             !notificationRule.recipients.departments.includes('all') && 
             notificationRule.recipients.departments.length > 0) {
-          if (!notificationRule.recipients.departments.some((dept: string) => user.departments.includes(dept))) {
-            continue;
-          }
+          departmentPassed = notificationRule.recipients.departments.some((dept: string) => user.departments.includes(dept));
         }
 
-        // Check role filter for role-based users
-        if (notificationRule.recipients.roles && notificationRule.recipients.roles.length > 0) {
+        // Only check roles if department filter passed
+        if (departmentPassed && notificationRule.recipients.roles && notificationRule.recipients.roles.length > 0) {
           if (notificationRule.recipients.roles.includes(user.role)) {
             shouldIncludeUser = true;
             console.log(`📧 EMAIL DEBUG - User ${user.email} included by role: ${user.role}`);
