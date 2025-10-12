@@ -146,7 +146,6 @@ export const processEmailNotifications = async (
       countryConfig: countryConfig?.providers?.[activeProvider],
       caseRef: caseData.caseReferenceNumber,
       emailConfig: {
-        enabled: countryConfig?.providers?.[activeProvider]?.enabled,
         isAuthenticated: countryConfig?.providers?.[activeProvider]?.isAuthenticated
       }
     });
