@@ -8,6 +8,7 @@ import React, { useState, useCallback } from 'react';
 import { CaseCardProps } from './types';
 import { useCurrentUser, usePermissions } from '../../hooks';
 import { useUserNames } from '../../hooks/useUserNames';
+import { CASE_STATUSES } from '../../constants';
 
 // Sub-components
 import CaseHeader from './CaseHeader';
@@ -320,11 +321,11 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
           {/* Attachment Manager (when needed) */}
           {(isProcessing || isReceiving || isCompleting ||
-           caseItem.status === 'Order Prepared' ||
-           caseItem.status === 'Preparing Order' ||
-           caseItem.status === 'Pending Delivery (Hospital)' ||
-           caseItem.status === 'Delivered (Hospital)' ||
-           caseItem.status === 'Case Completed') && (
+           caseItem.status === CASE_STATUSES.ORDER_PREPARED ||
+           caseItem.status === CASE_STATUSES.ORDER_PREPARATION ||
+           caseItem.status === CASE_STATUSES.PENDING_DELIVERY_HOSPITAL ||
+           caseItem.status === CASE_STATUSES.DELIVERED_HOSPITAL ||
+           caseItem.status === CASE_STATUSES.CASE_COMPLETED) && (
             <EnhancedAttachmentManager
               caseId={caseItem.id}
               caseSubmittedBy={caseItem.submittedBy}

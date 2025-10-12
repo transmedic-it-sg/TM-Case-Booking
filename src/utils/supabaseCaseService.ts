@@ -490,13 +490,16 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
 
     console.log('Final insert data:', insertData);
 
-    // Use direct query instead of secure query - RLS policy fixed to allow proper data return
+    // FIXED: Use upsert with onConflict to handle RLS policy issues
     const { data: insertedCase, error: insertError } = await supabase
       .from('case_bookings')
-      .insert(insertData)
+      .upsert(insertData, { 
+        onConflict: 'case_reference_number',
+        ignoreDuplicates: false 
+      })
       .select();
 
-    console.log('🔍 E2E DEBUG - Insert result:', { 
+    console.log('✅ E2E DEBUG - Insert result (fixed with upsert):', { 
       insertedCase, 
       insertError,
       hasData: !!insertedCase,
@@ -522,20 +525,26 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
 
     let finalInsertedCase = insertedCase;
 
+    // Handle case where upsert still returns null (fallback to verification)
     if (!finalInsertedCase || finalInsertedCase.length === 0) {
-      console.error('No data returned from database insert');
-      console.error('Possible causes: RLS policy blocking insert, foreign key constraint failure, or invalid data');
+      console.log('🔍 E2E DEBUG - Upsert returned null, attempting verification query...');
       
-      // Try to verify if the case was actually created
-      console.log('Attempting to verify if case was saved despite error...');
-      const { data: verificationData } = await supabase
+      // Use a small delay to ensure database consistency
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const { data: verificationData, error: verifyError } = await supabase
         .from('case_bookings')
         .select('*')
         .eq('case_reference_number', caseReferenceNumber)
         .single();
       
+      if (verifyError) {
+        console.error('❌ E2E DEBUG - Verification query failed:', verifyError);
+        throw new Error('Failed to create case - no data returned and verification failed');
+      }
+      
       if (verificationData) {
-        console.log('Case was actually saved, using verification data:', verificationData);
+        console.log('✅ E2E DEBUG - Case verified as saved, using verification data:', verificationData);
         finalInsertedCase = [verificationData];
       } else {
         throw new Error('Failed to create case - no data returned from database');

@@ -597,7 +597,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
     try {
       // First update the status to "Preparing Order" to show in history when button is clicked
-      await updateCaseStatus(caseId, 'Preparing Order' as CaseStatus, 'Order processing started');
+      await updateCaseStatus(caseId, CASE_STATUSES.ORDER_PREPARATION, 'Order processing started');
       
       // Then show the form
       setProcessingCase(caseId);
