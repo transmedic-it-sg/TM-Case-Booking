@@ -454,9 +454,24 @@ export const useOptimisticCaseMutation = () => {
       }
 
       if (data) {
-        // Update case data using field mappings
+        // Convert camelCase data to snake_case using field mappings
+        const mappedData: Record<string, any> = {};
+        
+        // Convert each field using field mappings
+        Object.entries(data).forEach(([camelCaseKey, value]) => {
+          const snakeCaseKey = CASE_BOOKINGS_FIELDS[camelCaseKey as keyof typeof CASE_BOOKINGS_FIELDS];
+          if (snakeCaseKey) {
+            mappedData[snakeCaseKey] = value;
+          } else {
+            // Fallback: use camelCase key if no mapping found (shouldn't happen)
+            console.warn(`🔧 FIELD MAPPING WARNING - No mapping found for: ${camelCaseKey}`);
+            mappedData[camelCaseKey] = value;
+          }
+        });
+        
+        // Update case data using properly mapped field names
         const caseUpdateData = { 
-          ...data, 
+          ...mappedData, 
           [CASE_BOOKINGS_FIELDS.updatedAt]: new Date().toISOString() 
         };
         
