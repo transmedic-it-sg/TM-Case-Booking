@@ -187,7 +187,12 @@ export const processEmailNotifications = async (
 
     // Add case submitter if includeSubmitter is enabled
     if (notificationRule.recipients.includeSubmitter && caseData.submittedBy) {
-      recipients.push(caseData.submittedBy);
+      const submitterUser = allUsers.find(user => user.id === caseData.submittedBy);
+      if (submitterUser && submitterUser.email) {
+        recipients.push(submitterUser.email);
+      } else {
+        console.log(`⚠️ Could not find email for submitter ID: ${caseData.submittedBy}`);
+      }
     }
 
     // Remove duplicates

@@ -141,7 +141,8 @@
       "Bash(DISABLE_ESLINT_PLUGIN=true PORT=3001 npm start)",
       "WebFetch(domain:localhost)",
       "Read(//export const updateSupabaseCaseStatus/**)",
-      "Read(//export const updateSupabaseCaseStatus/**)"
+      "Read(//export const updateSupabaseCaseStatus/**)",
+      "WebFetch(domain:supabase.com)"
     ],
     "deny": [],
     "ask": [],
