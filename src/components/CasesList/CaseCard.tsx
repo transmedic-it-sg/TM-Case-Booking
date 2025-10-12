@@ -195,22 +195,14 @@ const CaseCard: React.FC<CaseCardProps> = ({
   useEffect(() => {
     const loadCaseQuantities = async () => {
       try {
-        console.log('🔍 CaseCard Debug - Loading quantities for case:', {
-          caseId: caseItem.id,
-          caseRef: caseItem.caseReferenceNumber
-        });
+        // Loading quantities for case
 
         const { data, error } = await supabase
           .from('case_booking_quantities')
           .select('item_name, quantity')
           .eq('case_booking_id', caseItem.id); // ⚠️ case_booking_id (caseBookingId) FK - NOT caseId
 
-        console.log('🔍 CaseCard Debug - Quantities query result:', {
-          caseRef: caseItem.caseReferenceNumber,
-          data,
-          error,
-          dataLength: data?.length
-        });
+        // Quantities query completed
 
         if (error) {
           console.error('🔍 CaseCard Debug - Quantities query error:', error);
@@ -229,7 +221,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
           });
           setCaseQuantities(quantities);
         } else {
-          console.log('🔍 CaseCard Debug - No quantities found, setting empty object');
+          // No quantities found
           setCaseQuantities({});
         }
       } catch (error) {
@@ -409,13 +401,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <span className="detail-label">Surgery Set Selection: </span>
               <ul className="detail-value">
                 {(caseItem.surgerySetSelection || []).map(set => {
-                  console.log('🔍 CaseCard Debug - Rendering surgery set:', {
-                    caseRef: caseItem.caseReferenceNumber,
-                    set,
-                    quantityExists: !!caseQuantities[set],
-                    quantity: caseQuantities[set],
-                    allQuantities: caseQuantities
-                  });
+                  // Removed debug log to prevent infinite rendering
                   return (
                     <li key={set} className="set-item-with-quantity">
                       <span className="set-name">{set}</span>
@@ -433,13 +419,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <span className="detail-label">Implant Box: </span>
               <ul className="detail-value">
                 {(caseItem.implantBox || []).map(box => {
-                  console.log('🔍 CaseCard Debug - Rendering implant box:', {
-                    caseRef: caseItem.caseReferenceNumber,
-                    box,
-                    quantityExists: !!caseQuantities[box],
-                    quantity: caseQuantities[box],
-                    allQuantities: caseQuantities
-                  });
+                  // Removed debug log to prevent infinite rendering
                   return (
                     <li key={box} className="set-item-with-quantity">
                       <span className="set-name">{box}</span>

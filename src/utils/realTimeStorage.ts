@@ -8,6 +8,7 @@ import { CaseBooking, FilterOptions } from '../types';
 import { realtimeCaseService } from '../services/realtimeCaseService';
 import { supabase } from '../lib/supabase';
 import { getCurrentUserSync } from './authCompat';
+import { CASE_STATUSES } from '../constants';
 import { 
   CASE_BOOKINGS_FIELDS, 
   CASE_QUANTITIES_FIELDS, 
@@ -156,7 +157,7 @@ export const processCaseOrder = async (
 ): Promise<boolean> => {try {
     return await realtimeCaseService.updateCaseStatus(
       caseId,
-      'Order Preparation' as any,
+      CASE_STATUSES.ORDER_PREPARATION,
       JSON.stringify({ details, attachments, processedBy: userId }),
       attachments
     );
