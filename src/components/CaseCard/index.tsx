@@ -201,8 +201,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
                         </div>
                       </div>
                     )}
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

@@ -300,7 +300,7 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
                   actionFunctionName: action.action?.name || 'anonymous',
                   event: {
                     type: e.type,
-                    target: e.target.tagName,
+                    target: (e.target as HTMLElement)?.tagName || 'unknown',
                     bubbles: e.bubbles
                   }
                 });
@@ -314,7 +314,7 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
                   });
                   
                   try {
-                    const result = action.action(e);
+                    const result = action.action();
                     console.log('✅ STATUS WORKFLOW DEBUG - Action Executed:', {
                       actionKey: action.key,
                       result: result,
@@ -323,8 +323,8 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
                   } catch (error) {
                     console.error('❌ STATUS WORKFLOW DEBUG - Action Failed:', {
                       actionKey: action.key,
-                      error: error.message,
-                      stack: error.stack
+                      error: error instanceof Error ? error.message : String(error),
+                      stack: error instanceof Error ? error.stack : undefined
                     });
                   }
                 } else {

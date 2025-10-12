@@ -139,7 +139,9 @@
       "mcp__supabase__get_edge_function",
       "WebFetch(domain:tm-case-booking.vercel.app)",
       "Bash(DISABLE_ESLINT_PLUGIN=true PORT=3001 npm start)",
-      "WebFetch(domain:localhost)"
+      "WebFetch(domain:localhost)",
+      "Read(//export const updateSupabaseCaseStatus/**)",
+      "Read(//export const updateSupabaseCaseStatus/**)"
     ],
     "deny": [],
     "ask": [],

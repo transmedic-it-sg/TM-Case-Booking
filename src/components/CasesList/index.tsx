@@ -443,7 +443,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       fromStatus: caseItem?.status,
       toStatus: newStatus,
       country: caseItem?.country,
-      expectedEmailTrigger: newStatus === 'Case Booked' || newStatus === 'Order Preparation' || newStatus === 'Order Prepared'
+      expectedEmailTrigger: newStatus === 'Case Booked' || newStatus === 'Preparing Order' || newStatus === 'Order Prepared'
     });
 
     try {
@@ -596,8 +596,8 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     if (!currentUser) return;
 
     try {
-      // First update the status to "Order Preparation" to show in history when button is clicked
-      await updateCaseStatus(caseId, 'Order Preparation' as CaseStatus, 'Order processing started');
+      // First update the status to "Preparing Order" to show in history when button is clicked
+      await updateCaseStatus(caseId, 'Preparing Order' as CaseStatus, 'Order processing started');
       
       // Then show the form
       setProcessingCase(caseId);
@@ -617,7 +617,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     if (!currentUser) return;
 
     try {
-      // Update status from "Order Preparation" to "Order Prepared" 
+      // Update status from "Preparing Order" to "Order Prepared" 
       await updateCaseStatus(caseId, 'Order Prepared' as CaseStatus, 'Order processing completed');
       refreshCases();
     } catch (error) {
