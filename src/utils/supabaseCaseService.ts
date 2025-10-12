@@ -490,13 +490,19 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
 
     console.log('Final insert data:', insertData);
 
-    // Use direct query instead of secure query
+    // Use direct query instead of secure query - RLS policy fixed to allow proper data return
     const { data: insertedCase, error: insertError } = await supabase
       .from('case_bookings')
       .insert(insertData)
       .select();
 
-    console.log('Insert result:', { insertedCase, insertError });
+    console.log('🔍 E2E DEBUG - Insert result:', { 
+      insertedCase, 
+      insertError,
+      hasData: !!insertedCase,
+      dataLength: insertedCase?.length,
+      insertedCaseData: insertedCase?.[0]
+    });
 
     if (insertError) {
       console.error('Database insert error:', insertError);

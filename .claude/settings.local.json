@@ -135,7 +135,9 @@
       "Bash(CI=true DISABLE_ESLINT_PLUGIN=true npm run build)",
       "Bash(CI=false DISABLE_ESLINT_PLUGIN=true npm run build)",
       "Bash(npx playwright:*)",
-      "WebFetch(domain:tm-case-booking-qjd65behk-tmsg-its-projects.vercel.app)"
+      "WebFetch(domain:tm-case-booking-qjd65behk-tmsg-its-projects.vercel.app)",
+      "Bash(DISABLE_ESLINT_PLUGIN=true PORT=3001 npm start)",
+      "WebFetch(domain:localhost)"
     ],
     "deny": [],
     "ask": [],
