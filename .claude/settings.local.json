@@ -126,7 +126,8 @@
       "Bash(npx playwright:*)",
       "WebFetch(domain:tm-case-booking-qjd65behk-tmsg-its-projects.vercel.app)",
       "Bash(DISABLE_ESLINT_PLUGIN=true PORT=3001 npm start)",
-      "WebFetch(domain:localhost)"
+      "WebFetch(domain:localhost)",
+      "WebFetch(domain:tm-case-booking-b822fipgg-tmsg-its-projects.vercel.app)"
     ],
     "deny": [],
     "ask": []
