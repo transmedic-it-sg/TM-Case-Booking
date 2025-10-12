@@ -103,6 +103,28 @@ export const processEmailNotifications = async (
     });
 
     const { supabase } = await import('../lib/supabase');
+    
+    // First, check what rules exist for debugging
+    const { data: allRules } = await supabase
+      .from('email_notification_rules')
+      .select('status, country, enabled')
+      .eq('country', caseData.country)
+      .eq('enabled', true);
+    
+    console.log('📧 EMAIL PROCESSOR DEBUG - Available rules for country:', {
+      country: caseData.country,
+      requestedStatus: newStatus,
+      availableRules: allRules?.map(r => r.status) || [],
+      exactStatusMatch: allRules?.some(r => r.status === newStatus),
+      statusComparison: allRules?.map(r => ({
+        ruleStatus: r.status,
+        requestedStatus: newStatus,
+        match: r.status === newStatus,
+        ruleLength: r.status.length,
+        requestLength: newStatus.length
+      })) || []
+    });
+    
     const { data: notificationRule, error } = await supabase
       .from('email_notification_rules')
       .select('*')
@@ -146,6 +168,16 @@ export const processEmailNotifications = async (
     const allUsers = await getAllSupabaseUsers();
     const recipients: string[] = [];
 
+    console.log('📧 EMAIL DEBUG - Notification rule details:', {
+      status: newStatus,
+      country: caseData.country,
+      recipients: notificationRule.recipients,
+      totalUsers: allUsers.length,
+      enabledUsers: allUsers.filter(u => u.enabled).length,
+      membersConfigured: notificationRule.recipients.members?.length || 0,
+      rolesConfigured: notificationRule.recipients.roles?.length || 0
+    });
+
     // Filter users based on notification rules from database
     for (const user of allUsers) {
       if (!user.email || !user.enabled) {
@@ -157,31 +189,36 @@ export const processEmailNotifications = async (
         continue; // Skip users not in this country
       }
 
-      // Check department filter
-      if (notificationRule.recipients.departments && 
-          !notificationRule.recipients.departments.includes('all') && 
-          notificationRule.recipients.departments.length > 0) {
-        if (!notificationRule.recipients.departments.some((dept: string) => user.departments.includes(dept))) {
-          continue;
+      let shouldIncludeUser = false;
+
+      // Check if user is explicitly listed in members (highest priority)
+      if (notificationRule.recipients.members && 
+          notificationRule.recipients.members.includes(user.email)) {
+        shouldIncludeUser = true;
+        console.log(`📧 EMAIL DEBUG - User ${user.email} explicitly included in members list`);
+      } else {
+        // Check department filter for role-based users
+        if (notificationRule.recipients.departments && 
+            !notificationRule.recipients.departments.includes('all') && 
+            notificationRule.recipients.departments.length > 0) {
+          if (!notificationRule.recipients.departments.some((dept: string) => user.departments.includes(dept))) {
+            continue;
+          }
+        }
+
+        // Check role filter for role-based users
+        if (notificationRule.recipients.roles && notificationRule.recipients.roles.length > 0) {
+          if (notificationRule.recipients.roles.includes(user.role)) {
+            shouldIncludeUser = true;
+            console.log(`📧 EMAIL DEBUG - User ${user.email} included by role: ${user.role}`);
+          }
         }
       }
 
-      // Check role filter
-      if (notificationRule.recipients.roles && notificationRule.recipients.roles.length > 0) {
-        if (!notificationRule.recipients.roles.includes(user.role)) {
-          continue;
-        }
+      if (shouldIncludeUser) {
+        recipients.push(user.email);
+        console.log(`📧 EMAIL DEBUG - Added recipient: ${user.email} (${user.name})`);
       }
-
-      // Check specific members filter
-      if (notificationRule.recipients.members && notificationRule.recipients.members.length > 0) {
-        if (!notificationRule.recipients.members.includes(user.email)) {
-          continue;
-        }
-      }
-
-      // Add user email to recipients
-      recipients.push(user.email);
     }
 
     // Add case submitter if includeSubmitter is enabled
@@ -197,12 +234,27 @@ export const processEmailNotifications = async (
     // Remove duplicates
     const uniqueRecipients = [...new Set(recipients)];
 
+    console.log('📧 EMAIL DEBUG - Final recipient analysis:', {
+      beforeDeduplication: recipients.length,
+      afterDeduplication: uniqueRecipients.length,
+      recipients: uniqueRecipients,
+      expectedMembers: notificationRule.recipients.members || [],
+      jadeIncluded: uniqueRecipients.includes('jade.long@transmedicgroup.com'),
+      sereneIncluded: uniqueRecipients.includes('serene.lim@transmedicgroup.com'),
+      notificationRuleMembers: notificationRule.recipients.members,
+      caseDetails: {
+        caseRef: caseData.caseReferenceNumber,
+        status: newStatus,
+        country: caseData.country
+      }
+    });
+
     if (uniqueRecipients.length === 0) {
-      console.log(`No valid recipients found for case ${caseData.caseReferenceNumber}`);
+      console.log(`❌ EMAIL DEBUG - No valid recipients found for case ${caseData.caseReferenceNumber}`);
       return;
     }
 
-    console.log(`Found ${uniqueRecipients.length} recipients for ${newStatus} notification:`, uniqueRecipients);
+    console.log(`✅ EMAIL DEBUG - Found ${uniqueRecipients.length} recipients for ${newStatus} notification:`, uniqueRecipients);
 
     // Create email content using template from notification rule
     const subject = replaceTemplateVariables(notificationRule.template.subject, caseData, changedBy);

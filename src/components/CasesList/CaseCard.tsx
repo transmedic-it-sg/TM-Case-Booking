@@ -666,6 +666,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                             <div>
                                               <strong>Attachments ({parsedDetails.attachments.length}):</strong>
                                               <div className="attachment-preview-grid">
+                                                {/* ⚠️ ATTACHMENT RENDERER FIX: This block should be replaced with AttachmentRenderer component */}
                                                 {parsedDetails.attachments.map((attachment: string, index: number) => {
                                                   try {
                                                     const fileData = JSON.parse(attachment);
@@ -756,6 +757,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                             <div>
                                               <strong>Attachments ({parsedDetails.attachments.length}):</strong>
                                               <div className="attachment-preview-grid">
+                                                {/* ⚠️ ATTACHMENT RENDERER FIX: This block should be replaced with AttachmentRenderer component */}
                                                 {parsedDetails.attachments.map((attachment: string, index: number) => {
                                                   try {
                                                     const fileData = JSON.parse(attachment);
@@ -851,6 +853,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                             <div>
                                               <strong>Attachments ({parsedDetails.attachments.length}):</strong>
                                               <div className="attachment-preview-grid">
+                                                {/* ⚠️ ATTACHMENT RENDERER FIX: This block should be replaced with AttachmentRenderer component */}
                                                 {parsedDetails.attachments.map((attachment: string, index: number) => {
                                                   try {
                                                     const fileData = JSON.parse(attachment);
@@ -1118,6 +1121,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                             <div>
                                               <strong>Attachments ({parsedDetails.attachments.length}):</strong>
                                               <div className="attachment-preview-grid">
+                                                {/* ⚠️ ATTACHMENT RENDERER FIX: This block should be replaced with AttachmentRenderer component */}
                                                 {parsedDetails.attachments.map((attachment: string, index: number) => {
                                                   try {
                                                     const fileData = JSON.parse(attachment);
@@ -1208,6 +1212,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                             <div>
                                               <strong>Attachments ({parsedDetails.attachments.length}):</strong>
                                               <div className="attachment-preview-grid">
+                                                {/* ⚠️ ATTACHMENT RENDERER FIX: This block should be replaced with AttachmentRenderer component */}
                                                 {parsedDetails.attachments.map((attachment: string, index: number) => {
                                                   try {
                                                     const fileData = JSON.parse(attachment);
@@ -1303,6 +1308,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                             <div>
                                               <strong>Attachments ({parsedDetails.attachments.length}):</strong>
                                               <div className="attachment-preview-grid">
+                                                {/* ⚠️ ATTACHMENT RENDERER FIX: This block should be replaced with AttachmentRenderer component */}
                                                 {parsedDetails.attachments.map((attachment: string, index: number) => {
                                                   try {
                                                     const fileData = JSON.parse(attachment);

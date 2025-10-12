@@ -794,6 +794,34 @@
   letter-spacing: 0.5px;
 }
 
+/* Quantity Badge Override - Fix white text color issue */
+.case-card .quantity-badge {
+  background: var(--primary);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+  display: inline-block;
+  line-height: 1.2;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Ensure proper contrast for quantity badges in case cards */
+.case-card .set-item-with-quantity {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.case-card .set-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
 .expand-amendment-button {
   background: none;
   border: 1px solid var(--warning-color);
