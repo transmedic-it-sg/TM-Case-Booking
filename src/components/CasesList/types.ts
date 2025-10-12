@@ -23,6 +23,9 @@ export interface CaseCardProps {
   salesApprovalCase: string | null;
   salesApprovalAttachments: string[];
   salesApprovalComments: string;
+  orderPreparedCase: string | null;
+  orderPreparedAttachments: string[];
+  orderPreparedComments: string;
   deliveryCase: string | null;
   deliveryDetails: string;
   hospitalDeliveryCase: string | null;
@@ -55,6 +58,8 @@ export interface CaseCardProps {
   onSalesApproval: (caseId: string) => void;
   onSaveSalesApproval: (caseId: string) => void;
   onCancelSalesApproval: () => void;
+  onSaveOrderPrepared: (caseId: string) => void;
+  onCancelOrderPrepared: () => void;
   onOrderDelivered: (caseId: string) => void;
   onSaveHospitalDelivery: (caseId: string) => void;
   onCancelHospitalDelivery: () => void;
@@ -82,6 +87,8 @@ export interface CaseCardProps {
   onProcessCommentsChange: (comments: string) => void;
   onSalesApprovalAttachmentsChange: (attachments: string[]) => void;
   onSalesApprovalCommentsChange: (comments: string) => void;
+  onOrderPreparedAttachmentsChange: (attachments: string[]) => void;
+  onOrderPreparedCommentsChange: (comments: string) => void;
   onHospitalDeliveryAttachmentsChange: (attachments: string[]) => void;
   onHospitalDeliveryCommentsChange: (comments: string) => void;
   onReceivedDetailsChange: (details: string) => void;

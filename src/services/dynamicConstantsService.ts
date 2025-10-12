@@ -141,7 +141,7 @@ class DynamicConstantsService {
       const statuses = await this.getDynamicConstant('case_statuses');
       return statuses || [
         'Case Booked',
-        'Order Preparation',
+        'Preparing Order',
         'Order Prepared',
         'Pending Delivery (Hospital)',
         'Delivered (Hospital)',
@@ -153,7 +153,7 @@ class DynamicConstantsService {
         'Case Cancelled'
       ];
     } catch (error) {
-      return ['Case Booked', 'Order Preparation', 'Order Prepared', 'Case Completed', 'Case Closed'];
+      return ['Case Booked', 'Preparing Order', 'Order Prepared', 'Case Completed', 'Case Closed'];
     }
   }
 

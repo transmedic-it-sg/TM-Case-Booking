@@ -40,17 +40,68 @@ export const processEmailNotifications = async (
   oldStatus?: CaseStatus,
   changedBy?: string
 ): Promise<void> => {
+  console.log('📧 EMAIL PROCESSOR DEBUG - Function Entry:', {
+    timestamp: new Date().toISOString(),
+    caseId: caseData.id,
+    caseRef: caseData.caseReferenceNumber,
+    newStatus,
+    oldStatus,
+    changedBy,
+    country: caseData.country,
+    hospital: caseData.hospital,
+    department: caseData.department,
+    hasGetEmailConfigFromDatabase: typeof getEmailConfigFromDatabase === 'function'
+  });
+
   try {
     // Get email configuration for the case's country
+    console.log('📧 EMAIL PROCESSOR DEBUG - Fetching email config:', {
+      country: caseData.country,
+      functionName: getEmailConfigFromDatabase.name
+    });
+
     const emailConfigs = await getEmailConfigFromDatabase(caseData.country);
+    
+    console.log('📧 EMAIL PROCESSOR DEBUG - Email config retrieved:', {
+      country: caseData.country,
+      hasEmailConfigs: !!emailConfigs,
+      configKeys: emailConfigs ? Object.keys(emailConfigs) : [],
+      emailConfigsType: typeof emailConfigs,
+      emailConfigsLength: emailConfigs ? Object.keys(emailConfigs).length : 0
+    });
+
     const countryConfig = emailConfigs[caseData.country];
     
+    console.log('📧 EMAIL PROCESSOR DEBUG - Country config check:', {
+      country: caseData.country,
+      hasCountryConfig: !!countryConfig,
+      countryConfigKeys: countryConfig ? Object.keys(countryConfig) : [],
+      providersAvailable: countryConfig?.providers ? Object.keys(countryConfig.providers) : []
+    });
+    
     if (!countryConfig) {
-      console.log(`No email configuration found for country: ${caseData.country}`);
+      console.log('❌ EMAIL PROCESSOR DEBUG - No email configuration found:', {
+        country: caseData.country,
+        availableCountries: emailConfigs ? Object.keys(emailConfigs) : [],
+        emailConfigsStructure: emailConfigs
+      });
       return;
     }
 
     // Get notification rule from email_notification_rules table
+    console.log('📧 EMAIL PROCESSOR DEBUG - Fetching notification rule:', {
+      country: caseData.country,
+      status: newStatus,
+      queryParams: {
+        table: 'email_notification_rules',
+        filters: {
+          country: caseData.country,
+          status: newStatus,
+          enabled: true
+        }
+      }
+    });
+
     const { supabase } = await import('../lib/supabase');
     const { data: notificationRule, error } = await supabase
       .from('email_notification_rules')
@@ -60,17 +111,32 @@ export const processEmailNotifications = async (
       .eq('enabled', true)
       .single();
 
+    console.log('📧 EMAIL PROCESSOR DEBUG - Notification rule query result:', {
+      country: caseData.country,
+      status: newStatus,
+      hasNotificationRule: !!notificationRule,
+      error: error,
+      notificationRule: notificationRule,
+      querySuccess: !error && !!notificationRule
+    });
+
     if (error || !notificationRule) {
-      console.log(`No notification rule enabled for status: ${newStatus} in ${caseData.country}`, error);
+      console.log('❌ EMAIL PROCESSOR DEBUG - No notification rule found:', {
+        country: caseData.country,
+        status: newStatus,
+        error: error,
+        errorMessage: error?.message,
+        errorCode: error?.code,
+        notificationRule: notificationRule
+      });
       return;
     }
 
-    // Get active email provider for this country
-    const activeProvider = countryConfig.providers.microsoft.isAuthenticated ? 'microsoft' :
-                          countryConfig.providers.google.isAuthenticated ? 'google' : null;
+    // Get active email provider for this country (Microsoft-only)
+    const activeProvider = countryConfig.providers.microsoft.isAuthenticated ? 'microsoft' : null;
                           
     if (!activeProvider) {
-      console.log(`No authenticated email provider for country: ${caseData.country}`);
+      console.log(`Microsoft email provider not authenticated for country: ${caseData.country}`);
       return;
     }
 
@@ -120,7 +186,12 @@ export const processEmailNotifications = async (
 
     // Add case submitter if includeSubmitter is enabled
     if (notificationRule.recipients.includeSubmitter && caseData.submittedBy) {
-      recipients.push(caseData.submittedBy);
+      const submitterUser = allUsers.find(user => user.id === caseData.submittedBy);
+      if (submitterUser && submitterUser.email) {
+        recipients.push(submitterUser.email);
+      } else {
+        console.log(`⚠️ Could not find email for submitter ID: ${caseData.submittedBy}`);
+      }
     }
 
     // Remove duplicates
@@ -138,29 +209,55 @@ export const processEmailNotifications = async (
     const body = replaceTemplateVariables(notificationRule.template.body, caseData, changedBy);
 
     // Send email notification via Supabase Edge Function (not direct OAuth)
-    console.log('📧 Email Debug - Attempting to send notification:', {
+    console.log('🔍 E2E DEBUG - Email notification attempt:', {
       activeProvider,
       recipientCount: uniqueRecipients.length,
       recipients: uniqueRecipients,
       subject,
       countryConfig: countryConfig?.providers?.[activeProvider],
-      caseRef: caseData.caseReferenceNumber
-    });
-
-    const { data, error: emailError } = await supabase.functions.invoke('send-email', {
-      body: {
-        to: uniqueRecipients,
-        subject,
-        body,
-        fromName: countryConfig.providers[activeProvider].fromName || 'TM Case Booking System'
+      caseRef: caseData.caseReferenceNumber,
+      emailConfig: {
+        isAuthenticated: countryConfig?.providers?.[activeProvider]?.isAuthenticated
       }
     });
 
-    console.log('📧 Email Debug - Response from Edge Function:', {
+    // Get authentication tokens for the active provider
+    const authTokens = countryConfig.providers[activeProvider]?.tokens;
+    const userInfo = countryConfig.providers[activeProvider]?.userInfo;
+
+    console.log('🔍 E2E DEBUG - Auth tokens check:', {
+      activeProvider,
+      hasTokens: !!authTokens,
+      hasAccessToken: !!authTokens?.accessToken,
+      hasUserInfo: !!userInfo,
+      userEmail: userInfo?.email,
+      tokenExpiry: authTokens?.expiresAt,
+      isExpired: authTokens?.expiresAt ? Date.now() > authTokens.expiresAt : 'unknown'
+    });
+
+    const emailPayload = {
+      to: uniqueRecipients,
+      subject,
+      body,
+      fromName: countryConfig.providers[activeProvider].fromName || 'TM Case Booking System',
+      // Include authentication tokens for Edge Function
+      authTokens: authTokens,
+      userInfo: userInfo,
+      provider: activeProvider
+    };
+
+    console.log('🔍 E2E DEBUG - Email payload:', JSON.stringify(emailPayload, null, 2));
+
+    const { data, error: emailError } = await supabase.functions.invoke('send-email', {
+      body: emailPayload
+    });
+
+    console.log('🔍 E2E DEBUG - Email Edge Function Response:', {
       data,
       error: emailError,
       success: data?.success,
-      errorMessage: data?.error || emailError?.message
+      errorMessage: data?.error || emailError?.message,
+      fullError: emailError
     });
 
     const success = data?.success && !emailError;
@@ -257,16 +354,46 @@ const replaceTemplateVariables = (
   caseData: CaseBooking,
   changedBy?: string
 ): string => {
+  // Format surgery set selection and implant box arrays
+  const formatArray = (arr: string[] | undefined) => arr?.length ? arr.join(', ') : 'None selected';
+  
   return template
+    .replace(/\{\{caseReference\}\}/g, caseData.caseReferenceNumber)
     .replace(/\{\{caseReferenceNumber\}\}/g, caseData.caseReferenceNumber)
     .replace(/\{\{hospital\}\}/g, caseData.hospital)
     .replace(/\{\{department\}\}/g, caseData.department)
     .replace(/\{\{doctorName\}\}/g, caseData.doctorName || 'Not specified')
     .replace(/\{\{dateOfSurgery\}\}/g, caseData.dateOfSurgery)
+    .replace(/\{\{timeOfProcedure\}\}/g, caseData.timeOfProcedure || 'Not specified')
     .replace(/\{\{procedureType\}\}/g, caseData.procedureType)
     .replace(/\{\{procedureName\}\}/g, caseData.procedureName)
+    .replace(/\{\{surgerySetSelection\}\}/g, formatArray(caseData.surgerySetSelection))
+    .replace(/\{\{implantBox\}\}/g, formatArray(caseData.implantBox))
+    .replace(/\{\{specialInstruction\}\}/g, caseData.specialInstruction || 'None')
     .replace(/\{\{status\}\}/g, caseData.status)
+    .replace(/\{\{submittedBy\}\}/g, getSubmitterName(caseData.submittedBy) || caseData.submittedBy)
+    .replace(/\{\{submittedAt\}\}/g, formatTimestamp(caseData.submittedAt))
+    .replace(/\{\{country\}\}/g, caseData.country)
     .replace(/\{\{processedBy\}\}/g, changedBy || 'System')
-    .replace(/\{\{processedAt\}\}/g, new Date().toLocaleString())
-    .replace(/\{\{submittedBy\}\}/g, caseData.submittedBy);
+    .replace(/\{\{processedAt\}\}/g, new Date().toLocaleString());
+};
+
+/**
+ * Get submitter name from user ID
+ */
+const getSubmitterName = (submitterId?: string): string | null => {
+  // This would need to be enhanced to fetch actual user name
+  // For now, return the ID
+  return submitterId || null;
+};
+
+/**
+ * Format timestamp for display
+ */
+const formatTimestamp = (timestamp: string): string => {
+  try {
+    return new Date(timestamp).toLocaleString();
+  } catch {
+    return timestamp;
+  }
 };

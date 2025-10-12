@@ -1,21 +1,10 @@
 {
-  "cleanupPeriodDays": 30,
-  "env": {
-    "PROJECT_NAME": "TM Case Booking System",
-    "PROJECT_VERSION": "1.3.1",
-    "PROJECT_STATUS": "production-ready",
-    "PROJECT_FRAMEWORK": "React TypeScript + Supabase",
-    "LAST_SESSION_ACHIEVEMENTS": "7/7 critical issues resolved, 80% performance improvement",
-    "TRUST_LEVEL": "high",
-    "DEPLOYMENT_READY": "true",
-    "VERIFICATION_REQUIRED": "Always run npm run build before claiming completion",
-    "TRACKING_METHOD": "Use TodoWrite for systematic issue management",
-    "COMMUNICATION_STYLE": "Focus on concrete results over explanations",
-    "SUCCESS_PATTERN": "Fix → Build → Verify → Mark complete → Next issue"
-  },
-  "includeCoAuthoredBy": true,
   "permissions": {
     "allow": [
+      "WebFetch(domain:tm-case-booking.vercel.app)",
+      "WebFetch(domain:tm-case-booking-qjd65behk-tmsg-its-projects.vercel.app)",
+      "WebFetch(domain:tm-case-booking-4zbb72brm-tmsg-its-projects.vercel.app)",
+      "WebFetch(domain:supabase.com)",
       "Bash(npm run build:*)",
       "mcp__supabase__execute_sql",
       "mcp__supabase__list_edge_functions",
@@ -140,11 +129,13 @@
       "WebFetch(domain:localhost)"
     ],
     "deny": [],
-    "ask": [],
-    "additionalDirectories": [
-      "/mnt/c",
-      "/usr/lib/node_modules/@anthropic-ai/claude-code",
-      "/tmp"
-    ]
+    "ask": []
+  },
+  "system_info": {
+    "version": "1.4.0",
+    "status": "production_ready",
+    "last_updated": "2025-10-12",
+    "critical_issues_resolved": 10,
+    "deployment_url": "https://tm-case-booking.vercel.app"
   }
 }

@@ -49,9 +49,13 @@ import {
 
 interface CaseBookingFormProps {
   onCaseSubmitted: () => void;
+  prefillData?: {
+    dateOfSurgery?: string;
+    department?: string;
+  };
 }
 
-const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) => {
+const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, prefillData }) => {
   const currentUser = getCurrentUserSync();
   const { modal, closeModal, showConfirm, showSuccess, showError } = useModal();
 
@@ -76,8 +80,8 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted }) =>
 
   const [formData, setFormData] = useState({
     hospital: '',
-    department: '',
-    dateOfSurgery: getDefaultDate(),
+    department: prefillData?.department || '',
+    dateOfSurgery: prefillData?.dateOfSurgery || getDefaultDate(),
     procedureType: '',
     procedureName: '',
     doctorName: '',

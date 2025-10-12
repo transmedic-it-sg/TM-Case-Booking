@@ -33,6 +33,7 @@ import {
   DOCTORS_FIELDS,
   getDbField
 } from '../../utils/fieldMappings';
+import { getCaseQuantities } from '../../utils/doctorService';
 
 const CaseCard: React.FC<CaseCardProps> = ({
   caseItem,
@@ -49,6 +50,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
   salesApprovalCase,
   salesApprovalAttachments,
   salesApprovalComments,
+  orderPreparedCase,
+  orderPreparedAttachments,
+  orderPreparedComments,
   hospitalDeliveryCase,
   hospitalDeliveryAttachments,
   hospitalDeliveryComments,
@@ -79,6 +83,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
   onSalesApproval,
   onSaveSalesApproval,
   onCancelSalesApproval,
+  onSaveOrderPrepared,
+  onCancelOrderPrepared,
   onOrderDelivered,
   onOrderReceived,
   onSaveOrderReceived,
@@ -104,6 +110,8 @@ const CaseCard: React.FC<CaseCardProps> = ({
   onProcessCommentsChange,
   onSalesApprovalAttachmentsChange,
   onSalesApprovalCommentsChange,
+  onOrderPreparedAttachmentsChange,
+  onOrderPreparedCommentsChange,
   onSaveHospitalDelivery,
   onCancelHospitalDelivery,
   onHospitalDeliveryAttachmentsChange,
@@ -147,6 +155,73 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
   // State for case quantities
   const [caseQuantities, setCaseQuantities] = useState<Record<string, number>>({});
+
+  // Load case quantities when case changes
+  useEffect(() => {
+    const loadCaseQuantities = async () => {
+      console.log('🔢 CASE CARD QUANTITIES DEBUG - Loading quantities for case:', {
+        caseId: caseItem.id,
+        caseRef: caseItem.caseReferenceNumber,
+        hasCaseId: !!caseItem.id,
+        timestamp: new Date().toISOString()
+      });
+
+      if (!caseItem.id) {
+        console.log('🔢 CASE CARD QUANTITIES DEBUG - No case ID, clearing quantities');
+        setCaseQuantities({});
+        return;
+      }
+
+      try {
+        const quantities = await getCaseQuantities(caseItem.id);
+        console.log('🔢 CASE CARD QUANTITIES DEBUG - Quantities loaded:', {
+          caseId: caseItem.id,
+          quantitiesReceived: quantities,
+          quantitiesCount: quantities?.length || 0,
+          timestamp: new Date().toISOString()
+        });
+
+        // Convert array to object for easy lookup
+        const quantitiesMap: Record<string, number> = {};
+        quantities.forEach(q => {
+          quantitiesMap[q.item_name] = q.quantity;
+        });
+
+        console.log('🔢 CASE CARD QUANTITIES DEBUG - Quantities mapped:', {
+          caseId: caseItem.id,
+          quantitiesMap,
+          mapKeys: Object.keys(quantitiesMap),
+          surgerySetSelection: caseItem.surgerySetSelection,
+          implantBox: caseItem.implantBox,
+          nameMatches: {
+            surgerySetMatches: (caseItem.surgerySetSelection || []).map(set => ({
+              name: set,
+              hasQuantity: set in quantitiesMap,
+              quantity: quantitiesMap[set]
+            })),
+            implantBoxMatches: (caseItem.implantBox || []).map(box => ({
+              name: box,
+              hasQuantity: box in quantitiesMap,
+              quantity: quantitiesMap[box]
+            }))
+          },
+          timestamp: new Date().toISOString()
+        });
+
+        setCaseQuantities(quantitiesMap);
+      } catch (error) {
+        console.error('❌ CASE CARD QUANTITIES DEBUG - Failed to load quantities:', {
+          caseId: caseItem.id,
+          error: error,
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString()
+        });
+        setCaseQuantities({});
+      }
+    };
+
+    loadCaseQuantities();
+  }, [caseItem.id]);
 
   // Load departments using Supabase service
   useEffect(() => {
@@ -195,22 +270,14 @@ const CaseCard: React.FC<CaseCardProps> = ({
   useEffect(() => {
     const loadCaseQuantities = async () => {
       try {
-        console.log('🔍 CaseCard Debug - Loading quantities for case:', {
-          caseId: caseItem.id,
-          caseRef: caseItem.caseReferenceNumber
-        });
+        // Loading quantities for case
 
         const { data, error } = await supabase
           .from('case_booking_quantities')
           .select('item_name, quantity')
           .eq('case_booking_id', caseItem.id); // ⚠️ case_booking_id (caseBookingId) FK - NOT caseId
 
-        console.log('🔍 CaseCard Debug - Quantities query result:', {
-          caseRef: caseItem.caseReferenceNumber,
-          data,
-          error,
-          dataLength: data?.length
-        });
+        // Quantities query completed
 
         if (error) {
           console.error('🔍 CaseCard Debug - Quantities query error:', error);
@@ -229,7 +296,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
           });
           setCaseQuantities(quantities);
         } else {
-          console.log('🔍 CaseCard Debug - No quantities found, setting empty object');
+          // No quantities found
           setCaseQuantities({});
         }
       } catch (error) {
@@ -275,7 +342,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   // Find the most recent attachments for statuses without active forms
   const currentAttachments = useMemo(() => {
     // Only show for specific statuses that don't have their own forms
-    const statusesWithoutForms = ['Order Prepared', 'Order Processed', 'Sales Approval'];
+    const statusesWithoutForms = ['Order Prepared', 'Sales Approval'];
 
     if (!statusesWithoutForms.includes(caseItem.status)) {
       return [];
@@ -409,21 +476,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <span className="detail-label">Surgery Set Selection: </span>
               <ul className="detail-value">
                 {(caseItem.surgerySetSelection || []).map(set => {
-                  console.log('🔍 CaseCard Debug - Rendering surgery set:', {
-                    caseRef: caseItem.caseReferenceNumber,
-                    set,
-                    quantityExists: !!caseQuantities[set],
-                    quantity: caseQuantities[set],
-                    allQuantities: caseQuantities
-                  });
+                  const quantity = caseQuantities[set] || 1; // Default to 1 if not found
                   return (
                     <li key={set} className="set-item-with-quantity">
                       <span className="set-name">{set}</span>
-                      {caseQuantities[set] && (
-                        <span className="quantity-badge" data-testid="surgery-set-quantity" title={`Quantity: ${caseQuantities[set]}`}>
-                          ×{caseQuantities[set]}
-                        </span>
-                      )}
+                      <span className="quantity-badge" data-testid="surgery-set-quantity" title={`Quantity: ${quantity}`}>
+                        ×{quantity}
+                      </span>
                     </li>
                   );
                 })}
@@ -433,21 +492,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <span className="detail-label">Implant Box: </span>
               <ul className="detail-value">
                 {(caseItem.implantBox || []).map(box => {
-                  console.log('🔍 CaseCard Debug - Rendering implant box:', {
-                    caseRef: caseItem.caseReferenceNumber,
-                    box,
-                    quantityExists: !!caseQuantities[box],
-                    quantity: caseQuantities[box],
-                    allQuantities: caseQuantities
-                  });
+                  const quantity = caseQuantities[box] || 1; // Default to 1 if not found
                   return (
                     <li key={box} className="set-item-with-quantity">
                       <span className="set-name">{box}</span>
-                      {caseQuantities[box] && (
-                        <span className="quantity-badge" data-testid="implant-box-quantity" title={`Quantity: ${caseQuantities[box]}`}>
-                          ×{caseQuantities[box]}
-                        </span>
-                      )}
+                      <span className="quantity-badge" data-testid="implant-box-quantity" title={`Quantity: ${quantity}`}>
+                        ×{quantity}
+                      </span>
                     </li>
                   );
                 })}
@@ -1673,7 +1724,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   </div>
                 )}
               </div>
-              <div className="processing-actions">
+              <div className="sales-approval-actions">
                 <button
                   onClick={() => onSaveProcessDetails(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
@@ -1827,9 +1878,134 @@ const CaseCard: React.FC<CaseCardProps> = ({
             </div>
           )}
 
+          {/* Order Prepared Form */}
+          {orderPreparedCase === caseItem.id && (
+            <div className="sales-approval-form">
+              <h4>Order Prepared Details</h4>
+              <div className="form-group">
+                <label>Comments (Required):</label>
+                <textarea
+                  value={orderPreparedComments}
+                  onChange={(e) => onOrderPreparedCommentsChange(e.target.value)}
+                  placeholder="Enter order preparation details, completion notes, and any additional information..."
+                  rows={4}
+                  className="process-details-input"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Attachments (Optional):</label>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files) {
+                      const newAttachments: string[] = [];
+                      Array.from(files).forEach((file, index) => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const fileData = {
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            data: reader.result,
+                            uploadedAt: new Date().toISOString(),
+                            uploadedBy: currentUser?.name || 'Unknown'
+                          };
+                          newAttachments.push(JSON.stringify(fileData));
+                          if (newAttachments.length === files.length) {
+                            onOrderPreparedAttachmentsChange([...orderPreparedAttachments, ...newAttachments]);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                    }
+                  }}
+                  className="file-upload-input"
+                />
+                {orderPreparedAttachments.length > 0 && (
+                  <div className="attachment-list">
+                    <p>Uploaded files ({orderPreparedAttachments.length}):</p>
+                    {orderPreparedAttachments.map((attachment, index) => {
+                      try {
+                        const fileData = JSON.parse(attachment);
+                        const isImage = fileData.type.startsWith('image/');
+                        
+                        return (
+                          <div key={index} className="attachment-preview-item">
+                            {isImage ? (
+                              <div className="image-attachment">
+                                <img
+                                  src={fileData.data}
+                                  alt={fileData.name}
+                                  className="attachment-thumbnail"
+                                  style={{ maxWidth: '50px', maxHeight: '50px', borderRadius: '4px' }}
+                                />
+                                <div className="attachment-info">
+                                  <div className="file-name">{fileData.name}</div>
+                                  <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="file-attachment">
+                                <div className="file-icon">📄</div>
+                                <div className="attachment-info">
+                                  <div className="file-name">{fileData.name}</div>
+                                  <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
+                                </div>
+                              </div>
+                            )}
+                            <button
+                              onClick={() => {
+                                const newAttachments = orderPreparedAttachments.filter((_, i) => i !== index);
+                                onOrderPreparedAttachmentsChange(newAttachments);
+                              }}
+                              className="remove-attachment-button"
+                              title="Remove attachment"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      } catch {
+                        return (
+                          <div key={index} className="attachment-preview-item">
+                            <div className="file-attachment error">
+                              <div className="file-icon">❌</div>
+                              <div className="attachment-info">
+                                <div className="file-name">Invalid file data</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="sales-approval-actions">
+                <button
+                  onClick={() => onSaveOrderPrepared(caseItem.id)}
+                  className="btn btn-primary btn-md primary-button"
+                  disabled={!orderPreparedComments.trim()}
+                >
+                  Mark as Order Prepared
+                </button>
+                <button
+                  onClick={onCancelOrderPrepared}
+                  className="btn btn-outline-secondary btn-md cancel-button"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Hospital Delivery Form */}
           {hospitalDeliveryCase === caseItem.id && (
-            <div className="hospital-delivery-form">
+            <div className="sales-approval-form">
               <h4>Pending Delivery to Hospital</h4>
               <div className="form-group">
                 <label>Comments (Optional):</label>
@@ -1931,7 +2107,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   </div>
                 )}
               </div>
-              <div className="hospital-delivery-actions">
+              <div className="sales-approval-actions">
                 <button
                   onClick={() => onSaveHospitalDelivery(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
@@ -1950,7 +2126,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
           {/* Received Form */}
           {receivedCase === caseItem.id && (
-            <div className="received-form">
+            <div className="sales-approval-form">
               <h4>Order Received at Hospital</h4>
               <div className="form-group">
                 <label>Delivery Details:</label>
@@ -1983,7 +2159,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   </div>
                 )}
               </div>
-              <div className="received-actions">
+              <div className="sales-approval-actions">
                 <button
                   onClick={() => onSaveOrderReceived(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
@@ -2003,7 +2179,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
           {/* Completed Form */}
           {completedCase === caseItem.id && (
-            <div className="completed-form">
+            <div className="sales-approval-form">
               <h4>Case Completion</h4>
               <div className="form-group">
                 <label>Attachments (Optional):</label>
@@ -2071,7 +2247,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   className="do-number-input"
                 />
               </div>
-              <div className="completed-actions">
+              <div className="sales-approval-actions">
                 <button
                   onClick={() => onSaveCaseCompleted(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
@@ -2091,7 +2267,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
           {/* Pending Delivery (Office) Form */}
           {pendingOfficeCase === caseItem.id && (
-            <div className="pending-office-form">
+            <div className="sales-approval-form">
               <h4>Pending Delivery to Office</h4>
               <div className="form-group">
                 <label>Attachments (Optional):</label>
@@ -2170,7 +2346,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   className="comments-input"
                 />
               </div>
-              <div className="pending-office-actions">
+              <div className="sales-approval-actions">
                 <button
                   onClick={() => onSavePendingOffice(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
@@ -2189,7 +2365,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
           {/* Office Delivery Form */}
           {officeDeliveryCase === caseItem.id && (
-            <div className="office-delivery-form">
+            <div className="sales-approval-form">
               <h4>Delivery to Office</h4>
               <div className="form-group">
                 <label>Comments (Optional):</label>
@@ -2291,7 +2467,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   </div>
                 )}
               </div>
-              <div className="office-delivery-actions">
+              <div className="sales-approval-actions">
                 <button
                   onClick={() => onSaveOfficeDelivery(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"

@@ -75,6 +75,10 @@ const AppContent: React.FC = () => {
   const [adminPanelExpanded, setAdminPanelExpanded] = useState(false);
   const [highlightedCaseId, setHighlightedCaseId] = useState<string | null>(null);
   const [maintenanceModeActive, setMaintenanceModeActive] = useState(false);
+  const [bookingPrefillData, setBookingPrefillData] = useState<{
+    dateOfSurgery?: string;
+    department?: string;
+  }>({});
   const adminPanelRef = useRef<HTMLDivElement>(null);
   const { playSound } = useSound();
   const { addNotification } = useNotifications();
@@ -200,6 +204,13 @@ const AppContent: React.FC = () => {
       clearInterval(maintenanceCheckInterval);
     };
   }, []);
+
+  // Clear prefill data when navigating away from booking page
+  useEffect(() => {
+    if (activePage !== 'booking') {
+      setBookingPrefillData({});
+    }
+  }, [activePage]);
 
   // Set up global error handling listeners
   useEffect(() => {
@@ -489,6 +500,9 @@ const AppContent: React.FC = () => {
   };
 
   const handleCaseSubmitted = () => {
+    // Clear prefill data after successful submission
+    setBookingPrefillData({});
+    
     // Only change page to 'cases' if not currently on 'sets' page
     if (activePage !== 'sets') {
       setActivePage('cases');
@@ -512,7 +526,7 @@ const AppContent: React.FC = () => {
     setProcessingCase(null);
     setActivePage('cases');
     playSound.statusChange();
-    showSuccess('Order Processed!', 'The order has been successfully prepared and is ready for delivery.');
+    showSuccess('Order Prepared!', 'The order has been successfully prepared and is ready for delivery.');
     addNotification({
       title: 'Order Processing Complete',
       message: 'An order has been successfully processed and prepared for delivery.',
@@ -535,8 +549,16 @@ const AppContent: React.FC = () => {
   };
 
   const handleCalendarDateClick = async (date: Date, department: string) => {
-    // TODO: Pass prefill data via React state/context instead of storage
-    // For now, navigate to booking page without prefill
+    // Format date for input field (YYYY-MM-DD)
+    const formattedDate = date.toISOString().split('T')[0];
+    
+    // Set prefill data for booking form
+    setBookingPrefillData({
+      dateOfSurgery: formattedDate,
+      department: department
+    });
+    
+    // Navigate to booking page
     setActivePage('booking');
     playSound.click();
   };
@@ -824,7 +846,10 @@ const AppContent: React.FC = () => {
           const canCreate = hasPermission(user.role, PERMISSION_ACTIONS.CREATE_CASE);
           return canCreate;
         })() && (
-          <CaseBookingForm onCaseSubmitted={handleCaseSubmitted} />
+          <CaseBookingForm 
+            onCaseSubmitted={handleCaseSubmitted} 
+            prefillData={bookingPrefillData}
+          />
         )}
 
         {activePage === 'booking' && !hasPermission(user.role, PERMISSION_ACTIONS.CREATE_CASE) && (

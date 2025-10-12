@@ -1,5 +1,5 @@
 // Simplified OAuth Configuration for Email Integration
-// Pre-configured OAuth applications for Google and Microsoft
+// Microsoft-only OAuth integration (Google Gmail API removed for security)
 
 interface OAuthConfig {
   clientId: string;
@@ -26,12 +26,6 @@ const getRedirectUri = (): string => {
 
   // Log the current environment for debugging (only once)
   if (!environmentLogged) {
-    //   origin,
-    //   hostname: window.location.hostname,
-    //   isVercel: window.location.hostname.includes('vercel.com'),
-    //   isProd: process.env.NODE_ENV === 'production'
-    // });
-
     environmentLogged = true;
   }
 
@@ -41,23 +35,8 @@ const getRedirectUri = (): string => {
   return redirectUri;
 };
 
-// Pre-configured OAuth applications with environment-aware redirect URIs
-const OAUTH_PROVIDERS: Record<'google' | 'microsoft', OAuthProvider> = {
-  google: {
-    name: 'Google',
-    authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
-    tokenUrl: 'https://oauth2.googleapis.com/token',
-    userInfoUrl: 'https://www.googleapis.com/oauth2/v2/userinfo',
-    config: {
-      clientId: process.env.REACT_APP_GOOGLE_CLIENT_ID || '',
-      scopes: [
-        'https://www.googleapis.com/auth/gmail.send',
-        'https://www.googleapis.com/auth/userinfo.email',
-        'https://www.googleapis.com/auth/userinfo.profile'
-      ],
-      redirectUri: getRedirectUri()
-    }
-  },
+// Microsoft-only OAuth configuration
+const OAUTH_PROVIDERS: Record<'microsoft', OAuthProvider> = {
   microsoft: {
     name: 'Microsoft',
     authUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
@@ -131,13 +110,13 @@ export interface UserInfo {
 }
 
 class SimplifiedOAuthManager {
-  private provider: 'google' | 'microsoft';
+  private provider: 'microsoft';
   private config: OAuthProvider;
   private pkceChallenge?: PKCEChallenge;
 
-  constructor(provider: 'google' | 'microsoft') {
-    this.provider = provider;
-    this.config = OAUTH_PROVIDERS[provider];
+  constructor() {
+    this.provider = 'microsoft';
+    this.config = OAUTH_PROVIDERS.microsoft;
   }
 
   /**
@@ -160,22 +139,10 @@ class SimplifiedOAuthManager {
     //   scopes: this.config.config.scopes
     // });
 
-    // Add PKCE for Microsoft (required) and Google (recommended)
-    if (this.provider === 'microsoft' || this.provider === 'google') {
-      this.pkceChallenge = await generatePKCEChallenge();
-      params.code_challenge = this.pkceChallenge.codeChallenge;
-      params.code_challenge_method = 'S256';
-      
-      //   challenge: this.pkceChallenge.codeChallenge.substring(0, 8) + '...',
-      //   method: 'S256'
-      // });
-    }
-
-    // Provider-specific parameters
-    if (this.provider === 'google') {
-      params.access_type = 'offline'; // For refresh tokens
-      params.prompt = 'consent'; // Force consent to get refresh token
-    }
+    // Add PKCE for Microsoft (required)
+    this.pkceChallenge = await generatePKCEChallenge();
+    params.code_challenge = this.pkceChallenge.codeChallenge;
+    params.code_challenge_method = 'S256';
 
     const authUrl = `${this.config.authUrl}?${new URLSearchParams(params).toString()}`;
     
@@ -279,27 +246,19 @@ class SimplifiedOAuthManager {
       throw new Error(`Failed to get user info: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
-    const data = await response.json();// Normalize response format between Google and Microsoft
-    if (this.provider === 'google') {
-      return {
-        id: data.id,
-        email: data.email,
-        name: data.name,
-        picture: data.picture
-      };
-    } else {
-      // Microsoft Graph API
-      return {
-        id: data.id,
-        email: data.mail || data.userPrincipalName,
-        name: data.displayName,
-        picture: data.photo?.value
-      };
-    }
+    const data = await response.json();
+    
+    // Microsoft Graph API response format
+    return {
+      id: data.id,
+      email: data.mail || data.userPrincipalName,
+      name: data.displayName,
+      picture: data.photo?.value
+    };
   }
 
   /**
-   * Send email using provider's API
+   * Send email using Microsoft Graph API
    */
   async sendEmail(accessToken: string, emailData: {
     to: string[];
@@ -312,85 +271,7 @@ class SimplifiedOAuthManager {
       contentType: string;
     }>;
   }): Promise<boolean> {
-    if (this.provider === 'google') {
-      return this.sendGmailEmail(accessToken, emailData);
-    } else {
-      return this.sendOutlookEmail(accessToken, emailData);
-    }
-  }
-
-  private async sendGmailEmail(accessToken: string, emailData: {
-    to: string[];
-    subject: string;
-    body: string;
-    from?: string;
-    attachments?: Array<{
-      filename: string;
-      content: string; // base64 encoded content
-      contentType: string;
-    }>;
-  }): Promise<boolean> {
-    // Gmail API implementation
-    let message: string;
-
-    if (emailData.attachments && emailData.attachments.length > 0) {
-      // MIME multipart message with attachments
-      const boundary = 'boundary_' + Math.random().toString(36).substr(2, 9);
-      message = [
-        `To: ${emailData.to.join(', ')}`,
-        `Subject: ${emailData.subject}`,
-        `MIME-Version: 1.0`,
-        `Content-Type: multipart/mixed; boundary="${boundary}"`,
-        '',
-        `--${boundary}`,
-        `Content-Type: text/html; charset=utf-8`,
-        '',
-        emailData.body,
-        ''
-      ].join('\n');
-
-      // Add attachments
-      emailData.attachments.forEach(attachment => {
-        message += [
-          `--${boundary}`,
-          `Content-Type: ${attachment.contentType}`,
-          `Content-Disposition: attachment; filename="${attachment.filename}"`,
-          `Content-Transfer-Encoding: base64`,
-          '',
-          attachment.content,
-          ''
-        ].join('\n');
-      });
-
-      message += `--${boundary}--`;
-    } else {
-      // Simple text/html message
-      message = [
-        `To: ${emailData.to.join(', ')}`,
-        `Subject: ${emailData.subject}`,
-        `Content-Type: text/html; charset=utf-8`,
-        '',
-        emailData.body
-      ].join('\n');
-    }
-
-    const encodedMessage = btoa(unescape(encodeURIComponent(message)))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-
-    const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        raw: encodedMessage
-      })
-    });
-
-    return response.ok;
+    return this.sendOutlookEmail(accessToken, emailData);
   }
 
   private async sendOutlookEmail(accessToken: string, emailData: {
@@ -443,12 +324,10 @@ class SimplifiedOAuthManager {
   }
 }
 
-// Token storage utilities
-export const storeAuthTokens = (country: string, provider: string, tokens: AuthTokens): void => {
+// Token storage utilities (Microsoft-only)
+export const storeAuthTokens = (country: string, tokens: AuthTokens): void => {
   // Microsoft auth is global (same account for all countries)
-  const key = provider === 'microsoft' 
-    ? `email_auth_global_microsoft` 
-    : `email_auth_${country}_${provider}`;
+  const key = `email_auth_global_microsoft`;
   
   try {
     // Use sessionStorage for security - tokens expire when browser session ends
@@ -458,12 +337,10 @@ export const storeAuthTokens = (country: string, provider: string, tokens: AuthT
   }
 };
 
-// User info storage utilities
-export const storeUserInfo = (country: string, provider: string, userInfo: UserInfo): void => {
+// User info storage utilities (Microsoft-only)
+export const storeUserInfo = (country: string, userInfo: UserInfo): void => {
   // Microsoft user info is global (same account for all countries)
-  const key = provider === 'microsoft'
-    ? `email_userinfo_global_microsoft`
-    : `email_userinfo_${country}_${provider}`;
+  const key = `email_userinfo_global_microsoft`;
   
   try {
     // Use sessionStorage for security - info expires when browser session ends
@@ -473,11 +350,9 @@ export const storeUserInfo = (country: string, provider: string, userInfo: UserI
   }
 };
 
-export const getStoredUserInfo = (country: string, provider: string): UserInfo | null => {
+export const getStoredUserInfo = (country: string): UserInfo | null => {
   // Microsoft user info is global (same account for all countries)
-  const key = provider === 'microsoft'
-    ? `email_userinfo_global_microsoft`
-    : `email_userinfo_${country}_${provider}`;
+  const key = `email_userinfo_global_microsoft`;
   
   try {
     const stored = sessionStorage.getItem(key);
@@ -489,10 +364,8 @@ export const getStoredUserInfo = (country: string, provider: string): UserInfo |
   }
 };
 
-export const clearUserInfo = (country: string, provider: string): void => {
-  const key = provider === 'microsoft'
-    ? `email_userinfo_global_microsoft`
-    : `email_userinfo_${country}_${provider}`;
+export const clearUserInfo = (country: string): void => {
+  const key = `email_userinfo_global_microsoft`;
   
   try {
     sessionStorage.removeItem(key);
@@ -501,11 +374,9 @@ export const clearUserInfo = (country: string, provider: string): void => {
   }
 };
 
-export const getStoredAuthTokens = (country: string, provider: string): AuthTokens | null => {
+export const getStoredAuthTokens = (country: string): AuthTokens | null => {
   // Microsoft auth is global (same account for all countries)
-  const key = provider === 'microsoft'
-    ? `email_auth_global_microsoft`
-    : `email_auth_${country}_${provider}`;
+  const key = `email_auth_global_microsoft`;
   
   try {
     const stored = sessionStorage.getItem(key);
@@ -517,15 +388,13 @@ export const getStoredAuthTokens = (country: string, provider: string): AuthToke
   }
 };
 
-export const clearAuthTokens = (country: string, provider: string): void => {
-  const key = provider === 'microsoft'
-    ? `email_auth_global_microsoft`
-    : `email_auth_${country}_${provider}`;
+export const clearAuthTokens = (country: string): void => {
+  const key = `email_auth_global_microsoft`;
   
   try {
     sessionStorage.removeItem(key);
     // Also clear user info when clearing tokens
-    clearUserInfo(country, provider);
+    clearUserInfo(country);
   } catch (error) {
     console.warn('Failed to clear auth tokens:', error);
   }
@@ -572,36 +441,11 @@ export const validateMicrosoftTokenOnline = async (accessToken: string): Promise
 };
 
 /**
- * Validate Google access token in real-time with Google servers
- * Makes actual API call to verify token is still valid
- */
-export const validateGoogleTokenOnline = async (accessToken: string): Promise<boolean> => {
-  try {
-    // Make a lightweight call to Google's tokeninfo endpoint
-    const response = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`);
-
-    if (response.ok) {
-      const data = await response.json();
-      // Check if token has proper scope and is not expired
-      return data.expires_in && parseInt(data.expires_in) > 0;
-    }
-
-    return false;
-  } catch (error) {
-    console.error('Error validating Google token online:', error);
-    return false;
-  }
-};
-
-/**
- * Check authentication status in real-time by validating with provider servers
+ * Check Microsoft authentication status in real-time by validating with Microsoft servers
  * This provides true real-time status instead of relying on local expiration times
  */
-export const checkAuthenticationStatusOnline = async (
-  country: string, 
-  provider: 'google' | 'microsoft'
-): Promise<boolean> => {
-  const tokens = getStoredAuthTokens(country, provider);
+export const checkAuthenticationStatusOnline = async (country: string): Promise<boolean> => {
+  const tokens = getStoredAuthTokens(country);
   
   if (!tokens || !tokens.accessToken) {
     return false;
@@ -612,15 +456,11 @@ export const checkAuthenticationStatusOnline = async (
     return false;
   }
 
-  // Make real-time validation call to provider
+  // Make real-time validation call to Microsoft
   try {
-    if (provider === 'microsoft') {
-      return await validateMicrosoftTokenOnline(tokens.accessToken);
-    } else if (provider === 'google') {
-      return await validateGoogleTokenOnline(tokens.accessToken);
-    }
+    return await validateMicrosoftTokenOnline(tokens.accessToken);
   } catch (error) {
-    console.error(`Error checking ${provider} authentication status online:`, error);
+    console.error('Error checking Microsoft authentication status online:', error);
   }
 
   return false;
@@ -638,7 +478,8 @@ export const isTokenExpiringSoon = (tokens: AuthTokens): boolean => {
  * Refresh Microsoft access token using refresh token
  */
 export const refreshMicrosoftToken = async (country: string, refreshToken: string): Promise<AuthTokens | null> => {
-  try {const clientId = process.env.REACT_APP_MICROSOFT_CLIENT_ID;
+  try {
+    const clientId = process.env.REACT_APP_MICROSOFT_CLIENT_ID;
     if (!clientId) {
       throw new Error('Microsoft client ID not configured');
     }
@@ -660,10 +501,6 @@ export const refreshMicrosoftToken = async (country: string, refreshToken: strin
 
     if (!response.ok) {
       const errorText = await response.text();
-      //   status: response.status,
-      //   statusText: response.statusText,
-      //   body: errorText
-      // });
       return null;
     }
 
@@ -678,48 +515,55 @@ export const refreshMicrosoftToken = async (country: string, refreshToken: strin
     };
 
     // Store the new tokens
-    storeAuthTokens(country, 'microsoft', newTokens);return newTokens;
+    storeAuthTokens(country, newTokens);
+    return newTokens;
   } catch (error) {
     return null;
   }
 };
 
 /**
- * Get valid access token, refreshing if necessary (Microsoft only)
+ * Get valid Microsoft access token, refreshing if necessary
  */
-export const getValidAccessToken = async (country: string, provider: 'google' | 'microsoft'): Promise<string | null> => {
-  const tokens = getStoredAuthTokens(country, provider);
+export const getValidAccessToken = async (country: string): Promise<string | null> => {
+  const tokens = getStoredAuthTokens(country);
 
-  if (!tokens) {return null;
+  if (!tokens) {
+    return null;
   }
 
   // If token is not expired, return it
-  if (!isTokenExpired(tokens)) {return tokens.accessToken;
+  if (!isTokenExpired(tokens)) {
+    return tokens.accessToken;
   }
 
-  // Token is expired - try to refresh if it's Microsoft and has refresh token
-  if (provider === 'microsoft' && tokens.refreshToken) {const newTokens = await refreshMicrosoftToken(country, tokens.refreshToken);
+  // Token is expired - try to refresh if has refresh token
+  if (tokens.refreshToken) {
+    const newTokens = await refreshMicrosoftToken(country, tokens.refreshToken);
 
-    if (newTokens) {return newTokens.accessToken;
-    } else {clearAuthTokens(country, provider);
+    if (newTokens) {
+      return newTokens.accessToken;
+    } else {
+      clearAuthTokens(country);
       return null;
     }
   }
 
-  // For Google or when Microsoft refresh fails, token is expired and unusableclearAuthTokens(country, provider);
+  // Token is expired and unusable
+  clearAuthTokens(country);
   return null;
 };
 
-// Factory function
-export const createOAuthManager = (provider: 'google' | 'microsoft'): SimplifiedOAuthManager => {
-  return new SimplifiedOAuthManager(provider);
+// Factory function (Microsoft-only)
+export const createOAuthManager = (): SimplifiedOAuthManager => {
+  return new SimplifiedOAuthManager();
 };
 
-// Popup-based authentication flow with PKCE support
+// Popup-based authentication flow with PKCE support (Microsoft-only)
 export const authenticateWithPopup = async (
-  provider: 'google' | 'microsoft',
   country: string
-): Promise<{ tokens: AuthTokens; userInfo: UserInfo }> => {const oauth = createOAuthManager(provider);
+): Promise<{ tokens: AuthTokens; userInfo: UserInfo }> => {
+  const oauth = createOAuthManager();
 
   try {
     // Generate auth URL with PKCE (async operation)
@@ -746,8 +590,8 @@ export const authenticateWithPopup = async (
             const tokens = await oauth.exchangeCodeForTokens(event.data.code);
             const userInfo = await oauth.getUserInfo(tokens.accessToken);
             // Store tokens and user info
-            storeAuthTokens(country, provider, tokens);
-            storeUserInfo(country, provider, userInfo);
+            storeAuthTokens(country, tokens);
+            storeUserInfo(country, userInfo);
             window.removeEventListener('message', messageHandler);
             clearInterval(checkClosed);
             popup.close();

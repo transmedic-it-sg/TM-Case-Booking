@@ -45,9 +45,9 @@ const CaseActions: React.FC<CaseActionsProps> = ({
           </Tooltip>
         )}
 
-        {caseItem.status === 'Order Preparation' && (
+        {caseItem.status === 'Preparing Order' && (
           <Tooltip
-            content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.ORDER_PROCESSED) ? 'Mark as Order Processed' : 'You do not have permission to mark orders as processed'}
+            content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.ORDER_PROCESSED) ? 'Mark as Order Prepared' : 'You do not have permission to mark orders as prepared'}
             disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.ORDER_PROCESSED)}
           >
             <button
@@ -58,7 +58,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
               }`}
               disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.ORDER_PROCESSED)}
             >
-              Order Processed
+              Order Prepared
             </button>
           </Tooltip>
         )}
@@ -234,7 +234,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
       )}
 
       {/* Cancel Case button - only show for specific statuses */}
-      {(['Case Booked', 'Order Preparation', 'Order Prepared', 'Sales Approval', 'Pending Delivery (Hospital)', 'Delivered (Hospital)'].includes(caseItem.status)) && hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE) && (
+      {(['Case Booked', 'Preparing Order', 'Order Prepared', 'Sales Approval', 'Pending Delivery (Hospital)', 'Delivered (Hospital)'].includes(caseItem.status)) && hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE) && (
         <Tooltip
           content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE) ? 'Cancel this case - will mark as cancelled (case data preserved)' : 'You do not have permission to cancel cases'}
           disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE)}

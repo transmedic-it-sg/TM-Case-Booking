@@ -8,6 +8,7 @@ import React, { useState, useCallback } from 'react';
 import { CaseCardProps } from './types';
 import { useCurrentUser, usePermissions } from '../../hooks';
 import { useUserNames } from '../../hooks/useUserNames';
+import { CASE_STATUSES } from '../../constants';
 
 // Sub-components
 import CaseHeader from './CaseHeader';
@@ -137,15 +138,36 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
             {showStatusHistory && (
               <div className="status-history-list">
-                {caseData.statusHistory.map((history, index) => (
-                  <div key={index} className="status-history-item">
-                    <div className="history-status">{history.status}</div>
-                    <div className="history-user">{getUserName(history.processedBy)}</div>
-                    <div className="history-time">{history.formattedTimestamp}</div>
-                    {history.details && (
-                      <div className="history-details">{history.details}</div>
-                    )}
-                    {history.attachments && history.attachments.length > 0 && (
+                {caseData.statusHistory.map((history, index) => {
+                  // Debug status history details
+                  console.log('📋 STATUS HISTORY DEBUG - Item:', {
+                    index,
+                    caseRef: caseItem.caseReferenceNumber,
+                    status: history.status,
+                    processedBy: history.processedBy,
+                    details: history.details,
+                    hasDetails: !!history.details,
+                    detailsLength: history.details?.length || 0,
+                    timestamp: history.formattedTimestamp,
+                    attachmentCount: history.attachments?.length || 0
+                  });
+                  
+                  return (
+                    <div key={index} className="status-history-item">
+                      <div className="history-status">{history.status}</div>
+                      <div className="history-user">{getUserName(history.processedBy)}</div>
+                      <div className="history-time">{history.formattedTimestamp}</div>
+                      {history.details && (
+                        <div className="history-details">
+                          <strong>Comments:</strong> {history.details}
+                        </div>
+                      )}
+                      {!history.details && (
+                        <div className="debug-no-details" style={{color: 'orange', fontSize: '12px'}}>
+                          [DEBUG: No status comments/details found]
+                        </div>
+                      )}
+                      {history.attachments && history.attachments.length > 0 && (
                       <div className="history-attachments">
                         <div className="attachments-label">📎 Attachments ({history.attachments.length}):</div>
                         <div className="attachments-grid">
@@ -180,8 +202,9 @@ const CaseCard: React.FC<CaseCardProps> = ({
                         </div>
                       </div>
                     )}
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -215,13 +238,52 @@ const CaseCard: React.FC<CaseCardProps> = ({
                           <div className="amendment-changes">
                             <div className="changes-label">Changes:</div>
                             <div className="changes-grid">
-                              {amendment.changes.map((change, changeIndex) => (
-                                <div key={changeIndex} className="change-item">
-                                  <div className="change-field">{change.field}:</div>
-                                  <div className="change-from">From: {change.oldValue || 'N/A'}</div>
-                                  <div className="change-to">To: {change.newValue || 'N/A'}</div>
-                                </div>
-                              ))}
+                              {amendment.changes.map((change, changeIndex) => {
+                                // Debug amendment change logic
+                                console.log('📝 AMENDMENT DEBUG - Change Item:', {
+                                  changeIndex,
+                                  field: change.field,
+                                  oldValue: change.oldValue,
+                                  newValue: change.newValue,
+                                  isAddition: !change.oldValue && change.newValue,
+                                  isRemoval: change.oldValue && !change.newValue,
+                                  isModification: change.oldValue && change.newValue,
+                                  caseRef: caseItem.caseReferenceNumber
+                                });
+
+                                const isAddition = !change.oldValue && change.newValue;
+                                const isRemoval = change.oldValue && !change.newValue;
+                                const isModification = change.oldValue && change.newValue;
+
+                                return (
+                                  <div key={changeIndex} className="change-item">
+                                    <div className="change-field">{change.field}:</div>
+                                    
+                                    {/* For additions - show in green, no "from" field */}
+                                    {isAddition && (
+                                      <div className="change-addition" style={{color: 'green', fontWeight: 'bold'}}>
+                                        ➕ Added: {change.newValue}
+                                      </div>
+                                    )}
+                                    
+                                    {/* For removals - show in red, no "to" field */}
+                                    {isRemoval && (
+                                      <div className="change-removal" style={{color: 'red', fontWeight: 'bold'}}>
+                                        ➖ Removed: {change.oldValue}
+                                      </div>
+                                    )}
+                                    
+                                    {/* For modifications - show from/to with arrow */}
+                                    {isModification && (
+                                      <>
+                                        <div className="change-from">From: {change.oldValue}</div>
+                                        <div className="change-arrow">→</div>
+                                        <div className="change-to">To: {change.newValue}</div>
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         )}
@@ -259,11 +321,11 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
           {/* Attachment Manager (when needed) */}
           {(isProcessing || isReceiving || isCompleting ||
-           caseItem.status === 'Order Prepared' ||
-           caseItem.status === 'Order Preparation' ||
-           caseItem.status === 'Pending Delivery (Hospital)' ||
-           caseItem.status === 'Delivered (Hospital)' ||
-           caseItem.status === 'Case Completed') && (
+           caseItem.status === CASE_STATUSES.ORDER_PREPARED ||
+           caseItem.status === CASE_STATUSES.ORDER_PREPARATION ||
+           caseItem.status === CASE_STATUSES.PENDING_DELIVERY_HOSPITAL ||
+           caseItem.status === CASE_STATUSES.DELIVERED_HOSPITAL ||
+           caseItem.status === CASE_STATUSES.CASE_COMPLETED) && (
             <EnhancedAttachmentManager
               caseId={caseItem.id}
               caseSubmittedBy={caseItem.submittedBy}

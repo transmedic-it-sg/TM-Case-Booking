@@ -8,12 +8,12 @@ import { CaseStatus } from '../types';
 // Case Status Constants (matching the actual CaseStatus type)
 export const CASE_STATUSES = {
   CASE_BOOKED: 'Case Booked' as CaseStatus,
-  ORDER_PREPARATION: 'Order Preparation' as CaseStatus,
+  ORDER_PREPARATION: 'Preparing Order' as CaseStatus,
   ORDER_PREPARED: 'Order Prepared' as CaseStatus,
+  SALES_APPROVAL: 'Sales Approval' as CaseStatus,
   PENDING_DELIVERY_HOSPITAL: 'Pending Delivery (Hospital)' as CaseStatus,
   DELIVERED_HOSPITAL: 'Delivered (Hospital)' as CaseStatus,
   CASE_COMPLETED: 'Case Completed' as CaseStatus,
-  SALES_APPROVAL: 'Sales Approval' as CaseStatus,
   PENDING_DELIVERY_OFFICE: 'Pending Delivery (Office)' as CaseStatus,
   DELIVERED_OFFICE: 'Delivered (Office)' as CaseStatus,
   TO_BE_BILLED: 'To be billed' as CaseStatus,
@@ -32,7 +32,8 @@ export const STATUS_WORKFLOW: readonly CaseStatus[] = [
   CASE_STATUSES.CASE_COMPLETED,
   CASE_STATUSES.PENDING_DELIVERY_OFFICE,
   CASE_STATUSES.DELIVERED_OFFICE,
-  CASE_STATUSES.TO_BE_BILLED
+  CASE_STATUSES.TO_BE_BILLED,
+  CASE_STATUSES.CASE_CLOSED
 ];
 
 // Status colors mapping

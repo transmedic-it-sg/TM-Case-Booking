@@ -185,7 +185,7 @@ const Reports: React.FC = () => {
     const allStatuses = caseStatuses.length > 0
       ? caseStatuses.map(s => s.status || s.display_name) as CaseStatus[]
       : [
-          'Case Booked', 'Order Preparation', 'Order Prepared',
+          'Case Booked', 'Preparing Order', 'Order Prepared',
           'Pending Delivery (Hospital)', 'Delivered (Hospital)',
           'Case Completed', 'Pending Delivery (Office)', 'Delivered (Office)',
           'To be billed', 'Case Closed', 'Case Cancelled'
@@ -724,7 +724,7 @@ const WorkflowAnalysis: React.FC<{ data: ReportData }> = ({ data }) => (
       <div className="workflow-stage">
         <h4>📋 Order Processing</h4>
         <div className="stage-count">
-          {data.statusBreakdown['Order Preparation'] + data.statusBreakdown['Order Prepared']}
+          {data.statusBreakdown['Preparing Order'] + data.statusBreakdown['Order Prepared']}
         </div>
         <div className="stage-description">Cases being prepared</div>
       </div>

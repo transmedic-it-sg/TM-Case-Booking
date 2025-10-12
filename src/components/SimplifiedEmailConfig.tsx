@@ -365,7 +365,7 @@ Best regards,
           };
         } else if (status === CASE_STATUSES.ORDER_PREPARATION) {
           template = {
-            subject: `📋 Order Preparation Started: {{caseReference}} - {{hospital}}`,
+            subject: `📋 Preparing Order Started: {{caseReference}} - {{hospital}}`,
             body: `Dear Operations Team,
 
 Order preparation has started for the following case.
@@ -631,42 +631,41 @@ Best regards,
 
     const loadAuthData = async () => {
       // Load tokens and user info ONLY from Supabase
-      const googleTokens = await getStoredAuthTokens(selectedCountry, 'google');
-      const microsoftTokens = await getStoredAuthTokens(selectedCountry, 'microsoft');
+      // Microsoft-only authentication (Google Gmail API removed for security)
+      const microsoftTokens = await getStoredAuthTokens(selectedCountry);
 
       // Load stored user info ONLY from Supabase
-      const googleUserInfo = await getStoredUserInfo(selectedCountry, 'google');
-      const microsoftUserInfo = await getStoredUserInfo(selectedCountry, 'microsoft');
+      const microsoftUserInfo = await getStoredUserInfo(selectedCountry);
       
       // No need for separate persistence loading - all data comes from Supabase now
 
-      // Enhanced token validation with real-time server verification
-      const validateTokens = async (tokens: AuthTokens | null, provider: 'google' | 'microsoft') => {
+      // Microsoft token validation with real-time server verification
+      const validateMicrosoftTokens = async (tokens: AuthTokens | null) => {
         if (!tokens) return false;
 
         // First check local expiration to avoid unnecessary API calls
         if (isTokenExpired(tokens)) {
-          // If token is expired but we have a refresh token (Microsoft), try to refresh
-          if (provider === 'microsoft' && tokens.refreshToken) {
-            const validToken = await getValidAccessToken(selectedCountry, provider);
+          // If token is expired but we have a refresh token, try to refresh
+          if (tokens.refreshToken) {
+            const validToken = await getValidAccessToken(selectedCountry);
             return !!validToken;
           }
           // Token is expired and can't be refreshed
           return false;
         }
 
-        // Token appears valid locally, now check with provider servers for real-time status
+        // Token appears valid locally, now check with Microsoft servers for real-time status
         try {
-          const isValidOnline = await checkAuthenticationStatusOnline(selectedCountry, provider);
+          const isValidOnline = await checkAuthenticationStatusOnline(selectedCountry);
           if (!isValidOnline) {
             // Token is invalid online - clear it and return false
-            clearAuthTokens(selectedCountry, provider);
+            clearAuthTokens(selectedCountry);
             return false;
           }
           return true;
         } catch (error) {
           // If real-time check fails, fallback to local validation
-          console.warn(`Real-time validation failed for ${provider}, using local validation:`, error);
+          console.warn('Real-time validation failed for Microsoft, using local validation:', error);
           return !isTokenExpired(tokens);
         }
       };
@@ -687,23 +686,21 @@ Best regards,
       // Get existing saved config for this country or use defaults
       const existingConfig = savedEmailConfigs[selectedCountry];
 
-      // Validate tokens asynchronously
-      const googleValid = await validateTokens(googleTokens, 'google');
-      const microsoftValid = await validateTokens(microsoftTokens, 'microsoft');
+      // Validate Microsoft tokens asynchronously
+      const microsoftValid = await validateMicrosoftTokens(microsoftTokens);
 
       // Get potentially refreshed tokens after validation
-      const updatedGoogleTokens = await getStoredAuthTokens(selectedCountry, 'google');
-      const updatedMicrosoftTokens = await getStoredAuthTokens(selectedCountry, 'microsoft');
+      const updatedMicrosoftTokens = await getStoredAuthTokens(selectedCountry);
 
       const config: CountryEmailConfig = {
         country: selectedCountry,
         providers: {
           google: {
             provider: 'google',
-            isAuthenticated: googleValid ?? false,
-            tokens: updatedGoogleTokens || undefined,
-            userInfo: googleUserInfo || undefined,
-            fromName: existingConfig?.providers?.google?.fromName || 'Case Booking System'
+            isAuthenticated: false, // Google Gmail API removed
+            tokens: undefined,
+            userInfo: undefined,
+            fromName: 'Case Booking System (Google Disabled)'
           },
           microsoft: {
             provider: 'microsoft',
@@ -715,10 +712,8 @@ Best regards,
         }
       };
 
-      // Determine active provider (prefer the one that's authenticated)
-      if (config.providers.google.isAuthenticated) {
-        config.activeProvider = 'google';
-      } else if (config.providers.microsoft.isAuthenticated) {
+      // Determine active provider (Microsoft-only)
+      if (config.providers.microsoft.isAuthenticated) {
         config.activeProvider = 'microsoft';
       }
 
@@ -826,50 +821,52 @@ Best regards,
   }, [selectedCountry, initializeNotificationMatrix]);
 
   // Handle OAuth authentication
-  const handleAuthenticate = async (provider: 'google' | 'microsoft') => {
+  const handleAuthenticate = async () => {
     if (!selectedCountry) {
       showError('No Country Selected', 'Please select a country first');
       return;
     }
 
-    // Check if OAuth client ID is configured
-    const clientId = provider === 'google'
-      ? process.env.REACT_APP_GOOGLE_CLIENT_ID
-      : process.env.REACT_APP_MICROSOFT_CLIENT_ID;
+    // Check if Microsoft OAuth client ID is configured
+    const clientId = process.env.REACT_APP_MICROSOFT_CLIENT_ID;
 
     if (!clientId) {
-      const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
-      setAuthError(`${providerName} OAuth is not configured. Please check your environment variables.`);
+      setAuthError('Microsoft OAuth is not configured. Please check your environment variables.');
       showError(
         'OAuth Not Configured',
-        `${providerName} client ID is missing. Please set up OAuth credentials first.`
+        'Microsoft client ID is missing. Please set up OAuth credentials first.'
       );
       return;
     }
 
-    setIsAuthenticating(prev => ({ ...prev, [provider]: true }));
+    setIsAuthenticating(prev => ({ ...prev, microsoft: true }));
     setAuthError('');
 
     try {
-
-      const { tokens, userInfo } = await authenticateWithPopup(provider, selectedCountry);
+      const { tokens, userInfo } = await authenticateWithPopup(selectedCountry);
       
       // Update configuration
       const updatedConfigs = {
         ...emailConfigs,
         [selectedCountry]: {
           ...emailConfigs[selectedCountry],
+          country: selectedCountry,
           providers: {
             ...emailConfigs[selectedCountry]?.providers,
-            [provider]: {
-              provider,
+            google: {
+              provider: 'google' as const,
+              isAuthenticated: false,
+              fromName: 'Case Booking System (Google Disabled)'
+            },
+            microsoft: {
+              provider: 'microsoft' as const,
               isAuthenticated: true,
               userInfo,
               tokens,
-              fromName: emailConfigs[selectedCountry]?.providers[provider]?.fromName || 'Case Booking System'
+              fromName: emailConfigs[selectedCountry]?.providers?.microsoft?.fromName || 'Case Booking System'
             }
           },
-          activeProvider: provider
+          activeProvider: 'microsoft' as const
         }
       };
 
@@ -885,7 +882,7 @@ Best regards,
       playSound.success();
       showSuccess(
         'Authentication Successful',
-        `Successfully authenticated with ${provider.charAt(0).toUpperCase() + provider.slice(1)} as ${userInfo.email}`
+        `Successfully authenticated with Microsoft as ${userInfo.email}`
       );
 
     } catch (error) {
@@ -910,15 +907,15 @@ Best regards,
       setAuthError(errorMessage);
       showError('Authentication Failed', errorMessage);
     } finally {
-      setIsAuthenticating(prev => ({ ...prev, [provider]: false }));
+      setIsAuthenticating(prev => ({ ...prev, microsoft: false }));
     }
   };
 
   // Handle disconnection
-  const handleDisconnect = async (provider: 'google' | 'microsoft') => {
+  const handleDisconnect = async () => {
     if (!selectedCountry) return;
 
-    await clearAuthTokens(selectedCountry, provider);
+    await clearAuthTokens(selectedCountry);
 
     setEmailConfigs(prev => ({
       ...prev,
@@ -926,22 +923,22 @@ Best regards,
         ...prev[selectedCountry],
         providers: {
           ...prev[selectedCountry]?.providers,
-          [provider]: {
-            provider,
+          microsoft: {
+            provider: 'microsoft',
             isAuthenticated: false,
-            fromName: prev[selectedCountry]?.providers[provider]?.fromName || 'Case Booking System'
+            fromName: prev[selectedCountry]?.providers?.microsoft?.fromName || 'Case Booking System'
           }
         },
-        activeProvider: prev[selectedCountry]?.activeProvider === provider ? undefined : prev[selectedCountry]?.activeProvider
+        activeProvider: undefined // Microsoft disconnected
       }
     }));
 
     playSound.click();
-    showSuccess('Disconnected', `Successfully disconnected from ${provider.charAt(0).toUpperCase() + provider.slice(1)}`);
+    showSuccess('Disconnected', 'Successfully disconnected from Microsoft');
   };
 
   // Handle from name change
-  const handleFromNameChange = (provider: 'google' | 'microsoft', fromName: string) => {
+  const handleFromNameChange = (fromName: string) => {
     if (!selectedCountry) return;
 
     setEmailConfigs(prev => ({
@@ -950,8 +947,8 @@ Best regards,
         ...prev[selectedCountry],
         providers: {
           ...prev[selectedCountry]?.providers,
-          [provider]: {
-            ...prev[selectedCountry]?.providers[provider],
+          microsoft: {
+            ...prev[selectedCountry]?.providers?.microsoft,
             fromName
           }
         }
@@ -1013,12 +1010,14 @@ Best regards,
     try {
       // Show loading state
       showSuccess('Sending Test Email', 'Preparing test email...');// Get valid access token (handles refresh if necessary)
-      const validAccessToken = await getValidAccessToken(selectedCountry, activeProvider);
+      const validAccessToken = await getValidAccessToken(selectedCountry);
 
       if (!validAccessToken) {
         throw new Error('Unable to get valid access token. Please re-authenticate.');
-      }// Create OAuth manager for sending email
-      const oauth = createOAuthManager(activeProvider);
+      }
+
+      // Create OAuth manager for sending email (Microsoft-only)
+      const oauth = createOAuthManager();
 
       // Get current user's email - test email should go to logged-in user, not OAuth account
       const recipientEmail = currentUser?.email;
@@ -1398,13 +1397,13 @@ Best regards,
                       <input
                         type="text"
                         value={currentConfig?.providers?.google?.fromName || 'Case Booking System'}
-                        onChange={(e) => handleFromNameChange('google', e.target.value)}
+                        onChange={(e) => handleFromNameChange(e.target.value)}
                         className="form-control"
                         placeholder="Case Booking System"
                       />
                     </div>
                     <button
-                      onClick={() => handleDisconnect('google')}
+                      onClick={() => handleDisconnect()}
                       className="btn btn-outline-danger btn-sm"
                     >
                       Disconnect
@@ -1419,17 +1418,12 @@ Best regards,
                       </div>
                     )}
                     <button
-                      onClick={() => handleAuthenticate('google')}
-                      disabled={isAuthenticating.google || !isGoogleConfigured}
+                      onClick={() => handleAuthenticate()}
+                      disabled={false}
                       className="btn btn-primary"
                     >
-                      {isAuthenticating.google ? (
-                        <>🔄 Authenticating...</>
-                      ) : !isGoogleConfigured ? (
-                        <>⚙️ Configure Google OAuth First</>
-                      ) : (
-                        <>🔐 Authenticate with Google</>
-                      )}
+                      <>🚫 Google Disabled (Security)</>
+                      
                     </button>
                   </>
                 )}
@@ -1497,13 +1491,13 @@ Best regards,
                       <input
                         type="text"
                         value={currentConfig?.providers?.microsoft?.fromName || 'Case Booking System'}
-                        onChange={(e) => handleFromNameChange('microsoft', e.target.value)}
+                        onChange={(e) => handleFromNameChange(e.target.value)}
                         className="form-control"
                         placeholder="Case Booking System"
                       />
                     </div>
                     <button
-                      onClick={() => handleDisconnect('microsoft')}
+                      onClick={() => handleDisconnect()}
                       className="btn btn-outline-danger btn-sm"
                     >
                       Disconnect
@@ -1518,7 +1512,7 @@ Best regards,
                       </div>
                     )}
                     <button
-                      onClick={() => handleAuthenticate('microsoft')}
+                      onClick={() => handleAuthenticate()}
                       disabled={isAuthenticating.microsoft || !isMicrosoftConfigured}
                       className="btn btn-primary"
                     >
@@ -1577,10 +1571,10 @@ Best regards,
                       
                       // Check stored tokens
                       const debugActiveProvider = currentConfig?.activeProvider || 'microsoft';
-                      const storedTokens = getStoredAuthTokens(selectedCountry, debugActiveProvider);
+                      const storedTokens = getStoredAuthTokens(selectedCountry);
                       console.log('Stored Auth Tokens:', storedTokens);
                       
-                      const storedUserInfo = getStoredUserInfo(selectedCountry, debugActiveProvider);
+                      const storedUserInfo = getStoredUserInfo(selectedCountry);
                       console.log('Stored User Info:', storedUserInfo);
                       
                       console.groupEnd();

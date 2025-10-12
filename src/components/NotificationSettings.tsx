@@ -252,7 +252,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
                   onChange={(e) => handlePreferenceChange('orderProcessed', e.target.checked)}
                 />
                 <span className="setting-label">
-                  <span className="setting-title">Order Processed</span>
+                  <span className="setting-title">Order Prepared</span>
                   <span className="setting-description">Orders have been prepared</span>
                 </span>
               </label>
