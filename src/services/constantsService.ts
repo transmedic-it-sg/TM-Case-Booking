@@ -105,11 +105,12 @@ class ConstantsService {
 
       if (error) throw error;
 
-      const countries = data?.map(item => item.display_name) || ['Singapore', 'Malaysia'];
+      const countries = data?.map(item => item.display_name) || (await import('../utils/countryUtils')).SUPPORTED_COUNTRIES;
       this.setCache(cacheKey, countries);
       return countries;
     } catch (error) {
-      return ['Singapore', 'Malaysia']; // Fallback
+      const { SUPPORTED_COUNTRIES } = await import('../utils/countryUtils');
+      return [...SUPPORTED_COUNTRIES]; // Fallback to all 7 countries
     }
   }
 

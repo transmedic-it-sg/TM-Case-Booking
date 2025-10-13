@@ -41,39 +41,55 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
   };
 
   const handleFileAdd = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && historyItem.id) { // Check if ID exists
+    const files = e.target.files;
+    if (files && files.length > 0 && historyItem.id) { // Check if files exist and ID exists
       setIsAddingAttachment(true);
       try {
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          const newAttachment = {
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            data: reader.result,
-            uploadedAt: new Date().toISOString()
+        const newAttachments: string[] = [];
+        let filesProcessed = 0;
+
+        // Process each selected file
+        Array.from(files).forEach((file) => {
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            const newAttachment = {
+              name: file.name,
+              type: file.type,
+              size: file.size,
+              data: reader.result,
+              uploadedAt: new Date().toISOString()
+            };
+
+            newAttachments.push(JSON.stringify(newAttachment));
+            filesProcessed++;
+
+            // Only update database when all files are processed
+            if (filesProcessed === files.length) {
+              // Update the status history with all new attachments
+              const updatedAttachments = [
+                ...(historyItem.attachments || []),
+                ...newAttachments
+              ];
+
+              const { error } = await supabase
+                .from('status_history')
+                .update({ attachments: updatedAttachments })
+                .eq('id', historyItem.id);
+
+              if (!error) {
+                onAttachmentsUpdated?.();
+              }
+
+              setIsAddingAttachment(false);
+              if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+              }
+            }
           };
-
-          // Update the status history with new attachment
-          const updatedAttachments = [
-            ...(historyItem.attachments || []),
-            JSON.stringify(newAttachment)
-          ];
-
-          const { error } = await supabase
-            .from('status_history')
-            .update({ attachments: updatedAttachments })
-            .eq('id', historyItem.id);
-
-          if (!error) {
-            onAttachmentsUpdated?.();
-          }
-        };
-        reader.readAsDataURL(file);
+          reader.readAsDataURL(file);
+        });
       } catch (error) {
         // Error handling
-      } finally {
         setIsAddingAttachment(false);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
@@ -152,7 +168,7 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
                   padding: 0,
                   lineHeight: 1
                 }}
-                title="Add attachment"
+                title="Add attachment(s)"
               >
                 +
               </button>
@@ -251,13 +267,14 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
             gap: '5px'
           }}
         >
-          <span>+</span> Add Attachment
+          <span>+</span> Add Attachment(s)
         </button>
       )}
 
       <input
         ref={fileInputRef}
         type="file"
+        multiple
         accept="image/*,application/pdf"
         onChange={handleFileAdd}
         style={{ display: 'none' }}

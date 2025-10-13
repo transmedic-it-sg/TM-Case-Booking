@@ -112,6 +112,8 @@ export const useRealtimeCases = (options: UseRealtimeCasesOptions = {}) => {
       await caseMutation.mutateAsync({
         caseId,
         status: newStatus,
+        details,
+        attachments,
         data: {
           processOrderDetails: details ? JSON.stringify({ details, attachments }) : undefined
         }

@@ -350,12 +350,21 @@ const CaseCard: React.FC<CaseCardProps> = ({
 
     // Find the most recent status history entry with attachments
     const historyWithAttachments = [...parsedStatusHistory].reverse().find(entry => {
-      return entry.parsedDetails?.attachments && entry.parsedDetails.attachments.length > 0;
+      // Check both direct attachments field and parsed details attachments
+      return (entry.attachments && entry.attachments.length > 0) || 
+             (entry.parsedDetails?.attachments && entry.parsedDetails.attachments.length > 0);
     });
 
-    if (historyWithAttachments?.parsedDetails?.attachments) {
-      // ⚠️ FIXED: Use centralized attachment parsing for current attachments
-      return parseAttachments(historyWithAttachments.parsedDetails.attachments); // ⚠️ Centralized parsing
+    if (historyWithAttachments) {
+      // Prioritize direct attachments field over parsed details attachments
+      const attachmentsToUse = historyWithAttachments.attachments && historyWithAttachments.attachments.length > 0
+        ? historyWithAttachments.attachments
+        : historyWithAttachments.parsedDetails?.attachments;
+      
+      if (attachmentsToUse && attachmentsToUse.length > 0) {
+        // ⚠️ FIXED: Use centralized attachment parsing for current attachments
+        return parseAttachments(attachmentsToUse); // ⚠️ Centralized parsing
+      }
     }
 
     return [];
@@ -508,6 +517,16 @@ const CaseCard: React.FC<CaseCardProps> = ({
               <div className="detail-item full-width">
                 <span className="detail-label">Special Instructions: </span>
                 <p className="detail-value">{caseItem.specialInstruction}</p>
+              </div>
+            )}
+            {caseItem.attachments && caseItem.attachments.length > 0 && (
+              <div className="detail-item full-width">
+                <span className="detail-label">Case Attachments: </span>
+                <AttachmentRenderer 
+                  attachments={caseItem.attachments} 
+                  title="Case Attachments"
+                  showCount={true}
+                />
               </div>
             )}
             {caseItem.amendmentHistory && caseItem.amendmentHistory.length > 0 && (
@@ -804,9 +823,6 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                         </div>
                                       );
                                     }
-                                    // TODO: Fix status comments display - disabled due to syntax error
-                                    // else if (parsedDetails.details || parsedDetails.salesApprovalComments) {
-                                    //   const comments = parsedDetails.details || parsedDetails.salesApprovalComments;
                                     //   return <div><strong>Comments:</strong> {comments}</div>;
                                     // }
                                   } catch {
@@ -1025,9 +1041,6 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                         </div>
                                       );
                                     }
-                                    // TODO: Fix status comments display - disabled due to syntax error
-                                    // else if (parsedDetails.details || parsedDetails.salesApprovalComments) {
-                                    //   const comments = parsedDetails.details || parsedDetails.salesApprovalComments;
                                     //   return <div><strong>Comments:</strong> {comments}</div>;
                                     // }
                                   } catch {

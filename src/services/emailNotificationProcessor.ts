@@ -259,8 +259,22 @@ export const processEmailNotifications = async (
     console.log(`✅ EMAIL DEBUG - Found ${uniqueRecipients.length} recipients for ${newStatus} notification:`, uniqueRecipients);
 
     // Create email content using template from notification rule
-    const subject = replaceTemplateVariables(notificationRule.template.subject, caseData, changedBy);
-    const body = replaceTemplateVariables(notificationRule.template.body, caseData, changedBy);
+    console.log('🔍 TEMPLATE DEBUG - Database template content:', {
+      status: newStatus,
+      subjectTemplate: notificationRule.template.subject,
+      bodyTemplate: notificationRule.template.body?.substring(0, 200) + '...',
+      templateSource: 'database_notification_rules'
+    });
+    
+    const subject = await replaceTemplateVariables(notificationRule.template.subject, caseData, changedBy);
+    const body = await replaceTemplateVariables(notificationRule.template.body, caseData, changedBy);
+    
+    console.log('🔍 TEMPLATE DEBUG - Final template after variable replacement:', {
+      status: newStatus,
+      finalSubject: subject,
+      finalBodyPreview: body?.substring(0, 300) + '...',
+      bodyLength: body?.length
+    });
 
     // Send email notification via Supabase Edge Function (not direct OAuth)
     console.log('🔍 E2E DEBUG - Email notification attempt:', {
@@ -403,13 +417,16 @@ const createEmailBody = (
 /**
  * Replace template variables with actual case data
  */
-const replaceTemplateVariables = (
+const replaceTemplateVariables = async (
   template: string,
   caseData: CaseBooking,
   changedBy?: string
-): string => {
+): Promise<string> => {
   // Format surgery set selection and implant box arrays
   const formatArray = (arr: string[] | undefined) => arr?.length ? arr.join(', ') : 'None selected';
+  
+  // Get user names asynchronously
+  const submitterName = await getSubmitterName(caseData.submittedBy);
   
   return template
     .replace(/\{\{caseReference\}\}/g, caseData.caseReferenceNumber)
@@ -425,20 +442,40 @@ const replaceTemplateVariables = (
     .replace(/\{\{implantBox\}\}/g, formatArray(caseData.implantBox))
     .replace(/\{\{specialInstruction\}\}/g, caseData.specialInstruction || 'None')
     .replace(/\{\{status\}\}/g, caseData.status)
-    .replace(/\{\{submittedBy\}\}/g, getSubmitterName(caseData.submittedBy) || caseData.submittedBy)
+    .replace(/\{\{submittedBy\}\}/g, submitterName || caseData.submittedBy)
     .replace(/\{\{submittedAt\}\}/g, formatTimestamp(caseData.submittedAt))
     .replace(/\{\{country\}\}/g, caseData.country)
     .replace(/\{\{processedBy\}\}/g, changedBy || 'System')
-    .replace(/\{\{processedAt\}\}/g, new Date().toLocaleString());
+    .replace(/\{\{processedAt\}\}/g, new Date().toLocaleString())
+    .replace(/\n/g, '<br>'); // Convert line breaks to HTML breaks
 };
 
 /**
  * Get submitter name from user ID
  */
-const getSubmitterName = (submitterId?: string): string | null => {
-  // This would need to be enhanced to fetch actual user name
-  // For now, return the ID
-  return submitterId || null;
+const getSubmitterName = async (submitterId?: string): Promise<string | null> => {
+  if (!submitterId) return null;
+  
+  try {
+    // Import supabase here to avoid circular dependencies
+    const { supabase } = await import('../lib/supabase');
+    
+    const { data: user, error } = await supabase
+      .from('profiles')
+      .select('name, username')
+      .eq('id', submitterId)
+      .single();
+    
+    if (error) {
+      console.log('📧 EMAIL DEBUG - Could not fetch user name:', error.message);
+      return submitterId; // Fallback to ID
+    }
+    
+    return user?.name || user?.username || submitterId;
+  } catch (error) {
+    console.log('📧 EMAIL DEBUG - Error fetching user name:', error);
+    return submitterId; // Fallback to ID
+  }
 };
 
 /**

@@ -1,3 +1,0 @@
-Test Document 1 - Multi-file Upload Test
-
-This is the first document in a multi-file upload test scenario.

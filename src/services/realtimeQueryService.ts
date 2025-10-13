@@ -27,6 +27,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { CaseBooking, User, CaseStatus } from '../types';
 import { useCallback } from 'react';
+
+/**
+ * Get current user name for email notifications and status history
+ */
+const getCurrentUserName = async (): Promise<string> => {
+  try {
+    const { getCurrentUser } = await import('../utils/authCompat');
+    const currentUser = getCurrentUser();
+    return currentUser?.name || currentUser?.username || 'system';
+  } catch (error) {
+    console.log('📧 REALTIME DEBUG - Could not get current user, using system:', error);
+    return 'system';
+  }
+};
 import { 
   CASE_BOOKINGS_FIELDS, 
   CASE_QUANTITIES_FIELDS, 
@@ -57,11 +71,11 @@ export const useRealtimeQuery = <T>(
   return useQuery({
     queryKey,
     queryFn,
-    // Force fresh data - no cache staleness issues
-    staleTime: 0, // Always consider data stale
-    gcTime: 1000 * 60 * 5, // Keep in cache for 5 minutes only
-    refetchOnWindowFocus: true, // Always refetch when user comes back
-    refetchOnReconnect: true, // Refetch when connection restored
+    // Optimized caching for better performance
+    staleTime: 1000 * 30, // Data is fresh for 30 seconds
+    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
+    refetchOnWindowFocus: false, // Don't refetch on tab focus (rely on real-time updates)
+    refetchOnReconnect: true, // Still refetch when connection restored
     refetchInterval: options.refetchInterval || false, // Optional polling
     retry: (failureCount, error) => {
       // Don't retry on 4xx errors
@@ -97,7 +111,8 @@ export const useRealtimeCasesQuery = (filters?: {
           status,
           timestamp,
           processed_by,
-          details
+          details,
+          attachments
         ),
         amendment_history (
           id,
@@ -306,32 +321,20 @@ export const useOptimisticCaseMutation = () => {
       caseId: string;
       status?: CaseStatus;
       data?: Partial<CaseBooking>;
+      details?: string;
+      attachments?: string[];
     }) => {
-      const { caseId, status, data } = variables;
+      const { caseId, status, data, details, attachments } = variables;
 
       if (status) {
-        // Update case status using proper field mappings
-        console.log('🔧 REALTIME QUERY DEBUG - Status update attempt:', {
-          caseId,
-          status,
-          timestamp: new Date().toISOString(),
-          operation: 'PATCH /rest/v1/case_bookings',
-          fieldMappings: {
-            status: CASE_BOOKINGS_FIELDS.status,
-            updatedAt: CASE_BOOKINGS_FIELDS.updatedAt
-          }
-        });
+        // Status update for case
 
         // Use field mapping utility for consistency
         const updateData = { 
           [CASE_BOOKINGS_FIELDS.status]: status, 
           [CASE_BOOKINGS_FIELDS.updatedAt]: new Date().toISOString() 
         };
-        console.log('🔧 REALTIME QUERY DEBUG - Update data with field mappings:', {
-          updateData,
-          rawFieldNames: Object.keys(updateData),
-          fieldMappingUsed: true
-        });
+        // Update case status with field mappings
 
         const { data: updateResult, error } = await supabase
           .from('case_bookings')
@@ -340,45 +343,62 @@ export const useOptimisticCaseMutation = () => {
           .select(); // Add select to see what was updated
 
         if (error) {
-          console.error('❌ REALTIME QUERY DEBUG - Update failed:', {
-            error: error,
-            message: error.message,
-            details: error.details,
-            code: error.code,
-            hint: error.hint,
-            caseId,
-            status,
-            updateData,
-            possibleCauses: [
-              'RLS policy blocking update',
-              'Invalid status value for enum constraint',
-              'Field name mismatch',
-              'Missing user authentication'
-            ]
-          });
+          console.error('Case status update failed:', error.message);
           throw error;
         }
 
-        console.log('✅ REALTIME QUERY DEBUG - Status update successful:', {
+        // Status update completed successfully
+
+        // Use direct parameters first, then fall back to parsing details/processOrderDetails
+        let statusDetails = details || 'Status updated via real-time system';
+        let statusAttachments = attachments || null;
+        
+        console.log('🔧 STATUS DETAILS DEBUG - Initial parameters:', {
           caseId,
           status,
-          updateResult,
-          rowsAffected: updateResult?.length || 0
+          directDetails: details,
+          directAttachments: attachments,
+          hasProcessOrderDetails: !!data?.processOrderDetails
         });
-
-        // Add to status history with proper details and attachments
-        let statusDetails = 'Status updated via real-time system';
-        let statusAttachments = null;
         
-        // Extract details and attachments from processOrderDetails if available
-        if (data?.processOrderDetails) {
+        // ENHANCED: Always try to parse details field if it contains JSON to get clean details text
+        if (details) {
+          try {
+            const detailsJson = JSON.parse(details);
+            
+            // Extract clean comment text for details (salesApprovalComments, comments, etc)
+            if (detailsJson.salesApprovalComments) {
+              statusDetails = detailsJson.salesApprovalComments;
+            } else if (detailsJson.comments) {
+              statusDetails = detailsJson.comments;
+            }
+            
+            // Use direct attachments parameter if provided, otherwise use parsed attachments
+            if (!attachments && detailsJson.attachments && Array.isArray(detailsJson.attachments) && detailsJson.attachments.length > 0) {
+              statusAttachments = detailsJson.attachments;
+            }
+            
+            console.log('🔧 JSON PARSING DEBUG - Successfully parsed details:', {
+              originalDetails: details,
+              extractedComments: statusDetails,
+              extractedAttachments: detailsJson.attachments,
+              usingDirectAttachments: !!attachments,
+              finalAttachments: statusAttachments
+            });
+          } catch {
+            // details is not JSON, keep as plain text
+            console.log('🔧 JSON PARSING DEBUG - Details is not JSON, using as plain text:', details);
+          }
+        }
+        
+        // Fallback: Extract details and attachments from processOrderDetails if direct params not available
+        if ((!details || !attachments) && data?.processOrderDetails) {
           try {
             const orderDetails = JSON.parse(data.processOrderDetails as string);
             
-            // Handle nested details (Sales Approval format)
-            if (orderDetails.details) {
+            // Use parsed details if direct details not provided
+            if (!details && orderDetails.details) {
               try {
-                // Try to parse details as JSON (Sales Approval format)
                 const nestedDetails = JSON.parse(orderDetails.details);
                 if (nestedDetails.salesApprovalComments) {
                   statusDetails = nestedDetails.salesApprovalComments;
@@ -386,13 +406,12 @@ export const useOptimisticCaseMutation = () => {
                   statusDetails = nestedDetails;
                 }
               } catch {
-                // If not JSON, treat as plain text (Order Prepared format)
                 statusDetails = orderDetails.details;
               }
             }
             
-            // Handle attachments
-            if (orderDetails.attachments && orderDetails.attachments.length > 0) {
+            // Use parsed attachments if direct attachments not provided
+            if (!statusAttachments && orderDetails.attachments && orderDetails.attachments.length > 0) {
               statusAttachments = orderDetails.attachments;
             }
           } catch (error) {
@@ -400,8 +419,19 @@ export const useOptimisticCaseMutation = () => {
           }
         }
 
+        console.log('📎 ATTACHMENT DEBUG - Status history attachments:', {
+          caseId,
+          status,
+          directDetails: details,
+          directAttachments: attachments,
+          parsedAttachments: statusAttachments,
+          finalDetails: statusDetails,
+          willSaveDetails: statusDetails,
+          willSaveAttachments: statusAttachments,
+          timestamp: new Date().toISOString()
+        });
+
         // DUPLICATE PREVENTION: Check for existing status history entries with the same status very recently
-        console.log('🔧 REALTIME QUERY DEBUG - Checking for duplicate status entries before insertion');
         
         const { data: existingHistory } = await supabase
           .from('status_history')
@@ -412,13 +442,6 @@ export const useOptimisticCaseMutation = () => {
           .order(STATUS_HISTORY_FIELDS.timestamp, { ascending: false });
 
         if (existingHistory && existingHistory.length > 0) {
-          console.log('🚫 REALTIME QUERY DEBUG - Duplicate status prevented:', {
-            caseId,
-            status,
-            existingEntries: existingHistory.length,
-            mostRecentEntry: existingHistory[0],
-            timeDiff: new Date().getTime() - new Date(existingHistory[0].timestamp).getTime()
-          });
           // Skip status history insertion to prevent duplicate
         } else {
           // Insert status history using proper field mappings
@@ -426,27 +449,19 @@ export const useOptimisticCaseMutation = () => {
             [STATUS_HISTORY_FIELDS.caseId]: caseId,
             [STATUS_HISTORY_FIELDS.status]: status,
             [STATUS_HISTORY_FIELDS.timestamp]: new Date().toISOString(),
-            [STATUS_HISTORY_FIELDS.processedBy]: 'current_user', // TODO: Replace with actual user
+            [STATUS_HISTORY_FIELDS.processedBy]: await getCurrentUserName(),
             [STATUS_HISTORY_FIELDS.details]: statusDetails,
             [STATUS_HISTORY_FIELDS.attachments]: statusAttachments
           };
 
-          console.log('🔧 REALTIME QUERY DEBUG - Status history insertion:', {
-            statusHistoryData,
-            fieldMappings: STATUS_HISTORY_FIELDS
-          });
+          // Insert status history with field mappings
 
           const { error: historyError } = await supabase
             .from('status_history')
             .insert(statusHistoryData);
 
           if (historyError) {
-            console.error('❌ REALTIME QUERY DEBUG - Status history insertion failed:', {
-              error: historyError,
-              statusHistoryData
-            });
-          } else {
-            console.log('✅ REALTIME QUERY DEBUG - Status history inserted successfully');
+            console.error('Status history insertion failed:', historyError.message);
           }
         }
 
@@ -497,6 +512,79 @@ export const useOptimisticCaseMutation = () => {
         }
 
         console.log('✅ REALTIME QUERY DEBUG - Case data update successful');
+      }
+
+      // CRITICAL FIX: Add email notification processing for status updates
+      if (status) {
+        console.log('📧 REALTIME EMAIL DEBUG - Triggering email notifications for status update:', {
+          caseId,
+          newStatus: status,
+          timestamp: new Date().toISOString()
+        });
+
+        try {
+          // Import email processor and trigger notifications
+          const { processEmailNotifications } = await import('../services/emailNotificationProcessor');
+          
+          // Get the updated case data to pass to email processor
+          const { data: updatedCase, error: fetchError } = await supabase
+            .from('case_bookings')
+            .select('*')
+            .eq('id', caseId)
+            .single();
+
+          if (fetchError) {
+            console.error('❌ REALTIME EMAIL DEBUG - Failed to fetch updated case data:', fetchError);
+          } else if (updatedCase) {
+            // Convert snake_case database fields to camelCase for email processor
+            const convertedCase = {
+              id: updatedCase.id,
+              caseReferenceNumber: updatedCase.case_reference_number,
+              hospital: updatedCase.hospital,
+              department: updatedCase.department,
+              dateOfSurgery: updatedCase.date_of_surgery,
+              procedureType: updatedCase.procedure_type,
+              procedureName: updatedCase.procedure_name,
+              doctorName: updatedCase.doctor_name,
+              timeOfProcedure: updatedCase.time_of_procedure,
+              surgerySetSelection: updatedCase.surgery_set_selection,
+              implantBox: updatedCase.implant_box,
+              specialInstruction: updatedCase.special_instruction,
+              status: updatedCase.status,
+              submittedBy: updatedCase.submitted_by,
+              submittedAt: updatedCase.submitted_at,
+              processedBy: updatedCase.processed_by,
+              processedAt: updatedCase.processed_at,
+              country: updatedCase.country
+            };
+
+            console.log('📧 REALTIME EMAIL DEBUG - Converted case data for email processing:', {
+              caseRef: convertedCase.caseReferenceNumber,
+              status: convertedCase.status,
+              country: convertedCase.country
+            });
+
+            // Trigger email notifications asynchronously (don't block mutation)
+            processEmailNotifications(convertedCase, status, undefined, await getCurrentUserName())
+              .then(() => {
+                console.log('✅ REALTIME EMAIL DEBUG - Email notifications processed successfully:', {
+                  caseRef: convertedCase.caseReferenceNumber,
+                  status,
+                  timestamp: new Date().toISOString()
+                });
+              })
+              .catch(emailError => {
+                console.error('❌ REALTIME EMAIL DEBUG - Email notification failed:', {
+                  caseRef: convertedCase.caseReferenceNumber,
+                  status,
+                  error: emailError.message,
+                  timestamp: new Date().toISOString()
+                });
+              });
+          }
+        } catch (importError) {
+          console.error('❌ REALTIME EMAIL DEBUG - Failed to import email processor:', importError);
+        }
       }
 
       return { caseId, status, data };

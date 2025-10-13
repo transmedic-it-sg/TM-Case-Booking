@@ -69,6 +69,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
   const [isLoadingUsage, setIsLoadingUsage] = useState(false);
   const [showUsagePopup, setShowUsagePopup] = useState(false);
   const [usagePopupData, setUsagePopupData] = useState<{date: string, usage: DailyUsage | null}>({date: '', usage: null});
+  const [usageRefreshTimestamp, setUsageRefreshTimestamp] = useState<number>(Date.now());
 
   // Check if user has permission to view booking calendar
   const canViewCalendar = initialCurrentUser ? hasPermission(initialCurrentUser.role, PERMISSION_ACTIONS.BOOKING_CALENDAR) : false;
@@ -212,7 +213,18 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
     };
 
     loadUsageData();
-  }, [viewMode, activeCountry, currentDate]);
+  }, [viewMode, activeCountry, currentDate, usageRefreshTimestamp]);
+
+  // Auto-refresh usage data every 30 seconds when in usage mode to detect amendment changes
+  useEffect(() => {
+    if (viewMode !== 'usage') return;
+
+    const interval = setInterval(() => {
+      setUsageRefreshTimestamp(Date.now());
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [viewMode]);
 
   // Calendar helper functions
   const getDaysInMonth = (date: Date): number => {

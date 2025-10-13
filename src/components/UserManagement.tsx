@@ -517,16 +517,17 @@ const UserManagement: React.FC = () => {
     }
 
     // For non-admin users, set a secure default password if creating new user
+    let finalUserData = { ...newUser };
     if (!editingUser && currentUser?.role !== 'admin' && !newUser.password) {
       // Generate a secure temporary password
       const tempPassword = 'TempMedic2025!';
-      setNewUser(prev => ({ ...prev, password: tempPassword }));
+      finalUserData = { ...finalUserData, password: tempPassword };
     }
 
     // For existing users with password change, validate the new password
-    if (editingUser && newUser.password && currentUser?.role === 'admin') {
+    if (editingUser && finalUserData.password && currentUser?.role === 'admin') {
       const requirements = getPasswordRequirementsSync(true);
-      const validation = validatePassword(newUser.password, requirements);
+      const validation = validatePassword(finalUserData.password, requirements);
 
       if (!validation.isValid) {
         setError(`Password validation failed: ${validation.errors.join(', ')}`);
@@ -534,19 +535,19 @@ const UserManagement: React.FC = () => {
       }
     }
 
-    if (newUser.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.email)) {
+    if (finalUserData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(finalUserData.email)) {
       setError('Please enter a valid email address');
       return;
     }
 
     // Prevent non-admin users from creating admin accounts
-    if (newUser.role === 'admin' && currentUser?.role !== 'admin') {
+    if (finalUserData.role === 'admin' && currentUser?.role !== 'admin') {
       setError('Only administrators can create admin accounts');
       return;
     }
 
     // Check username availability
-    const isUsernameAvailable = await checkUsernameAvailable(newUser.username, editingUser ? users.find(u => u.id === editingUser) : undefined);
+    const isUsernameAvailable = await checkUsernameAvailable(finalUserData.username, editingUser ? users.find(u => u.id === editingUser) : undefined);
     if (!isUsernameAvailable) {
       setError('Username already exists');
       return;
@@ -556,8 +557,8 @@ const UserManagement: React.FC = () => {
       if (editingUser) {
         // Update existing user
         // Don't send password if it's empty (keep current password)
-        const { password, ...updateDataWithoutPassword } = newUser;
-        const updateData: Partial<User> = newUser.password ? newUser : updateDataWithoutPassword;
+        const { password, ...updateDataWithoutPassword } = finalUserData;
+        const updateData: Partial<User> = finalUserData.password ? finalUserData : updateDataWithoutPassword;
         await updateUser(editingUser, updateData);
         // Real-time hook automatically updates the users list
 
@@ -566,14 +567,14 @@ const UserManagement: React.FC = () => {
             if (currentUser) {
               // Create a list of changes made
               const changes = [];
-              if (newUser.password) changes.push('password');
+              if (finalUserData.password) changes.push('password');
               changes.push('profile updated');
 
               await auditUserUpdated(
                 currentUser.name,
                 currentUser.id,
                 currentUser.role,
-                newUser.name,
+                finalUserData.name,
                 changes
               );
             }
@@ -581,22 +582,22 @@ const UserManagement: React.FC = () => {
           }
 
           playSound.success();
-          showSuccess('User Updated', `${newUser.name}'s account has been successfully updated.`);
+          showSuccess('User Updated', `${finalUserData.name}'s account has been successfully updated.`);
           addNotification({
             title: 'User Account Updated',
-            message: `${newUser.name} (${newUser.username}) account details have been modified.`,
+            message: `${finalUserData.name} (${finalUserData.username}) account details have been modified.`,
             type: 'success'
           });
       } else {
         // Add new user
         // For admin users created by admin, assign all countries and no departments
-        const userDataToSave = currentUser?.role === 'admin' && newUser.role === 'admin'
+        const userDataToSave = currentUser?.role === 'admin' && finalUserData.role === 'admin'
           ? {
-              ...newUser,
+              ...finalUserData,
               countries: availableCountries,
               departments: [] // Admin users don't need department restrictions
             }
-          : newUser;
+          : finalUserData;
 
         await addUser(userDataToSave);
         // Real-time hook automatically updates the users list

@@ -760,16 +760,32 @@ Best regards,
   useEffect(() => {
     if (!selectedCountry) return;
 
-    // Load email notification matrix configs from database
+    // Load email notification matrix configs from email_notification_rules table (source of truth)
     const loadNotificationMatrix = async () => {
       try {
         const { supabase } = await import('../lib/supabase');
-        const { userService } = await import('../services');
         
-        // Get current user ID for RLS policy compliance
-        const user = await userService.getCurrentUser();
-        if (!user?.id) {
-          console.log('User not authenticated for loading notification matrix');
+        console.log('🔧 EMAIL CONFIG LOAD - Loading notification rules from database:', {
+          country: selectedCountry,
+          source: 'email_notification_rules',
+          timestamp: new Date().toISOString()
+        });
+        
+        // Load all notification rules for this country from email_notification_rules table
+        const { data: rules, error } = await supabase
+          .from('email_notification_rules')
+          .select('*')
+          .eq('country', selectedCountry)
+          .order('status');
+        
+        if (error) {
+          console.error('🔧 EMAIL CONFIG LOAD - Database error:', error);
+          throw error;
+        }
+        
+        if (!rules || rules.length === 0) {
+          console.log('🔧 EMAIL CONFIG LOAD - No rules found, initializing default matrix');
+          // Initialize with default matrix if none exists
           const newMatrix = initializeNotificationMatrix(selectedCountry);
           setEmailMatrixConfigs(prev => ({
             ...prev,
@@ -778,36 +794,50 @@ Best regards,
           return;
         }
         
-        const { data, error } = await supabase
-          .from('app_settings')
-          .select('setting_value')
-          .eq('setting_key', 'email_matrix_configs_by_country')
-          .eq('user_id', user?.id || null)
-          .maybeSingle();
-
-        if (error || !data?.setting_value) {
-          console.log('No notification matrix found for user:', error?.message || 'No data');
-          const newMatrix = initializeNotificationMatrix(selectedCountry);
-          setEmailMatrixConfigs(prev => ({
-            ...prev,
-            [selectedCountry]: newMatrix
-          }));
-          return;
-        }
-
-        const matrixConfigs = data.setting_value;
-        setEmailMatrixConfigs(matrixConfigs);
-
-        // Initialize notification matrix if it doesn't exist for this country
-        if (!matrixConfigs[selectedCountry]) {
-          const newMatrix = initializeNotificationMatrix(selectedCountry);
-          setEmailMatrixConfigs(prev => ({
-            ...prev,
-            [selectedCountry]: newMatrix
-          }));
-        }
+        console.log('🔧 EMAIL CONFIG LOAD - Found rules:', {
+          country: selectedCountry,
+          rulesCount: rules.length,
+          statuses: rules.map(r => r.status)
+        });
+        
+        // Convert database rules to UI format
+        const matrixRules = rules.map(rule => ({
+          status: rule.status,
+          enabled: rule.enabled,
+          template: {
+            subject: rule.template.subject || '',
+            body: rule.template.body || ''
+          },
+          recipients: {
+            roles: rule.recipients.roles || [],
+            specificEmails: rule.recipients.members || [],
+            departmentFilter: rule.recipients.departments || [],
+            includeSubmitter: rule.recipients.includeSubmitter || false,
+            requireSameDepartment: false // UI field not in database
+          },
+          conditions: {}
+        }));
+        
+        // Create matrix structure for this country
+        const countryMatrix = {
+          country: selectedCountry,
+          rules: matrixRules
+        };
+        
+        // Update state with loaded rules
+        setEmailMatrixConfigs(prev => ({
+          ...prev,
+          [selectedCountry]: countryMatrix
+        }));
+        
+        console.log('✅ EMAIL CONFIG LOAD - Successfully loaded rules:', {
+          country: selectedCountry,
+          rulesLoaded: matrixRules.length,
+          enabledRules: matrixRules.filter(r => r.enabled).length
+        });
+        
       } catch (error) {
-        console.error('Error in loadNotificationMatrix:', error);
+        console.error('❌ EMAIL CONFIG LOAD - Critical error:', error);
         // Initialize with default if loading fails
         const newMatrix = initializeNotificationMatrix(selectedCountry);
         setEmailMatrixConfigs(prev => ({
@@ -1105,21 +1135,110 @@ Best regards,
     playSound.click();
   };
 
-  // Save notification matrix
+  // Save notification matrix - REWRITTEN to save directly to email_notification_rules table
   const saveNotificationMatrix = async () => {
     if (!selectedCountry) return;
 
     try {
       const { supabase } = await import('../lib/supabase');
-      const { userService } = await import('../services');
       
-      // Get current user ID for RLS policy compliance
-      const user = await userService.getCurrentUser();
-      if (!user?.id) {
-        console.warn('User not authenticated for saving notification matrix - saving as global setting');
+      console.log('🔧 EMAIL CONFIG SAVE - Starting comprehensive save process:', {
+        country: selectedCountry,
+        rulesCount: emailMatrixConfigs[selectedCountry]?.rules?.length || 0,
+        timestamp: new Date().toISOString()
+      });
+      
+      const countryMatrix = emailMatrixConfigs[selectedCountry];
+      if (!countryMatrix?.rules) {
+        throw new Error(`No notification rules found for country: ${selectedCountry}`);
       }
       
-      // First, check if the setting exists for this user
+      // STEP 1: Save to email_notification_rules table (primary source for email processor)
+      console.log('🔧 EMAIL CONFIG SAVE - Saving to email_notification_rules table...');
+      
+      let savedRulesCount = 0;
+      let updatedRulesCount = 0;
+      
+      for (const rule of countryMatrix.rules) {
+        console.log('🔧 EMAIL CONFIG SAVE - Processing rule:', {
+          status: rule.status,
+          enabled: rule.enabled,
+          hasTemplate: !!rule.template,
+          hasRecipients: !!rule.recipients
+        });
+        
+        // Check if rule already exists
+        const { data: existingRule } = await supabase
+          .from('email_notification_rules')
+          .select('id')
+          .eq('country', selectedCountry)
+          .eq('status', rule.status)
+          .maybeSingle();
+        
+        // Prepare rule data for database
+        const ruleData = {
+          country: selectedCountry,
+          status: rule.status,
+          enabled: rule.enabled,
+          template: {
+            subject: rule.template.subject || '',
+            body: rule.template.body || ''
+          },
+          recipients: {
+            roles: rule.recipients.roles || [],
+            members: rule.recipients.specificEmails || [],
+            departments: rule.recipients.departmentFilter || [],
+            includeSubmitter: rule.recipients.includeSubmitter || false
+          },
+          conditions: {},
+          updated_at: new Date().toISOString()
+        };
+        
+        if (existingRule) {
+          // Update existing rule
+          const { error: updateError } = await supabase
+            .from('email_notification_rules')
+            .update(ruleData)
+            .eq('id', existingRule.id);
+          
+          if (updateError) {
+            console.error('🔧 EMAIL CONFIG ERROR - Failed to update rule:', {
+              status: rule.status,
+              error: updateError
+            });
+            throw updateError;
+          } else {
+            updatedRulesCount++;
+            console.log('✅ EMAIL CONFIG SAVE - Updated rule:', rule.status);
+          }
+        } else {
+          // Insert new rule
+          const { error: insertError } = await supabase
+            .from('email_notification_rules')
+            .insert({
+              ...ruleData,
+              created_at: new Date().toISOString()
+            });
+          
+          if (insertError) {
+            console.error('🔧 EMAIL CONFIG ERROR - Failed to insert rule:', {
+              status: rule.status,
+              error: insertError
+            });
+            throw insertError;
+          } else {
+            savedRulesCount++;
+            console.log('✅ EMAIL CONFIG SAVE - Inserted new rule:', rule.status);
+          }
+        }
+      }
+      
+      // STEP 2: Also save to app_settings for UI persistence (backup/cache)
+      console.log('🔧 EMAIL CONFIG SAVE - Saving to app_settings for UI persistence...');
+      
+      const { userService } = await import('../services');
+      const user = await userService.getCurrentUser();
+      
       const { data: existing } = await supabase
         .from('app_settings')
         .select('id')
@@ -1128,8 +1247,7 @@ Best regards,
         .maybeSingle();
       
       if (existing) {
-        // Update existing record
-        const { error } = await supabase
+        await supabase
           .from('app_settings')
           .update({
             setting_value: emailMatrixConfigs,
@@ -1137,38 +1255,44 @@ Best regards,
           })
           .eq('setting_key', 'email_matrix_configs_by_country')
           .eq('user_id', user?.id || null);
-        
-        if (error) {
-          console.error('Error updating notification matrix:', error);
-          throw error;
-        }
       } else {
-        // Insert new record with user_id
-        const { error } = await supabase
+        await supabase
           .from('app_settings')
           .insert({
             user_id: user?.id || null,
             setting_key: 'email_matrix_configs_by_country',
             setting_value: emailMatrixConfigs,
+            created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
-        
-        if (error) {
-          console.error('Error inserting notification matrix:', error);
-          throw error;
-        }
       }
-
+      
+      // Success!
+      console.log('✅ EMAIL CONFIG SAVE - Complete success:', {
+        country: selectedCountry,
+        newRules: savedRulesCount,
+        updatedRules: updatedRulesCount,
+        totalRules: savedRulesCount + updatedRulesCount
+      });
+      
       playSound.success();
-      showSuccess('Notification Rules Saved', `Email notification rules for ${selectedCountry} have been saved to database`);
+      showSuccess(
+        'Email Notification Rules Saved Successfully!', 
+        `${selectedCountry} email templates are now synchronized with the email processor. ` +
+        `${savedRulesCount} new rules created, ${updatedRulesCount} rules updated.`
+      );
       
       // Show success message for tests
       setSuccessMessage(`Email configuration for ${selectedCountry} saved successfully`);
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 5000);
+      
     } catch (error) {
-      console.error('Error in saveNotificationMatrix:', error);
-      showError('Save Failed', 'Failed to save notification rules to database. Please try again.');
+      console.error('❌ EMAIL CONFIG SAVE - Critical error:', error);
+      showError(
+        'Save Failed', 
+        `Failed to save notification rules for ${selectedCountry}. Error: ${(error as Error).message || 'Unknown error'}`
+      );
     }
   };
 

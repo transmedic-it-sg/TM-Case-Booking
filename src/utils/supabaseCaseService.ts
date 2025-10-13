@@ -1582,6 +1582,13 @@ export const deleteSupabaseCase = async (caseId: string): Promise<void> => {
  */
 export const recalculateUsageForDate = async (date: string, country: string, department: string): Promise<void> => {
   try {
+    console.log('🔢 USAGE RECALCULATION DEBUG - Starting recalculation:', {
+      date,
+      country,
+      department,
+      timestamp: new Date().toISOString()
+    });
+
     // Call RPC function to recalculate usage
     const { error } = await supabase.rpc('recalculate_daily_usage', {
       p_usage_date: date,
@@ -1590,7 +1597,21 @@ export const recalculateUsageForDate = async (date: string, country: string, dep
     });
 
     if (error) {
+      console.error('❌ USAGE RECALCULATION ERROR - RPC function failed:', {
+        date,
+        country,
+        department,
+        error: error,
+        errorMessage: error.message,
+        errorCode: error.code,
+        errorDetails: error.details,
+        errorHint: error.hint,
+        timestamp: new Date().toISOString()
+      });
+
       // If RPC doesn't exist, manually delete and recalculate
+      console.log('🔄 USAGE RECALCULATION DEBUG - Attempting manual recalculation fallback');
+      
       const { error: deleteError } = await supabase
         .from('daily_usage_aggregation')
         .delete()
@@ -1599,9 +1620,36 @@ export const recalculateUsageForDate = async (date: string, country: string, dep
         .eq('department', department);
       
       if (deleteError) {
+        console.error('❌ USAGE RECALCULATION ERROR - Manual deletion failed:', {
+          date,
+          country,
+          department,
+          deleteError: deleteError,
+          timestamp: new Date().toISOString()
+        });
+        throw deleteError;
+      } else {
+        console.log('✅ USAGE RECALCULATION DEBUG - Manual deletion successful');
       }
+    } else {
+      console.log('✅ USAGE RECALCULATION DEBUG - RPC function completed successfully:', {
+        date,
+        country,
+        department,
+        timestamp: new Date().toISOString()
+      });
     }
   } catch (error) {
+    console.error('❌ USAGE RECALCULATION CRITICAL ERROR - Unexpected error:', {
+      date,
+      country,
+      department,
+      error: error,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorStack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
+    throw error;
   }
 };
 

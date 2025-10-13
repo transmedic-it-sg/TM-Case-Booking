@@ -134,7 +134,8 @@ class CorrectDatabaseService {
 
   // Additional methods for backward compatibility
   async getCountries(): Promise<string[]> {
-    return ['Singapore', 'Malaysia'];
+    const { SUPPORTED_COUNTRIES } = await import('../utils/countryUtils');
+    return [...SUPPORTED_COUNTRIES];
   }
 
   async getHospitals(country: string): Promise<string[]> {
