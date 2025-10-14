@@ -99,6 +99,7 @@ export interface CaseCardProps {
   onPendingOfficeCommentsChange: (comments: string) => void;
   onOfficeDeliveryAttachmentsChange: (attachments: string[]) => void;
   onOfficeDeliveryCommentsChange: (comments: string) => void;
+  onCompletedAttachmentsChange: (attachments: string[]) => void;
   onNavigateToPermissions?: () => void;
 }
 

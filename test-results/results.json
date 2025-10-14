@@ -1,0 +1,230 @@
+{
+  "config": {
+    "configFile": "/mnt/c/Users/anrong.low/TM-Case-Booking/playwright.config.ts",
+    "rootDir": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "./test-results/results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "./test-results/results.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.0",
+    "workers": 1,
+    "webServer": {
+      "command": "DISABLE_ESLINT_PLUGIN=true PORT=3002 npm start",
+      "port": 3002,
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "08-permission-matrix.spec.ts",
+      "file": "08-permission-matrix.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Permission Matrix E2E Tests",
+          "file": "08-permission-matrix.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should test delete-case permission toggle for operations-manager role",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 23061,
+                      "error": {
+                        "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[name=\"username\"]') to be visible\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[name=\"username\"]') to be visible\u001b[22m\n\n    at authenticateUser (/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:22:16)\n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:104:5",
+                        "location": {
+                          "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts",
+                          "column": 16,
+                          "line": 22
+                        },
+                        "snippet": "  20 |     \n  21 |     // Wait for login form to be visible\n> 22 |     await page.waitForSelector('input[name=\"username\"]', { timeout: 10000 });\n     |                ^\n  23 |     \n  24 |     // Fill login form\n  25 |     await page.fill('input[name=\"username\"]', username);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts",
+                            "column": 16,
+                            "line": 22
+                          },
+                          "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[name=\"username\"]') to be visible\u001b[22m\n\n\n  20 |     \n  21 |     // Wait for login form to be visible\n> 22 |     await page.waitForSelector('input[name=\"username\"]', { timeout: 10000 });\n     |                ^\n  23 |     \n  24 |     // Fill login form\n  25 |     await page.fill('input[name=\"username\"]', username);\n    at authenticateUser (/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:22:16)\n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:104:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-14T04:11:08.014Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts",
+                        "column": 16,
+                        "line": 22
+                      }
+                    },
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 12863,
+                      "error": {
+                        "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[name=\"username\"]') to be visible\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[name=\"username\"]') to be visible\u001b[22m\n\n    at authenticateUser (/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:22:16)\n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:104:5",
+                        "location": {
+                          "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts",
+                          "column": 16,
+                          "line": 22
+                        },
+                        "snippet": "  20 |     \n  21 |     // Wait for login form to be visible\n> 22 |     await page.waitForSelector('input[name=\"username\"]', { timeout: 10000 });\n     |                ^\n  23 |     \n  24 |     // Fill login form\n  25 |     await page.fill('input[name=\"username\"]', username);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts",
+                            "column": 16,
+                            "line": 22
+                          },
+                          "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[name=\"username\"]') to be visible\u001b[22m\n\n\n  20 |     \n  21 |     // Wait for login form to be visible\n> 22 |     await page.waitForSelector('input[name=\"username\"]', { timeout: 10000 });\n     |                ^\n  23 |     \n  24 |     // Fill login form\n  25 |     await page.fill('input[name=\"username\"]', username);\n    at authenticateUser (/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:22:16)\n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:104:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-10-14T04:11:42.526Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts",
+                        "column": 16,
+                        "line": 22
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "7601285ab4e7970e8602-f58351ac28cf62847909",
+              "file": "08-permission-matrix.spec.ts",
+              "line": 103,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-10-14T04:10:25.103Z",
+    "duration": 89885.686,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

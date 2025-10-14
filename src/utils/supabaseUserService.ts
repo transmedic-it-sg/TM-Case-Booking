@@ -131,59 +131,59 @@ export const getUserById = async (userId: string): Promise<User | null> => {
 
 // Add new user
 export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User> => {
-  const result = await ErrorHandler.executeWithRetry(
-    async () => {
-      // SECURITY: Hash password before storing in database
-      const hashedPassword = await hashPassword(userData.password);
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .insert([{
-          username: userData.username,
-          password_hash: hashedPassword, // Now properly hashed
-          role: userData.role,
-          name: userData.name,
-          departments: userData.departments,
-          countries: userData.countries,
-          selected_country: userData.selectedCountry, // ⚠️ selected_country (selectedCountry)
-          enabled: userData.enabled,
-          email: userData.email,
-          is_temporary_password: false // New users set their own password
-        }])
-        .select()
-        .single();
+  // CRITICAL FIX: User creation should NOT use retries as it's not idempotent
+  // Each retry attempts to create the same user again, causing 409 conflicts
+  try {
+    // SECURITY: Hash password before storing in database
+    const hashedPassword = await hashPassword(userData.password);
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert([{
+        username: userData.username,
+        password_hash: hashedPassword, // Now properly hashed
+        role: userData.role,
+        name: userData.name,
+        departments: userData.departments,
+        countries: userData.countries,
+        selected_country: userData.selectedCountry, // ⚠️ selected_country (selectedCountry)
+        enabled: userData.enabled,
+        email: userData.email,
+        is_temporary_password: false // New users set their own password
+      }])
+      .select()
+      .single();
 
-      if (error) throw error;
-
-      return {
-        id: data.id,
-        username: data.username,
-        password: '', // Never expose password
-        role: data.role,
-        name: data.name,
-        departments: data.departments || [],
-        countries: data.countries || [],
-        selectedCountry: data.selected_country,
-        enabled: data.enabled,
-        email: data.email
-      };
-    },
-    {
-      operation: 'Add User',
-      userMessage: 'Failed to create user',
-      showToast: true,
-      showNotification: true,
-      includeDetails: true,
-      autoRetry: true,
-      maxRetries: 3
+    if (error) {
+      // Provide specific error message for duplicates
+      if (error.code === '23505') { // Unique constraint violation
+        throw new Error('A user with this username or email already exists. Please use different values.');
+      }
+      throw error;
     }
-  );
 
-  if (!result.success) {
-    throw new Error(result.error || 'Failed to create user');
+    return {
+      id: data.id,
+      username: data.username,
+      password: '', // Never expose password
+      role: data.role,
+      name: data.name,
+      departments: data.departments || [],
+      countries: data.countries || [],
+      selectedCountry: data.selected_country,
+      enabled: data.enabled,
+      email: data.email
+    };
+  } catch (error) {
+    // Log the error and provide user-friendly message
+    console.error('Failed to create user:', error);
+    
+    if (error instanceof Error) {
+      throw error; // Re-throw with original message
+    }
+    
+    throw new Error('Failed to create user. Please try again.');
   }
-
-  return result.data!;
 };
 
 // Update user

@@ -126,7 +126,21 @@ const ModernEditSets: React.FC = () => {
   }
 
   // State management with enhanced UX tracking
-  const [activeTab, setActiveTab] = useState<TabType>(TABS.DOCTORS);
+  // Set default tab based on user permissions
+  const getDefaultTab = (): TabType => {
+    if (currentUser) {
+      if (hasPermission(currentUser.role, PERMISSION_ACTIONS.MANAGE_DOCTORS)) {
+        return TABS.DOCTORS;
+      } else if (hasPermission(currentUser.role, PERMISSION_ACTIONS.MANAGE_PROCEDURE_TYPES)) {
+        return TABS.PROCEDURES;
+      } else if (hasPermission(currentUser.role, PERMISSION_ACTIONS.MANAGE_SURGERY_IMPLANTS)) {
+        return TABS.SURGERY_IMPLANTS;
+      }
+    }
+    return TABS.DOCTORS; // Fallback
+  };
+  
+  const [activeTab, setActiveTab] = useState<TabType>(getDefaultTab());
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -191,11 +205,41 @@ const ModernEditSets: React.FC = () => {
   };
 
   const hasEditAccess = currentUser ? hasPermission(currentUser.role, getRequiredPermission(activeTab)) : false;
+  
+  // Render permission denied UI if no access
   if (!hasEditAccess) {
     const tabName = activeTab === TABS.DOCTORS ? 'Manage Doctors' : 
                    activeTab === TABS.PROCEDURES ? 'Manage Procedure Types' : 
                    activeTab === TABS.SURGERY_IMPLANTS ? 'Manage Surgery & Implants' : 'Edit Sets';
-    throw new Error(`You do not have permission to access ${tabName}. Please contact your administrator.`);
+    
+    return (
+      <EditSetsErrorBoundary componentName="Modern Edit Sets" userAction="managing edit sets">
+        <div className="modern-edit-sets permission-denied">
+          <div className="permission-error-container">
+            <div className="permission-error-icon">🔒</div>
+            <h2 className="permission-error-title">Access Denied</h2>
+            <p className="permission-error-message">
+              You do not have permission to access <strong>{tabName}</strong>.
+            </p>
+            <div className="permission-error-details">
+              <p>Required permission: <code>{getRequiredPermission(activeTab)}</code></p>
+              <p>Your current role: <code>{currentUser?.role || 'Unknown'}</code></p>
+            </div>
+            <div className="permission-error-actions">
+              <button 
+                onClick={() => window.history.back()}
+                className="btn btn-secondary"
+              >
+                ← Go Back
+              </button>
+              <p className="help-text">
+                Contact your administrator to request access to this feature.
+              </p>
+            </div>
+          </div>
+        </div>
+      </EditSetsErrorBoundary>
+    );
   }
 
 
@@ -1597,26 +1641,32 @@ const ModernEditSets: React.FC = () => {
     <EditSetsErrorBoundary componentName="Modern Edit Sets" userAction="managing edit sets">
       <div className="modern-edit-sets" data-active-tab={activeTab}>
         
-        {/* Tab Navigation */}
+        {/* Tab Navigation - Only show tabs user has permission to access */}
         <nav className="edit-sets-tabs">
-          <button
-            onClick={() => setActiveTab(TABS.DOCTORS)}
-            className={`tab-button ${activeTab === TABS.DOCTORS ? 'active' : ''}`}
-          >
-            👩‍⚕️ Manage Doctors
-          </button>
-          <button
-            onClick={() => setActiveTab(TABS.PROCEDURES)}
-            className={`tab-button ${activeTab === TABS.PROCEDURES ? 'active' : ''}`}
-          >
-            🏥 Procedure Types
-          </button>
-          <button
-            onClick={() => setActiveTab(TABS.SURGERY_IMPLANTS)}
-            className={`tab-button ${activeTab === TABS.SURGERY_IMPLANTS ? 'active' : ''}`}
-          >
-            🔧 Surgery & Implants
-          </button>
+          {currentUser && hasPermission(currentUser.role, PERMISSION_ACTIONS.MANAGE_DOCTORS) && (
+            <button
+              onClick={() => setActiveTab(TABS.DOCTORS)}
+              className={`tab-button ${activeTab === TABS.DOCTORS ? 'active' : ''}`}
+            >
+              👩‍⚕️ Manage Doctors
+            </button>
+          )}
+          {currentUser && hasPermission(currentUser.role, PERMISSION_ACTIONS.MANAGE_PROCEDURE_TYPES) && (
+            <button
+              onClick={() => setActiveTab(TABS.PROCEDURES)}
+              className={`tab-button ${activeTab === TABS.PROCEDURES ? 'active' : ''}`}
+            >
+              🏥 Procedure Types
+            </button>
+          )}
+          {currentUser && hasPermission(currentUser.role, PERMISSION_ACTIONS.MANAGE_SURGERY_IMPLANTS) && (
+            <button
+              onClick={() => setActiveTab(TABS.SURGERY_IMPLANTS)}
+              className={`tab-button ${activeTab === TABS.SURGERY_IMPLANTS ? 'active' : ''}`}
+            >
+              🔧 Surgery & Implants
+            </button>
+          )}
         </nav>
 
         <main className="edit-sets-main">

@@ -58,6 +58,7 @@ type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports'
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [showMobileEntry, setShowMobileEntry] = useState(false);
   const [activePage, setActivePage] = useState<ActivePage>('booking');
   const [processingCase, setProcessingCase] = useState<CaseBooking | null>(null);
@@ -165,17 +166,69 @@ const AppContent: React.FC = () => {
         const existingUser = await UserService.getCurrentUser();
         if (existingUser && !user) {
           setUser(existingUser);
+          console.log('✅ Existing session restored for user:', existingUser.username);
         }
       } catch (error) {
         // No existing user session found
+        console.log('🔍 No existing session found');
+      } finally {
+        // Always set checking session to false, whether user found or not
+        setIsCheckingSession(false);
       }
     };
 
     initializeUserService();
 
+    // CRITICAL FIX: Add Supabase auth state listener for session persistence
+    const initializeAuthListener = async () => {
+      const { supabase } = await import('./lib/supabase');
+      
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log('🔐 Auth state change:', event, session?.user?.id);
+          
+          if (event === 'SIGNED_IN' && session?.user && !user) {
+            // User signed in - restore user data
+            try {
+              const existingUser = await UserService.getCurrentUser();
+              if (existingUser) {
+                setUser(existingUser);
+                setIsCheckingSession(false);
+                console.log('✅ Session restored for user:', existingUser.username);
+              }
+            } catch (error) {
+              console.error('Failed to restore user session:', error);
+              setIsCheckingSession(false);
+            }
+          } else if (event === 'SIGNED_OUT') {
+            // User signed out - clear state
+            setUser(null);
+            console.log('🚪 User session cleared');
+          } else if (event === 'TOKEN_REFRESHED' && session?.user && user) {
+            // Token refreshed - maintain current user state
+            console.log('🔄 Token refreshed for user:', user.username);
+          }
+        }
+      );
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    };
+
+    let authCleanup: (() => void) | null = null;
+    
+    initializeAuthListener().then(cleanup => {
+      authCleanup = cleanup;
+    });
+
     // Cleanup flag after initialization
     return () => {
       window.versionCheckInProgress = false;
+      // Cleanup auth listener
+      if (authCleanup) {
+        authCleanup();
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount - user state check is intentional initialization
@@ -614,6 +667,36 @@ const AppContent: React.FC = () => {
     showSuccess('Maintenance Mode', 'You have been logged out due to system maintenance');
   };
 
+  // Show loading state while checking for existing session
+  if (isCheckingSession) {
+    return (
+      <div className="app loading-session" style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        <div className="spinner" style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #f3f3f3',
+          borderTop: '4px solid #0066cc',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <p style={{ color: '#666', fontSize: '14px' }}>Checking session...</p>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   if (!user) {
     // Show mobile entry page first on mobile devices
     if (isMobileDevice() && showMobileEntry) {
@@ -832,7 +915,9 @@ const AppContent: React.FC = () => {
               📅 Booking Calendar
             </button>
           )}
-          {hasPermission(user.role, PERMISSION_ACTIONS.EDIT_SETS) && (
+          {(hasPermission(user.role, PERMISSION_ACTIONS.MANAGE_DOCTORS) || 
+            hasPermission(user.role, PERMISSION_ACTIONS.MANAGE_PROCEDURE_TYPES) || 
+            hasPermission(user.role, PERMISSION_ACTIONS.MANAGE_SURGERY_IMPLANTS)) && (
             <button
               onClick={() => {
                 setActivePage('sets');
@@ -920,7 +1005,9 @@ const AppContent: React.FC = () => {
           />
         )}
 
-        {activePage === 'sets' && hasPermission(user.role, PERMISSION_ACTIONS.EDIT_SETS) && (
+        {activePage === 'sets' && (hasPermission(user.role, PERMISSION_ACTIONS.MANAGE_DOCTORS) || 
+            hasPermission(user.role, PERMISSION_ACTIONS.MANAGE_PROCEDURE_TYPES) || 
+            hasPermission(user.role, PERMISSION_ACTIONS.MANAGE_SURGERY_IMPLANTS)) && (
           <EditSets />
         )}
 

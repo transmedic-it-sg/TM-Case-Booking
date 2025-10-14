@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { AmendmentFormProps } from './types';
 import TimePicker from '../common/TimePicker';
 import FilterDatePicker from '../FilterDatePicker';
-import MultiSelectDropdown from '../MultiSelectDropdown';
+import MultiSelectDropdownWithQuantity from '../MultiSelectDropdownWithQuantity';
 import SearchableDropdown from '../SearchableDropdown';
 import { supabase } from '../../lib/supabase';
 import { normalizeCountry } from '../../utils/countryUtils';
@@ -545,75 +545,41 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
               />
             </div>
 
-            {/* Surgery Sets */}
+            {/* Surgery Sets with Quantities */}
             {surgerySetOptions.length > 0 && (
               <div className="form-group">
-                <MultiSelectDropdown
+                <MultiSelectDropdownWithQuantity
                   id="amendment-surgery-sets"
                   label="Surgery Set"
                   options={surgerySetOptions}
                   value={formData.surgerySetSelection || []}
+                  quantities={quantities}
                   onChange={(values) => handleInputChange('surgerySetSelection', values)}
+                  onQuantityChange={(item: string, quantity: number) => {
+                    setQuantities(prev => ({ ...prev, [item]: quantity }));
+                  }}
                   placeholder="Select Surgery Sets..."
                   disabled={!formData.procedureType}
                 />
-                {/* Quantities for selected surgery sets */}
-                {formData.surgerySetSelection.length > 0 && (
-                  <div className="quantities-section" style={{ marginTop: '1rem' }}>
-                    <label style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>Quantities:</label>
-                    {formData.surgerySetSelection.map((setName) => (
-                      <div key={setName} className="quantity-item" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                        <span style={{ flex: 1, fontSize: '0.875rem' }}>{setName}:</span>
-                        <input
-                          type="number"
-                          min="1"
-                          value={quantities[setName] || 1}
-                          onChange={(e) => {
-                            const value = parseInt(e.target.value) || 1;
-                            setQuantities(prev => ({ ...prev, [setName]: value }));
-                          }}
-                          style={{ width: '80px', padding: '0.25rem 0.5rem' }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             )}
 
-            {/* Implant Boxes */}
+            {/* Implant Boxes with Quantities */}
             {implantBoxOptions.length > 0 && (
               <div className="form-group">
-                <MultiSelectDropdown
+                <MultiSelectDropdownWithQuantity
                   id="amendment-implant-boxes"
                   label="Implant Box"
                   options={implantBoxOptions}
                   value={formData.implantBox || []}
+                  quantities={quantities}
                   onChange={(values) => handleInputChange('implantBox', values)}
+                  onQuantityChange={(item: string, quantity: number) => {
+                    setQuantities(prev => ({ ...prev, [item]: quantity }));
+                  }}
                   placeholder="Select Implant Boxes..."
                   disabled={!formData.procedureType}
                 />
-                {/* Quantities for selected implant boxes */}
-                {formData.implantBox.length > 0 && (
-                  <div className="quantities-section" style={{ marginTop: '1rem' }}>
-                    <label style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>Quantities:</label>
-                    {formData.implantBox.map((boxName) => (
-                      <div key={boxName} className="quantity-item" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                        <span style={{ flex: 1, fontSize: '0.875rem' }}>{boxName}:</span>
-                        <input
-                          type="number"
-                          min="1"
-                          value={quantities[boxName] || 1}
-                          onChange={(e) => {
-                            const value = parseInt(e.target.value) || 1;
-                            setQuantities(prev => ({ ...prev, [boxName]: value }));
-                          }}
-                          style={{ width: '80px', padding: '0.25rem 0.5rem' }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             )}
           </div>

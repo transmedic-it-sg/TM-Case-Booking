@@ -615,6 +615,7 @@ Best regards,
     try {
       const { supabase } = await import('../lib/supabase');
       const { userService } = await import('../services');
+      const { centralizedEmailService } = await import('../services/centralizedEmailService');
       
       // Get current user ID for RLS policy compliance
       const user = await userService.getCurrentUser();
@@ -622,7 +623,14 @@ Best regards,
         console.warn('User not authenticated for saving email config - saving as global setting');
       }
       
-      // First, check if the setting exists for this user
+      // CRITICAL FIX: Save both user config AND admin config for centralized email system
+      console.log('📧 SAVE CONFIG DEBUG - Saving email configurations:', {
+        countriesCount: Object.keys(configs).length,
+        countries: Object.keys(configs),
+        userId: user?.id
+      });
+      
+      // Save user configuration (for UI and backwards compatibility)
       const { data: existing } = await supabase
         .from('app_settings')
         .select('id')
@@ -631,7 +639,7 @@ Best regards,
         .maybeSingle();
       
       if (existing) {
-        // Update existing record
+        // Update existing user record
         const { error } = await supabase
           .from('app_settings')
           .update({
@@ -642,23 +650,59 @@ Best regards,
           .eq('user_id', user?.id || null);
         
         if (error) {
-          console.error('Error updating app_settings:', error);
+          console.error('Error updating user app_settings:', error);
           throw error;
         }
       } else {
-        // Insert new record with user_id
+        // Insert new user record
         const { error } = await supabase
           .from('app_settings')
           .insert({
             user_id: user?.id || null, // ⚠️ user_id (userId) FK - NOT userid
             setting_key: 'simplified_email_configs', // ⚠️ setting_key (settingKey) - NOT settingkey
             setting_value: configs,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            is_system_setting: false
           });
         
         if (error) {
-          console.error('Error inserting app_settings:', error);
+          console.error('Error inserting user app_settings:', error);
           throw error;
+        }
+      }
+      
+      // CRITICAL FIX: Also save as centralized admin config for email notifications
+      for (const [country, config] of Object.entries(configs)) {
+        if (config.activeProvider && config.providers[config.activeProvider]?.isAuthenticated) {
+          const provider = config.providers[config.activeProvider];
+          
+          console.log('📧 SAVE CONFIG DEBUG - Creating admin config for country:', {
+            country,
+            provider: config.activeProvider,
+            fromEmail: provider.userInfo?.email,
+            fromName: provider.fromName
+          });
+          
+          // Convert user provider config to admin credentials format
+          const adminCredentials = {
+            provider: config.activeProvider,
+            clientId: config.activeProvider === 'microsoft' 
+              ? process.env.REACT_APP_MICROSOFT_CLIENT_ID || ''
+              : process.env.REACT_APP_GOOGLE_CLIENT_ID || '',
+            tenantId: config.activeProvider === 'microsoft' 
+              ? process.env.REACT_APP_MICROSOFT_TENANT_ID 
+              : undefined,
+            accessToken: provider.tokens?.accessToken || '',
+            refreshToken: provider.tokens?.refreshToken || '',
+            expiresAt: provider.tokens?.expiresAt || Date.now() + 3600000, // 1 hour default
+            fromEmail: provider.userInfo?.email || '',
+            fromName: provider.fromName || 'TM Spine Case Booking'
+          };
+          
+          // Save as system admin config
+          await centralizedEmailService.setAdminEmailConfig(country, adminCredentials, user?.name || 'System');
+          
+          console.log('✅ SAVE CONFIG DEBUG - Admin config saved for country:', country);
         }
       }
     } catch (error) {

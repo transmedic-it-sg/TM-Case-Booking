@@ -62,32 +62,16 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
   });
 
-  // E2E DEBUG: Comprehensive View All Cases logging
+  // PERFORMANCE: Lightweight logging - only log significant changes
   useEffect(() => {
-    console.log('🔍 VIEW ALL CASES DEBUG - Data Update:', {
-      timestamp: new Date().toISOString(),
-      casesCount: cases.length,
-      isLoading,
-      isMutating,
-      userCountry: currentUser?.selectedCountry,
-      userId: currentUser?.id,
-      userRole: currentUser?.role,
-      casesDetailedPreview: cases.slice(0, 3).map(c => ({
-        id: c.id,
-        ref: c.caseReferenceNumber,
-        status: c.status,
-        hospital: c.hospital,
-        submittedBy: c.submittedBy,
-        surgerySetSelection: c.surgerySetSelection,
-        implantBox: c.implantBox,
-        statusHistory: c.statusHistory?.length || 0,
-        amendmentHistory: c.amendmentHistory?.length || 0,
-        attachments: c.attachments?.length || 0
-      })),
-      allStatuses: [...new Set(cases.map(c => c.status))],
-      allHospitals: [...new Set(cases.map(c => c.hospital))]
-    });
-  }, [cases, isLoading, isMutating, currentUser]);
+    if (cases.length > 0 && !isLoading) {
+      console.log('📊 Cases loaded:', {
+        count: cases.length,
+        completed: cases.filter(c => c.status === 'Case Completed').length,
+        userRole: currentUser?.role
+      });
+    }
+  }, [cases.length, isLoading, currentUser?.role]); // Only log when count or loading changes
 
   // Real-time connection status - prioritize cases connection for this component
   const { overallConnected, casesConnected, forceRefreshAll } = useRealtime();
@@ -125,67 +109,70 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   const [orderPreparedAttachments, setOrderPreparedAttachments] = useState<string[]>([]);
   const [orderPreparedComments, setOrderPreparedComments] = useState('');
 
-  // Filter cases function - moved inside useEffect to avoid infinite loops
+  // PERFORMANCE: Optimized filter function - single pass instead of multiple filter chains
   const filterCasesLocally = useCallback((casesToFilter: CaseBooking[], filterOptions: FilterOptions, userRole?: string) => {
-    let filtered = casesToFilter;
+    // Pre-compute filter conditions to avoid repeated calculations
+    const searchTerm = filterOptions.search?.toLowerCase();
+    const hasDriverRestriction = userRole === 'driver';
+    const deliveryStatuses = hasDriverRestriction ? new Set([
+      'Pending Delivery (Hospital)',
+      'Delivered (Hospital)',
+      'Pending Delivery (Office)',
+      'Delivered (Office)'
+    ]) : null;
 
-    // Driver role filtering - only show delivery-related cases
-    if (userRole === 'driver') {
-      const deliveryStatuses = [
-        'Pending Delivery (Hospital)',
-        'Delivered (Hospital)',
-        'Pending Delivery (Office)',
-        'Delivered (Office)'
-      ];
+    // Single pass filtering for optimal performance
+    return casesToFilter.filter(caseItem => {
+      // Driver role filtering - only show delivery-related cases
+      if (hasDriverRestriction && !deliveryStatuses!.has(caseItem.status)) {
+        return false;
+      }
 
-      filtered = filtered.filter(caseItem =>
-        deliveryStatuses.includes(caseItem.status)
-      );
-    }
+      // Apply search filter
+      if (searchTerm) {
+        const matches = [
+          caseItem.caseReferenceNumber.toLowerCase(),
+          caseItem.hospital.toLowerCase(),
+          caseItem.doctorName?.toLowerCase() || '',
+          caseItem.procedureType.toLowerCase(),
+          caseItem.procedureName.toLowerCase(),
+          caseItem.submittedBy.toLowerCase()
+        ].some(field => field.includes(searchTerm));
+        
+        if (!matches) return false;
+      }
 
-    // Apply search filter
-    if (filterOptions.search) {
-      const searchTerm = filterOptions.search.toLowerCase();
-      filtered = filtered.filter(caseItem =>
-        caseItem.caseReferenceNumber.toLowerCase().includes(searchTerm) ||
-        caseItem.hospital.toLowerCase().includes(searchTerm) ||
-        caseItem.doctorName?.toLowerCase().includes(searchTerm) ||
-        caseItem.procedureType.toLowerCase().includes(searchTerm) ||
-        caseItem.procedureName.toLowerCase().includes(searchTerm) ||
-        caseItem.submittedBy.toLowerCase().includes(searchTerm)
-      );
-    }
+      // Apply status filter
+      if (filterOptions.status && caseItem.status !== filterOptions.status) {
+        return false;
+      }
 
-    // Apply status filter
-    if (filterOptions.status) {
-      filtered = filtered.filter(caseItem => caseItem.status === filterOptions.status);
-    }
+      // Apply submitter filter
+      if (filterOptions.submitter && caseItem.submittedBy !== filterOptions.submitter) {
+        return false;
+      }
 
-    // Apply submitter filter
-    if (filterOptions.submitter) {
-      filtered = filtered.filter(caseItem => caseItem.submittedBy === filterOptions.submitter);
-    }
+      // Apply hospital filter
+      if (filterOptions.hospital && caseItem.hospital !== filterOptions.hospital) {
+        return false;
+      }
 
-    // Apply hospital filter
-    if (filterOptions.hospital) {
-      filtered = filtered.filter(caseItem => caseItem.hospital === filterOptions.hospital);
-    }
+      // Apply country filter
+      if (filterOptions.country && caseItem.country !== filterOptions.country) {
+        return false;
+      }
 
-    // Apply country filter
-    if (filterOptions.country) {
-      filtered = filtered.filter(caseItem => caseItem.country === filterOptions.country);
-    }
+      // Apply date range filters
+      if (filterOptions.dateFrom && caseItem.dateOfSurgery < filterOptions.dateFrom) {
+        return false;
+      }
 
-    // Apply date range filter
-    if (filterOptions.dateFrom) {
-      filtered = filtered.filter(caseItem => caseItem.dateOfSurgery >= filterOptions.dateFrom!);
-    }
+      if (filterOptions.dateTo && caseItem.dateOfSurgery > filterOptions.dateTo) {
+        return false;
+      }
 
-    if (filterOptions.dateTo) {
-      filtered = filtered.filter(caseItem => caseItem.dateOfSurgery <= filterOptions.dateTo!);
-    }
-
-    return filtered;
+      return true;
+    });
   }, []); // No dependencies needed since we're using string literals
   const [hospitalDeliveryAttachments, setHospitalDeliveryAttachments] = useState<string[]>([]);
   const [hospitalDeliveryComments, setHospitalDeliveryComments] = useState('');
@@ -256,6 +243,26 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
   }, []); // Run only once on mount
 
+  // PERFORMANCE: Memoize normalized countries to avoid repeated normalization
+  const normalizedUserCountries = useMemo(() => {
+    const currentUser = getCurrentUserSync();
+    if (!currentUser?.countries || currentUser.role === 'admin') {
+      return [];
+    }
+    return currentUser.countries.map(country => normalizeCountry(country));
+  }, [currentUser?.countries, currentUser?.role]);
+
+  // PERFORMANCE: Memoize normalized case countries to avoid repeated normalization
+  const normalizedCaseCountries = useMemo(() => {
+    const countryMap = new Map<string, string>();
+    cases.forEach(caseItem => {
+      if (caseItem.country && !countryMap.has(caseItem.country)) {
+        countryMap.set(caseItem.country, normalizeCountry(caseItem.country));
+      }
+    });
+    return countryMap;
+  }, [cases]);
+
   // Use useMemo to calculate filtered cases without causing re-renders
   const filteredCases = useMemo(() => {
     const currentUser = getCurrentUserSync();
@@ -269,20 +276,17 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
     // Non-admin users: Apply country and department restrictions
     if (currentUser) {
-      // Country-based filtering for non-admin users
-      if (currentUser.countries && currentUser.countries.length > 0) {
-        // Normalize user's country names and filter cases by full country names
-        const userCountries = currentUser.countries.map(country => normalizeCountry(country));
-        filteredResults = filteredResults.filter(caseItem =>
-          userCountries.includes(normalizeCountry(caseItem.country))
-        );
+      // Country filtering
+      if (normalizedUserCountries.length > 0) {
+        // PERFORMANCE: Use pre-normalized countries for efficient filtering
+        filteredResults = filteredResults.filter(caseItem => {
+          const normalizedCaseCountry = normalizedCaseCountries.get(caseItem.country);
+          return normalizedCaseCountry && normalizedUserCountries.includes(normalizedCaseCountry);
+        });
       }
 
       // Department-based filtering for non-admin users (excluding Operations Managers who have broader access)
-      const hasFullAccess = currentUser && (
-        currentUser.role === 'operations-manager' ||
-        currentUser.role === 'it'
-      );
+      const hasFullAccess = currentUser.role === 'operations-manager' || currentUser.role === 'it';
 
       if (currentUser.departments && currentUser.departments.length > 0 && !hasFullAccess) {
         // Clean department names - remove country prefixes like "Singapore:", "Malaysia:"
@@ -299,7 +303,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     }
 
     return filteredResults;
-  }, [cases, filters, filterCasesLocally]); // Calculate whenever dependencies change
+  }, [cases, filters, filterCasesLocally, normalizedUserCountries, normalizedCaseCountries]); // Calculate whenever dependencies change
 
   // Handle highlighted case from calendar
   useEffect(() => {
@@ -1396,6 +1400,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
                     onPendingOfficeCommentsChange={setPendingOfficeComments}
                     onOfficeDeliveryAttachmentsChange={setOfficeDeliveryAttachments}
                     onOfficeDeliveryCommentsChange={setOfficeDeliveryComments}
+                    onCompletedAttachmentsChange={setAttachments}
                     onNavigateToPermissions={onNavigateToPermissions}
                   />
                 ))

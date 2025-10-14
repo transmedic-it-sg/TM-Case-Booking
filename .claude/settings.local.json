@@ -22,7 +22,8 @@
       "Bash(grep:*)",
       "Bash(git add:*)",
       "Bash(git push:*)",
-      "WebFetch(domain:localhost)"
+      "WebFetch(domain:localhost)",
+      "mcp__supabase-new__apply_migration"
     ],
     "deny": [
       "mcp__supabase-old__*",

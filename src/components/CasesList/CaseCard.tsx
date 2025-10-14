@@ -24,6 +24,7 @@ import { formatDate, getTodayForInput } from '../../utils/dateFormat';
 import { supabase } from '../../lib/supabase';
 import { StatusAttachmentManager } from './StatusAttachmentManager';
 import { AttachmentRenderer, parseAttachments, type ParsedAttachment } from './AttachmentRenderer';
+import { EditableAttachmentRenderer } from './EditableAttachmentRenderer';
 import { 
   CASE_BOOKINGS_FIELDS, 
   CASE_QUANTITIES_FIELDS, 
@@ -124,6 +125,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   onPendingOfficeCommentsChange,
   onOfficeDeliveryAttachmentsChange,
   onOfficeDeliveryCommentsChange,
+  onCompletedAttachmentsChange,
   onNavigateToPermissions
 }) => {
   // Get user IDs from case data and status history - memoized to prevent infinite re-renders
@@ -362,12 +364,35 @@ const CaseCard: React.FC<CaseCardProps> = ({
         : historyWithAttachments.parsedDetails?.attachments;
       
       if (attachmentsToUse && attachmentsToUse.length > 0) {
-        // ⚠️ FIXED: Use centralized attachment parsing for current attachments
-        return parseAttachments(attachmentsToUse); // ⚠️ Centralized parsing
+        // Return raw attachment strings for AttachmentRenderer
+        return attachmentsToUse;
       }
     }
 
     return [];
+  }, [caseItem.status, parsedStatusHistory]);
+
+  // Find the most recent comments for statuses without active forms
+  const currentComments = useMemo(() => {
+    // Only show for specific statuses that don't have their own forms
+    const statusesWithoutForms = ['Order Prepared', 'Sales Approval'];
+
+    if (!statusesWithoutForms.includes(caseItem.status)) {
+      return '';
+    }
+
+    // Find the most recent status history entry with comments
+    const historyWithComments = [...parsedStatusHistory].reverse().find(entry => {
+      // Check parsed details comments
+      return entry.parsedDetails?.comments;
+    });
+
+    if (historyWithComments) {
+      // Return parsed details comments
+      return historyWithComments.parsedDetails?.comments || '';
+    }
+
+    return '';
   }, [caseItem.status, parsedStatusHistory]);
 
   // Memoize attachment parsing for forms to prevent repeated JSON.parse operations
@@ -529,6 +554,45 @@ const CaseCard: React.FC<CaseCardProps> = ({
                 />
               </div>
             )}
+            
+            {/* FIXED: Display current status comments for Sales Approval and Order Prepared */}
+            {currentComments && (
+              <div className="detail-item full-width">
+                <span className="detail-label">
+                  {caseItem.status === 'Sales Approval' ? 'Sales Approval Comments' : 
+                   caseItem.status === 'Order Prepared' ? 'Order Prepared Comments' : 
+                   'Status Comments'}: 
+                </span>
+                <div className="status-comments" style={{
+                  background: '#f8f9fa',
+                  padding: '12px',
+                  borderRadius: '6px',
+                  border: '1px solid #dee2e6',
+                  marginTop: '8px',
+                  fontStyle: 'italic',
+                  color: '#495057'
+                }}>
+                  {currentComments}
+                </div>
+              </div>
+            )}
+            
+            {/* FIXED: Display current status attachments for Sales Approval and Order Prepared */}
+            {currentAttachments.length > 0 && (
+              <div className="detail-item full-width">
+                <span className="detail-label">
+                  {caseItem.status === 'Sales Approval' ? 'Sales Approval Attachments' : 
+                   caseItem.status === 'Order Prepared' ? 'Order Prepared Attachments' : 
+                   'Status Attachments'}: 
+                </span>
+                <AttachmentRenderer 
+                  attachments={currentAttachments} 
+                  title=""
+                  showCount={true}
+                />
+              </div>
+            )}
+            
             {caseItem.amendmentHistory && caseItem.amendmentHistory.length > 0 && (
               <div className="detail-item full-width amendment-history">
                 <div className="amendment-header-container">
@@ -729,88 +793,11 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                             <div key={key}>
                                               <strong>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</strong>
                                               {key === 'attachments' && Array.isArray(value) && value.length > 0 ? (
-                                                <div>
-                                                  <strong> ({value.length}):</strong>
-                                                  <div className="attachment-preview-grid">
-                                                    {value.map((attachment: string, index: number) => {
-                                                      try {
-                                                        const fileData = JSON.parse(attachment);
-                                                        const isImage = fileData.type.startsWith('image/');
-
-                                                        return (
-                                                          <div key={index} className="attachment-preview-item">
-                                                            {isImage ? (
-                                                              <div className="image-attachment">
-                                                                <img
-                                                                  src={fileData.data}
-                                                                  alt={fileData.name}
-                                                                  className="attachment-thumbnail clickable-image"
-                                                                  style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
-                                                                  onClick={() => {
-                                                                    const modal = document.createElement('div');
-                                                                    modal.className = 'image-modal';
-                                                                    modal.innerHTML = `
-                                                                      <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                                                                        <div style="position: relative; max-width: 90%; max-height: 90%;">
-                                                                          <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
-                                                                          <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
-                                                                            <button onclick="event.stopPropagation(); const link = document.createElement('a'); link.href = '${fileData.data}'; link.download = '${fileData.name}'; link.click();" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">📥 Download</button>
-                                                                            <button onclick="document.body.removeChild(this.closest('.image-modal'));" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✕ Close</button>
-                                                                          </div>
-                                                                        </div>
-                                                                      </div>
-                                                                    `;
-                                                                    document.body.appendChild(modal);
-                                                                    modal.addEventListener('click', (e) => {
-                                                                      if (e.target === modal.querySelector('.image-modal-backdrop')) {
-                                                                        document.body.removeChild(modal);
-                                                                      }
-                                                                    });
-                                                                  }}
-                                                                />
-                                                                <div className="attachment-info">
-                                                                  <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
-                                                                  <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
-                                                                </div>
-                                                              </div>
-                                                            ) : (
-                                                              <div className="file-attachment">
-                                                                <div className="file-icon">📄</div>
-                                                                <div className="attachment-info">
-                                                                  <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
-                                                                  <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
-                                                                </div>
-                                                                <button
-                                                                  onClick={() => {
-                                                                    const link = document.createElement('a');
-                                                                    link.href = fileData.data;
-                                                                    link.download = fileData.name;
-                                                                    link.click();
-                                                                  }}
-                                                                  className="download-button"
-                                                                  title="Download file"
-                                                                >
-                                                                  📥
-                                                                </button>
-                                                              </div>
-                                                            )}
-                                                          </div>
-                                                        );
-                                                      } catch {
-                                                        return (
-                                                          <div key={index} className="attachment-preview-item">
-                                                            <div className="file-attachment error">
-                                                              <div className="file-icon">❌</div>
-                                                              <div className="attachment-info">
-                                                                <div className="file-name">Invalid file data</div>
-                                                              </div>
-                                                            </div>
-                                                          </div>
-                                                        );
-                                                      }
-                                                    })}
-                                                  </div>
-                                                </div>
+                                                <AttachmentRenderer 
+                                                  attachments={value} 
+                                                  title=""
+                                                  showCount={true}
+                                                />
                                               ) : (
                                                 <span> {
                                                   typeof value === 'object' ?
@@ -947,88 +934,11 @@ const CaseCard: React.FC<CaseCardProps> = ({
                                             <div key={key}>
                                               <strong>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</strong>
                                               {key === 'attachments' && Array.isArray(value) && value.length > 0 ? (
-                                                <div>
-                                                  <strong> ({value.length}):</strong>
-                                                  <div className="attachment-preview-grid">
-                                                    {value.map((attachment: string, index: number) => {
-                                                      try {
-                                                        const fileData = JSON.parse(attachment);
-                                                        const isImage = fileData.type.startsWith('image/');
-
-                                                        return (
-                                                          <div key={index} className="attachment-preview-item">
-                                                            {isImage ? (
-                                                              <div className="image-attachment">
-                                                                <img
-                                                                  src={fileData.data}
-                                                                  alt={fileData.name}
-                                                                  className="attachment-thumbnail clickable-image"
-                                                                  style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
-                                                                  onClick={() => {
-                                                                    const modal = document.createElement('div');
-                                                                    modal.className = 'image-modal';
-                                                                    modal.innerHTML = `
-                                                                      <div class="image-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                                                                        <div style="position: relative; max-width: 90%; max-height: 90%;">
-                                                                          <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
-                                                                          <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
-                                                                            <button onclick="event.stopPropagation(); const link = document.createElement('a'); link.href = '${fileData.data}'; link.download = '${fileData.name}'; link.click();" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">📥 Download</button>
-                                                                            <button onclick="document.body.removeChild(this.closest('.image-modal'));" style="background: rgba(255,255,255,0.9); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">✕ Close</button>
-                                                                          </div>
-                                                                        </div>
-                                                                      </div>
-                                                                    `;
-                                                                    document.body.appendChild(modal);
-                                                                    modal.addEventListener('click', (e) => {
-                                                                      if (e.target === modal.querySelector('.image-modal-backdrop')) {
-                                                                        document.body.removeChild(modal);
-                                                                      }
-                                                                    });
-                                                                  }}
-                                                                />
-                                                                <div className="attachment-info">
-                                                                  <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
-                                                                  <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
-                                                                </div>
-                                                              </div>
-                                                            ) : (
-                                                              <div className="file-attachment">
-                                                                <div className="file-icon">📄</div>
-                                                                <div className="attachment-info">
-                                                                  <div className="file-name" title={fileData.name}>{fileData.name.length > 15 ? fileData.name.substring(0, 15) + '...' : fileData.name}</div>
-                                                                  <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
-                                                                </div>
-                                                                <button
-                                                                  onClick={() => {
-                                                                    const link = document.createElement('a');
-                                                                    link.href = fileData.data;
-                                                                    link.download = fileData.name;
-                                                                    link.click();
-                                                                  }}
-                                                                  className="download-button"
-                                                                  title="Download file"
-                                                                >
-                                                                  📥
-                                                                </button>
-                                                              </div>
-                                                            )}
-                                                          </div>
-                                                        );
-                                                      } catch {
-                                                        return (
-                                                          <div key={index} className="attachment-preview-item">
-                                                            <div className="file-attachment error">
-                                                              <div className="file-icon">❌</div>
-                                                              <div className="attachment-info">
-                                                                <div className="file-name">Invalid file data</div>
-                                                              </div>
-                                                            </div>
-                                                          </div>
-                                                        );
-                                                      }
-                                                    })}
-                                                  </div>
-                                                </div>
+                                                <AttachmentRenderer 
+                                                  attachments={value} 
+                                                  title=""
+                                                  showCount={true}
+                                                />
                                               ) : (
                                                 <span> {
                                                   typeof value === 'object' ?
@@ -1218,61 +1128,15 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   className="file-upload-input"
                 />
                 {processAttachments.length > 0 && (
-                  <div className="attachment-list">
-                    <p>Uploaded files ({processAttachments.length}):</p>
-                    {processAttachments.map((attachment, index) => {
-                      try {
-                        const fileData = JSON.parse(attachment);
-                        const isImage = fileData.type.startsWith('image/');
-
-                        return (
-                          <div key={index} className="attachment-item">
-                            {isImage ? (
-                              <img
-                                src={fileData.data}
-                                alt={fileData.name}
-                                className="attachment-thumbnail clickable-image"
-                                style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
-                                onClick={() => {
-                                  const modal = document.createElement('div');
-                                  modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer;';
-                                  modal.innerHTML = `<img src="${fileData.data}" style="max-width: 90%; max-height: 90%; border-radius: 8px;" />`;
-                                  document.body.appendChild(modal);
-                                  modal.addEventListener('click', () => document.body.removeChild(modal));
-                                }}
-                              />
-                            ) : (
-                              <div className="file-icon" style={{ width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fa', border: '1px solid #ddd', borderRadius: '4px' }}>
-                                📄
-                              </div>
-                            )}
-                            <div className="file-info">
-                              <div className="file-name" title={fileData.name}>{fileData.name.length > 20 ? fileData.name.substring(0, 20) + '...' : fileData.name}</div>
-                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
-                            </div>
-                            <button
-                              className="remove-attachment"
-                              onClick={() => {
-                                const updatedAttachments = processAttachments.filter((_, i) => i !== index);
-                                onProcessAttachmentsChange(updatedAttachments);
-                              }}
-                              style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '16px' }}
-                              title="Remove attachment"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      } catch {
-                        return (
-                          <div key={index} className="attachment-item error">
-                            <div className="file-icon">❌</div>
-                            <span>Invalid file data</span>
-                          </div>
-                        );
-                      }
-                    })}
-                  </div>
+                  <EditableAttachmentRenderer 
+                    attachments={processAttachments} 
+                    title="Uploaded files"
+                    showCount={true}
+                    maxThumbnailSize={{ width: 50, height: 50 }}
+                    onAttachmentsChange={(newAttachments) => onProcessAttachmentsChange(newAttachments)}
+                    canEdit={true}
+                    currentUser={currentUser || undefined}
+                  />
                 )}
               </div>
               <div className="sales-approval-actions">
@@ -1340,76 +1204,15 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   className="file-upload-input"
                 />
                 {salesApprovalAttachments.length > 0 && (
-                  <div className="attachment-list">
-                    <p>Uploaded files ({salesApprovalAttachments.length}):</p>
-                    {salesApprovalAttachments.map((attachment, index) => {
-                      try {
-                        const fileData = JSON.parse(attachment);
-                        const isImage = fileData.type.startsWith('image/');
-
-                        return (
-                          <div key={index} className="attachment-item">
-                            {isImage ? (
-                              <img
-                                src={fileData.data}
-                                alt={fileData.name}
-                                className="attachment-thumbnail clickable-image"
-                                style={{ maxWidth: '100px', maxHeight: '75px', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
-                                onClick={() => {
-                                  const modal = document.createElement('div');
-                                  modal.className = 'image-modal';
-                                  modal.innerHTML = `
-                                    <div class="modal-overlay">
-                                      <div class="modal-content">
-                                        <div class="modal-header">
-                                          <h5>${fileData.name}</h5>
-                                          <button type="button" class="btn-close" onclick="this.closest('.image-modal').remove()">&times;</button>
-                                        </div>
-                                        <div class="modal-body text-center">
-                                          <img src="${fileData.data}" alt="${fileData.name}" style="max-width: 100%; max-height: 80vh; object-fit: contain;" />
-                                        </div>
-                                        <div class="modal-footer">
-                                          <button type="button" class="btn btn-secondary" onclick="this.closest('.image-modal').remove()">Close</button>
-                                          <a href="${fileData.data}" download="${fileData.name}" class="btn btn-primary">Download</a>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  `;
-                                  document.body.appendChild(modal);
-                                }}
-                              />
-                            ) : (
-                              <div className="file-icon">
-                                📄
-                              </div>
-                            )}
-                            <div className="file-info">
-                              <div className="file-name" title={fileData.name}>{fileData.name.length > 20 ? fileData.name.substring(0, 20) + '...' : fileData.name}</div>
-                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
-                            </div>
-                            <button
-                              className="remove-attachment"
-                              onClick={() => {
-                                const updatedAttachments = salesApprovalAttachments.filter((_, i) => i !== index);
-                                onSalesApprovalAttachmentsChange(updatedAttachments);
-                              }}
-                              style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '16px' }}
-                              title="Remove attachment"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      } catch {
-                        return (
-                          <div key={index} className="attachment-item error">
-                            <div className="file-icon">❌</div>
-                            <span>Invalid file data</span>
-                          </div>
-                        );
-                      }
-                    })}
-                  </div>
+                  <EditableAttachmentRenderer 
+                    attachments={salesApprovalAttachments} 
+                    title="Uploaded files"
+                    showCount={true}
+                    maxThumbnailSize={{ width: 100, height: 75 }}
+                    onAttachmentsChange={(newAttachments) => onSalesApprovalAttachmentsChange(newAttachments)}
+                    canEdit={true}
+                    currentUser={currentUser || undefined}
+                  />
                 )}
               </div>
               <div className="sales-approval-actions">
@@ -1477,63 +1280,15 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   className="file-upload-input"
                 />
                 {orderPreparedAttachments.length > 0 && (
-                  <div className="attachment-list">
-                    <p>Uploaded files ({orderPreparedAttachments.length}):</p>
-                    {orderPreparedAttachments.map((attachment, index) => {
-                      try {
-                        const fileData = JSON.parse(attachment);
-                        const isImage = fileData.type.startsWith('image/');
-                        
-                        return (
-                          <div key={index} className="attachment-preview-item">
-                            {isImage ? (
-                              <div className="image-attachment">
-                                <img
-                                  src={fileData.data}
-                                  alt={fileData.name}
-                                  className="attachment-thumbnail"
-                                  style={{ maxWidth: '50px', maxHeight: '50px', borderRadius: '4px' }}
-                                />
-                                <div className="attachment-info">
-                                  <div className="file-name">{fileData.name}</div>
-                                  <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="file-attachment">
-                                <div className="file-icon">📄</div>
-                                <div className="attachment-info">
-                                  <div className="file-name">{fileData.name}</div>
-                                  <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
-                                </div>
-                              </div>
-                            )}
-                            <button
-                              onClick={() => {
-                                const newAttachments = orderPreparedAttachments.filter((_, i) => i !== index);
-                                onOrderPreparedAttachmentsChange(newAttachments);
-                              }}
-                              className="remove-attachment-button"
-                              title="Remove attachment"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      } catch {
-                        return (
-                          <div key={index} className="attachment-preview-item">
-                            <div className="file-attachment error">
-                              <div className="file-icon">❌</div>
-                              <div className="attachment-info">
-                                <div className="file-name">Invalid file data</div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-                    })}
-                  </div>
+                  <EditableAttachmentRenderer 
+                    attachments={orderPreparedAttachments} 
+                    title="Uploaded files"
+                    showCount={true}
+                    maxThumbnailSize={{ width: 50, height: 50 }}
+                    onAttachmentsChange={(newAttachments) => onOrderPreparedAttachmentsChange(newAttachments)}
+                    canEdit={true}
+                    currentUser={currentUser || undefined}
+                  />
                 )}
               </div>
               <div className="sales-approval-actions">
@@ -1601,61 +1356,15 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   className="file-upload-input"
                 />
                 {hospitalDeliveryAttachments.length > 0 && (
-                  <div className="attachment-list">
-                    <p>Uploaded files ({hospitalDeliveryAttachments.length}):</p>
-                    {hospitalDeliveryAttachments.map((attachment, index) => {
-                      try {
-                        const fileData = JSON.parse(attachment);
-                        const isImage = fileData.type.startsWith('image/');
-
-                        return (
-                          <div key={index} className="attachment-item">
-                            {isImage ? (
-                              <img
-                                src={fileData.data}
-                                alt={fileData.name}
-                                className="attachment-thumbnail clickable-image"
-                                style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
-                                onClick={() => {
-                                  const modal = document.createElement('div');
-                                  modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer;';
-                                  modal.innerHTML = `<img src="${fileData.data}" style="max-width: 90%; max-height: 90%; border-radius: 8px;" />`;
-                                  document.body.appendChild(modal);
-                                  modal.addEventListener('click', () => document.body.removeChild(modal));
-                                }}
-                              />
-                            ) : (
-                              <div className="file-icon" style={{ width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fa', border: '1px solid #ddd', borderRadius: '4px' }}>
-                                📄
-                              </div>
-                            )}
-                            <div className="file-info">
-                              <div className="file-name" title={fileData.name}>{fileData.name.length > 20 ? fileData.name.substring(0, 20) + '...' : fileData.name}</div>
-                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
-                            </div>
-                            <button
-                              className="remove-attachment"
-                              onClick={() => {
-                                const updatedAttachments = hospitalDeliveryAttachments.filter((_, i) => i !== index);
-                                onHospitalDeliveryAttachmentsChange(updatedAttachments);
-                              }}
-                              style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '16px' }}
-                              title="Remove attachment"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      } catch {
-                        return (
-                          <div key={index} className="attachment-item error">
-                            <div className="file-icon">❌</div>
-                            <span>Invalid file data</span>
-                          </div>
-                        );
-                      }
-                    })}
-                  </div>
+                  <EditableAttachmentRenderer 
+                    attachments={hospitalDeliveryAttachments} 
+                    title="Uploaded files"
+                    showCount={true}
+                    maxThumbnailSize={{ width: 50, height: 50 }}
+                    onAttachmentsChange={(newAttachments) => onHospitalDeliveryAttachmentsChange(newAttachments)}
+                    canEdit={true}
+                    currentUser={currentUser || undefined}
+                  />
                 )}
               </div>
               <div className="sales-approval-actions">
@@ -1742,40 +1451,15 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   className="file-upload-input"
                 />
                 {attachments.length > 0 && (
-                  <div className="attachment-list">
-                    <p>Uploaded files ({attachments.length}):</p>
-                    {attachments.map((attachment, index) => {
-                      try {
-                        const fileData = JSON.parse(attachment);
-                        return (
-                          <div key={index} className="attachment-item">
-                            <span className="file-name">{fileData.name}</span>
-                            <span className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</span>
-                            <button
-                              onClick={() => onRemoveAttachment(index)}
-                              className="remove-attachment"
-                              type="button"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      } catch {
-                        return (
-                          <div key={index} className="attachment-item">
-                            <span className="file-name">Invalid file data</span>
-                            <button
-                              onClick={() => onRemoveAttachment(index)}
-                              className="remove-attachment"
-                              type="button"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      }
-                    })}
-                  </div>
+                  <EditableAttachmentRenderer 
+                    attachments={attachments} 
+                    title="Uploaded files"
+                    showCount={true}
+                    maxThumbnailSize={{ width: 50, height: 50 }}
+                    onAttachmentsChange={(newAttachments) => onCompletedAttachmentsChange(newAttachments)}
+                    canEdit={true}
+                    currentUser={currentUser || undefined}
+                  />
                 )}
               </div>
               <div className="form-group">
@@ -1851,40 +1535,15 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   className="file-upload-input"
                 />
                 {pendingOfficeAttachments.length > 0 && (
-                  <div className="attachment-list">
-                    <p>Uploaded files ({pendingOfficeAttachments.length}):</p>
-                    {pendingOfficeAttachments.map((attachment, index) => {
-                      try {
-                        const fileData = JSON.parse(attachment);
-                        return (
-                          <div key={index} className="attachment-item">
-                            <span className="file-name">{fileData.name}</span>
-                            <span className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</span>
-                            <button
-                              onClick={() => onPendingOfficeAttachmentsChange(pendingOfficeAttachments.filter((_, i) => i !== index))}
-                              className="remove-attachment"
-                              type="button"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      } catch {
-                        return (
-                          <div key={index} className="attachment-item">
-                            <span className="file-name">Invalid file data</span>
-                            <button
-                              onClick={() => onPendingOfficeAttachmentsChange(pendingOfficeAttachments.filter((_, i) => i !== index))}
-                              className="remove-attachment"
-                              type="button"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      }
-                    })}
-                  </div>
+                  <EditableAttachmentRenderer 
+                    attachments={pendingOfficeAttachments} 
+                    title="Uploaded files"
+                    showCount={true}
+                    maxThumbnailSize={{ width: 50, height: 50 }}
+                    onAttachmentsChange={(newAttachments) => onPendingOfficeAttachmentsChange(newAttachments)}
+                    canEdit={true}
+                    currentUser={currentUser || undefined}
+                  />
                 )}
               </div>
               <div className="form-group">
@@ -1961,61 +1620,15 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   className="file-upload-input"
                 />
                 {officeDeliveryAttachments.length > 0 && (
-                  <div className="attachment-list">
-                    <p>Uploaded files ({officeDeliveryAttachments.length}):</p>
-                    {officeDeliveryAttachments.map((attachment, index) => {
-                      try {
-                        const fileData = JSON.parse(attachment);
-                        const isImage = fileData.type.startsWith('image/');
-
-                        return (
-                          <div key={index} className="attachment-item">
-                            {isImage ? (
-                              <img
-                                src={fileData.data}
-                                alt={fileData.name}
-                                className="attachment-thumbnail clickable-image"
-                                style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }}
-                                onClick={() => {
-                                  const modal = document.createElement('div');
-                                  modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer;';
-                                  modal.innerHTML = `<img src="${fileData.data}" style="max-width: 90%; max-height: 90%; border-radius: 8px;" />`;
-                                  document.body.appendChild(modal);
-                                  modal.addEventListener('click', () => document.body.removeChild(modal));
-                                }}
-                              />
-                            ) : (
-                              <div className="file-icon" style={{ width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fa', border: '1px solid #ddd', borderRadius: '4px' }}>
-                                📄
-                              </div>
-                            )}
-                            <div className="file-info">
-                              <div className="file-name" title={fileData.name}>{fileData.name.length > 20 ? fileData.name.substring(0, 20) + '...' : fileData.name}</div>
-                              <div className="file-size">({(fileData.size / 1024).toFixed(1)} KB)</div>
-                            </div>
-                            <button
-                              className="remove-attachment"
-                              onClick={() => {
-                                const updatedAttachments = officeDeliveryAttachments.filter((_, i) => i !== index);
-                                onOfficeDeliveryAttachmentsChange(updatedAttachments);
-                              }}
-                              style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '16px' }}
-                              title="Remove attachment"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      } catch {
-                        return (
-                          <div key={index} className="attachment-item error">
-                            <div className="file-icon">❌</div>
-                            <span>Invalid file data</span>
-                          </div>
-                        );
-                      }
-                    })}
-                  </div>
+                  <EditableAttachmentRenderer 
+                    attachments={officeDeliveryAttachments} 
+                    title="Uploaded files"
+                    showCount={true}
+                    maxThumbnailSize={{ width: 50, height: 50 }}
+                    onAttachmentsChange={(newAttachments) => onOfficeDeliveryAttachmentsChange(newAttachments)}
+                    canEdit={true}
+                    currentUser={currentUser || undefined}
+                  />
                 )}
               </div>
               <div className="sales-approval-actions">

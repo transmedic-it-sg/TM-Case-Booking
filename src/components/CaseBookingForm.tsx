@@ -822,10 +822,10 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
             ) : (
               <div className="procedure-sets-form">
                 <div className="form-row two-columns">
-                  {/* Surgery Sets Multi-Select Dropdown */}
+                  {/* Surgery Sets Multi-Select Dropdown with Quantities */}
                   {availableProcedureSets.filter(set => set.item_type === 'surgery_set').length > 0 && (
                     <div className="form-group">
-                      <MultiSelectDropdown
+                      <MultiSelectDropdownWithQuantity
                         id="surgerySetSelection"
                         label="Surgery Sets"
                         options={availableProcedureSets
@@ -833,41 +833,32 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
                           .map(set => set.item_name)
                         }
                         value={formData.surgerySetSelection}
+                        quantities={formData.quantities}
                         onChange={(selectedSets: string[]) => {
-                          setFormData(prev => {
-                            const newQuantities = { ...prev.quantities };
-
-                            // Add quantities for newly selected sets
-                            selectedSets.forEach((setName: string) => {
-                              if (!prev.surgerySetSelection.includes(setName) && !newQuantities[setName]) {
-                                newQuantities[setName] = 1;
-                              }
-                            });
-
-                            // Remove quantities for deselected sets
-                            prev.surgerySetSelection.forEach(setName => {
-                              if (!selectedSets.includes(setName)) {
-                                delete newQuantities[setName];
-                              }
-                            });
-
-                            return {
-                              ...prev,
-                              surgerySetSelection: selectedSets,
-                              quantities: newQuantities
-                            };
-                          });
+                          setFormData(prev => ({
+                            ...prev,
+                            surgerySetSelection: selectedSets
+                          }));
+                        }}
+                        onQuantityChange={(item: string, quantity: number) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            quantities: {
+                              ...prev.quantities,
+                              [item]: quantity
+                            }
+                          }));
                         }}
                         placeholder="Select surgery sets..."
-                        className="multi-select-dropdown"
+                        className="multi-select-dropdown-with-quantity"
                       />
                     </div>
                   )}
 
-                  {/* Implant Boxes Multi-Select Dropdown */}
+                  {/* Implant Boxes Multi-Select Dropdown with Quantities */}
                   {availableProcedureSets.filter(set => set.item_type === 'implant_box').length > 0 && (
                     <div className="form-group">
-                      <MultiSelectDropdown
+                      <MultiSelectDropdownWithQuantity
                         id="implantBoxSelection"
                         label="Implant Boxes"
                         options={availableProcedureSets
@@ -875,129 +866,29 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
                           .map(set => set.item_name)
                         }
                         value={formData.implantBox}
+                        quantities={formData.quantities}
                         onChange={(selectedBoxes: string[]) => {
-                          setFormData(prev => {
-                            const newQuantities = { ...prev.quantities };
-
-                            // Add quantities for newly selected boxes
-                            selectedBoxes.forEach((boxName: string) => {
-                              if (!prev.implantBox.includes(boxName) && !newQuantities[boxName]) {
-                                newQuantities[boxName] = 1;
-                              }
-                            });
-
-                            // Remove quantities for deselected boxes
-                            prev.implantBox.forEach(boxName => {
-                              if (!selectedBoxes.includes(boxName)) {
-                                delete newQuantities[boxName];
-                              }
-                            });
-
-                            return {
-                              ...prev,
-                              implantBox: selectedBoxes,
-                              quantities: newQuantities
-                            };
-                          });
+                          setFormData(prev => ({
+                            ...prev,
+                            implantBox: selectedBoxes
+                          }));
+                        }}
+                        onQuantityChange={(item: string, quantity: number) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            quantities: {
+                              ...prev.quantities,
+                              [item]: quantity
+                            }
+                          }));
                         }}
                         placeholder="Select implant boxes..."
-                        className="multi-select-dropdown"
+                        className="multi-select-dropdown-with-quantity"
                       />
                     </div>
                   )}
                 </div>
 
-                {/* Quantity Inputs for Selected Items - Separate Surgery Sets and Implant Boxes */}
-                {(formData.surgerySetSelection.length > 0 || formData.implantBox.length > 0) && (
-                  <div className="quantities-section">
-                    <h4>Quantities</h4>
-                    <div className="form-row two-columns">
-                      {/* Surgery Sets Column - Sorted to match dropdown order */}
-                      {formData.surgerySetSelection.length > 0 && (
-                        <div className="form-group">
-                          <h5>Surgery Sets</h5>
-                          <div className="quantities-list">
-                            {/* Sort selected sets to match dropdown order */}
-                            {formData.surgerySetSelection
-                              .sort((a, b) => {
-                                const orderA = availableProcedureSets
-                                  .filter(set => set.item_type === 'surgery_set')
-                                  .findIndex(set => set.item_name === a);
-                                const orderB = availableProcedureSets
-                                  .filter(set => set.item_type === 'surgery_set')
-                                  .findIndex(set => set.item_name === b);
-                                return orderA - orderB;
-                              })
-                              .map(setName => (
-                              <div key={`qty-surgery-${setName}`} className="quantity-item">
-                                <label>{setName}</label>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max="99"
-                                  value={formData.quantities[setName] || 1}
-                                  onChange={(e) => {
-                                    const quantity = Math.max(1, parseInt(e.target.value) || 1);
-                                    setFormData(prev => ({
-                                      ...prev,
-                                      quantities: {
-                                        ...prev.quantities,
-                                        [setName]: quantity
-                                      }
-                                    }));
-                                  }}
-                                  className="quantity-field"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Implant Boxes Column - Sorted to match dropdown order */}
-                      {formData.implantBox.length > 0 && (
-                        <div className="form-group">
-                          <h5>Implant Boxes</h5>
-                          <div className="quantities-list">
-                            {/* Sort selected boxes to match dropdown order */}
-                            {formData.implantBox
-                              .sort((a, b) => {
-                                const orderA = availableProcedureSets
-                                  .filter(set => set.item_type === 'implant_box')
-                                  .findIndex(set => set.item_name === a);
-                                const orderB = availableProcedureSets
-                                  .filter(set => set.item_type === 'implant_box')
-                                  .findIndex(set => set.item_name === b);
-                                return orderA - orderB;
-                              })
-                              .map(boxName => (
-                              <div key={`qty-implant-${boxName}`} className="quantity-item">
-                                <label>{boxName}</label>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max="99"
-                                  value={formData.quantities[boxName] || 1}
-                                  onChange={(e) => {
-                                    const quantity = Math.max(1, parseInt(e.target.value) || 1);
-                                    setFormData(prev => ({
-                                      ...prev,
-                                      quantities: {
-                                        ...prev.quantities,
-                                        [boxName]: quantity
-                                      }
-                                    }));
-                                  }}
-                                  className="quantity-field"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
