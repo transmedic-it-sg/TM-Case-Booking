@@ -1,8 +1,10 @@
 /**
- * Email Service - Production email sending via Supabase Edge Function
+ * Email Service - Production email sending via Centralized Admin Service
+ * CRITICAL FIX: Now uses admin-based authentication instead of individual user tokens
  */
 
 import { supabase } from '../lib/supabase';
+import { centralizedEmailService } from './centralizedEmailService';
 import { 
   CASE_BOOKINGS_FIELDS, 
   CASE_QUANTITIES_FIELDS, 
@@ -20,34 +22,32 @@ export interface EmailData {
   subject: string;
   body: string;
   fromName?: string;
+  country?: string; // CRITICAL FIX: Added country for admin credentials lookup
 }
 
 class EmailService {
   /**
-   * Send email via Supabase Edge Function
+   * Send email via Centralized Admin Service
+   * CRITICAL FIX: Uses admin authentication instead of user tokens
    */
   async sendEmail(emailData: EmailData): Promise<{ success: boolean; error?: string }> {
     try {
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: emailData
+      // CRITICAL FIX: Require country for admin credential lookup
+      if (!emailData.country) {
+        return {
+          success: false,
+          error: 'Country is required for admin email service'
+        };
+      }
+
+      // Use centralized admin email service
+      return await centralizedEmailService.sendEmail(emailData.country, {
+        to: emailData.to,
+        cc: emailData.cc,
+        bcc: emailData.bcc,
+        subject: emailData.subject,
+        body: emailData.body
       });
-
-      if (error) {
-        console.error('Edge function error:', error);
-        return { 
-          success: false, 
-          error: error.message || 'Failed to send email' 
-        };
-      }
-
-      if (data && data.success) {
-        return { success: true };
-      } else {
-        return { 
-          success: false, 
-          error: data?.error || 'Unknown error occurred' 
-        };
-      }
     } catch (error) {
       console.error('Email send error:', error);
       return { 
@@ -59,6 +59,7 @@ class EmailService {
 
   /**
    * Send case notification email
+   * CRITICAL FIX: Added country parameter for admin email service
    */
   async sendCaseNotification(
     caseData: {
@@ -71,6 +72,7 @@ class EmailService {
       surgeryDate?: string;
       updatedBy?: string;
       notes?: string;
+      country: string; // CRITICAL FIX: Required for admin credentials lookup
     },
     recipients: string[],
     cc?: string[],
@@ -200,7 +202,8 @@ class EmailService {
       cc,
       subject,
       body,
-      fromName: 'TM Case Booking System'
+      fromName: 'TM Case Booking System',
+      country: caseData.country // CRITICAL FIX: Pass country for admin credentials
     });
   }
 }

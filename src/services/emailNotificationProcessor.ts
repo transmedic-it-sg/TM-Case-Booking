@@ -6,7 +6,8 @@
 import { CaseBooking, CaseStatus } from '../types';
 import { getAllSupabaseUsers } from '../utils/supabaseUserService';
 import { getEmailConfigFromDatabase } from '../components/SimplifiedEmailConfig';
-// Email sent via Supabase Edge Function - OAuth imports removed
+import { centralizedEmailService } from './centralizedEmailService';
+// Email sent via Supabase Edge Function - now using centralized admin authentication
 import { 
   CASE_BOOKINGS_FIELDS, 
   CASE_QUANTITIES_FIELDS, 
@@ -54,36 +55,27 @@ export const processEmailNotifications = async (
   });
 
   try {
-    // Get email configuration for the case's country
-    console.log('📧 EMAIL PROCESSOR DEBUG - Fetching email config:', {
+    // CRITICAL FIX: Use centralized admin email service instead of user-based tokens
+    console.log('📧 EMAIL PROCESSOR DEBUG - Using centralized admin email service:', {
       country: caseData.country,
-      functionName: getEmailConfigFromDatabase.name
+      service: 'centralizedEmailService'
     });
 
-    const emailConfigs = await getEmailConfigFromDatabase(caseData.country);
+    // Check if admin email configuration exists for this country
+    const adminCredentials = await centralizedEmailService.getAdminEmailConfig(caseData.country);
     
-    console.log('📧 EMAIL PROCESSOR DEBUG - Email config retrieved:', {
+    console.log('📧 EMAIL PROCESSOR DEBUG - Admin email config check:', {
       country: caseData.country,
-      hasEmailConfigs: !!emailConfigs,
-      configKeys: emailConfigs ? Object.keys(emailConfigs) : [],
-      emailConfigsType: typeof emailConfigs,
-      emailConfigsLength: emailConfigs ? Object.keys(emailConfigs).length : 0
-    });
-
-    const countryConfig = emailConfigs[caseData.country];
-    
-    console.log('📧 EMAIL PROCESSOR DEBUG - Country config check:', {
-      country: caseData.country,
-      hasCountryConfig: !!countryConfig,
-      countryConfigKeys: countryConfig ? Object.keys(countryConfig) : [],
-      providersAvailable: countryConfig?.providers ? Object.keys(countryConfig.providers) : []
+      hasAdminConfig: !!adminCredentials,
+      provider: adminCredentials?.provider,
+      fromEmail: adminCredentials?.fromEmail,
+      isTokenValid: adminCredentials ? Date.now() < adminCredentials.expiresAt : false
     });
     
-    if (!countryConfig) {
-      console.log('❌ EMAIL PROCESSOR DEBUG - No email configuration found:', {
+    if (!adminCredentials) {
+      console.log('❌ EMAIL PROCESSOR DEBUG - No admin email configuration found:', {
         country: caseData.country,
-        availableCountries: emailConfigs ? Object.keys(emailConfigs) : [],
-        emailConfigsStructure: emailConfigs
+        message: 'Admin email credentials required for centralized email system'
       });
       return;
     }
@@ -154,15 +146,12 @@ export const processEmailNotifications = async (
       return;
     }
 
-    // Get active email provider for this country (Microsoft-only)
-    const activeProvider = countryConfig.providers.microsoft.isAuthenticated ? 'microsoft' : null;
-                          
-    if (!activeProvider) {
-      console.log(`Microsoft email provider not authenticated for country: ${caseData.country}`);
-      return;
-    }
-
-    // Email will be sent via Supabase Edge Function using service principal authentication
+    // CRITICAL FIX: Admin credentials validated - no individual provider authentication needed
+    console.log('✅ EMAIL PROCESSOR DEBUG - Admin email system ready:', {
+      country: caseData.country,
+      provider: adminCredentials.provider,
+      authenticationMethod: 'centralized_admin_account'
+    });
 
     // Get all users to determine who should receive notifications
     const allUsers = await getAllSupabaseUsers();
@@ -276,68 +265,42 @@ export const processEmailNotifications = async (
       bodyLength: body?.length
     });
 
-    // Send email notification via Supabase Edge Function (not direct OAuth)
-    console.log('🔍 E2E DEBUG - Email notification attempt:', {
-      activeProvider,
+    // CRITICAL FIX: Send email via centralized admin service
+    console.log('🔍 E2E DEBUG - Admin email notification attempt:', {
+      country: caseData.country,
       recipientCount: uniqueRecipients.length,
       recipients: uniqueRecipients,
       subject,
-      countryConfig: countryConfig?.providers?.[activeProvider],
       caseRef: caseData.caseReferenceNumber,
-      emailConfig: {
-        isAuthenticated: countryConfig?.providers?.[activeProvider]?.isAuthenticated
-      }
+      adminProvider: adminCredentials.provider,
+      adminFromEmail: adminCredentials.fromEmail,
+      adminFromName: adminCredentials.fromName
     });
 
-    // Get authentication tokens for the active provider
-    const authTokens = countryConfig.providers[activeProvider]?.tokens;
-    const userInfo = countryConfig.providers[activeProvider]?.userInfo;
-
-    console.log('🔍 E2E DEBUG - Auth tokens check:', {
-      activeProvider,
-      hasTokens: !!authTokens,
-      hasAccessToken: !!authTokens?.accessToken,
-      hasUserInfo: !!userInfo,
-      userEmail: userInfo?.email,
-      tokenExpiry: authTokens?.expiresAt,
-      isExpired: authTokens?.expiresAt ? Date.now() > authTokens.expiresAt : 'unknown'
-    });
-
-    const emailPayload = {
+    const emailResult = await centralizedEmailService.sendEmail(caseData.country, {
       to: uniqueRecipients,
       subject,
       body,
-      fromName: countryConfig.providers[activeProvider].fromName || 'TM Case Booking System',
-      // Include authentication tokens for Edge Function
-      authTokens: authTokens,
-      userInfo: userInfo,
-      provider: activeProvider
-    };
-
-    console.log('🔍 E2E DEBUG - Email payload:', JSON.stringify(emailPayload, null, 2));
-
-    const { data, error: emailError } = await supabase.functions.invoke('send-email', {
-      body: emailPayload
+      replyTo: adminCredentials.fromEmail // Optional: Allow replies to admin email
     });
 
-    console.log('🔍 E2E DEBUG - Email Edge Function Response:', {
-      data,
-      error: emailError,
-      success: data?.success,
-      errorMessage: data?.error || emailError?.message,
-      fullError: emailError
+    console.log('🔍 E2E DEBUG - Admin Email Service Response:', {
+      country: caseData.country,
+      caseRef: caseData.caseReferenceNumber,
+      success: emailResult.success,
+      error: emailResult.error,
+      recipientCount: uniqueRecipients.length,
+      authenticationMethod: 'centralized_admin'
     });
 
-    const success = data?.success && !emailError;
-
-    if (success) {
-      console.log(`📧 Email notification sent successfully to ${uniqueRecipients.length} recipients for case ${caseData.caseReferenceNumber}`);
+    if (emailResult.success) {
+      console.log(`📧 Admin email notification sent successfully to ${uniqueRecipients.length} recipients for case ${caseData.caseReferenceNumber}`);
     } else {
-      console.error(`📧 Failed to send email notification for case ${caseData.caseReferenceNumber}:`, {
-        edgeFunctionData: data,
-        edgeFunctionError: emailError,
-        activeProvider,
-        providerConfig: countryConfig?.providers?.[activeProvider]
+      console.error(`📧 Failed to send admin email notification for case ${caseData.caseReferenceNumber}:`, {
+        error: emailResult.error,
+        country: caseData.country,
+        adminProvider: adminCredentials.provider,
+        recipients: uniqueRecipients
       });
     }
 

@@ -34,6 +34,7 @@ import {
   UserInfo,
   AuthTokens
 } from '../utils/simplifiedOAuth';
+import { centralizedEmailService, AdminEmailCredentials } from '../services/centralizedEmailService';
 import '../assets/components/EmailConfiguration.css';
 
 interface EmailProvider {
@@ -131,6 +132,13 @@ const SimplifiedEmailConfig: React.FC = () => {
   const [ruleCollapsedStates, setRuleCollapsedStates] = useState<Record<number, boolean>>({});
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
+  
+  // CRITICAL FIX: Admin email management state
+  const [adminEmailConfigs, setAdminEmailConfigs] = useState<Record<string, AdminEmailCredentials>>({});
+  const [isAdminConfigCollapsed, setIsAdminConfigCollapsed] = useState<boolean>(false); // Show by default for admins
+  const [adminConfigLoading, setAdminConfigLoading] = useState<boolean>(false);
+  const [testEmailAddress, setTestEmailAddress] = useState<string>('');
+  const [isTesting, setIsTesting] = useState<boolean>(false);
 
   const { playSound } = useSound();
   const { showSuccess, showError } = useToast();
@@ -192,6 +200,40 @@ const SimplifiedEmailConfig: React.FC = () => {
 
     loadDepartments();
   }, [selectedCountry]);
+
+  // CRITICAL FIX: Load admin email configurations
+  useEffect(() => {
+    const loadAdminConfigs = async () => {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      
+      setAdminConfigLoading(true);
+      try {
+        // Load configurations for all countries
+        const configuredCountries = await centralizedEmailService.getConfiguredCountries();
+        const configs: Record<string, AdminEmailCredentials> = {};
+        
+        for (const country of configuredCountries) {
+          const adminCredentials = await centralizedEmailService.getAdminEmailConfig(country);
+          if (adminCredentials) {
+            configs[country] = adminCredentials;
+          }
+        }
+        
+        setAdminEmailConfigs(configs);
+        console.log('📧 ADMIN CONFIG DEBUG - Loaded admin email configurations:', {
+          configuredCountries,
+          configs: Object.keys(configs)
+        });
+      } catch (error) {
+        console.error('Failed to load admin email configurations:', error);
+        showError('Configuration Error', 'Failed to load admin email configurations');
+      } finally {
+        setAdminConfigLoading(false);
+      }
+    };
+
+    loadAdminConfigs();
+  }, [currentUser, showError]);
 
   // Check if user can switch countries (admin only)
   const canSwitchCountries = currentUser?.role === 'admin';
@@ -1396,6 +1438,181 @@ Best regards,
 
       {selectedCountry && (
         <>
+          {/* CRITICAL FIX: Admin Email Configuration Section */}
+          {currentUser?.role === 'admin' && (
+            <div className="config-section">
+              <div
+                className="section-header collapsible-header"
+                onClick={() => setIsAdminConfigCollapsed(!isAdminConfigCollapsed)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <h3>🔧 Admin Email System Configuration</h3>
+                  {adminEmailConfigs[selectedCountry] ? (
+                    <div className="provider-status-badge-inline">
+                      <span className="status-icon">✅</span>
+                      <span style={{ fontSize: '0.85rem' }}>
+                        Admin {adminEmailConfigs[selectedCountry].provider} Configured
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="provider-status-badge-inline">
+                      <span className="status-icon">⚠️</span>
+                      <span style={{ fontSize: '0.85rem' }}>Admin Not Configured</span>
+                    </div>
+                  )}
+                </div>
+                <span className={`chevron ${isAdminConfigCollapsed ? 'collapsed' : 'expanded'}`}>
+                  {isAdminConfigCollapsed ? '▶' : '▼'}
+                </span>
+              </div>
+
+              {!isAdminConfigCollapsed && (
+                <div className="section-content">
+                  <div style={{
+                    marginBottom: '1.5rem',
+                    padding: '1rem',
+                    background: '#e8f4fd',
+                    borderRadius: '8px',
+                    border: '1px solid #bee5eb'
+                  }}>
+                    <h4 style={{ color: '#0c5460', margin: '0 0 0.5rem 0' }}>🎯 Centralized Email System</h4>
+                    <p style={{ color: '#0c5460', margin: 0, fontSize: '0.9rem' }}>
+                      Configure admin-based email authentication for automated case notifications. 
+                      This replaces individual user OAuth tokens with centralized system credentials.
+                    </p>
+                  </div>
+
+                  <div className="admin-email-form">
+                    <div className="form-row">
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label>Provider:</label>
+                        <select 
+                          className="form-control"
+                          value={adminEmailConfigs[selectedCountry]?.provider || 'microsoft'}
+                          disabled={adminConfigLoading}
+                        >
+                          <option value="microsoft">Microsoft (Office 365)</option>
+                          <option value="google" disabled>Google (Coming Soon)</option>
+                        </select>
+                      </div>
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label>From Email:</label>
+                        <input
+                          type="email"
+                          className="form-control"
+                          value={adminEmailConfigs[selectedCountry]?.fromEmail || ''}
+                          placeholder="system@company.com"
+                          disabled={true}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label>From Name:</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={adminEmailConfigs[selectedCountry]?.fromName || 'TM Case Booking System'}
+                          disabled={true}
+                        />
+                      </div>
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label>Status:</label>
+                        <div style={{ 
+                          padding: '0.375rem 0.75rem', 
+                          backgroundColor: adminEmailConfigs[selectedCountry] ? '#d4edda' : '#f8d7da',
+                          border: `1px solid ${adminEmailConfigs[selectedCountry] ? '#c3e6cb' : '#f5c6cb'}`,
+                          borderRadius: '0.25rem',
+                          color: adminEmailConfigs[selectedCountry] ? '#155724' : '#721c24'
+                        }}>
+                          {adminEmailConfigs[selectedCountry] ? 
+                            `✅ Active (Token expires: ${new Date(adminEmailConfigs[selectedCountry].expiresAt).toLocaleDateString()})` :
+                            '❌ Not Configured'
+                          }
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="admin-config-actions" style={{ 
+                      marginTop: '1.5rem', 
+                      display: 'flex', 
+                      gap: '1rem',
+                      alignItems: 'center'
+                    }}>
+                      <button
+                        className="btn btn-primary"
+                        disabled={adminConfigLoading}
+                        onClick={() => {/* TODO: Implement OAuth setup */}}
+                      >
+                        {adminConfigLoading ? 'Configuring...' : (adminEmailConfigs[selectedCountry] ? 'Update Admin OAuth' : 'Setup Admin OAuth')}
+                      </button>
+
+                      {adminEmailConfigs[selectedCountry] && (
+                        <>
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <input
+                              type="email"
+                              className="form-control"
+                              style={{ width: '200px' }}
+                              placeholder="test@example.com"
+                              value={testEmailAddress}
+                              onChange={(e) => setTestEmailAddress(e.target.value)}
+                              disabled={isTesting}
+                            />
+                            <button
+                              className="btn btn-secondary"
+                              disabled={isTesting || !testEmailAddress}
+                              onClick={async () => {
+                                setIsTesting(true);
+                                try {
+                                  const result = await centralizedEmailService.testAdminEmailConfig(selectedCountry, testEmailAddress);
+                                  if (result.success) {
+                                    showSuccess('Test Successful', 'Test email sent successfully!');
+                                  } else {
+                                    showError('Test Failed', `Test email failed: ${result.error}`);
+                                  }
+                                } catch (error) {
+                                  showError('Test Failed', 'Test email failed');
+                                } finally {
+                                  setIsTesting(false);
+                                }
+                              }}
+                            >
+                              {isTesting ? 'Testing...' : 'Test Email'}
+                            </button>
+                          </div>
+
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={async () => {
+                              if (window.confirm(`Remove admin email configuration for ${selectedCountry}?`)) {
+                                const success = await centralizedEmailService.removeAdminEmailConfig(selectedCountry);
+                                if (success) {
+                                  showSuccess('Configuration Removed', 'Admin configuration removed');
+                                  setAdminEmailConfigs(prev => {
+                                    const updated = { ...prev };
+                                    delete updated[selectedCountry];
+                                    return updated;
+                                  });
+                                } else {
+                                  showError('Remove Failed', 'Failed to remove configuration');
+                                }
+                              }
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Collapsible Provider Authentication with Summary */}
           <div className="config-section">
             <div
