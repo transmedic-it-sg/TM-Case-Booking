@@ -3,6 +3,8 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:tm-case-booking.vercel.app)",
+      "WebFetch(domain:tm-case-booking-n5no12z9f-tmsg-its-projects.vercel.app)",
+      "WebFetch(domain:tm-case-booking-409ff3p5g-tmsg-its-projects.vercel.app)",
       "Bash(DISABLE_ESLINT_PLUGIN=true PORT=3002 npm start)",
       "Bash(./mcp-startup.sh:*)",
       "mcp__supabase-new__*",
@@ -18,16 +20,29 @@
       "WebSearch",
       "mcp__supabase-new__list_tables",
       "mcp__supabase-new__execute_sql",
-      "WebFetch(domain:tm-case-booking-409ff3p5g-tmsg-its-projects.vercel.app)",
+      "mcp__supabase-new__apply_migration",
+      "mcp__supabase-new__get_logs",
+      "mcp__supabase-new__get_advisors",
       "Bash(grep:*)",
+      "Bash(rg:*)",
       "Bash(git add:*)",
       "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
       "WebFetch(domain:localhost)",
-      "mcp__supabase-new__apply_migration"
+      "Bash(playwright:*)",
+      "Bash(jest:*)",
+      "Bash(rg:*)",
+      "Bash(DISABLE_ESLINT_PLUGIN=true PORT=3002 timeout 10 npm start)",
+      "Bash(timeout:*)"
     ],
     "deny": [
       "mcp__supabase-old__*",
-      "Bash(./connect-to-old-db.sh:*)"
+      "Bash(./connect-to-old-db.sh:*)",
+      "Bash(rm -rf:*)",
+      "Bash(sudo:*)"
     ],
     "ask": []
   }
