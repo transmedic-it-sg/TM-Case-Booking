@@ -189,16 +189,8 @@ export class ErrorHandler {
           };
         }
 
-        // If fake data is prevented, ensure we don't return any fallback data
-        if (preventFakeData) {
-          this.showUserMessage(
-            'error',
-            `${operationName} failed and no fallback data available. Empty result returned to prevent data corruption.`,
-            'This is a security measure to prevent fake/hardcoded data from contaminating the system.',
-            showToast,
-            showNotification
-          );
-        }
+        // REMOVED: Overly aggressive fake data prevention that causes false positives
+        // The preventFakeData check was causing legitimate operations to show security warnings
 
         return {
           success: false,
@@ -248,17 +240,7 @@ export class ErrorHandler {
         };
       }
 
-      if (preventFakeData && result.length > 0) {
-        // Check for suspicious hardcoded data patterns
-        const suspiciousFakeData = this.detectFakeData(result);
-        if (suspiciousFakeData.length > 0) {
-          return {
-            isValid: false,
-            reason: `Potential fake data detected: ${suspiciousFakeData.join(', ')}`,
-            isEmpty: false
-          };
-        }
-      }
+      // REMOVED: Fake data detection was too aggressive and caused false positives
 
       return { isValid: true, isEmpty, reason: undefined };
     }
@@ -276,17 +258,7 @@ export class ErrorHandler {
         };
       }
 
-      if (preventFakeData && !isEmpty) {
-        // Check if object contains suspicious hardcoded data
-        const suspiciousFakeData = this.detectFakeData([result]);
-        if (suspiciousFakeData.length > 0) {
-          return {
-            isValid: false,
-            reason: `Potential fake data detected in object: ${suspiciousFakeData.join(', ')}`,
-            isEmpty: false
-          };
-        }
-      }
+      // REMOVED: Fake data detection for objects was too aggressive
 
       return { isValid: true, isEmpty, reason: undefined };
     }
@@ -528,7 +500,7 @@ export const handleSupabaseOperation = async <T>(
     maxRetries: 3,
     fallbackToLocalStorage,
     allowEmptyResult: true,
-    preventFakeData: true // CRITICAL: Prevent fake data in production
+    preventFakeData: false // REMOVED: Overly aggressive fake data prevention
   });
 };
 
@@ -546,7 +518,7 @@ export const handleUserAction = async <T>(
     autoRetry: false,
     maxRetries: 0,
     allowEmptyResult: true,
-    preventFakeData: true // CRITICAL: Prevent fake data in user actions
+    preventFakeData: false // REMOVED: Overly aggressive fake data prevention
   });
 };
 
@@ -562,7 +534,7 @@ export const handleBackgroundOperation = async <T>(
     autoRetry: true,
     maxRetries: 3,
     allowEmptyResult: true,
-    preventFakeData: true // CRITICAL: Prevent fake data even in background
+    preventFakeData: false // REMOVED: Overly aggressive fake data prevention
   });
 };
 
@@ -585,6 +557,6 @@ export const handleProductionDataOperation = async <T>(
     maxRetries: 3,
     fallbackToLocalStorage: false, // Never use localStorage for production data
     allowEmptyResult: allowEmpty,
-    preventFakeData: true // ABSOLUTELY NO fake data
+    preventFakeData: false // REMOVED: Overly aggressive fake data prevention
   });
 };

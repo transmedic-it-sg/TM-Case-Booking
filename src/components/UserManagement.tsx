@@ -640,7 +640,23 @@ const UserManagement: React.FC = () => {
       setEditingUser(null);
       setShowAddUser(false);
     } catch (err) {
-      const errorMessage = editingUser ? 'Failed to update user' : 'Failed to add user';
+      // CRITICAL FIX: Show specific error details instead of generic message
+      let errorMessage = editingUser ? 'Failed to update user' : 'Failed to add user';
+      
+      if (err instanceof Error) {
+        // Check for specific error types
+        if (err.message.includes('Username already exists') || err.message.includes('duplicate key value')) {
+          errorMessage = `Username "${finalUserData.username}" is already taken. Please choose a different username.`;
+        } else if (err.message.includes('409') || err.message.includes('conflict')) {
+          errorMessage = `User "${finalUserData.username}" already exists. Please choose a different username.`;
+        } else if (err.message.includes('23505')) { // PostgreSQL unique violation error code
+          errorMessage = `Username "${finalUserData.username}" is already taken. Please choose a different username.`;
+        } else {
+          // Show the actual error message if it's not a generic one
+          errorMessage = err.message || errorMessage;
+        }
+      }
+      
       setError(errorMessage);
       playSound.error();
       showError('Operation Failed', errorMessage);
