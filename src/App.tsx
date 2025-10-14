@@ -463,7 +463,7 @@ const AppContent: React.FC = () => {
     setShowLogoutConfirmation(true);
   };
 
-  const confirmLogout = async () => {
+  const confirmLogout = async (forgetMe = false) => {
     // Add audit log for logout before clearing user
     if (user) {
       await auditLogout(user.name, user.id, user.role, user.selectedCountry);
@@ -477,6 +477,11 @@ const AppContent: React.FC = () => {
     // Clear permissions cache on logout to prevent stale permissions for next user
     const { clearPermissionsCache } = await import('./utils/permissions');
     clearPermissionsCache();
+
+    // CRITICAL FIX: Clear Remember Me data if user chooses to forget
+    if (forgetMe) {
+      localStorage.removeItem('tm_remember_me');
+    }
 
     setUser(null);
     setActivePage('booking');

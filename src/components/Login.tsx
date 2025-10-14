@@ -32,18 +32,29 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     };
     loadCountries();
 
-    // Load remembered credentials from secure storage
-    const loadSavedCredentials = async () => {
+    // Load remembered credentials from localStorage (only for login credentials)
+    // CRITICAL FIX: Use direct localStorage for Remember Me since user isn't authenticated yet
+    const loadSavedCredentials = () => {
       try {
-        const savedCredentials = await SafeStorage.getItem('rememberMe');
-        if (savedCredentials) {
-          setUsername(savedCredentials.username || '');
-          setPassword(savedCredentials.password || '');
-          setCountry(savedCredentials.country || '');
-          setRememberMe(true);
+        const savedData = localStorage.getItem('tm_remember_me');
+        if (savedData) {
+          const savedCredentials = JSON.parse(savedData);
+          const now = Date.now();
+          
+          // Check if saved credentials haven't expired (30 days)
+          if (savedCredentials.expires && savedCredentials.expires > now) {
+            setUsername(savedCredentials.username || '');
+            setPassword(savedCredentials.password || '');
+            setCountry(savedCredentials.country || '');
+            setRememberMe(true);
+          } else {
+            // Remove expired credentials
+            localStorage.removeItem('tm_remember_me');
+          }
         }
       } catch (error) {
-        // No localStorage cleanup needed
+        // Clear corrupted data
+        localStorage.removeItem('tm_remember_me');
       }
     };
 
@@ -89,14 +100,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       const result = await authenticate(username, password, country);
       if (result.user) {
         // Save credentials if remember me is checked
+        // CRITICAL FIX: Use direct localStorage for Remember Me credentials
         if (rememberMe) {
-          await SafeStorage.setItem('rememberMe', {
+          const credentialsData = {
             username,
             password,
-            country
-          }, { encrypt: true, ttl: 30 * 24 * 60 * 60 * 1000 }); // 30 days
+            country,
+            expires: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days from now
+          };
+          localStorage.setItem('tm_remember_me', JSON.stringify(credentialsData));
         } else {
-          await SafeStorage.removeItem('rememberMe');
+          localStorage.removeItem('tm_remember_me');
         }
         onLogin(result.user);
       } else {

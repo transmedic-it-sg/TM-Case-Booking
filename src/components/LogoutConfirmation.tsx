@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface LogoutConfirmationProps {
   isOpen: boolean;
-  onConfirm: () => void;
+  onConfirm: (forgetMe?: boolean) => void;
   onCancel: () => void;
   userName?: string;
 }
@@ -13,6 +13,15 @@ const LogoutConfirmation: React.FC<LogoutConfirmationProps> = ({
   onCancel,
   userName
 }) => {
+  const [forgetMe, setForgetMe] = useState(false);
+  
+  // Reset state when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setForgetMe(false);
+    }
+  }, [isOpen]);
+  
   // Handle Escape key
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -29,13 +38,13 @@ const LogoutConfirmation: React.FC<LogoutConfirmationProps> = ({
   useEffect(() => {
     const handleEnter = (event: KeyboardEvent) => {
       if (event.key === 'Enter' && isOpen) {
-        onConfirm();
+        onConfirm(forgetMe);
       }
     };
 
     document.addEventListener('keydown', handleEnter);
     return () => document.removeEventListener('keydown', handleEnter);
-  }, [isOpen, onConfirm]);
+  }, [isOpen, onConfirm, forgetMe]);
 
   if (!isOpen) return null;
 
@@ -60,6 +69,21 @@ const LogoutConfirmation: React.FC<LogoutConfirmationProps> = ({
               Any unsaved work may be lost.
             </div>
           </div>
+          
+          {/* CRITICAL FIX: Add Remember Me option during logout */}
+          <div className="logout-remember-option">
+            <label className="remember-checkbox-label">
+              <input
+                type="checkbox"
+                checked={forgetMe}
+                onChange={(e) => setForgetMe(e.target.checked)}
+                className="remember-checkbox"
+              />
+              <span className="remember-text">
+                🔒 Forget my login credentials (you'll need to re-enter them next time)
+              </span>
+            </label>
+          </div>
         </div>
 
         <div className="logout-confirmation-actions">
@@ -72,7 +96,7 @@ const LogoutConfirmation: React.FC<LogoutConfirmationProps> = ({
           </button>
           <button
             className="btn btn-danger btn-md logout-confirm-button"
-            onClick={onConfirm}
+            onClick={() => onConfirm(forgetMe)}
           >
             Yes, Logout
           </button>
