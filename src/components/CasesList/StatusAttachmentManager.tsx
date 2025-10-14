@@ -32,6 +32,8 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
 }) => {
   const [selectedAttachment, setSelectedAttachment] = useState<{ data: any; index: number } | null>(null);
   const [isAddingAttachment, setIsAddingAttachment] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddAttachment = () => {
@@ -78,6 +80,12 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
 
               if (!error) {
                 onAttachmentsUpdated?.();
+                setShowSuccessMessage(true);
+                setErrorMessage(null);
+                setTimeout(() => setShowSuccessMessage(false), 3000);
+              } else {
+                setErrorMessage(`Failed to add attachment: ${error.message}`);
+                setTimeout(() => setErrorMessage(null), 5000);
               }
 
               setIsAddingAttachment(false);
@@ -89,7 +97,9 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
           reader.readAsDataURL(file);
         });
       } catch (error) {
-        // Error handling
+        console.error('Failed to process files:', error);
+        setErrorMessage('Failed to process attachment files');
+        setTimeout(() => setErrorMessage(null), 5000);
         setIsAddingAttachment(false);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
@@ -121,6 +131,12 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
 
       if (!error) {
         onAttachmentsUpdated?.();
+        setShowSuccessMessage(true);
+        setErrorMessage(null);
+        setTimeout(() => setShowSuccessMessage(false), 3000);
+      } else {
+        setErrorMessage(`Failed to replace attachment: ${error.message}`);
+        setTimeout(() => setErrorMessage(null), 5000);
       }
     };
     reader.readAsDataURL(newFile);
@@ -138,11 +154,17 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
 
     if (!error) {
       onAttachmentsUpdated?.();
+      setShowSuccessMessage(true);
+      setErrorMessage(null);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
+    } else {
+      setErrorMessage(`Failed to delete attachment: ${error.message}`);
+      setTimeout(() => setErrorMessage(null), 5000);
     }
   };
 
   return (
-    <div className="status-attachments-section">
+    <div className="status-attachments-section" data-testid="attachment-section">
       {historyItem.attachments && historyItem.attachments.length > 0 && (
         <div>
           <div className="attachments-header">
@@ -150,6 +172,7 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
             {canEdit && historyItem.id && (
               <button
                 className="btn-add-attachment"
+                data-testid="attach-file-button"
                 onClick={handleAddAttachment}
                 disabled={isAddingAttachment}
                 style={{
@@ -174,7 +197,7 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
               </button>
             )}
           </div>
-          <div className="attachment-preview-grid">
+          <div className="attachment-preview-grid" data-testid="attachments-list">
             {historyItem.attachments.map((attachment: string, idx: number) => {
               try {
                 const fileData = JSON.parse(attachment);
@@ -184,6 +207,7 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
                   <div 
                     key={idx} 
                     className="attachment-preview-item"
+                    data-testid={`attachment-${idx}`}
                     style={{ position: 'relative', cursor: 'pointer' }}
                     onClick={() => setSelectedAttachment({ data: fileData, index: idx })}
                   >
@@ -241,8 +265,18 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
                     )}
                   </div>
                 );
-              } catch {
-                return null;
+              } catch (parseError) {
+                console.error(`Failed to parse attachment ${idx}:`, parseError);
+                return (
+                  <div key={idx} className="attachment-preview-item error">
+                    <div className="file-attachment error">
+                      <div className="file-icon">❌</div>
+                      <div className="attachment-info">
+                        <div className="file-name">Invalid attachment</div>
+                      </div>
+                    </div>
+                  </div>
+                );
               }
             })}
           </div>
@@ -252,6 +286,7 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
       {canEdit && historyItem.id && (!historyItem.attachments || historyItem.attachments.length === 0) && (
         <button
           className="btn-add-first-attachment"
+          data-testid="attach-file-button"
           onClick={handleAddAttachment}
           disabled={isAddingAttachment}
           style={{
@@ -271,13 +306,64 @@ export const StatusAttachmentManager: React.FC<StatusAttachmentManagerProps> = (
         </button>
       )}
 
+      {/* Success message for attachment operations */}
+      {showSuccessMessage && (
+        <div className="attachment-success" data-testid="attachment-success" style={{ 
+          color: '#27ae60', 
+          fontSize: '14px', 
+          marginTop: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '5px',
+          padding: '8px',
+          backgroundColor: '#d4edda',
+          border: '1px solid #c3e6cb',
+          borderRadius: '4px'
+        }}>
+          <span>✅</span> Attachment operation completed successfully!
+        </div>
+      )}
+
+      {/* Error message for attachment operations */}
+      {errorMessage && (
+        <div className="attachment-error" data-testid="attachment-error" style={{ 
+          color: '#e74c3c', 
+          fontSize: '14px', 
+          marginTop: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '5px',
+          padding: '8px',
+          backgroundColor: '#f8d7da',
+          border: '1px solid #f5c6cb',
+          borderRadius: '4px'
+        }}>
+          <span>❌</span> {errorMessage}
+        </div>
+      )}
+
+      {/* Progress indicator during upload */}
+      {isAddingAttachment && (
+        <div className="attachment-uploading" data-testid="upload-progress" style={{ 
+          color: '#3498db', 
+          fontSize: '14px', 
+          marginTop: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '5px'
+        }}>
+          <span>📤</span> Uploading attachment(s)...
+        </div>
+      )}
+
       <input
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/*,application/pdf"
+        accept="image/*,application/pdf,.doc,.docx,.txt"
         onChange={handleFileAdd}
         style={{ display: 'none' }}
+        data-testid="file-input"
       />
 
       {selectedAttachment && (

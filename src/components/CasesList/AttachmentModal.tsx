@@ -62,6 +62,7 @@ export const AttachmentModal: React.FC<AttachmentModalProps> = ({
         await onDelete();
         onClose();
       } catch (error) {
+        console.error('Failed to delete attachment:', error);
       } finally {
         setIsDeleting(false);
       }
@@ -180,6 +181,7 @@ export const AttachmentModal: React.FC<AttachmentModalProps> = ({
             <button
               onClick={handleReplace}
               disabled={isReplacing}
+              data-testid="replace-attachment"
               style={{
                 background: '#f39c12',
                 color: 'white',
@@ -200,6 +202,7 @@ export const AttachmentModal: React.FC<AttachmentModalProps> = ({
             <button
               onClick={handleDelete}
               disabled={isDeleting}
+              data-testid="delete-attachment"
               style={{
                 background: '#e74c3c',
                 color: 'white',
@@ -218,6 +221,7 @@ export const AttachmentModal: React.FC<AttachmentModalProps> = ({
           
           <button
             onClick={handleDownload}
+            data-testid="download-attachment"
             style={{
               background: '#3498db',
               color: 'white',
