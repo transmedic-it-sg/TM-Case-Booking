@@ -150,19 +150,17 @@ class CentralizedEmailService {
         adminCredentials.expiresAt = refreshedCredentials.expiresAt;
       }
 
-      // Prepare email payload with admin credentials
+      // Prepare email payload for Edge Function
       const emailPayload = {
-        ...emailData,
-        fromName: adminCredentials.fromName,
+        to: emailData.to,
+        cc: emailData.cc,
+        bcc: emailData.bcc,
+        subject: emailData.subject,
+        body: emailData.body,
         fromEmail: adminCredentials.fromEmail,
-        // Admin authentication details
-        adminCredentials: {
-          provider: adminCredentials.provider,
-          accessToken: adminCredentials.accessToken,
-          clientId: adminCredentials.clientId,
-          tenantId: adminCredentials.tenantId
-        },
-        isAdminSend: true // Flag to indicate this is an admin-authenticated send
+        fromName: adminCredentials.fromName,
+        accessToken: adminCredentials.accessToken,
+        provider: adminCredentials.provider
       };
 
       // Send via Edge Function with admin authentication

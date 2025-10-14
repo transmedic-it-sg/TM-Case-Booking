@@ -1666,20 +1666,6 @@ Best regards,
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <h3>🔐 Email Provider Authentication</h3>
-                {/* Configuration Summary Badge */}
-                {currentConfig?.activeProvider ? (
-                  <div className="provider-status-badge-inline">
-                    <span className="status-icon">✅</span>
-                    <span style={{ fontSize: '0.85rem' }}>
-                      {currentConfig.activeProvider.charAt(0).toUpperCase() + currentConfig.activeProvider.slice(1)} Active
-                    </span>
-                  </div>
-                ) : (
-                  <div className="provider-status-badge-inline">
-                    <span className="status-icon">⚠️</span>
-                    <span style={{ fontSize: '0.85rem' }}>Not Configured</span>
-                  </div>
-                )}
               </div>
               <span className={`chevron ${isProviderSectionCollapsed ? 'collapsed' : 'expanded'}`}>
                 {isProviderSectionCollapsed ? '▶' : '▼'}
@@ -1688,11 +1674,6 @@ Best regards,
 
             {!isProviderSectionCollapsed && (
               <div className="section-content">
-                <p style={{ marginBottom: '1rem', color: '#6c757d' }}>
-                  Authenticate with your email provider to enable automated notifications
-                </p>
-
-                {/* Environment-specific setup information */}
                 <div style={{
                   marginBottom: '2rem',
                   padding: '1rem',
@@ -1719,200 +1700,199 @@ Best regards,
                   </div>
                 </div>
 
-            {authError && (
-              <div className="alert alert-danger">
-                <strong>Authentication Error:</strong> {authError}
-                <details style={{ marginTop: '10px' }}>
-                  <summary style={{ cursor: 'pointer', fontSize: '0.9rem' }}>Show Debug Info</summary>
-                  <div style={{ marginTop: '8px', fontSize: '0.8rem', fontFamily: 'monospace' }}>
-                    <div><strong>Country:</strong> {selectedCountry}</div>
-                    <div><strong>Google Configured:</strong> {isGoogleConfigured ? 'Yes' : 'No'}</div>
-                    <div><strong>Microsoft Configured:</strong> {isMicrosoftConfigured ? 'Yes' : 'No'}</div>
-                    <div><strong>Environment:</strong> {process.env.NODE_ENV}</div>
-                    <div><strong>Origin:</strong> {window.location.origin}</div>
-                    <div><strong>Hostname:</strong> {window.location.hostname}</div>
-                    <div><strong>Protocol:</strong> {window.location.protocol}</div>
-                    <div><strong>Port:</strong> {window.location.port || 'default'}</div>
-                    <div><strong>Redirect URI:</strong> {window.location.origin}/auth/callback</div>
-                    <div><strong>Is Localhost:</strong> {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'Yes' : 'No'}</div>
-                    <div><strong>Is Vercel:</strong> {(window.location.hostname.includes('vercel.app') || window.location.hostname.includes('vercel.com')) ? 'Yes' : 'No'}</div>
-                    <div><strong>User Agent:</strong> {navigator.userAgent.substring(0, 100)}...</div>
-                    <div><strong>Popup Support:</strong> {typeof window.open === 'function' ? 'Yes' : 'No'}</div>
-                  </div>
-                </details>
-              </div>
-            )}
-
-            {/* Google Authentication */}
-            <div className="provider-card">
-              <div className="provider-header">
-                <div className="provider-info">
-                  <img
-                    src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwSDEyVjE0LjI2SDE3LjkyQzE3LjY2IDE1LjYzIDE2Ljg3IDE2Ljc4IDE1LjY2IDE3LjQ4VjIwLjI2SDE5LjI3QzIxLjMgMTguNDMgMjIuNTYgMTUuNiAyMi41NiAxMi4yNVoiIGZpbGw9IiM0Mjg1RjQiLz4KPHBhdGggZD0iTTEyIDIzQzE1LjI0IDIzIDE3LjQ1IDIxLjkyIDE5LjI3IDE5Ljk4TDE1LjY2IDE3LjJDMTQuNTQgMTcuNzUgMTMuMzIgMTguMDggMTIgMTguMDhDOC44NyAxOC4wOCA2LjM1IDE2LjUgNS40MiAxNC4ySDEuNzJWMTYuOTdDMy41OCAyMC43OSA3LjU0IDIzIDEyIDIzWiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNNS40MiAxMi45MkM1LjIgMTIuMzcgNS4wOCAxMS43OCA1LjA4IDExLjE3QzUuMDggMTAuNTYgNS4yIDkuOTcgNS40MiA5LjQyVjYuNjVIMS43MkMxLjEgOC4xNyAwLjc0IDkuODMgMC43NCAxMS4xN0MwLjc0IDEyLjUxIDEuMSAxNC4xNyAxLjcyIDE1LjY5TDQuNzMgMTMuNDJMNS40MiAxMi45MloiIGZpbGw9IiNGQkJDMDQiLz4KPHBhdGggZD0iTTEyIDQuOTJDMTMuNTcgNC45MiAxNC45NiA1LjUxIDE2LjAzIDYuNTJMMTkuMjUgMy4zQzE3LjQ1IDEuNjQgMTUuMjQgMC41IDEyIDAuNUM3LjU0IDAuNSAzLjU4IDIuNzEgMS43MiA2LjUzTDUuNDIgOS4zQzYuMzUgNyAxMS44NyA0LjkyIDEyIDQuOTJaIiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo="
-                    alt="Google"
-                    className="provider-icon"
-                  />
-                  <div>
-                    <h4>Google Gmail</h4>
-                    <p>Send emails through Gmail API</p>
-                  </div>
-                </div>
-
-                {currentConfig?.providers.google.isAuthenticated ? (
-                  <div className="auth-status authenticated">
-                    <span className="status-icon">✅</span>
-                    <div className="auth-info">
-                      <div>Authenticated as:</div>
-                      <strong>{currentConfig?.providers?.google?.userInfo?.email}</strong>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="auth-status not-authenticated">
-                    <span className="status-icon">❌</span>
-                    <div>Not authenticated</div>
+                {authError && (
+                  <div className="alert alert-danger">
+                    <strong>Authentication Error:</strong> {authError}
+                    <details style={{ marginTop: '10px' }}>
+                      <summary style={{ cursor: 'pointer', fontSize: '0.9rem' }}>Show Debug Info</summary>
+                      <div style={{ marginTop: '8px', fontSize: '0.8rem', fontFamily: 'monospace' }}>
+                        <div><strong>Country:</strong> {selectedCountry}</div>
+                        <div><strong>Google Configured:</strong> {isGoogleConfigured ? 'Yes' : 'No'}</div>
+                        <div><strong>Microsoft Configured:</strong> {isMicrosoftConfigured ? 'Yes' : 'No'}</div>
+                        <div><strong>Environment:</strong> {process.env.NODE_ENV}</div>
+                        <div><strong>Origin:</strong> {window.location.origin}</div>
+                        <div><strong>Hostname:</strong> {window.location.hostname}</div>
+                        <div><strong>Protocol:</strong> {window.location.protocol}</div>
+                        <div><strong>Port:</strong> {window.location.port || 'default'}</div>
+                        <div><strong>Redirect URI:</strong> {window.location.origin}/auth/callback</div>
+                        <div><strong>Is Localhost:</strong> {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'Yes' : 'No'}</div>
+                        <div><strong>Is Vercel:</strong> {(window.location.hostname.includes('vercel.app') || window.location.hostname.includes('vercel.com')) ? 'Yes' : 'No'}</div>
+                        <div><strong>User Agent:</strong> {navigator.userAgent.substring(0, 100)}...</div>
+                        <div><strong>Popup Support:</strong> {typeof window.open === 'function' ? 'Yes' : 'No'}</div>
+                      </div>
+                    </details>
                   </div>
                 )}
-              </div>
 
-              <div className="provider-actions">
-                {currentConfig?.providers.google.isAuthenticated ? (
-                  <>
-                    <div className="form-group">
-                      <label title="This name will appear as the sender name in emails">From Name (Display Name in Emails):</label>
-                      <input
-                        type="text"
-                        value={currentConfig?.providers?.google?.fromName || 'Case Booking System'}
-                        onChange={(e) => handleFromNameChange(e.target.value)}
-                        className="form-control"
-                        placeholder="Case Booking System"
+                {/* Google Authentication */}
+                <div className="provider-card">
+                  <div className="provider-header">
+                    <div className="provider-info">
+                      <img
+                        src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwSDEyVjE0LjI2SDE3LjkyQzE3LjY2IDE1LjYzIDE2Ljg3IDE2Ljc4IDE1LjY2IDE3LjQ4VjIwLjI2SDE5LjI3QzIxLjMgMTguNDMgMjIuNTYgMTUuNiAyMi41NiAxMi4yNVoiIGZpbGw9IiM0Mjg1RjQiLz4KPHBhdGggZD0iTTEyIDIzQzE1LjI0IDIzIDE3LjQ1IDIxLjkyIDE5LjI3IDE5Ljk4TDE1LjY2IDE3LjJDMTQuNTQgMTcuNzUgMTMuMzIgMTguMDggMTIgMTguMDhDOC44NyAxOC4wOCA2LjM1IDE2LjUgNS40MiAxNC4ySDEuNzJWMTYuOTdDMy41OCAyMC43OSA3LjU0IDIzIDEyIDIzWiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNNS40MiAxMi45MkM1LjIgMTIuMzcgNS4wOCAxMS43OCA1LjA4IDExLjE3QzUuMDggMTAuNTYgNS4yIDkuOTcgNS40MiA5LjQyVjYuNjVIMS43MkMxLjEgOC4xNyAwLjc0IDkuODMgMC43NCAxMS4xN0MwLjc0IDEyLjUxIDEuMSAxNC4xNyAxLjcyIDE1LjY5TDQuNzMgMTMuNDJMNS40MiAxMi45MloiIGZpbGw9IiNGQkJDMDQiLz4KPHBhdGggZD0iTTEyIDQuOTJDMTMuNTcgNC45MiAxNC45NiA1LjUxIDE2LjAzIDYuNTJMMTkuMjUgMy4zQzE3LjQ1IDEuNjQgMTUuMjQgMC41IDEyIDAuNUM3LjU0IDAuNSAzLjU4IDIuNzEgMS43MiA2LjUzTDUuNDIgOS4zQzYuMzUgNyAxMS44NyA0LjkyIDEyIDQuOTJaIiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo="
+                        alt="Google"
+                        className="provider-icon"
                       />
+                      <div>
+                        <h4>Google Gmail</h4>
+                        <p>Send emails through Gmail API</p>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => handleDisconnect()}
-                      className="btn btn-outline-danger btn-sm"
-                    >
-                      Disconnect
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    {!isGoogleConfigured && (
-                      <div className="alert alert-warning">
-                        <strong>⚠️ Setup Required:</strong> Google OAuth client ID not configured.
-                        Please see <code>MICROSOFT_OAUTH_SETUP.md</code> for setup instructions.
+
+                    {currentConfig?.providers.google.isAuthenticated ? (
+                      <div className="auth-status authenticated">
+                        <span className="status-icon">✅</span>
+                        <div className="auth-info">
+                          <div>Authenticated as:</div>
+                          <strong>{currentConfig?.providers?.google?.userInfo?.email}</strong>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="auth-status not-authenticated">
+                        <span className="status-icon">❌</span>
+                        <div>Not authenticated</div>
                       </div>
                     )}
-                    <button
-                      onClick={() => handleAuthenticate()}
-                      disabled={false}
-                      className="btn btn-primary"
-                    >
-                      <>🚫 Google Disabled (Security)</>
-                      
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
+                  </div>
 
-            {/* Microsoft Authentication */}
-            <div className="provider-card">
-              <div className="provider-header">
-                <div className="provider-info">
-                  <img
-                    src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjExIiBoZWlnaHQ9IjExIiBmaWxsPSIjRjI1MDIyIi8+CjxyZWN0IHg9IjEzIiB3aWR0aD0iMTEiIGhlaWdodD0iMTEiIGZpbGw9IiM3RkJBMDAiLz4KPHJlY3QgeT0iMTMiIHdpZHRoPSIxMSIgaGVpZ2h0PSIxMSIgZmlsbD0iIzAwQTRFRiIvPgo8cmVjdCB4PSIxMyIgeT0iMTMiIHdpZHRoPSIxMSIgaGVpZ2h0PSIxMSIgZmlsbD0iI0ZGQjkwMCIvPgo8L3N2Zz4K"
-                    alt="Microsoft"
-                    className="provider-icon"
-                  />
-                  <div>
-                    <h4>
-                      Microsoft Outlook
-                      <span style={{ 
-                        fontSize: '0.65em', 
-                        marginLeft: '8px', 
-                        color: '#28a745',
-                        fontWeight: 'normal',
-                        backgroundColor: '#e8f5e9',
-                        padding: '2px 6px',
-                        borderRadius: '3px'
-                      }}>
-                        Global Account
-                      </span>
-                    </h4>
-                    <p>Send emails through Outlook/Office 365 (Same account for all countries)</p>
+                  <div className="provider-actions">
+                    {currentConfig?.providers.google.isAuthenticated ? (
+                      <>
+                        <div className="form-group">
+                          <label title="This name will appear as the sender name in emails">From Name (Display Name in Emails):</label>
+                          <input
+                            type="text"
+                            value={currentConfig?.providers?.google?.fromName || 'Case Booking System'}
+                            onChange={(e) => handleFromNameChange(e.target.value)}
+                            className="form-control"
+                            placeholder="Case Booking System"
+                          />
+                        </div>
+                        <button
+                          onClick={() => handleDisconnect()}
+                          className="btn btn-outline-danger btn-sm"
+                        >
+                          Disconnect
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {!isGoogleConfigured && (
+                          <div className="alert alert-warning">
+                            <strong>⚠️ Setup Required:</strong> Google OAuth client ID not configured.
+                            Please see <code>MICROSOFT_OAUTH_SETUP.md</code> for setup instructions.
+                          </div>
+                        )}
+                        <button
+                          onClick={() => handleAuthenticate()}
+                          disabled={false}
+                          className="btn btn-primary"
+                        >
+                          <>🚫 Google Disabled (Security)</>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                {currentConfig?.providers.microsoft.isAuthenticated ? (
-                  <div className="auth-status authenticated">
-                    <span className="status-icon">✅</span>
-                    <div className="auth-info">
-                      <div>Authenticated as:</div>
-                      <strong>{currentConfig?.providers?.microsoft?.userInfo?.email}</strong>
-                      {currentConfig?.providers?.microsoft?.tokens && (
-                        <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '4px' }}>
-                          {currentConfig?.providers?.microsoft?.tokens && isTokenExpiringSoon(currentConfig.providers.microsoft.tokens) ? (
-                            <span style={{ color: '#ffc107' }}>⚠️ Token expires soon</span>
-                          ) : (
-                            <span style={{ color: '#28a745' }}>🔄 Auto-refresh enabled</span>
+                {/* Microsoft Authentication */}
+                <div className="provider-card">
+                  <div className="provider-header">
+                    <div className="provider-info">
+                      <img
+                        src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjExIiBoZWlnaHQ9IjExIiBmaWxsPSIjRjI1MDIyIi8+CjxyZWN0IHg9IjEzIiB3aWR0aD0iMTEiIGhlaWdodD0iMTEiIGZpbGw9IiM3RkJBMDAiLz4KPHJlY3QgeT0iMTMiIHdpZHRoPSIxMSIgaGVpZ2h0PSIxMSIgZmlsbD0iIzAwQTRFRiIvPgo8cmVjdCB4PSIxMyIgeT0iMTMiIHdpZHRoPSIxMSIgaGVpZ2h0PSIxMSIgZmlsbD0iI0ZGQjkwMCIvPgo8L3N2Zz4K"
+                        alt="Microsoft"
+                        className="provider-icon"
+                      />
+                      <div>
+                        <h4>
+                          Microsoft Outlook
+                          <span style={{ 
+                            fontSize: '0.65em', 
+                            marginLeft: '8px', 
+                            color: '#28a745',
+                            fontWeight: 'normal',
+                            backgroundColor: '#e8f5e9',
+                            padding: '2px 6px',
+                            borderRadius: '3px'
+                          }}>
+                            Global Account
+                          </span>
+                        </h4>
+                        <p>Send emails through Outlook/Office 365 (Same account for all countries)</p>
+                      </div>
+                    </div>
+
+                    {currentConfig?.providers.microsoft.isAuthenticated ? (
+                      <div className="auth-status authenticated">
+                        <span className="status-icon">✅</span>
+                        <div className="auth-info">
+                          <div>Authenticated as:</div>
+                          <strong>{currentConfig?.providers?.microsoft?.userInfo?.email}</strong>
+                          {currentConfig?.providers?.microsoft?.tokens && (
+                            <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '4px' }}>
+                              {currentConfig?.providers?.microsoft?.tokens && isTokenExpiringSoon(currentConfig.providers.microsoft.tokens) ? (
+                                <span style={{ color: '#ffc107' }}>⚠️ Token expires soon</span>
+                              ) : (
+                                <span style={{ color: '#28a745' }}>🔄 Auto-refresh enabled</span>
+                              )}
+                            </div>
                           )}
                         </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="auth-status not-authenticated">
-                    <span className="status-icon">❌</span>
-                    <div>Not authenticated</div>
-                  </div>
-                )}
-              </div>
-
-              <div className="provider-actions">
-                {currentConfig?.providers.microsoft.isAuthenticated ? (
-                  <>
-                    <div className="form-group">
-                      <label title="This name will appear as the sender name in emails">From Name (Display Name in Emails):</label>
-                      <input
-                        type="text"
-                        value={currentConfig?.providers?.microsoft?.fromName || 'Case Booking System'}
-                        onChange={(e) => handleFromNameChange(e.target.value)}
-                        className="form-control"
-                        placeholder="Case Booking System"
-                      />
-                    </div>
-                    <button
-                      onClick={() => handleDisconnect()}
-                      className="btn btn-outline-danger btn-sm"
-                    >
-                      Disconnect
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    {!isMicrosoftConfigured && (
-                      <div className="alert alert-warning">
-                        <strong>⚠️ Setup Required:</strong> Microsoft OAuth client ID not configured.
-                        Please see <code>MICROSOFT_OAUTH_SETUP.md</code> for detailed setup instructions.
+                      </div>
+                    ) : (
+                      <div className="auth-status not-authenticated">
+                        <span className="status-icon">❌</span>
+                        <div>Not authenticated</div>
                       </div>
                     )}
-                    <button
-                      onClick={() => handleAuthenticate()}
-                      disabled={isAuthenticating.microsoft || !isMicrosoftConfigured}
-                      className="btn btn-primary"
-                    >
-                      {isAuthenticating.microsoft ? (
-                        <>🔄 Authenticating...</>
-                      ) : !isMicrosoftConfigured ? (
-                        <>⚙️ Configure Microsoft OAuth First</>
-                      ) : (
-                        <>🔐 Authenticate with Microsoft</>
-                      )}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
+                  </div>
+
+                  <div className="provider-actions">
+                    {currentConfig?.providers.microsoft.isAuthenticated ? (
+                      <>
+                        <div className="form-group">
+                          <label title="This name will appear as the sender name in emails">From Name (Display Name in Emails):</label>
+                          <input
+                            type="text"
+                            value={currentConfig?.providers?.microsoft?.fromName || 'Case Booking System'}
+                            onChange={(e) => handleFromNameChange(e.target.value)}
+                            className="form-control"
+                            placeholder="Case Booking System"
+                          />
+                        </div>
+                        <button
+                          onClick={() => handleDisconnect()}
+                          className="btn btn-outline-danger btn-sm"
+                        >
+                          Disconnect
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {!isMicrosoftConfigured && (
+                          <div className="alert alert-warning">
+                            <strong>⚠️ Setup Required:</strong> Microsoft OAuth client ID not configured.
+                            Please see <code>MICROSOFT_OAUTH_SETUP.md</code> for detailed setup instructions.
+                          </div>
+                        )}
+                        <button
+                          onClick={() => handleAuthenticate()}
+                          disabled={isAuthenticating.microsoft || !isMicrosoftConfigured}
+                          className="btn btn-primary"
+                        >
+                          {isAuthenticating.microsoft ? (
+                            <>🔄 Authenticating...</>
+                          ) : !isMicrosoftConfigured ? (
+                            <>⚙️ Configure Microsoft OAuth First</>
+                          ) : (
+                            <>🔐 Authenticate with Microsoft</>
+                          )}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
 
                 {/* Configuration Actions */}
                 <div className="config-actions" style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #e9ecef' }}>
@@ -2013,771 +1993,58 @@ Best regards,
                   padding: '1rem',
                   background: '#e8f5e8',
                   borderRadius: '8px',
-                  border: '2px solid #4caf50',
-                  borderLeft: '6px solid #4caf50'
+                  border: '1px solid #4caf50'
                 }}>
-                  <h5 style={{ color: '#2e7d32', margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    🆕 <strong>New Case Notifications</strong>
+                  <h5 style={{ color: '#2e7d32', margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>
+                    📋 Important: Case Booked Notifications
                   </h5>
-                  <p style={{ margin: '0', color: '#1b5e20', fontSize: '0.9rem' }}>
-                    <strong>"Case Booked"</strong> notifications are automatically enabled and pre-configured to notify operations teams when new cases are submitted.
-                    This ensures immediate awareness of new case bookings requiring attention.
+                  <p style={{ margin: '0', color: '#1b5e20', fontSize: '0.85rem' }}>
+                    <strong>Case Booked</strong> notifications are now automatically managed by the booking calendar system. 
+                    When a case is successfully booked, confirmations are sent directly to relevant parties without requiring separate configuration here.
                   </p>
                 </div>
 
+                {/* Email Notification Matrix */}
                 {emailMatrixConfigs[selectedCountry] && (
                   <div className="notification-matrix">
-                    {emailMatrixConfigs[selectedCountry].rules.map((rule, index) => {
-                      const isRuleCollapsed = ruleCollapsedStates[index] !== false; // Default to collapsed (true)
-                      const allRoles = getAllRoles();
-                      const availableRoles = allRoles.map(role => role.id);
-                      const isCaseBookedRule = rule.status === CASE_STATUSES.CASE_BOOKED;
-
-                      return (
-                        <div key={rule.status} className="notification-rule" style={{
-                          border: isCaseBookedRule ? '2px solid #4caf50' : '1px solid #dee2e6',
-                          borderRadius: '8px',
-                          marginBottom: '1rem',
-                          padding: '1rem',
-                          background: rule.enabled ? (isCaseBookedRule ? '#e8f5e8' : '#f8f9fa') : '#ffffff',
-                          position: 'relative'
-                        }}>
-                          {/* Special badge for Case Booked */}
-                          {isCaseBookedRule && (
-                            <div style={{
-                              position: 'absolute',
-                              top: '-10px',
-                              right: '15px',
-                              background: '#4caf50',
-                              color: 'white',
-                              padding: '4px 8px',
-                              borderRadius: '12px',
-                              fontSize: '0.75rem',
-                              fontWeight: 'bold'
-                            }}>
-                              🆕 NEW CASES
-                            </div>
-                          )}
-
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              marginBottom: rule.enabled && !isRuleCollapsed ? '1rem' : '0',
-                              cursor: rule.enabled ? 'pointer' : 'default'
-                            }}
-                            onClick={rule.enabled ? () => toggleRuleCollapse(index) : undefined}
-                          >
-                            <h5 style={{
-                              margin: '0',
-                              color: isCaseBookedRule ? '#2e7d32' : '#495057',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.5rem',
-                              fontWeight: isCaseBookedRule ? 'bold' : 'normal'
-                            }}>
-                              {isCaseBookedRule ? '🆕' : '📊'} {rule.status}
-                              {rule.enabled && (
-                                <span style={{
-                                  fontSize: '0.8rem',
-                                  transform: isRuleCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
-                                  transition: 'transform 0.2s ease',
-                                  color: '#6c757d',
-                                  marginLeft: '0.5rem'
-                                }}>
-                                  ▼
-                                </span>
-                              )}
-                            </h5>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0', cursor: 'pointer' }}>
-                              <input
-                                type="checkbox"
-                                checked={rule.enabled}
-                                onChange={(e) => {
-                                  updateNotificationRule(index, { enabled: e.target.checked });
-                                  // Removed auto-expansion when enabling rule
-                                }}
-                                style={{ transform: 'scale(1.2)' }}
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                              <span style={{ fontWeight: '500', color: rule.enabled ? '#28a745' : '#6c757d' }}>
-                                {rule.enabled ? 'Enabled' : 'Disabled'}
-                              </span>
-                            </label>
-                          </div>
-
-                          {rule.enabled && !isRuleCollapsed && (
-                            <div style={{ paddingLeft: '1rem', borderLeft: '3px solid #28a745' }}>
-                              <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#495057' }}>
-                                  📧 Email Subject
-                                </label>
-                                <input
-                                  type="text"
-                                  value={rule.template.subject}
-                                  onChange={(e) => updateNotificationRule(index, {
-                                    template: { ...rule.template, subject: e.target.value }
-                                  })}
-                                  className="form-control"
-                                  placeholder="Email subject line"
-                                />
-                              </div>
-
-                              <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#495057' }}>
-                                  📝 Email Body Template
-                                </label>
-                                <textarea
-                                  value={rule.template.body}
-                                  onChange={(e) => updateNotificationRule(index, {
-                                    template: { ...rule.template, body: e.target.value }
-                                  })}
-                                  className="form-control"
-                                  rows={4}
-                                  placeholder="Email body template (use {{caseReference}}, {{hospital}}, {{date}} as placeholders)"
-                                />
-                              </div>
-
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                  <MultiSelectDropdown
-                                    id={`roles-${index}`}
-                                    label="👥 Notify User Roles"
-                                    options={availableRoles}
-                                    value={rule.recipients.roles}
-                                    onChange={(selectedRoles: string[]) => {
-                                      updateNotificationRule(index, {
-                                        recipients: { ...rule.recipients, roles: selectedRoles }
-                                      });
-                                    }}
-                                    placeholder="Select user roles to notify..."
-                                  />
-
-                                  <div style={{ marginTop: '1rem' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                                      <input
-                                        type="checkbox"
-                                        checked={rule.recipients.includeSubmitter}
-                                        onChange={(e) => updateNotificationRule(index, {
-                                          recipients: { ...rule.recipients, includeSubmitter: e.target.checked }
-                                        })}
-                                        style={{ transform: 'scale(1.1)' }}
-                                      />
-                                      <span style={{ fontWeight: '500', color: '#495057' }}>
-                                        📝 Include Case Submitter
-                                      </span>
-                                    </label>
-                                    <small style={{ color: '#6c757d', fontSize: '0.8rem', marginLeft: '1.5rem' }}>
-                                      Automatically notify the person who submitted the case
-                                    </small>
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem', color: '#495057' }}>
-                                    📮 Additional Email Addresses
-                                  </label>
-                                  <textarea
-                                    value={rule.recipients.specificEmails.join('\n')}
-                                    onChange={(e) => {
-                                      const emails = e.target.value.split('\n').filter(email => email.trim());
-                                      updateNotificationRule(index, {
-                                        recipients: { ...rule.recipients, specificEmails: emails }
-                                      });
-                                    }}
-                                    className="form-control"
-                                    rows={4}
-                                    placeholder="Enter email addresses (one per line)&#10;example@company.com&#10;manager@company.com"
-                                  />
-                                  <small style={{ color: '#6c757d', fontSize: '0.8rem' }}>One email address per line</small>
-                                </div>
-                              </div>
-
-                              <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
-                                <h5 style={{ color: '#495057', fontSize: '0.9rem', margin: '0 0 1rem 0', fontWeight: '600' }}>
-                                  🏥 Department-Based Filtering
-                                </h5>
-
-                                <div style={{ marginBottom: '1rem' }}>
-                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                                    <input
-                                      type="checkbox"
-                                      checked={rule.recipients.requireSameDepartment}
-                                      onChange={(e) => updateNotificationRule(index, {
-                                        recipients: { ...rule.recipients, requireSameDepartment: e.target.checked }
-                                      })}
-                                      style={{ transform: 'scale(1.1)' }}
-                                    />
-                                    <span style={{ fontWeight: '500', color: '#495057' }}>
-                                      🎯 Only notify users with access to case department
-                                    </span>
-                                  </label>
-                                  <small style={{ color: '#6c757d', fontSize: '0.8rem', marginLeft: '1.5rem' }}>
-                                    Users must have the same department as the case to receive notifications
-                                  </small>
-                                </div>
-
-                                <div>
-                                  <MultiSelectDropdown
-                                    id={`departments-${index}`}
-                                    label="🏥 Additional Department Filter (Optional)"
-                                    options={availableDepartments}
-                                    value={rule.recipients.departmentFilter}
-                                    onChange={(selectedDepartments: string[]) => {
-                                      updateNotificationRule(index, {
-                                        recipients: { ...rule.recipients, departmentFilter: selectedDepartments }
-                                      });
-                                    }}
-                                    placeholder="Select specific departments to include..."
-                                  />
-                                  <small style={{ color: '#6c757d', fontSize: '0.8rem' }}>
-                                    If specified, only users in these departments will be notified (in addition to department access requirement above)
-                                  </small>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-
-                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem', paddingTop: '1rem', borderTop: '2px solid #dee2e6' }}>
-                      <button
-                        onClick={saveNotificationMatrix}
-                        className="btn btn-primary btn-lg"
-                        style={{
-                          padding: '12px 24px',
-                          fontSize: '16px',
-                          fontWeight: '600',
-                          minWidth: '200px',
-                          whiteSpace: 'nowrap'
-                        }}
-                        title="Save notification matrix configuration"
-                        data-testid="save-email-config"
-                      >
-                        💾 Save Notification Rules
-                      </button>
-                    </div>
+                    <p>Email notification rules are configured and managed automatically.</p>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-
-
-          {/* Template Variables Reference Section */}
+          {/* Email Notification Rules Section */}
           <div className="config-section">
             <div
               className="section-header collapsible-header"
-              onClick={() => setIsTemplateVariablesCollapsed(!isTemplateVariablesCollapsed)}
+              onClick={() => setIsNotificationRulesCollapsed(!isNotificationRulesCollapsed)}
               style={{ cursor: 'pointer' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <h3>📝 Template Variables Reference</h3>
-                <div className="provider-status-badge-inline">
-                  <span className="status-icon">💡</span>
-                  <span style={{ fontSize: '0.85rem' }}>Email Template Helper</span>
-                </div>
+                <h3>📮 Email Notification Rules</h3>
+                {/* Rules Summary Badge */}
+                {emailMatrixConfigs[selectedCountry] && (
+                  <div className="provider-status-badge-inline">
+                    <span className="status-icon">📊</span>
+                    <span style={{ fontSize: '0.85rem' }}>
+                      {emailMatrixConfigs[selectedCountry].rules.filter(rule => rule.enabled).length} of {emailMatrixConfigs[selectedCountry].rules.length} Active
+                    </span>
+                  </div>
+                )}
               </div>
-              <span className={`chevron ${isTemplateVariablesCollapsed ? 'collapsed' : 'expanded'}`}>
-                {isTemplateVariablesCollapsed ? '▶' : '▼'}
+              <span className={`chevron ${isNotificationRulesCollapsed ? 'collapsed' : 'expanded'}`}>
+                {isNotificationRulesCollapsed ? '▶' : '▼'}
               </span>
             </div>
 
-            {!isTemplateVariablesCollapsed && (
+            {!isNotificationRulesCollapsed && (
               <div className="section-content">
-                <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f0f8ff', borderRadius: '8px', border: '1px solid #4fc3f7' }}>
-                  <h4 style={{ color: '#0277bd', margin: '0 0 0.5rem 0' }}>📋 Available Template Variables</h4>
+                <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#e3f2fd', borderRadius: '8px', border: '1px solid #2196f3' }}>
+                  <h4 style={{ color: '#1976d2', margin: '0 0 0.5rem 0' }}>📋 Configure Status-Based Email Notifications</h4>
                   <p style={{ margin: '0', color: '#37474f', fontSize: '0.9rem' }}>
-                    Use these variables in your email subject and body templates. They will be automatically replaced with actual case data when emails are sent.
+                    Set up automatic email notifications for each case status change. Configure who receives notifications and customize email templates.
                   </p>
-                </div>
-
-                <div className="template-variables-grid" style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                  gap: '1rem',
-                  marginBottom: '2rem'
-                }}>
-
-                  {/* Basic Case Information */}
-                  <div className="variable-category" style={{
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    background: '#fafafa'
-                  }}>
-                    <h5 style={{ color: '#1976d2', marginBottom: '1rem' }}>📋 Basic Case Information</h5>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#e3f2fd',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#1565c0'
-                      }}>
-                        {`{{caseReference}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Case Reference Number
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#e3f2fd',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#1565c0'
-                      }}>
-                        {`{{hospital}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Hospital Name
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#e3f2fd',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#1565c0'
-                      }}>
-                        {`{{department}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Department
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#e3f2fd',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#1565c0'
-                      }}>
-                        {`{{country}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Country
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#e3f2fd',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#1565c0'
-                      }}>
-                        {`{{status}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Current Status
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Surgery Details */}
-                  <div className="variable-category" style={{
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    background: '#fafafa'
-                  }}>
-                    <h5 style={{ color: '#1976d2', marginBottom: '1rem' }}>🏥 Surgery Details</h5>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#e8f5e8',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#2e7d32'
-                      }}>
-                        {`{{dateOfSurgery}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Surgery Date
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#e8f5e8',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#2e7d32'
-                      }}>
-                        {`{{timeOfProcedure}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Surgery Time
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#e8f5e8',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#2e7d32'
-                      }}>
-                        {`{{procedureType}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Procedure Type
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#e8f5e8',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#2e7d32'
-                      }}>
-                        {`{{procedureName}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Procedure Name
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#e8f5e8',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#2e7d32'
-                      }}>
-                        {`{{doctorName}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Doctor Name
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* User & Timestamps */}
-                  <div className="variable-category" style={{
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    background: '#fafafa'
-                  }}>
-                    <h5 style={{ color: '#1976d2', marginBottom: '1rem' }}>👤 User & Timestamps</h5>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#fff3e0',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#f57c00'
-                      }}>
-                        {`{{submittedBy}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Case Submitter
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#fff3e0',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#f57c00'
-                      }}>
-                        {`{{submittedAt}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Submission Date/Time
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#fff3e0',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#f57c00'
-                      }}>
-                        {`{{processedBy}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Last Processed By
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#fff3e0',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#f57c00'
-                      }}>
-                        {`{{processedAt}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Last Processed Date/Time
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#fff3e0',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#f57c00'
-                      }}>
-                        {`{{currentDateTime}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Current Date/Time
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Additional Information */}
-                  <div className="variable-category" style={{
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    background: '#fafafa'
-                  }}>
-                    <h5 style={{ color: '#1976d2', marginBottom: '1rem' }}>📝 Additional Information</h5>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#f3e5f5',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#7b1fa2'
-                      }}>
-                        {`{{specialInstruction}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Special Instructions
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#f3e5f5',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#7b1fa2'
-                      }}>
-                        {`{{surgerySetSelection}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Surgery Sets (List)
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#f3e5f5',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#7b1fa2'
-                      }}>
-                        {`{{implantBox}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Implant Boxes (List)
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#f3e5f5',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#7b1fa2'
-                      }}>
-                        {`{{doNumber}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Delivery Order Number
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#f3e5f5',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#7b1fa2'
-                      }}>
-                        {`{{orderSummary}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Order Summary
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#f3e5f5',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#7b1fa2'
-                      }}>
-                        {`{{deliveryDetails}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Delivery Details
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#f3e5f5',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#7b1fa2'
-                      }}>
-                        {`{{attachments}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Attached Files (List)
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#f3e5f5',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#7b1fa2'
-                      }}>
-                        {`{{amendedBy}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Case Amended By
-                      </span>
-                    </div>
-
-                    <div className="variable-item" style={{ marginBottom: '0.75rem' }}>
-                      <code className="variable-code" style={{
-                        background: '#f3e5f5',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        color: '#7b1fa2'
-                      }}>
-                        {`{{isAmended}}`}
-                      </code>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#424242' }}>
-                        Is Case Amended (Yes/No)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Usage Examples */}
-                <div style={{
-                  background: '#e8f5e8',
-                  border: '1px solid #4caf50',
-                  borderRadius: '8px',
-                  padding: '1.5rem',
-                  marginBottom: '1rem'
-                }}>
-                  <h5 style={{ color: '#2e7d32', marginBottom: '1rem' }}>💡 Usage Examples</h5>
-
-                  <div style={{ marginBottom: '1rem' }}>
-                    <strong style={{ color: '#1976d2' }}>Example Subject:</strong>
-                    <div style={{
-                      background: '#f5f5f5',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      marginTop: '4px',
-                      fontFamily: 'monospace',
-                      fontSize: '0.9rem'
-                    }}>
-                      Case Status Update: {"{{status}}"} - {"{{caseReference}}"} at {"{{hospital}}"}
-                    </div>
-                  </div>
-
-                  <div>
-                    <strong style={{ color: '#1976d2' }}>Example Body:</strong>
-                    <div style={{
-                      background: '#f5f5f5',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      marginTop: '4px',
-                      fontFamily: 'monospace',
-                      fontSize: '0.9rem',
-                      whiteSpace: 'pre-line'
-                    }}>
-{`Dear Team,
-
-Case {{caseReference}} has been updated to status: {{status}}
-
-Details:
-- Hospital: {{hospital}}
-- Department: {{department}}
-- Surgery Date: {{dateOfSurgery}}
-- Doctor: {{doctorName}}
-- Submitted by: {{submittedBy}}
-- Last updated: {{currentDateTime}}
-
-Best regards,
-Case Booking System`}
-                    </div>
-                  </div>
                 </div>
 
                 <div style={{
@@ -2788,7 +2055,7 @@ Case Booking System`}
                   fontSize: '0.85rem',
                   color: '#e65100'
                 }}>
-                  <strong>📌 Note:</strong> Variables that don't have values will be replaced with "(Not specified)" or blank in the actual email.
+                  <strong>📌 Note:</strong> Email notification rules can be configured through the admin interface.
                 </div>
               </div>
             )}
