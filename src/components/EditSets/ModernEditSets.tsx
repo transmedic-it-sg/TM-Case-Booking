@@ -370,7 +370,7 @@ const ModernEditSets: React.FC = () => {
       switch (activeTab) {
         case TABS.DOCTORS:
           if (!selectedDepartment) throw new Error('Please select a department first');
-          result = await supabase
+          const { data: doctorData, error: doctorError } = await supabase
             .from('doctors')
             .insert({
               name: newItemName.trim(),
@@ -381,6 +381,9 @@ const ModernEditSets: React.FC = () => {
             })
             .select()
             .single();
+          
+          if (doctorError) throw doctorError;
+          result = { data: doctorData, error: null };
           break;
 
         case TABS.PROCEDURES:
@@ -409,7 +412,7 @@ const ModernEditSets: React.FC = () => {
             }
           }
           
-          result = await supabase
+          const { data: procedureData, error: procedureError } = await supabase
             .from('doctor_procedures')
             .insert({
               procedure_type: newItemName.trim(),
@@ -420,6 +423,9 @@ const ModernEditSets: React.FC = () => {
             })
             .select()
             .single();
+          
+          if (procedureError) throw procedureError;
+          result = { data: procedureData, error: null };
           break;
 
         case TABS.SURGERY_IMPLANTS:
@@ -430,7 +436,7 @@ const ModernEditSets: React.FC = () => {
           const tableName = surgeryImplantMode === 'surgery' ? 'surgery_sets' : 'implant_boxes';
           const nameToUse = newItemName.trim();
           
-          result = await supabase
+          const { data: surgeryImplantData, error: surgeryImplantError } = await supabase
             .from(tableName)
             .insert({
               name: nameToUse,
@@ -442,7 +448,8 @@ const ModernEditSets: React.FC = () => {
             .select()
             .single();
 
-          if (result?.error) throw result.error;
+          if (surgeryImplantError) throw surgeryImplantError;
+          result = { data: surgeryImplantData, error: null };
 
           // CRITICAL FIX: Add to doctor_procedure_sets junction table so sets appear in New Case Booking
           const junctionData = {
@@ -476,7 +483,7 @@ const ModernEditSets: React.FC = () => {
           throw new Error('Unknown tab selected');
       }
 
-      if (result?.error) throw result.error;
+      // Result is now always in the format { data, error } so no need to check result?.error again
 
       showSuccess('Success', `${newItemName} has been added successfully`);
       playSound?.success();
@@ -774,7 +781,7 @@ const ModernEditSets: React.FC = () => {
       // (name, doctor_id, procedure_type, country) must be unique
       // Same name is allowed for different doctor/procedure combinations
 
-      const result = await supabase
+      const { data: surgeryImplantItemData, error: surgeryImplantItemError } = await supabase
         .from(tableName)
         .insert({
           name: nameToUse,
@@ -786,7 +793,7 @@ const ModernEditSets: React.FC = () => {
         .select()
         .single();
 
-      if (result?.error) throw result.error;
+      if (surgeryImplantItemError) throw surgeryImplantItemError;
 
       // CRITICAL FIX: Add to doctor_procedure_sets junction table so sets appear in New Case Booking
       const junctionData = {
@@ -794,8 +801,8 @@ const ModernEditSets: React.FC = () => {
         procedure_type: selectedProcedure.procedure_type,
         country: normalizedCountry,
         ...(surgeryImplantMode === 'surgery' 
-          ? { surgery_set_id: result.data.id, implant_box_id: null }
-          : { surgery_set_id: null, implant_box_id: result.data.id }
+          ? { surgery_set_id: surgeryImplantItemData.id, implant_box_id: null }
+          : { surgery_set_id: null, implant_box_id: surgeryImplantItemData.id }
         )
       };
 
@@ -815,9 +822,9 @@ const ModernEditSets: React.FC = () => {
 
       // Update the appropriate state
       if (surgeryImplantMode === 'surgery') {
-        setSurgerySets(prev => [...prev, result.data]);
+        setSurgerySets(prev => [...prev, surgeryImplantItemData]);
       } else {
-        setImplantBoxes(prev => [...prev, result.data]);
+        setImplantBoxes(prev => [...prev, surgeryImplantItemData]);
       }
 
     } catch (error) {
