@@ -36,7 +36,8 @@
       "Bash(jest:*)",
       "Bash(rg:*)",
       "Bash(DISABLE_ESLINT_PLUGIN=true PORT=3002 timeout 10 npm start)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [
       "mcp__supabase-old__*",
@@ -44,6 +45,9 @@
       "Bash(rm -rf:*)",
       "Bash(sudo:*)"
     ],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "/tmp"
+    ]
   }
 }
