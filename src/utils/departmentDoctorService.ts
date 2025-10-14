@@ -68,9 +68,18 @@ export const getDepartmentsForCountry = async (country: string): Promise<Departm
     const normalizedCountry = normalizeCountry(country);
     logger.info('Fetching departments for country', { country: normalizedCountry });
 
-    const { data, error } = await supabase.rpc('get_departments_for_country_enhanced', {
-      p_country: normalizedCountry
-    });
+    // CRITICAL FIX: Use direct table query since RPC function doesn't exist
+    const { data, error } = await supabase
+      .from('departments')
+      .select(`
+        id,
+        name,
+        description,
+        country
+      `)
+      .eq('country', normalizedCountry)
+      .eq('is_active', true)
+      .order('name');
 
     if (error) {
       logger.error('Supabase error fetching departments for country', {
@@ -104,8 +113,8 @@ export const getDepartmentsForCountry = async (country: string): Promise<Departm
         id: dept.id,
         name: dept.name,
         description: dept.description || '',
-        doctor_count: parseInt(dept.doctor_count) || 0,
-        country: normalizedCountry // CRITICAL: Include country in department object
+        doctor_count: 0, // Will be calculated separately if needed
+        country: dept.country || normalizedCountry // Use dept.country if available, fallback to normalized
       };
     }).filter(Boolean); // Remove any null entries
 
@@ -137,10 +146,22 @@ export const getDoctorsForDepartment = async (departmentName: string, country: s
     }
 
     const normalizedCountry = normalizeCountry(country);
-    const { data, error } = await supabase.rpc('get_doctors_for_department', {
-      p_department_name: departmentName.trim(),
-      p_country: normalizedCountry
-    });
+    // CRITICAL FIX: Use direct table query with join since RPC function doesn't exist
+    const { data, error } = await supabase
+      .from('doctors')
+      .select(`
+        id,
+        name,
+        specialties,
+        department_id,
+        country,
+        is_active,
+        departments!inner(name)
+      `)
+      .eq('country', normalizedCountry)
+      .eq('departments.name', departmentName.trim())
+      .eq('is_active', true)
+      .order('name');
 
     if (error) {
       logger.error('Error fetching doctors for department', {
@@ -184,10 +205,14 @@ export const getProceduresForDoctor = async (doctorId: string, country: string):
     }
 
     const normalizedCountry = normalizeCountry(country);
-    const { data, error } = await supabase.rpc('get_procedures_for_doctor', {
-      p_doctor_id: doctorId, // ⚠️ doctor_id (doctorId) FK
-      p_country: normalizedCountry
-    });
+    // CRITICAL FIX: Use direct table query since RPC function doesn't exist
+    const { data, error } = await supabase
+      .from('doctor_procedures')
+      .select('procedure_type')
+      .eq('doctor_id', doctorId)
+      .eq('country', normalizedCountry)
+      .eq('is_active', true)
+      .order('procedure_type');
 
     if (error) {
       logger.error('Error fetching procedures for doctor', {
@@ -319,30 +344,17 @@ export const getSetsForDoctorProcedure = async (
  * Add doctor to department
  */
 export const addDoctorToDepartment = async (
+  departmentId: string,
   doctorName: string,
-  departmentName: string,
   country: string,
   specialties: string[] = []
 ): Promise<{ success: boolean; doctorId?: string; error?: string }> => {
   try {
-    if (!doctorName || !departmentName || !country) {
+    if (!doctorName || !departmentId || !country) {
       return { success: false, error: 'Missing required parameters' };
     }
 
     const normalizedCountry = normalizeCountry(country);
-
-    // Get department ID
-    const { data: deptData, error: deptError } = await supabase
-      .from('departments')
-      .select('id')
-      .eq('name', departmentName)
-      .eq('country', normalizedCountry)
-      .eq('is_active', true)
-      .single();
-
-    if (deptError || !deptData) {
-      return { success: false, error: `Department not found: ${departmentName}` };
-    }
 
     // Check if doctor already exists
     const { data: existingDoctor } = await supabase
@@ -350,7 +362,7 @@ export const addDoctorToDepartment = async (
       .select('id')
       .eq('name', doctorName)
       .eq('country', normalizedCountry)
-      .eq('department_id', deptData.id)
+      .eq('department_id', departmentId)
       .single();
 
     if (existingDoctor) {
@@ -363,7 +375,7 @@ export const addDoctorToDepartment = async (
       .insert({
         name: doctorName,
         country: normalizedCountry,
-        department_id: deptData.id,
+        department_id: departmentId,
         specialties: specialties,
         is_active: true
       })
@@ -376,7 +388,7 @@ export const addDoctorToDepartment = async (
 
     logger.info('Doctor added to department successfully', {
       doctorName,
-      departmentName,
+      departmentId,
       country: normalizedCountry,
       doctorId: newDoctor.id
     });
@@ -386,7 +398,7 @@ export const addDoctorToDepartment = async (
   } catch (error) {
     logger.error('Exception in addDoctorToDepartment', {
       doctorName,
-      departmentName,
+      departmentId,
       country,
       error: error instanceof Error ? error.message : 'Unknown error'
     });

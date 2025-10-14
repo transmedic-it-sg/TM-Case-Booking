@@ -1451,11 +1451,14 @@ const ModernEditSets: React.FC = () => {
 
   // Render department selection (dropdown with fuzzy search)
   const renderDepartmentSelection = () => {
-    const departmentOptions = departments.map(dept => ({
-      id: dept.id,
-      name: dept.name,
-      description: dept.description || 'No description'
-    }));
+    // CRITICAL FIX: Add null safety for departments array
+    const departmentOptions = (departments || [])
+      .filter(dept => dept && dept.id && dept.name) // Filter out null/invalid departments
+      .map(dept => ({
+        id: dept.id,
+        name: dept.name,
+        description: dept.description || 'No description'
+      }));
 
     return (
       <div className="department-selection-dropdown">
@@ -1493,11 +1496,14 @@ const ModernEditSets: React.FC = () => {
 
   // Render doctor selection dropdown
   const renderDoctorDropdown = () => {
-    const doctorOptions = doctors.map(doctor => ({
-      id: doctor.id,
-      name: formatDoctorName(doctor.name),
-      description: ''
-    }));
+    // CRITICAL FIX: Add null safety for doctors array
+    const doctorOptions = (doctors || [])
+      .filter(doctor => doctor && doctor.id && doctor.name) // Filter out null/invalid doctors
+      .map(doctor => ({
+        id: doctor.id,
+        name: formatDoctorName(doctor.name),
+        description: ''
+      }));
 
     return (
       <div className="doctor-selection-dropdown">
@@ -1536,10 +1542,13 @@ const ModernEditSets: React.FC = () => {
   const renderProcedureDropdown = () => {
     // Filter procedures by selected doctor (if any), otherwise show all
     const filteredProcedures = selectedDoctor 
-      ? procedures.filter(proc => proc.doctor_id === selectedDoctor.id)
-      : procedures;
+      ? (procedures || []).filter(proc => proc && proc.doctor_id === selectedDoctor.id)
+      : (procedures || []);
       
-    const procedureOptions = filteredProcedures.map(procedure => ({
+    // CRITICAL FIX: Add null safety for procedures array
+    const procedureOptions = filteredProcedures
+      .filter(procedure => procedure && procedure.id && procedure.procedure_type) // Filter out null/invalid procedures
+      .map(procedure => ({
       id: procedure.id,
       name: procedure.procedure_type,
       description: procedures.find(p => p.doctor_id === procedure.doctor_id)?.doctor_id 

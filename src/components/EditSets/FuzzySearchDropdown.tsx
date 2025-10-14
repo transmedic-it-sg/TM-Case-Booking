@@ -27,6 +27,9 @@ interface FuzzySearchDropdownProps {
 
 // Optimized search function with early returns and better scoring
 const optimizedSearch = (query: string, text: string): number => {
+  // CRITICAL FIX: Add null safety for query and text
+  if (!query || !text) return -1;
+  
   const queryLower = query.toLowerCase();
   const textLower = text.toLowerCase();
 
@@ -99,9 +102,13 @@ const FuzzySearchDropdown: React.FC<FuzzySearchDropdownProps> = ({
 
   // Filter and sort options based on optimized search
   const filteredOptions = useMemo(() => {
+    // CRITICAL FIX: Add null safety for options array
+    if (!options || !Array.isArray(options)) return [];
+    
     if (!debouncedQuery.trim()) return options.slice(0, 100); // Limit initial results for performance
 
     const scored = options
+      .filter(option => option && option.name) // Filter out null/undefined options
       .map(option => ({
         option,
         score: optimizedSearch(debouncedQuery, option.name + ' ' + (option.description || ''))

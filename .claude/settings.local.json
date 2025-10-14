@@ -20,7 +20,9 @@
       "mcp__supabase-new__execute_sql",
       "WebFetch(domain:tm-case-booking-409ff3p5g-tmsg-its-projects.vercel.app)",
       "Bash(grep:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:localhost)"
     ],
     "deny": [
       "mcp__supabase-old__*",
