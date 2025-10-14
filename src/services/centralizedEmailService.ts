@@ -41,15 +41,33 @@ class CentralizedEmailService {
         .is('user_id', null) // System settings have null user_id
         .maybeSingle();
 
-      if (error || !data?.setting_value) {
-        logger.warn(`No admin email config found for country: ${country}`, error);
+      // Handle 400 errors gracefully - these occur when no config exists
+      if (error) {
+        if (error.code === 'PGRST116' || error.message?.includes('400')) {
+          // No matching rows found - this is expected when no config exists yet
+          console.log(`📧 ADMIN CONFIG DEBUG - No admin email config exists yet for country: ${country}`);
+          return null;
+        }
+        logger.warn(`Error querying admin email config for country: ${country}`, error);
+        return null;
+      }
+
+      if (!data?.setting_value) {
+        console.log(`📧 ADMIN CONFIG DEBUG - Empty admin email config for country: ${country}`);
         return null;
       }
 
       const config = data.setting_value as CentralizedEmailConfig;
+      console.log(`📧 ADMIN CONFIG DEBUG - Found admin email config for country: ${country}`, {
+        provider: config.adminCredentials?.provider,
+        hasFromEmail: !!config.adminCredentials?.fromEmail,
+        isActive: config.isActive
+      });
+      
       return config.adminCredentials;
     } catch (error) {
-      logger.error(`Error retrieving admin email config for ${country}:`, error);
+      // Don't log as error - this is expected during initial setup
+      console.log(`📧 ADMIN CONFIG DEBUG - Admin email config not available for ${country}:`, error);
       return null;
     }
   }

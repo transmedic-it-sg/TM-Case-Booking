@@ -261,14 +261,17 @@
 .custom-multi-select.with-quantity .quantity-control {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   background: white;
-  border-radius: 8px;
-  padding: 2px;
-  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 4px 6px;
+  border: 2px solid #007bff;
   opacity: 0;
   transform: scale(0.9);
   transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+  min-width: 120px;
+  justify-content: center;
 }
 
 .custom-multi-select.with-quantity .multi-select-option.selected .quantity-control {
@@ -278,12 +281,12 @@
 
 /* Quantity Buttons */
 .custom-multi-select.with-quantity .quantity-btn {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border: none;
   background: #007bff;
   color: white;
-  border-radius: 6px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -291,6 +294,7 @@
   font-size: 16px;
   font-weight: bold;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .custom-multi-select.with-quantity .quantity-btn:hover:not(:disabled) {
@@ -307,15 +311,16 @@
 
 /* Quantity Input */
 .custom-multi-select.with-quantity .quantity-input {
-  width: 50px;
-  padding: 4px;
+  width: 48px;
+  padding: 6px 4px;
   text-align: center;
-  border: none;
+  border: 1px solid #e0e0e0;
   background: #f8f9fa;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 0.9rem;
   font-weight: 600;
   color: #2c3e50;
+  flex-shrink: 0;
 }
 
 .custom-multi-select.with-quantity .quantity-input:focus {

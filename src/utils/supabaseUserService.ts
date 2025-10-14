@@ -162,6 +162,10 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
       throw error;
     }
 
+    if (!data) {
+      throw new Error('User was not created - no data returned from database');
+    }
+
     return {
       id: data.id,
       username: data.username,

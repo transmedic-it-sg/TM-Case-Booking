@@ -73,10 +73,13 @@ export const processEmailNotifications = async (
     });
     
     if (!adminCredentials) {
-      console.log('❌ EMAIL PROCESSOR DEBUG - No admin email configuration found:', {
+      console.log('⚠️ EMAIL PROCESSOR DEBUG - No admin email configuration found, skipping email notifications:', {
         country: caseData.country,
-        message: 'Admin email credentials required for centralized email system'
+        message: 'Admin email credentials required. Configure email authentication in settings.',
+        caseId: caseData.id,
+        status: newStatus
       });
+      // Don't throw error - just skip email notifications gracefully
       return;
     }
 
