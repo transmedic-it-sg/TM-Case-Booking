@@ -666,6 +666,18 @@ export const updateSupabaseCaseStatus = async (
   details?: string,
   attachments?: string[]
 ): Promise<void> => {
+  // CRITICAL FIX: Use optimized status update for performance-critical operations
+  const performanceCriticalStatuses = ['Sales Approval', 'Order Prepared', 'Hospital Delivery'];
+  
+  if (performanceCriticalStatuses.includes(newStatus)) {
+    const { updateCaseStatusOptimized } = await import('./optimizedStatusUpdateService');
+    return updateCaseStatusOptimized(caseId, newStatus, changedBy, {
+      details,
+      attachments
+    });
+  }
+  
+  // Fallback to original implementation for other statuses
   try {
     // Extract actual user from details if available
     let actualUser = changedBy;
