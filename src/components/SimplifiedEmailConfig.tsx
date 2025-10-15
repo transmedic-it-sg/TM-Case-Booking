@@ -654,19 +654,22 @@ Best regards,
           throw error;
         }
       } else {
-        // Insert new user record
+        // Insert new user record with ON CONFLICT handling to prevent 409 errors
         const { error } = await supabase
           .from('app_settings')
-          .insert({
+          .upsert({
             user_id: user?.id || null, // ⚠️ user_id (userId) FK - NOT userid
             setting_key: 'simplified_email_configs', // ⚠️ setting_key (settingKey) - NOT settingkey
             setting_value: configs,
             updated_at: new Date().toISOString(),
-            is_system_setting: false
+            is_system_setting: false,
+            created_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,setting_key' // Handle conflicts on composite primary key
           });
         
         if (error) {
-          console.error('Error inserting user app_settings:', error);
+          console.error('Error upserting user app_settings:', error);
           throw error;
         }
       }
@@ -1378,14 +1381,18 @@ Best regards,
           .eq('setting_key', 'email_matrix_configs_by_country')
           .eq('user_id', user?.id || null);
       } else {
+        // Use upsert to prevent 409 conflicts
         await supabase
           .from('app_settings')
-          .insert({
+          .upsert({
             user_id: user?.id || null,
             setting_key: 'email_matrix_configs_by_country',
             setting_value: emailMatrixConfigs,
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            is_system_setting: false
+          }, {
+            onConflict: 'user_id,setting_key' // Handle conflicts on composite primary key
           });
       }
       
@@ -2050,52 +2057,6 @@ Best regards,
             )}
           </div>
 
-          {/* Email Notification Rules Section */}
-          <div className="config-section">
-            <div
-              className="section-header collapsible-header"
-              onClick={() => setIsNotificationRulesCollapsed(!isNotificationRulesCollapsed)}
-              style={{ cursor: 'pointer' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <h3>📮 Email Notification Rules</h3>
-                {/* Rules Summary Badge */}
-                {emailMatrixConfigs[selectedCountry] && (
-                  <div className="provider-status-badge-inline">
-                    <span className="status-icon">📊</span>
-                    <span style={{ fontSize: '0.85rem' }}>
-                      {emailMatrixConfigs[selectedCountry].rules.filter(rule => rule.enabled).length} of {emailMatrixConfigs[selectedCountry].rules.length} Active
-                    </span>
-                  </div>
-                )}
-              </div>
-              <span className={`chevron ${isNotificationRulesCollapsed ? 'collapsed' : 'expanded'}`}>
-                {isNotificationRulesCollapsed ? '▶' : '▼'}
-              </span>
-            </div>
-
-            {!isNotificationRulesCollapsed && (
-              <div className="section-content">
-                <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#e3f2fd', borderRadius: '8px', border: '1px solid #2196f3' }}>
-                  <h4 style={{ color: '#1976d2', margin: '0 0 0.5rem 0' }}>📋 Configure Status-Based Email Notifications</h4>
-                  <p style={{ margin: '0', color: '#37474f', fontSize: '0.9rem' }}>
-                    Set up automatic email notifications for each case status change. Configure who receives notifications and customize email templates.
-                  </p>
-                </div>
-
-                <div style={{
-                  background: '#fff3e0',
-                  border: '1px solid #ff9800',
-                  borderRadius: '6px',
-                  padding: '0.75rem',
-                  fontSize: '0.85rem',
-                  color: '#e65100'
-                }}>
-                  <strong>📌 Note:</strong> Email notification rules can be configured through the admin interface.
-                </div>
-              </div>
-            )}
-          </div>
         </>
       )}
     </div>
