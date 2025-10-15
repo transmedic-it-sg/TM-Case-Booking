@@ -1469,7 +1469,7 @@ This comprehensive project guide provides complete technical documentation of th
 ### Quick Health Check
 ```bash
 # Verify application health
-curl -f https://tm-case-booking.vercel.app
+curl -f https://tmcasebooking.vercel.app
 # Check database connectivity  
 npm run typecheck && npm run build
 ```

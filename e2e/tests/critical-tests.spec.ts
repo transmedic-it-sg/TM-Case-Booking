@@ -4,7 +4,7 @@ test.describe('Critical Issues Verification', () => {
   
   test.beforeEach(async ({ page }) => {
     // Navigate to the production app
-    await page.goto('https://tm-case-booking.vercel.app');
+    await page.goto('https://tmcasebooking.vercel.app');
     
     // Wait for the app to load
     await page.waitForSelector('body');

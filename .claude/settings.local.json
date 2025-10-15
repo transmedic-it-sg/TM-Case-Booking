@@ -49,7 +49,9 @@
       "Bash(git remote set-url:*)",
       "Bash(git fetch:*)",
       "Bash(cat:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "mcp__supabase-new__get_project_url",
+      "mcp__supabase-new__get_anon_key"
     ],
     "deny": [
       "mcp__supabase-old__*",

@@ -1,109 +1,28 @@
-<testsuites id="" name="" tests="1" failures="1" skipped="0" errors="0" time="42.148108">
-<testsuite name="comprehensive-migration-test.spec.ts" timestamp="2025-10-15T06:57:06.553Z" hostname="chromium" tests="1" failures="1" skipped="0" time="29.079" errors="0">
-<testcase name="🌏 Complete Application Migration Testing - All 7 Countries › 🔐 Database Migration - Authentication System Verification" classname="comprehensive-migration-test.spec.ts" time="29.079">
-<failure message="comprehensive-migration-test.spec.ts:33:7 🔐 Database Migration - Authentication System Verification" type="FAILURE">
-<![CDATA[  [chromium] › comprehensive-migration-test.spec.ts:33:7 › 🌏 Complete Application Migration Testing - All 7 Countries › 🔐 Database Migration - Authentication System Verification 
-
-    TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9972.335999999998ms exceeded.
-    Call log:
-      - attempting scroll into view action
-        2 × waiting for element to be stable
-          - element is not visible
-        - retrying scroll into view action
-        - waiting 20ms
-        2 × waiting for element to be stable
-          - element is not visible
-        - retrying scroll into view action
-          - waiting 100ms
-        19 × waiting for element to be stable
-           - element is not visible
-         - retrying scroll into view action
-           - waiting 500ms
-
-
-      41 |     if (await usernameField.count() > 0) {
-      42 |       // Try to scroll to the element
-    > 43 |       await usernameField.scrollIntoViewIfNeeded();
-         |                           ^
-      44 |       await page.waitForTimeout(1000);
-      45 |     }
-      46 |     
-        at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts:43:27
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium/test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium/video.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    Error Context: ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium/error-context.md
-
-    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
-
-    TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9984.518000000004ms exceeded.
-    Call log:
-      - attempting scroll into view action
-        2 × waiting for element to be stable
-          - element is not visible
-        - retrying scroll into view action
-        - waiting 20ms
-        2 × waiting for element to be stable
-          - element is not visible
-        - retrying scroll into view action
-          - waiting 100ms
-        19 × waiting for element to be stable
-           - element is not visible
-         - retrying scroll into view action
-           - waiting 500ms
-
-
-      41 |     if (await usernameField.count() > 0) {
-      42 |       // Try to scroll to the element
-    > 43 |       await usernameField.scrollIntoViewIfNeeded();
-         |                           ^
-      44 |       await page.waitForTimeout(1000);
-      45 |     }
-      46 |     
-        at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts:43:27
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/video.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    Error Context: ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/error-context.md
-
-    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
-    ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/trace.zip
-    Usage:
-
-        npx playwright show-trace ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/trace.zip
-
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-]]>
-</failure>
+<testsuites id="" name="" tests="5" failures="0" skipped="0" errors="0" time="8.433119999999999">
+<testsuite name="critical-tests.spec.ts" timestamp="2025-10-15T07:15:04.508Z" hostname="chromium" tests="5" failures="0" skipped="0" time="1.792" errors="0">
+<testcase name="Critical Issues Verification › Check quantity badges visibility" classname="critical-tests.spec.ts" time="0.483">
 <system-out>
-<![CDATA[Testing authentication with migrated user data...
-
-[[ATTACHMENT|comprehensive-migration-te-fec1c-ication-System-Verification-chromium/test-failed-1.png]]
-
-[[ATTACHMENT|comprehensive-migration-te-fec1c-ication-System-Verification-chromium/video.webm]]
-
-[[ATTACHMENT|comprehensive-migration-te-fec1c-ication-System-Verification-chromium/error-context.md]]
-Testing authentication with migrated user data...
-
-[[ATTACHMENT|comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/test-failed-1.png]]
-
-[[ATTACHMENT|comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/video.webm]]
-
-[[ATTACHMENT|comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/error-context.md]]
-
-[[ATTACHMENT|comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/trace.zip]]
+<![CDATA[Login required - skipping visual test
+]]>
+</system-out>
+</testcase>
+<testcase name="Critical Issues Verification › Check attachment rendering" classname="critical-tests.spec.ts" time="0.341">
+<system-out>
+<![CDATA[Login required - skipping attachment test
+]]>
+</system-out>
+</testcase>
+<testcase name="Critical Issues Verification › Check case cards layout" classname="critical-tests.spec.ts" time="0.312">
+<system-out>
+<![CDATA[Login required - skipping case cards test
+]]>
+</system-out>
+</testcase>
+<testcase name="Critical Issues Verification › Check page responsiveness" classname="critical-tests.spec.ts" time="0.361">
+</testcase>
+<testcase name="Critical Issues Verification › Check email notification functionality mock" classname="critical-tests.spec.ts" time="0.295">
+<system-out>
+<![CDATA[Login required - skipping email notification test
 ]]>
 </system-out>
 </testcase>

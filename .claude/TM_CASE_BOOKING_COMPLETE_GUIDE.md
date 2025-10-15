@@ -175,7 +175,7 @@ src/
 ## 🚀 Production Deployment Configuration
 
 ### **Vercel Deployment**
-- **Primary URL**: `tm-case-booking.vercel.app`
+- **Primary URL**: `tmcasebooking.vercel.app`
 - **Branch Deployment**: Automatic preview deployments
 - **Environment Variables**: Production secrets managed via Vercel
 - **Build Optimization**: React production build with optimizations

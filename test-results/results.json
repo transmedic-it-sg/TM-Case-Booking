@@ -69,21 +69,21 @@
   },
   "suites": [
     {
-      "title": "comprehensive-migration-test.spec.ts",
-      "file": "comprehensive-migration-test.spec.ts",
+      "title": "critical-tests.spec.ts",
+      "file": "critical-tests.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "🌏 Complete Application Migration Testing - All 7 Countries",
-          "file": "comprehensive-migration-test.spec.ts",
-          "line": 26,
+          "title": "Critical Issues Verification",
+          "file": "critical-tests.spec.ts",
+          "line": 3,
           "column": 6,
           "specs": [
             {
-              "title": "🔐 Database Migration - Authentication System Verification",
-              "ok": false,
+              "title": "Check quantity badges visibility",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -96,129 +96,175 @@
                     {
                       "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 14373,
-                      "error": {
-                        "message": "TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9972.335999999998ms exceeded.\nCall log:\n\u001b[2m  - attempting scroll into view action\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    19 × waiting for element to be stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying scroll into view action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n",
-                        "stack": "TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9972.335999999998ms exceeded.\nCall log:\n\u001b[2m  - attempting scroll into view action\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    19 × waiting for element to be stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying scroll into view action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts:43:27",
-                        "location": {
-                          "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts",
-                          "column": 27,
-                          "line": 43
-                        },
-                        "snippet": "  41 |     if (await usernameField.count() > 0) {\n  42 |       // Try to scroll to the element\n> 43 |       await usernameField.scrollIntoViewIfNeeded();\n     |                           ^\n  44 |       await page.waitForTimeout(1000);\n  45 |     }\n  46 |     "
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts",
-                            "column": 27,
-                            "line": 43
-                          },
-                          "message": "TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9972.335999999998ms exceeded.\nCall log:\n\u001b[2m  - attempting scroll into view action\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    19 × waiting for element to be stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying scroll into view action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n\n  41 |     if (await usernameField.count() > 0) {\n  42 |       // Try to scroll to the element\n> 43 |       await usernameField.scrollIntoViewIfNeeded();\n     |                           ^\n  44 |       await page.waitForTimeout(1000);\n  45 |     }\n  46 |     \n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts:43:27"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 483,
+                      "errors": [],
                       "stdout": [
                         {
-                          "text": "Testing authentication with migrated user data...\n"
+                          "text": "Login required - skipping visual test\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-15T06:57:12.399Z",
+                      "startTime": "2025-10-15T07:15:10.825Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium/video.webm"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium/error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts",
-                        "column": 27,
-                        "line": 43
-                      }
-                    },
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "195d1d75331af2b541b4-48d1b36f2a7eb2a01daa",
+              "file": "critical-tests.spec.ts",
+              "line": 13,
+              "column": 7
+            },
+            {
+              "title": "Check attachment rendering",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
                     {
-                      "workerIndex": 1,
+                      "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 14706,
-                      "error": {
-                        "message": "TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9984.518000000004ms exceeded.\nCall log:\n\u001b[2m  - attempting scroll into view action\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    19 × waiting for element to be stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying scroll into view action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n",
-                        "stack": "TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9984.518000000004ms exceeded.\nCall log:\n\u001b[2m  - attempting scroll into view action\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    19 × waiting for element to be stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying scroll into view action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts:43:27",
-                        "location": {
-                          "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts",
-                          "column": 27,
-                          "line": 43
-                        },
-                        "snippet": "  41 |     if (await usernameField.count() > 0) {\n  42 |       // Try to scroll to the element\n> 43 |       await usernameField.scrollIntoViewIfNeeded();\n     |                           ^\n  44 |       await page.waitForTimeout(1000);\n  45 |     }\n  46 |     "
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts",
-                            "column": 27,
-                            "line": 43
-                          },
-                          "message": "TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9984.518000000004ms exceeded.\nCall log:\n\u001b[2m  - attempting scroll into view action\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    19 × waiting for element to be stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying scroll into view action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n\n  41 |     if (await usernameField.count() > 0) {\n  42 |       // Try to scroll to the element\n> 43 |       await usernameField.scrollIntoViewIfNeeded();\n     |                           ^\n  44 |       await page.waitForTimeout(1000);\n  45 |     }\n  46 |     \n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts:43:27"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 341,
+                      "errors": [],
                       "stdout": [
                         {
-                          "text": "Testing authentication with migrated user data...\n"
+                          "text": "Login required - skipping attachment test\n"
                         }
                       ],
                       "stderr": [],
-                      "retry": 1,
-                      "startTime": "2025-10-15T06:57:33.345Z",
+                      "retry": 0,
+                      "startTime": "2025-10-15T07:15:11.442Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/test-failed-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/video.webm"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/error-context.md"
-                        },
-                        {
-                          "name": "trace",
-                          "contentType": "application/zip",
-                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/trace.zip"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts",
-                        "column": 27,
-                        "line": 43
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "743695d598504818789d-7893b661cf5d4ec352de",
-              "file": "comprehensive-migration-test.spec.ts",
-              "line": 33,
+              "id": "195d1d75331af2b541b4-41237db90b04cc241860",
+              "file": "critical-tests.spec.ts",
+              "line": 53,
+              "column": 7
+            },
+            {
+              "title": "Check case cards layout",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 312,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Login required - skipping case cards test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T07:15:11.800Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "195d1d75331af2b541b4-cbd0ddcbcacbde621ca8",
+              "file": "critical-tests.spec.ts",
+              "line": 77,
+              "column": 7
+            },
+            {
+              "title": "Check page responsiveness",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 361,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T07:15:12.126Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "195d1d75331af2b541b4-b191c8f2d3332725293b",
+              "file": "critical-tests.spec.ts",
+              "line": 112,
+              "column": 7
+            },
+            {
+              "title": "Check email notification functionality mock",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 295,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Login required - skipping email notification test\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-15T07:15:12.501Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "195d1d75331af2b541b4-6937ff1e7cd7836d2449",
+              "file": "critical-tests.spec.ts",
+              "line": 135,
               "column": 7
             }
           ]
@@ -228,11 +274,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-10-15T06:57:06.312Z",
-    "duration": 42148.108,
-    "expected": 0,
+    "startTime": "2025-10-15T07:15:04.463Z",
+    "duration": 8433.119999999999,
+    "expected": 5,
     "skipped": 0,
-    "unexpected": 1,
+    "unexpected": 0,
     "flaky": 0
   }
 }
