@@ -2050,7 +2050,58 @@ Best regards,
                 {/* Email Notification Matrix */}
                 {emailMatrixConfigs[selectedCountry] && (
                   <div className="notification-matrix">
-                    <p>Email notification rules are configured and managed automatically.</p>
+                    <div style={{ display: 'grid', gap: '1rem' }}>
+                      {emailMatrixConfigs[selectedCountry].rules.map((rule) => (
+                        <div
+                          key={rule.status}
+                          style={{
+                            padding: '1rem',
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '8px',
+                            backgroundColor: rule.enabled ? '#f8f9fa' : '#fff3cd'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                            <h5 style={{ margin: 0, color: rule.enabled ? '#28a745' : '#856404' }}>
+                              {rule.status} {rule.enabled ? '✅' : '⚠️'}
+                            </h5>
+                            <span style={{ 
+                              fontSize: '0.8rem', 
+                              color: rule.enabled ? '#28a745' : '#856404',
+                              fontWeight: '600'
+                            }}>
+                              {rule.enabled ? 'ACTIVE' : 'INACTIVE'}
+                            </span>
+                          </div>
+                          
+                          {rule.enabled && rule.recipients && (
+                            <div style={{ fontSize: '0.85rem', color: '#6c757d' }}>
+                              <div><strong>Recipients:</strong></div>
+                              <div style={{ marginLeft: '1rem', marginTop: '0.25rem' }}>
+                                {(rule.recipients as any)?.roles && (rule.recipients as any).roles.length > 0 && (
+                                  <div>• Roles: {(rule.recipients as any).roles.join(', ')}</div>
+                                )}
+                                {(rule.recipients as any)?.members && (rule.recipients as any).members.length > 0 && (
+                                  <div>• Members: {(rule.recipients as any).members.join(', ')}</div>
+                                )}
+                                {(rule.recipients as any)?.specificEmails && (rule.recipients as any).specificEmails.length > 0 && (
+                                  <div>• Emails: {(rule.recipients as any).specificEmails.join(', ')}</div>
+                                )}
+                                {(rule.recipients as any)?.departments && (rule.recipients as any).departments.length > 0 && (
+                                  <div>• Departments: {(rule.recipients as any).departments.join(', ')}</div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {!rule.enabled && (
+                            <div style={{ fontSize: '0.85rem', color: '#856404', fontStyle: 'italic' }}>
+                              This status notification is disabled
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

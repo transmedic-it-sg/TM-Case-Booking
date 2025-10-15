@@ -822,142 +822,52 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
             ) : (
               <div className="procedure-sets-form">
                 <div className="form-row two-columns">
-                  {/* Surgery Sets Multi-Select Dropdown with Quantities */}
+                  {/* Surgery Sets with Quantities */}
                   {availableProcedureSets.filter(set => set.item_type === 'surgery_set').length > 0 && (
                     <div className="form-group">
-                      <MultiSelectDropdown
-                        id="surgerySetSelection"
+                      <MultiSelectDropdownWithQuantity
+                        id="case-booking-surgery-sets"
                         label="Surgery Sets"
                         options={availableProcedureSets
                           .filter(set => set.item_type === 'surgery_set')
                           .map(set => set.item_name)
                         }
                         value={formData.surgerySetSelection}
-                        onChange={(selectedSets: string[]) => {
+                        quantities={formData.quantities}
+                        onChange={(values) => setFormData(prev => ({ ...prev, surgerySetSelection: values }))}
+                        onQuantityChange={(item: string, quantity: number) => {
                           setFormData(prev => ({
                             ...prev,
-                            surgerySetSelection: selectedSets
+                            quantities: { ...prev.quantities, [item]: quantity }
                           }));
                         }}
-                        placeholder="Select surgery sets..."
+                        placeholder="Select Surgery Sets..."
                         required
                       />
-                      
-                      {/* Quantities for Selected Surgery Sets */}
-                      {formData.surgerySetSelection.length > 0 && (
-                        <div className="quantities-section" style={{ marginTop: '1rem' }}>
-                          <label style={{ fontSize: '0.9rem', fontWeight: '600', color: '#555', marginBottom: '0.5rem', display: 'block' }}>
-                            Set Quantities:
-                          </label>
-                          <div className="quantities-grid" style={{ display: 'grid', gap: '0.75rem' }}>
-                            {formData.surgerySetSelection.map(setName => (
-                              <div key={setName} className="quantity-item" style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'space-between',
-                                padding: '0.5rem',
-                                backgroundColor: '#f8f9fa',
-                                borderRadius: '4px',
-                                border: '1px solid #dee2e6'
-                              }}>
-                                <span style={{ fontSize: '0.85rem', color: '#495057' }}>{setName}</span>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max="999"
-                                  value={formData.quantities[setName] || 1}
-                                  onChange={(e) => {
-                                    const quantity = parseInt(e.target.value) || 1;
-                                    setFormData(prev => ({
-                                      ...prev,
-                                      quantities: {
-                                        ...prev.quantities,
-                                        [setName]: quantity
-                                      }
-                                    }));
-                                  }}
-                                  style={{
-                                    width: '60px',
-                                    padding: '0.25rem 0.5rem',
-                                    border: '1px solid #ced4da',
-                                    borderRadius: '4px',
-                                    textAlign: 'center'
-                                  }}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
 
-                  {/* Implant Boxes Multi-Select Dropdown with Quantities */}
+                  {/* Implant Boxes with Quantities */}
                   {availableProcedureSets.filter(set => set.item_type === 'implant_box').length > 0 && (
                     <div className="form-group">
-                      <MultiSelectDropdown
-                        id="implantBoxSelection"
+                      <MultiSelectDropdownWithQuantity
+                        id="case-booking-implant-boxes"
                         label="Implant Boxes"
                         options={availableProcedureSets
                           .filter(set => set.item_type === 'implant_box')
                           .map(set => set.item_name)
                         }
                         value={formData.implantBox}
-                        onChange={(selectedBoxes: string[]) => {
+                        quantities={formData.quantities}
+                        onChange={(values) => setFormData(prev => ({ ...prev, implantBox: values }))}
+                        onQuantityChange={(item: string, quantity: number) => {
                           setFormData(prev => ({
                             ...prev,
-                            implantBox: selectedBoxes
+                            quantities: { ...prev.quantities, [item]: quantity }
                           }));
                         }}
-                        placeholder="Select implant boxes..."
+                        placeholder="Select Implant Boxes..."
                       />
-                      
-                      {/* Quantities for Selected Implant Boxes */}
-                      {formData.implantBox.length > 0 && (
-                        <div className="quantities-section" style={{ marginTop: '1rem' }}>
-                          <label style={{ fontSize: '0.9rem', fontWeight: '600', color: '#555', marginBottom: '0.5rem', display: 'block' }}>
-                            Box Quantities:
-                          </label>
-                          <div className="quantities-grid" style={{ display: 'grid', gap: '0.75rem' }}>
-                            {formData.implantBox.map(boxName => (
-                              <div key={boxName} className="quantity-item" style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'space-between',
-                                padding: '0.5rem',
-                                backgroundColor: '#f8f9fa',
-                                borderRadius: '4px',
-                                border: '1px solid #dee2e6'
-                              }}>
-                                <span style={{ fontSize: '0.85rem', color: '#495057' }}>{boxName}</span>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max="999"
-                                  value={formData.quantities[boxName] || 1}
-                                  onChange={(e) => {
-                                    const quantity = parseInt(e.target.value) || 1;
-                                    setFormData(prev => ({
-                                      ...prev,
-                                      quantities: {
-                                        ...prev.quantities,
-                                        [boxName]: quantity
-                                      }
-                                    }));
-                                  }}
-                                  style={{
-                                    width: '60px',
-                                    padding: '0.25rem 0.5rem',
-                                    border: '1px solid #ced4da',
-                                    borderRadius: '4px',
-                                    textAlign: 'center'
-                                  }}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
