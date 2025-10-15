@@ -20,7 +20,6 @@ import { useRealtimeMasterDataQuery } from '../services/realtimeQueryService';
 import TimePicker from './common/TimePicker';
 import SearchableDropdown from './SearchableDropdown';
 import MultiSelectDropdown from './MultiSelectDropdown';
-import MultiSelectDropdownWithQuantity from './MultiSelectDropdownWithQuantity';
 import CustomModal from './CustomModal';
 import { useModal } from '../hooks/useModal';
 import FilterDatePicker from './FilterDatePicker';
@@ -822,53 +821,107 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
             ) : (
               <div className="procedure-sets-form">
                 <div className="form-row two-columns">
-                  {/* Surgery Sets with Quantities */}
+                  {/* Surgery Sets */}
                   {availableProcedureSets.filter(set => set.item_type === 'surgery_set').length > 0 && (
-                    <div className="form-group">
-                      <MultiSelectDropdownWithQuantity
-                        id="case-booking-surgery-sets"
-                        label="Surgery Sets"
-                        options={availableProcedureSets
-                          .filter(set => set.item_type === 'surgery_set')
-                          .map(set => set.item_name)
-                        }
-                        value={formData.surgerySetSelection}
-                        quantities={formData.quantities}
-                        onChange={(values) => setFormData(prev => ({ ...prev, surgerySetSelection: values }))}
-                        onQuantityChange={(item: string, quantity: number) => {
-                          setFormData(prev => ({
-                            ...prev,
-                            quantities: { ...prev.quantities, [item]: quantity }
-                          }));
-                        }}
-                        placeholder="Select Surgery Sets..."
-                        required
-                      />
-                    </div>
+                    <>
+                      <div className="form-group">
+                        <MultiSelectDropdown
+                          id="case-booking-surgery-sets"
+                          label="Surgery Sets"
+                          options={availableProcedureSets
+                            .filter(set => set.item_type === 'surgery_set')
+                            .map(set => set.item_name)
+                          }
+                          value={formData.surgerySetSelection}
+                          onChange={(values) => setFormData(prev => ({ ...prev, surgerySetSelection: values }))}
+                          placeholder="Select Surgery Sets..."
+                          required
+                        />
+                      </div>
+                      
+                      {/* Surgery Sets Quantities */}
+                      {formData.surgerySetSelection.length > 0 && (
+                        <div className="form-group" style={{ marginTop: '-0.5rem', paddingLeft: '1rem' }}>
+                          <label style={{ fontSize: '0.9rem', color: '#6c757d' }}>Quantities:</label>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                            {formData.surgerySetSelection.map(set => (
+                              <div key={set} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '0.85rem' }}>{set}:</span>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={formData.quantities[set] || 1}
+                                  onChange={(e) => {
+                                    const quantity = Math.max(1, parseInt(e.target.value) || 1);
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      quantities: { ...prev.quantities, [set]: quantity }
+                                    }));
+                                  }}
+                                  style={{
+                                    width: '60px',
+                                    padding: '0.25rem',
+                                    borderRadius: '4px',
+                                    border: '1px solid #ced4da'
+                                  }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
 
-                  {/* Implant Boxes with Quantities */}
+                  {/* Implant Boxes */}
                   {availableProcedureSets.filter(set => set.item_type === 'implant_box').length > 0 && (
-                    <div className="form-group">
-                      <MultiSelectDropdownWithQuantity
-                        id="case-booking-implant-boxes"
-                        label="Implant Boxes"
-                        options={availableProcedureSets
-                          .filter(set => set.item_type === 'implant_box')
-                          .map(set => set.item_name)
-                        }
-                        value={formData.implantBox}
-                        quantities={formData.quantities}
-                        onChange={(values) => setFormData(prev => ({ ...prev, implantBox: values }))}
-                        onQuantityChange={(item: string, quantity: number) => {
-                          setFormData(prev => ({
-                            ...prev,
-                            quantities: { ...prev.quantities, [item]: quantity }
-                          }));
-                        }}
-                        placeholder="Select Implant Boxes..."
-                      />
-                    </div>
+                    <>
+                      <div className="form-group">
+                        <MultiSelectDropdown
+                          id="case-booking-implant-boxes"
+                          label="Implant Boxes"
+                          options={availableProcedureSets
+                            .filter(set => set.item_type === 'implant_box')
+                            .map(set => set.item_name)
+                          }
+                          value={formData.implantBox}
+                          onChange={(values) => setFormData(prev => ({ ...prev, implantBox: values }))}
+                          placeholder="Select Implant Boxes..."
+                        />
+                      </div>
+                      
+                      {/* Implant Boxes Quantities */}
+                      {formData.implantBox.length > 0 && (
+                        <div className="form-group" style={{ marginTop: '-0.5rem', paddingLeft: '1rem' }}>
+                          <label style={{ fontSize: '0.9rem', color: '#6c757d' }}>Quantities:</label>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                            {formData.implantBox.map(box => (
+                              <div key={box} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '0.85rem' }}>{box}:</span>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={formData.quantities[box] || 1}
+                                  onChange={(e) => {
+                                    const quantity = Math.max(1, parseInt(e.target.value) || 1);
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      quantities: { ...prev.quantities, [box]: quantity }
+                                    }));
+                                  }}
+                                  style={{
+                                    width: '60px',
+                                    padding: '0.25rem',
+                                    borderRadius: '4px',
+                                    border: '1px solid #ced4da'
+                                  }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 

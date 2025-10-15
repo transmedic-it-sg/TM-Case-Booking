@@ -1767,76 +1767,6 @@ Best regards,
                   </div>
                 )}
 
-                {/* Google Authentication */}
-                <div className="provider-card">
-                  <div className="provider-header">
-                    <div className="provider-info">
-                      <img
-                        src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwSDEyVjE0LjI2SDE3LjkyQzE3LjY2IDE1LjYzIDE2Ljg3IDE2Ljc4IDE1LjY2IDE3LjQ4VjIwLjI2SDE5LjI3QzIxLjMgMTguNDMgMjIuNTYgMTUuNiAyMi41NiAxMi4yNVoiIGZpbGw9IiM0Mjg1RjQiLz4KPHBhdGggZD0iTTEyIDIzQzE1LjI0IDIzIDE3LjQ1IDIxLjkyIDE5LjI3IDE5Ljk4TDE1LjY2IDE3LjJDMTQuNTQgMTcuNzUgMTMuMzIgMTguMDggMTIgMTguMDhDOC44NyAxOC4wOCA2LjM1IDE2LjUgNS40MiAxNC4ySDEuNzJWMTYuOTdDMy41OCAyMC43OSA3LjU0IDIzIDEyIDIzWiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNNS40MiAxMi45MkM1LjIgMTIuMzcgNS4wOCAxMS43OCA1LjA4IDExLjE3QzUuMDggMTAuNTYgNS4yIDkuOTcgNS40MiA5LjQyVjYuNjVIMS43MkMxLjEgOC4xNyAwLjc0IDkuODMgMC43NCAxMS4xN0MwLjc0IDEyLjUxIDEuMSAxNC4xNyAxLjcyIDE1LjY5TDQuNzMgMTMuNDJMNS40MiAxMi45MloiIGZpbGw9IiNGQkJDMDQiLz4KPHBhdGggZD0iTTEyIDQuOTJDMTMuNTcgNC45MiAxNC45NiA1LjUxIDE2LjAzIDYuNTJMMTkuMjUgMy4zQzE3LjQ1IDEuNjQgMTUuMjQgMC41IDEyIDAuNUM3LjU0IDAuNSAzLjU4IDIuNzEgMS43MiA2LjUzTDUuNDIgOS4zQzYuMzUgNyAxMS44NyA0LjkyIDEyIDQuOTJaIiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo="
-                        alt="Google"
-                        className="provider-icon"
-                      />
-                      <div>
-                        <h4>Google Gmail</h4>
-                        <p>Send emails through Gmail API</p>
-                      </div>
-                    </div>
-
-                    {currentConfig?.providers.google.isAuthenticated ? (
-                      <div className="auth-status authenticated">
-                        <span className="status-icon">✅</span>
-                        <div className="auth-info">
-                          <div>Authenticated as:</div>
-                          <strong>{currentConfig?.providers?.google?.userInfo?.email}</strong>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="auth-status not-authenticated">
-                        <span className="status-icon">❌</span>
-                        <div>Not authenticated</div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="provider-actions">
-                    {currentConfig?.providers.google.isAuthenticated ? (
-                      <>
-                        <div className="form-group">
-                          <label title="This name will appear as the sender name in emails">From Name (Display Name in Emails):</label>
-                          <input
-                            type="text"
-                            value={currentConfig?.providers?.google?.fromName || 'Case Booking System'}
-                            onChange={(e) => handleFromNameChange(e.target.value)}
-                            className="form-control"
-                            placeholder="Case Booking System"
-                          />
-                        </div>
-                        <button
-                          onClick={() => handleDisconnect()}
-                          className="btn btn-outline-danger btn-sm"
-                        >
-                          Disconnect
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        {!isGoogleConfigured && (
-                          <div className="alert alert-warning">
-                            <strong>⚠️ Setup Required:</strong> Google OAuth client ID not configured.
-                            Please see <code>MICROSOFT_OAUTH_SETUP.md</code> for setup instructions.
-                          </div>
-                        )}
-                        <button
-                          onClick={() => handleAuthenticate()}
-                          disabled={false}
-                          className="btn btn-primary"
-                        >
-                          <>🚫 Google Disabled (Security)</>
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
 
                 {/* Microsoft Authentication */}
                 <div className="provider-card">
@@ -1914,9 +1844,13 @@ Best regards,
                     ) : (
                       <>
                         {!isMicrosoftConfigured && (
-                          <div className="alert alert-warning">
-                            <strong>⚠️ Setup Required:</strong> Microsoft OAuth client ID not configured.
-                            Please see <code>MICROSOFT_OAUTH_SETUP.md</code> for detailed setup instructions.
+                          <div className="alert alert-danger">
+                            <strong>⚠️ REQUIRED: Microsoft OAuth Setup</strong><br/>
+                            Add this redirect URI to your Microsoft Azure app:<br/>
+                            <code style={{ background: '#fff3cd', padding: '4px 8px', borderRadius: '4px' }}>
+                              https://tmcasebooking.vercel.app/auth/callback
+                            </code><br/>
+                            <small>Go to Azure Portal → App Registration → Authentication → Redirect URIs</small>
                           </div>
                         )}
                         <button
@@ -1938,61 +1872,24 @@ Best regards,
                 </div>
 
                 {/* Configuration Actions */}
-                <div className="config-actions" style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #e9ecef' }}>
-                  <button
-                    onClick={handleSaveConfig}
-                    disabled={!currentConfig?.providers.google.isAuthenticated && !currentConfig?.providers.microsoft.isAuthenticated}
-                    className="btn btn-success"
-                    title={(!currentConfig?.providers.google.isAuthenticated && !currentConfig?.providers.microsoft.isAuthenticated)
-                      ? "Please authenticate with at least one email provider first"
-                      : "Save email configuration including From Name settings"}
-                  >
-                    💾 Save Configuration
-                  </button>
-                  <button
-                    onClick={handleTestEmail}
-                    disabled={!currentConfig?.activeProvider}
-                    className="btn btn-warning"
-                  >
-                    📧 Test Email
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Output comprehensive debug information
-                      console.group('🐛 Email Configuration Debug Info');
-                      console.log('Current User:', currentUser);
-                      console.log('Current User Email:', currentUser?.email);
-                      console.log('Selected Country:', selectedCountry);
-                      console.log('Available Countries:', availableCountries);
-                      console.log('Available Departments:', availableDepartments);
-                      console.log('Active Provider:', currentConfig?.activeProvider);
-                      console.log('Provider Config:', currentConfig?.providers);
-                      console.log('Email Configs:', emailConfigs);
-                      console.log('Email Matrix Configs:', emailMatrixConfigs);
-                      console.log('Can Configure Email:', canConfigureEmail);
-                      console.log('Can Switch Countries:', canSwitchCountries);
-                      console.log('User Loading:', userLoading);
-                      console.log('Auth Status - Google:', currentConfig?.providers?.google?.isAuthenticated);
-                      console.log('Auth Status - Microsoft:', currentConfig?.providers?.microsoft?.isAuthenticated);
-                      console.log('Environment - Google Client ID:', !!process.env.REACT_APP_GOOGLE_CLIENT_ID);
-                      console.log('Environment - Microsoft Client ID:', !!process.env.REACT_APP_MICROSOFT_CLIENT_ID);
-                      
-                      // Check stored tokens
-                      const debugActiveProvider = currentConfig?.activeProvider || 'microsoft';
-                      const storedTokens = getStoredAuthTokens(selectedCountry);
-                      console.log('Stored Auth Tokens:', storedTokens);
-                      
-                      const storedUserInfo = getStoredUserInfo(selectedCountry);
-                      console.log('Stored User Info:', storedUserInfo);
-                      
-                      console.groupEnd();
-                      showSuccess('Debug Info', 'Check console for detailed debug information');
-                    }}
-                    className="btn btn-outline-secondary btn-sm"
-                  >
-                    🐛 Debug
-                  </button>
-                </div>
+                {currentConfig?.providers.microsoft.isAuthenticated && (
+                  <div className="config-actions" style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #e9ecef' }}>
+                    <button
+                      onClick={handleSaveConfig}
+                      className="btn btn-success"
+                      style={{ marginRight: '1rem' }}
+                    >
+                      💾 Save Configuration
+                    </button>
+                    <button
+                      onClick={handleTestEmail}
+                      disabled={!currentConfig?.activeProvider}
+                      className="btn btn-warning"
+                    >
+                      📧 Test Email
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

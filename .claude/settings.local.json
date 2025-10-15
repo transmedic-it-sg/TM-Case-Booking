@@ -51,7 +51,8 @@
       "Bash(cat:*)",
       "Bash(pkill:*)",
       "mcp__supabase-new__get_project_url",
-      "mcp__supabase-new__get_anon_key"
+      "mcp__supabase-new__get_anon_key",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "deny": [
       "mcp__supabase-old__*",
