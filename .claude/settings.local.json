@@ -37,7 +37,8 @@
       "Bash(rg:*)",
       "Bash(DISABLE_ESLINT_PLUGIN=true PORT=3002 timeout 10 npm start)",
       "Bash(timeout:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "mcp__supabase-new__get_logs"
     ],
     "deny": [
       "mcp__supabase-old__*",

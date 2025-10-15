@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, memo } from 'react';
+import '../assets/components/MultiSelectDropdown.css';
 
 interface MultiSelectDropdownProps {
   id: string;
