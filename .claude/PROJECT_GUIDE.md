@@ -22,9 +22,11 @@
 - **Name**: TM Case Booking System
 - **Version**: 1.3.3-PRODUCTION  
 - **Status**: ✅ LIVE & FULLY OPERATIONAL
-- **Production URL**: https://tm-case-booking.vercel.app
+- **Production URL**: https://tmcasebooking.vercel.app (NEW ACCOUNT)
+- **GitHub Repository**: transmedic-it-sg/TM-Case-Booking
 - **Database**: ycmrdeiofuuqsugzjzoq.supabase.co (NEW - Migration Complete)
-- **Last Updated**: October 14, 2025
+- **Account**: transmedic-it-sg (it.sg@transmedicgroup.com)
+- **Last Updated**: October 15, 2025
 
 ### Core Value Proposition
 - **Primary Function**: Manage surgical case bookings from initial booking through completion and billing

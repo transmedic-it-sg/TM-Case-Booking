@@ -40,7 +40,7 @@
       ]
     }
   ],
-  "alias": ["tm-case-booking.vercel.app"],
+  "alias": ["tmcasebooking.vercel.app"],
   "env": {
     "CI": "false"
   }

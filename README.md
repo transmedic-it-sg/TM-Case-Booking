@@ -23,6 +23,12 @@
 
 The TM Case Booking System is a comprehensive enterprise-grade application for managing medical case bookings, procedures, and hospital operations. Built with React TypeScript and Supabase, it supports real-time collaboration for 50-100 concurrent users.
 
+### 🌐 **Production Deployment**
+- **Live URL**: https://tmcasebooking.vercel.app
+- **GitHub Repository**: transmedic-it-sg/TM-Case-Booking
+- **Account**: transmedic-it-sg (it.sg@transmedicgroup.com)
+- **Database**: ycmrdeiofuuqsugzjzoq.supabase.co (NEW - Migration Complete)
+
 ### Core Capabilities
 - **Real-time Case Management**: Live updates across all users
 - **Multi-country Operations**: Support for SG, MY, TH markets
