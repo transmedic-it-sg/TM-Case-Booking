@@ -1221,6 +1221,42 @@ Best regards,
     playSound.click();
   };
 
+  // Setup Admin OAuth - IMPLEMENTATION
+  const setupAdminOAuth = async () => {
+    setAdminConfigLoading(true);
+    try {
+      const oauth = createOAuthManager();
+      const { tokens, userInfo } = await authenticateWithPopup(selectedCountry);
+      
+      const adminCredentials: AdminEmailCredentials = {
+        provider: 'microsoft',
+        clientId: process.env.REACT_APP_MICROSOFT_CLIENT_ID!,
+        tenantId: process.env.REACT_APP_MICROSOFT_TENANT_ID,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresAt: tokens.expiresAt,
+        fromEmail: userInfo.email,
+        fromName: userInfo.name
+      };
+      
+      const success = await centralizedEmailService.setAdminEmailConfig(
+        selectedCountry, 
+        adminCredentials, 
+        currentUser!.id
+      );
+      
+      if (success) {
+        setAdminEmailConfigs(prev => ({...prev, [selectedCountry]: adminCredentials}));
+        showSuccess('Admin OAuth Setup Complete', 'Admin email authentication configured successfully');
+      }
+    } catch (error) {
+      console.error('Admin OAuth setup error:', error);
+      showError('OAuth Setup Failed', error instanceof Error ? error.message : 'Failed to setup admin OAuth');
+    } finally {
+      setAdminConfigLoading(false);
+    }
+  };
+
   // Save notification matrix - REWRITTEN to save directly to email_notification_rules table
   const saveNotificationMatrix = async () => {
     if (!selectedCountry) return;
@@ -1588,7 +1624,7 @@ Best regards,
                       <button
                         className="btn btn-primary"
                         disabled={adminConfigLoading}
-                        onClick={() => {/* TODO: Implement OAuth setup */}}
+                        onClick={setupAdminOAuth}
                       >
                         {adminConfigLoading ? 'Configuring...' : (adminEmailConfigs[selectedCountry] ? 'Update Admin OAuth' : 'Setup Admin OAuth')}
                       </button>

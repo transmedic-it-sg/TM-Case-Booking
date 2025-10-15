@@ -34,39 +34,40 @@ class CentralizedEmailService {
   async getAdminEmailConfig(country: string): Promise<AdminEmailCredentials | null> {
     try {
       const { data, error } = await supabase
-        .from('app_settings')
-        .select('setting_value')
-        .eq('setting_key', `${this.ADMIN_EMAIL_CONFIG_KEY}_${country}`)
-        .eq('is_system_setting', true)
-        .is('user_id', null) // System settings have null user_id
+        .from('admin_email_configs')
+        .select('*')
+        .eq('country', country)
         .maybeSingle();
 
-      // Handle 400 errors gracefully - these occur when no config exists
       if (error) {
-        if (error.code === 'PGRST116' || error.message?.includes('400')) {
-          // No matching rows found - this is expected when no config exists yet
-          console.log(`📧 ADMIN CONFIG DEBUG - No admin email config exists yet for country: ${country}`);
-          return null;
-        }
-        logger.warn(`Error querying admin email config for country: ${country}`, error);
+        console.log(`📧 ADMIN CONFIG DEBUG - No admin email config exists yet for country: ${country}`);
         return null;
       }
 
-      if (!data?.setting_value) {
+      if (!data) {
         console.log(`📧 ADMIN CONFIG DEBUG - Empty admin email config for country: ${country}`);
         return null;
       }
 
-      const config = data.setting_value as CentralizedEmailConfig;
+      const credentials: AdminEmailCredentials = {
+        provider: data.provider as 'microsoft' | 'google',
+        clientId: data.client_id,
+        tenantId: data.tenant_id,
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresAt: data.expires_at,
+        fromEmail: data.from_email,
+        fromName: data.from_name
+      };
+
       console.log(`📧 ADMIN CONFIG DEBUG - Found admin email config for country: ${country}`, {
-        provider: config.adminCredentials?.provider,
-        hasFromEmail: !!config.adminCredentials?.fromEmail,
-        isActive: config.isActive
+        provider: credentials.provider,
+        hasFromEmail: !!credentials.fromEmail,
+        tokenExpires: new Date(credentials.expiresAt).toISOString()
       });
       
-      return config.adminCredentials;
+      return credentials;
     } catch (error) {
-      // Don't log as error - this is expected during initial setup
       console.log(`📧 ADMIN CONFIG DEBUG - Admin email config not available for ${country}:`, error);
       return null;
     }
@@ -82,21 +83,19 @@ class CentralizedEmailService {
     updatedBy: string
   ): Promise<boolean> {
     try {
-      const config: CentralizedEmailConfig = {
-        country,
-        adminCredentials: credentials,
-        isActive: true,
-        lastUpdated: new Date().toISOString(),
-        updatedBy
-      };
-
       const { error } = await supabase
-        .from('app_settings')
+        .from('admin_email_configs')
         .upsert({
-          setting_key: `${this.ADMIN_EMAIL_CONFIG_KEY}_${country}`,
-          setting_value: config,
-          is_system_setting: true,
-          user_id: null, // System settings don't belong to specific users
+          country,
+          provider: credentials.provider,
+          client_id: credentials.clientId,
+          tenant_id: credentials.tenantId,
+          access_token: credentials.accessToken,
+          refresh_token: credentials.refreshToken,
+          expires_at: credentials.expiresAt,
+          from_email: credentials.fromEmail,
+          from_name: credentials.fromName,
+          created_by: updatedBy,
           updated_at: new Date().toISOString()
         });
 
