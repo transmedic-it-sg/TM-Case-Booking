@@ -165,17 +165,18 @@
   align-items: center;
   padding: 10px 12px;
   margin-bottom: 4px;
-  background: white;
+  background: #ffffff !important;
   border: 2px solid transparent;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
   position: relative;
+  color: #2c3e50 !important;
 }
 
 .custom-multi-select .multi-select-option:hover {
-  background: #f0f8ff;
+  background: #f0f8ff !important;
   border-color: #007bff;
   transform: translateX(2px);
 }
@@ -310,36 +311,4 @@
   }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .custom-multi-select .multi-select-trigger {
-    background: #2d3748;
-    border-color: #4a5568;
-    color: #e2e8f0;
-  }
-  
-  .custom-multi-select .multi-select-dropdown-content {
-    background: #2d3748;
-    border-color: #4299e1;
-  }
-  
-  .custom-multi-select .dropdown-header {
-    background: #1a202c;
-    border-color: #4a5568;
-  }
-  
-  .custom-multi-select .search-input {
-    background: #2d3748;
-    border-color: #4a5568;
-    color: #e2e8f0;
-  }
-  
-  .custom-multi-select .multi-select-option {
-    background: #2d3748;
-    color: #e2e8f0;
-  }
-  
-  .custom-multi-select .multi-select-option:hover {
-    background: #4a5568;
-  }
-}
+/* Force light theme - no dark mode support */
