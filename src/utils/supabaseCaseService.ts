@@ -1561,30 +1561,65 @@ export const deleteSupabaseCase = async (caseId: string): Promise<void> => {
       throw fetchError;
     }
 
-    // Delete case quantities first (foreign key constraint)
+    // CRITICAL FIX: Delete all related records in correct order to avoid 409 conflicts
+    
+    // 1. Delete status history (references case_bookings.id)
+    const { error: statusError } = await supabase
+      .from('status_history')
+      .delete()
+      .eq('case_id', caseId);
+
+    if (statusError) {
+      console.warn('Error deleting status history:', statusError);
+      // Continue anyway - this shouldn't block case deletion
+    }
+
+    // 2. Delete case quantities (references case_bookings.id)
     const { error: quantityError } = await supabase
       .from('case_booking_quantities')
       .delete()
-      .eq('case_booking_id', caseId); // ⚠️ case_booking_id (caseBookingId) FK - NOT caseId
+      .eq('case_booking_id', caseId);
 
     if (quantityError) {
+      console.warn('Error deleting case quantities:', quantityError);
+      // Continue anyway - this shouldn't block case deletion
     }
 
-    // Delete the case
+    // 3. Delete amendment history (references case_bookings.id)
+    const { error: amendmentError } = await supabase
+      .from('amendment_history')
+      .delete()
+      .eq('case_id', caseId);
+
+    if (amendmentError) {
+      console.warn('Error deleting amendment history:', amendmentError);
+      // Continue anyway - this shouldn't block case deletion
+    }
+
+    // 4. Finally delete the main case record
     const { error: deleteError } = await supabase
       .from('case_bookings')
       .delete()
       .eq('id', caseId);
 
     if (deleteError) {
+      console.error('🚨 CASE DELETION FAILED:', {
+        caseId,
+        error: deleteError,
+        message: deleteError.message,
+        code: deleteError.code
+      });
       throw deleteError;
     }
+
+    console.log('✅ Case deleted successfully:', caseId);
 
     // Trigger usage recalculation for that date
     if (caseData) {
       await recalculateUsageForDate(caseData.date_of_surgery, caseData.country, caseData.department);
     }
   } catch (error) {
+    console.error('🚨 DELETE CASE ERROR:', error);
     throw error;
   }
 };

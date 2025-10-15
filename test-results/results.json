@@ -69,25 +69,25 @@
   },
   "suites": [
     {
-      "title": "08-permission-matrix.spec.ts",
-      "file": "08-permission-matrix.spec.ts",
+      "title": "comprehensive-migration-test.spec.ts",
+      "file": "comprehensive-migration-test.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Permission Matrix E2E Tests",
-          "file": "08-permission-matrix.spec.ts",
-          "line": 3,
+          "title": "🌏 Complete Application Migration Testing - All 7 Countries",
+          "file": "comprehensive-migration-test.spec.ts",
+          "line": 26,
           "column": 6,
           "specs": [
             {
-              "title": "should test delete-case permission toggle for operations-manager role",
+              "title": "🔐 Database Migration - Authentication System Verification",
               "ok": false,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 90000,
+                  "timeout": 60000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
@@ -97,120 +97,128 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "failed",
-                      "duration": 23061,
+                      "duration": 14373,
                       "error": {
-                        "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[name=\"username\"]') to be visible\u001b[22m\n",
-                        "stack": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[name=\"username\"]') to be visible\u001b[22m\n\n    at authenticateUser (/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:22:16)\n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:104:5",
+                        "message": "TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9972.335999999998ms exceeded.\nCall log:\n\u001b[2m  - attempting scroll into view action\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    19 × waiting for element to be stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying scroll into view action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n",
+                        "stack": "TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9972.335999999998ms exceeded.\nCall log:\n\u001b[2m  - attempting scroll into view action\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    19 × waiting for element to be stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying scroll into view action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts:43:27",
                         "location": {
-                          "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts",
-                          "column": 16,
-                          "line": 22
+                          "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts",
+                          "column": 27,
+                          "line": 43
                         },
-                        "snippet": "  20 |     \n  21 |     // Wait for login form to be visible\n> 22 |     await page.waitForSelector('input[name=\"username\"]', { timeout: 10000 });\n     |                ^\n  23 |     \n  24 |     // Fill login form\n  25 |     await page.fill('input[name=\"username\"]', username);"
+                        "snippet": "  41 |     if (await usernameField.count() > 0) {\n  42 |       // Try to scroll to the element\n> 43 |       await usernameField.scrollIntoViewIfNeeded();\n     |                           ^\n  44 |       await page.waitForTimeout(1000);\n  45 |     }\n  46 |     "
                       },
                       "errors": [
                         {
                           "location": {
-                            "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts",
-                            "column": 16,
-                            "line": 22
+                            "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts",
+                            "column": 27,
+                            "line": 43
                           },
-                          "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[name=\"username\"]') to be visible\u001b[22m\n\n\n  20 |     \n  21 |     // Wait for login form to be visible\n> 22 |     await page.waitForSelector('input[name=\"username\"]', { timeout: 10000 });\n     |                ^\n  23 |     \n  24 |     // Fill login form\n  25 |     await page.fill('input[name=\"username\"]', username);\n    at authenticateUser (/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:22:16)\n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:104:5"
+                          "message": "TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9972.335999999998ms exceeded.\nCall log:\n\u001b[2m  - attempting scroll into view action\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    19 × waiting for element to be stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying scroll into view action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n\n  41 |     if (await usernameField.count() > 0) {\n  42 |       // Try to scroll to the element\n> 43 |       await usernameField.scrollIntoViewIfNeeded();\n     |                           ^\n  44 |       await page.waitForTimeout(1000);\n  45 |     }\n  46 |     \n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts:43:27"
                         }
                       ],
-                      "stdout": [],
+                      "stdout": [
+                        {
+                          "text": "Testing authentication with migrated user data...\n"
+                        }
+                      ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-14T04:11:08.014Z",
+                      "startTime": "2025-10-15T06:57:12.399Z",
                       "annotations": [],
                       "attachments": [
                         {
                           "name": "screenshot",
                           "contentType": "image/png",
-                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium/test-failed-1.png"
+                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium/test-failed-1.png"
                         },
                         {
                           "name": "video",
                           "contentType": "video/webm",
-                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium/video.webm"
+                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium/video.webm"
                         },
                         {
                           "name": "error-context",
                           "contentType": "text/markdown",
-                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium/error-context.md"
+                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium/error-context.md"
                         }
                       ],
                       "errorLocation": {
-                        "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts",
-                        "column": 16,
-                        "line": 22
+                        "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts",
+                        "column": 27,
+                        "line": 43
                       }
                     },
                     {
                       "workerIndex": 1,
                       "parallelIndex": 0,
                       "status": "failed",
-                      "duration": 12863,
+                      "duration": 14706,
                       "error": {
-                        "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[name=\"username\"]') to be visible\u001b[22m\n",
-                        "stack": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[name=\"username\"]') to be visible\u001b[22m\n\n    at authenticateUser (/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:22:16)\n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:104:5",
+                        "message": "TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9984.518000000004ms exceeded.\nCall log:\n\u001b[2m  - attempting scroll into view action\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    19 × waiting for element to be stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying scroll into view action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n",
+                        "stack": "TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9984.518000000004ms exceeded.\nCall log:\n\u001b[2m  - attempting scroll into view action\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    19 × waiting for element to be stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying scroll into view action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts:43:27",
                         "location": {
-                          "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts",
-                          "column": 16,
-                          "line": 22
+                          "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts",
+                          "column": 27,
+                          "line": 43
                         },
-                        "snippet": "  20 |     \n  21 |     // Wait for login form to be visible\n> 22 |     await page.waitForSelector('input[name=\"username\"]', { timeout: 10000 });\n     |                ^\n  23 |     \n  24 |     // Fill login form\n  25 |     await page.fill('input[name=\"username\"]', username);"
+                        "snippet": "  41 |     if (await usernameField.count() > 0) {\n  42 |       // Try to scroll to the element\n> 43 |       await usernameField.scrollIntoViewIfNeeded();\n     |                           ^\n  44 |       await page.waitForTimeout(1000);\n  45 |     }\n  46 |     "
                       },
                       "errors": [
                         {
                           "location": {
-                            "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts",
-                            "column": 16,
-                            "line": 22
+                            "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts",
+                            "column": 27,
+                            "line": 43
                           },
-                          "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[name=\"username\"]') to be visible\u001b[22m\n\n\n  20 |     \n  21 |     // Wait for login form to be visible\n> 22 |     await page.waitForSelector('input[name=\"username\"]', { timeout: 10000 });\n     |                ^\n  23 |     \n  24 |     // Fill login form\n  25 |     await page.fill('input[name=\"username\"]', username);\n    at authenticateUser (/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:22:16)\n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:104:5"
+                          "message": "TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9984.518000000004ms exceeded.\nCall log:\n\u001b[2m  - attempting scroll into view action\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying scroll into view action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    19 × waiting for element to be stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying scroll into view action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n\n  41 |     if (await usernameField.count() > 0) {\n  42 |       // Try to scroll to the element\n> 43 |       await usernameField.scrollIntoViewIfNeeded();\n     |                           ^\n  44 |       await page.waitForTimeout(1000);\n  45 |     }\n  46 |     \n    at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts:43:27"
                         }
                       ],
-                      "stdout": [],
+                      "stdout": [
+                        {
+                          "text": "Testing authentication with migrated user data...\n"
+                        }
+                      ],
                       "stderr": [],
                       "retry": 1,
-                      "startTime": "2025-10-14T04:11:42.526Z",
+                      "startTime": "2025-10-15T06:57:33.345Z",
                       "annotations": [],
                       "attachments": [
                         {
                           "name": "screenshot",
                           "contentType": "image/png",
-                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/test-failed-1.png"
+                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/test-failed-1.png"
                         },
                         {
                           "name": "video",
                           "contentType": "video/webm",
-                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/video.webm"
+                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/video.webm"
                         },
                         {
                           "name": "error-context",
                           "contentType": "text/markdown",
-                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/error-context.md"
+                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/error-context.md"
                         },
                         {
                           "name": "trace",
                           "contentType": "application/zip",
-                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/trace.zip"
+                          "path": "/mnt/c/Users/anrong.low/TM-Case-Booking/test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/trace.zip"
                         }
                       ],
                       "errorLocation": {
-                        "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts",
-                        "column": 16,
-                        "line": 22
+                        "file": "/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts",
+                        "column": 27,
+                        "line": 43
                       }
                     }
                   ],
                   "status": "unexpected"
                 }
               ],
-              "id": "7601285ab4e7970e8602-f58351ac28cf62847909",
-              "file": "08-permission-matrix.spec.ts",
-              "line": 103,
+              "id": "743695d598504818789d-7893b661cf5d4ec352de",
+              "file": "comprehensive-migration-test.spec.ts",
+              "line": 33,
               "column": 7
             }
           ]
@@ -220,8 +228,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-10-14T04:10:25.103Z",
-    "duration": 89885.686,
+    "startTime": "2025-10-15T06:57:06.312Z",
+    "duration": 42148.108,
     "expected": 0,
     "skipped": 0,
     "unexpected": 1,

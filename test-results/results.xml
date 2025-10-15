@@ -1,85 +1,109 @@
-<testsuites id="" name="" tests="1" failures="1" skipped="0" errors="0" time="89.885686">
-<testsuite name="08-permission-matrix.spec.ts" timestamp="2025-10-14T04:10:57.648Z" hostname="chromium" tests="1" failures="1" skipped="0" time="35.924" errors="0">
-<testcase name="Permission Matrix E2E Tests › should test delete-case permission toggle for operations-manager role" classname="08-permission-matrix.spec.ts" time="35.924">
-<failure message="08-permission-matrix.spec.ts:103:7 should test delete-case permission toggle for operations-manager role" type="FAILURE">
-<![CDATA[  [chromium] › 08-permission-matrix.spec.ts:103:7 › Permission Matrix E2E Tests › should test delete-case permission toggle for operations-manager role 
+<testsuites id="" name="" tests="1" failures="1" skipped="0" errors="0" time="42.148108">
+<testsuite name="comprehensive-migration-test.spec.ts" timestamp="2025-10-15T06:57:06.553Z" hostname="chromium" tests="1" failures="1" skipped="0" time="29.079" errors="0">
+<testcase name="🌏 Complete Application Migration Testing - All 7 Countries › 🔐 Database Migration - Authentication System Verification" classname="comprehensive-migration-test.spec.ts" time="29.079">
+<failure message="comprehensive-migration-test.spec.ts:33:7 🔐 Database Migration - Authentication System Verification" type="FAILURE">
+<![CDATA[  [chromium] › comprehensive-migration-test.spec.ts:33:7 › 🌏 Complete Application Migration Testing - All 7 Countries › 🔐 Database Migration - Authentication System Verification 
 
-    TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.
+    TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9972.335999999998ms exceeded.
     Call log:
-      - waiting for locator('input[name="username"]') to be visible
+      - attempting scroll into view action
+        2 × waiting for element to be stable
+          - element is not visible
+        - retrying scroll into view action
+        - waiting 20ms
+        2 × waiting for element to be stable
+          - element is not visible
+        - retrying scroll into view action
+          - waiting 100ms
+        19 × waiting for element to be stable
+           - element is not visible
+         - retrying scroll into view action
+           - waiting 500ms
 
 
-      20 |     
-      21 |     // Wait for login form to be visible
-    > 22 |     await page.waitForSelector('input[name="username"]', { timeout: 10000 });
-         |                ^
-      23 |     
-      24 |     // Fill login form
-      25 |     await page.fill('input[name="username"]', username);
-        at authenticateUser (/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:22:16)
-        at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:104:5
+      41 |     if (await usernameField.count() > 0) {
+      42 |       // Try to scroll to the element
+    > 43 |       await usernameField.scrollIntoViewIfNeeded();
+         |                           ^
+      44 |       await page.waitForTimeout(1000);
+      45 |     }
+      46 |     
+        at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts:43:27
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    ../../test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium/test-failed-1.png
+    ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium/test-failed-1.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    ../../test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium/video.webm
+    ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium/video.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
-    Error Context: ../../test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium/error-context.md
+    Error Context: ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium/error-context.md
 
     Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
 
-    TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.
+    TimeoutError: locator.scrollIntoViewIfNeeded: Timeout 9984.518000000004ms exceeded.
     Call log:
-      - waiting for locator('input[name="username"]') to be visible
+      - attempting scroll into view action
+        2 × waiting for element to be stable
+          - element is not visible
+        - retrying scroll into view action
+        - waiting 20ms
+        2 × waiting for element to be stable
+          - element is not visible
+        - retrying scroll into view action
+          - waiting 100ms
+        19 × waiting for element to be stable
+           - element is not visible
+         - retrying scroll into view action
+           - waiting 500ms
 
 
-      20 |     
-      21 |     // Wait for login form to be visible
-    > 22 |     await page.waitForSelector('input[name="username"]', { timeout: 10000 });
-         |                ^
-      23 |     
-      24 |     // Fill login form
-      25 |     await page.fill('input[name="username"]', username);
-        at authenticateUser (/mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:22:16)
-        at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/08-permission-matrix.spec.ts:104:5
+      41 |     if (await usernameField.count() > 0) {
+      42 |       // Try to scroll to the element
+    > 43 |       await usernameField.scrollIntoViewIfNeeded();
+         |                           ^
+      44 |       await page.waitForTimeout(1000);
+      45 |     }
+      46 |     
+        at /mnt/c/Users/anrong.low/TM-Case-Booking/e2e/tests/comprehensive-migration-test.spec.ts:43:27
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    ../../test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/test-failed-1.png
+    ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/test-failed-1.png
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
     attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    ../../test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/video.webm
+    ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/video.webm
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
-    Error Context: ../../test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/error-context.md
+    Error Context: ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/error-context.md
 
     attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
-    ../../test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/trace.zip
+    ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/trace.zip
     Usage:
 
-        npx playwright show-trace ../../test-results/08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/trace.zip
+        npx playwright show-trace ../../test-results/comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/trace.zip
 
     ────────────────────────────────────────────────────────────────────────────────────────────────
 ]]>
 </failure>
 <system-out>
-<![CDATA[
-[[ATTACHMENT|08-permission-matrix-Permi-98284-for-operations-manager-role-chromium/test-failed-1.png]]
+<![CDATA[Testing authentication with migrated user data...
 
-[[ATTACHMENT|08-permission-matrix-Permi-98284-for-operations-manager-role-chromium/video.webm]]
+[[ATTACHMENT|comprehensive-migration-te-fec1c-ication-System-Verification-chromium/test-failed-1.png]]
 
-[[ATTACHMENT|08-permission-matrix-Permi-98284-for-operations-manager-role-chromium/error-context.md]]
+[[ATTACHMENT|comprehensive-migration-te-fec1c-ication-System-Verification-chromium/video.webm]]
 
-[[ATTACHMENT|08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/test-failed-1.png]]
+[[ATTACHMENT|comprehensive-migration-te-fec1c-ication-System-Verification-chromium/error-context.md]]
+Testing authentication with migrated user data...
 
-[[ATTACHMENT|08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/video.webm]]
+[[ATTACHMENT|comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/test-failed-1.png]]
 
-[[ATTACHMENT|08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/error-context.md]]
+[[ATTACHMENT|comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/video.webm]]
 
-[[ATTACHMENT|08-permission-matrix-Permi-98284-for-operations-manager-role-chromium-retry1/trace.zip]]
+[[ATTACHMENT|comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/error-context.md]]
+
+[[ATTACHMENT|comprehensive-migration-te-fec1c-ication-System-Verification-chromium-retry1/trace.zip]]
 ]]>
 </system-out>
 </testcase>

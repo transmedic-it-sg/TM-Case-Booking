@@ -2051,7 +2051,7 @@ Best regards,
                 {emailMatrixConfigs[selectedCountry] && (
                   <div className="notification-matrix">
                     <div style={{ display: 'grid', gap: '1rem' }}>
-                      {emailMatrixConfigs[selectedCountry].rules.map((rule) => (
+                      {emailMatrixConfigs[selectedCountry].rules.map((rule, ruleIndex) => (
                         <div
                           key={rule.status}
                           style={{
@@ -2061,42 +2061,93 @@ Best regards,
                             backgroundColor: rule.enabled ? '#f8f9fa' : '#fff3cd'
                           }}
                         >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <div 
+                            style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between', 
+                              alignItems: 'center', 
+                              marginBottom: '0.5rem',
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => toggleRuleCollapse(ruleIndex)}
+                          >
                             <h5 style={{ margin: 0, color: rule.enabled ? '#28a745' : '#856404' }}>
                               {rule.status} {rule.enabled ? '✅' : '⚠️'}
                             </h5>
-                            <span style={{ 
-                              fontSize: '0.8rem', 
-                              color: rule.enabled ? '#28a745' : '#856404',
-                              fontWeight: '600'
-                            }}>
-                              {rule.enabled ? 'ACTIVE' : 'INACTIVE'}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                              <span style={{ 
+                                fontSize: '0.8rem', 
+                                color: rule.enabled ? '#28a745' : '#856404',
+                                fontWeight: '600'
+                              }}>
+                                {rule.enabled ? 'ACTIVE' : 'INACTIVE'}
+                              </span>
+                              <span className={`chevron ${ruleCollapsedStates[ruleIndex] ? 'collapsed' : 'expanded'}`}>
+                                {ruleCollapsedStates[ruleIndex] ? '▶' : '▼'}
+                              </span>
+                            </div>
                           </div>
                           
-                          {rule.enabled && rule.recipients && (
-                            <div style={{ fontSize: '0.85rem', color: '#6c757d' }}>
-                              <div><strong>Recipients:</strong></div>
-                              <div style={{ marginLeft: '1rem', marginTop: '0.25rem' }}>
-                                {(rule.recipients as any)?.roles && (rule.recipients as any).roles.length > 0 && (
-                                  <div>• Roles: {(rule.recipients as any).roles.join(', ')}</div>
-                                )}
-                                {(rule.recipients as any)?.members && (rule.recipients as any).members.length > 0 && (
-                                  <div>• Members: {(rule.recipients as any).members.join(', ')}</div>
-                                )}
-                                {(rule.recipients as any)?.specificEmails && (rule.recipients as any).specificEmails.length > 0 && (
-                                  <div>• Emails: {(rule.recipients as any).specificEmails.join(', ')}</div>
-                                )}
-                                {(rule.recipients as any)?.departments && (rule.recipients as any).departments.length > 0 && (
-                                  <div>• Departments: {(rule.recipients as any).departments.join(', ')}</div>
+                          {/* Collapsible content for individual rule customization */}
+                          {!ruleCollapsedStates[ruleIndex] && (
+                            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e0e0e0' }}>
+                              {rule.enabled && rule.recipients && (
+                                <div style={{ fontSize: '0.85rem', color: '#6c757d', marginBottom: '1rem' }}>
+                                  <div><strong>Recipients:</strong></div>
+                                  <div style={{ marginLeft: '1rem', marginTop: '0.25rem' }}>
+                                    {(rule.recipients as any)?.roles && (rule.recipients as any).roles.length > 0 && (
+                                      <div>• Roles: {(rule.recipients as any).roles.join(', ')}</div>
+                                    )}
+                                    {(rule.recipients as any)?.members && (rule.recipients as any).members.length > 0 && (
+                                      <div>• Members: {(rule.recipients as any).members.join(', ')}</div>
+                                    )}
+                                    {(rule.recipients as any)?.specificEmails && (rule.recipients as any).specificEmails.length > 0 && (
+                                      <div>• Emails: {(rule.recipients as any).specificEmails.join(', ')}</div>
+                                    )}
+                                    {(rule.recipients as any)?.departments && (rule.recipients as any).departments.length > 0 && (
+                                      <div>• Departments: {(rule.recipients as any).departments.join(', ')}</div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {!rule.enabled && (
+                                <div style={{ fontSize: '0.85rem', color: '#856404', fontStyle: 'italic', marginBottom: '1rem' }}>
+                                  This status notification is disabled. Enable it to configure recipients and email templates.
+                                </div>
+                              )}
+                              
+                              {/* Rule customization controls */}
+                              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={rule.enabled}
+                                    onChange={(e) => updateNotificationRule(ruleIndex, { enabled: e.target.checked })}
+                                  />
+                                  Enable notifications for {rule.status}
+                                </label>
+                                
+                                {rule.enabled && (
+                                  <button
+                                    style={{
+                                      padding: '0.25rem 0.75rem',
+                                      fontSize: '0.8rem',
+                                      border: '1px solid #007bff',
+                                      backgroundColor: '#007bff',
+                                      color: 'white',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer'
+                                    }}
+                                    onClick={() => {
+                                      // TODO: Open detailed configuration modal
+                                      console.log('Configure detailed settings for:', rule.status);
+                                    }}
+                                  >
+                                    Configure Details
+                                  </button>
                                 )}
                               </div>
-                            </div>
-                          )}
-                          
-                          {!rule.enabled && (
-                            <div style={{ fontSize: '0.85rem', color: '#856404', fontStyle: 'italic' }}>
-                              This status notification is disabled
                             </div>
                           )}
                         </div>

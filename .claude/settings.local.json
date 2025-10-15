@@ -47,7 +47,9 @@
       "Bash(git config:*)",
       "Bash(ssh:*)",
       "Bash(git remote set-url:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(cat:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [
       "mcp__supabase-old__*",

@@ -188,218 +188,103 @@ export const getSupabasePermissions = async (): Promise<Permission[]> => {
       const resource = perm.resource || 'unknown';
       const action = perm.action || 'unknown';
       
-      // CRITICAL: Create proper actionId format that matches PERMISSION_ACTIONS
-      // Handle both legacy database formats and new consistent format
+      // CRITICAL FIX: Create proper actionId format that matches Permission Matrix expectations
+      // Map database format (resource-action) to frontend actionId format
+      const dbActionId = `${resource}-${action}`;
       let actionId: string;
       
-      // Handle legacy inconsistent database format (resource=action, action=resource)
-      if (resource === 'create' && action === 'case') {
-        actionId = 'create-case';
-      } else if (resource === 'create' && action === 'user') {
-        actionId = 'create-user';
-      } else if (resource === 'edit' && action === 'user') {
-        actionId = 'edit-user';
-      } else if (resource === 'edit' && action === 'sets') {
-        actionId = 'edit-sets';
-      } else if (resource === 'edit' && action === 'countries') {
-        actionId = 'edit-countries';
-      } else if (resource === 'view' && action === 'cases') {
-        actionId = 'view-cases';
-      } else if (resource === 'view' && action === 'users') {
-        actionId = 'view-users';
-      } else if (resource === 'delete' && action === 'case') {
-        actionId = 'delete-case';
-      } else if (resource === 'update' && action === 'case') {
-        actionId = 'update-case-status';
-      } else if (resource === 'amend' && action === 'case') {
-        actionId = 'amend-case';
-      } else if (resource === 'reset' && action === 'password') {
-        actionId = 'reset-password';
-      } else if (resource === 'enable' && action === 'disable') {
-        actionId = 'enable-disable-user';
-      } else if (resource === 'reports' && action === 'view') {
-        actionId = 'view-reports';
-      } else if (resource === 'logs' && action === 'audit') {
-        actionId = 'audit-logs';
-      } else if (resource === 'booking' && action === 'calendar') {
-        actionId = 'booking-calendar';
-      } else if (resource === 'calendar' && action === 'booking') {
-        actionId = 'booking-calendar';
+      // Comprehensive mapping from database format to frontend format
+      const actionMapping: Record<string, string> = {
+        // Case Management
+        'case-create': 'create-case',
+        'case-view': 'view-cases', 
+        'case-amend': 'amend-case',
+        'case-amend-case': 'amend-case', // Handle duplicate format
+        'case-delete': 'delete-case',
+        'case-update': 'update-case-status',
+        'case-update-status': 'update-case-status',
+        'case-cancel': 'cancel-case',
+        'case_bookings-create': 'create-case',
+        'case_bookings-view': 'view-cases',
+        'case_bookings-amend': 'amend-case',
+        'case_bookings-edit': 'amend-case',
+        'case_bookings-delete': 'delete-case',
+        'case_bookings-cancel': 'cancel-case',
         
-      // New consistent format handling
-      // Case Management
-      } else if (resource === 'case' && action === 'create') {
-        actionId = 'create-case';
-      } else if (resource === 'case' && action === 'view') {
-        actionId = 'view-cases';
-      } else if (resource === 'case' && action === 'amend') {
-        actionId = 'amend-case';
-      } else if (resource === 'case' && action === 'delete') {
-        actionId = 'delete-case';
-      } else if (resource === 'case' && action === 'update-status') {
-        actionId = 'update-case-status';
-      } else if (resource === 'case' && action === 'cancel') {
-        actionId = 'cancel-case';
+        // Calendar
+        'calendar-booking': 'booking-calendar',
+        
+        // User Management  
+        'user-create': 'create-user',
+        'user-edit': 'edit-user',
+        'user-delete': 'delete-user',
+        'user-view': 'view-users',
+        'user-enable-disable': 'enable-disable-user',
+        'user-reset-password': 'reset-password',
+        'user-manage': 'manage-users',
+        'users-manage': 'manage-users',
+        
+        // Status Updates
+        'status-process-order': 'process-order',
+        'status-order-processed': 'order-processed', 
+        'status-sales-approval': 'sales-approval',
+        'status-pending-delivery-hospital': 'pending-delivery-hospital',
+        'status-delivered-hospital': 'delivered-hospital',
+        'status-case-completed': 'case-completed',
+        'status-pending-delivery-office': 'pending-delivery-office',
+        'status-delivered-office': 'delivered-office',
+        'status-to-be-billed': 'to-be-billed',
+        'status-case-closed': 'case-closed',
+        
+        // Settings
+        'settings-system-settings': 'system-settings',
+        'settings-email-config': 'email-config',
+        'settings-code-table-setup': 'code-table-setup',
+        'settings-permission-matrix': 'permission-matrix',
+        'settings-audit-logs': 'audit-logs',
+        'system_settings-manage': 'system-settings',
+        
+        // Data Operations
+        'data-export': 'export-data',
+        'data-import': 'import-data', 
+        'reports-view': 'view-reports',
+        'reports-export': 'export-reports',
+        
+        // Management Operations
+        'doctors-edit': 'manage-doctors',
+        'doctors-manage': 'manage-doctors',
+        'procedures-edit': 'manage-procedure-types',
+        'procedures-manage': 'manage-procedure-types',
+        'surgery-implants-edit': 'manage-surgery-implants',
+        'surgery-implants-manage': 'manage-surgery-implants',
+        'edit-sets': 'edit-sets',
+        'attachments-manage': 'manage-attachments',
+        'files-upload': 'upload-files',
+        'files-download': 'download-files',
+        'files-delete': 'delete-files',
+        'email_notifications-manage': 'manage-email-notifications',
+        'permissions-manage': 'manage-permissions',
+        
+        // Legacy mappings for inconsistent database format
+        'create-case': 'create-case',
+        'create-user': 'create-user', 
+        'edit-user': 'edit-user',
+        'edit-countries': 'edit-countries',
+        'view-cases': 'view-cases',
+        'view-users': 'view-users', 
+        'delete-case': 'delete-case',
+        'update-case': 'update-case-status',
+        'amend-case': 'amend-case',
+        'reset-password': 'reset-password',
+        'enable-disable': 'enable-disable-user'
+      };
       
-      // Calendar
-      } else if (resource === 'calendar' && action === 'booking') {
-        actionId = 'booking-calendar';
-      
-      // Status Transitions
-      } else if (resource === 'status' && action === 'process-order') {
-        actionId = 'process-order';
-      } else if (resource === 'status' && action === 'order-processed') {
-        actionId = 'order-processed';
-      } else if (resource === 'status' && action === 'sales-approval') {
-        actionId = 'sales-approval';
-      } else if (resource === 'status' && action === 'pending-delivery-hospital') {
-        actionId = 'pending-delivery-hospital';
-      } else if (resource === 'status' && action === 'delivered-hospital') {
-        actionId = 'delivered-hospital';
-      } else if (resource === 'status' && action === 'case-completed') {
-        actionId = 'case-completed';
-      } else if (resource === 'status' && action === 'pending-delivery-office') {
-        actionId = 'pending-delivery-office';
-      } else if (resource === 'status' && action === 'delivered-office') {
-        actionId = 'delivered-office';
-      } else if (resource === 'status' && action === 'to-be-billed') {
-        actionId = 'to-be-billed';
-      } else if (resource === 'status' && action === 'case-closed') {
-        actionId = 'case-closed';
-      
-      // User Management
-      } else if (resource === 'user' && action === 'create') {
-        actionId = 'create-user';
-      } else if (resource === 'user' && action === 'edit') {
-        actionId = 'edit-user';
-      } else if (resource === 'user' && action === 'delete') {
-        actionId = 'delete-user';
-      } else if (resource === 'user' && action === 'view') {
-        actionId = 'view-users';
-      } else if (resource === 'user' && action === 'enable-disable') {
-        actionId = 'enable-disable-user';
-      } else if (resource === 'user' && action === 'reset-password') {
-        actionId = 'reset-password';
-      } else if (resource === 'countries' && action === 'edit') {
-        actionId = 'edit-countries';
-      } else if (resource === 'tables' && action === 'global') {
-        actionId = 'global-tables';
-      
-      // System Settings
-      } else if (resource === 'settings' && action === 'system') {
-        actionId = 'system-settings';
-      } else if (resource === 'settings' && action === 'system-settings') {
-        actionId = 'system-settings';
-      } else if (resource === 'settings' && action === 'email-config') {
-        actionId = 'email-config';
-      } else if (resource === 'settings' && action === 'code-table-setup') {
-        actionId = 'code-table-setup';
-      } else if (resource === 'logs' && action === 'audit') {
-        actionId = 'audit-logs';
-      } else if (resource === 'settings' && action === 'audit-logs') {
-        actionId = 'audit-logs';
-      } else if (resource === 'settings' && action === 'permission-matrix') {
-        actionId = 'permission-matrix';
-      
-      // Data Operations
-      } else if (resource === 'data' && action === 'export') {
-        actionId = 'export-data';
-      } else if (resource === 'data' && action === 'import') {
-        actionId = 'import-data';
-      } else if (resource === 'reports' && action === 'view') {
-        actionId = 'view-reports';
-      
-      // File Operations
-      } else if (resource === 'files' && action === 'upload') {
-        actionId = 'upload-files';
-      } else if (resource === 'files' && action === 'download') {
-        actionId = 'download-files';
-      } else if (resource === 'files' && action === 'delete') {
-        actionId = 'delete-files';
-      } else if (resource === 'attachments' && action === 'manage') {
-        actionId = 'manage-attachments';
-      
-      // CRITICAL: Add missing resource mappings that are causing production errors
-      // Edit Sets related resources
-      } else if (resource === 'sets' && action === 'edit') {
-        actionId = 'edit-sets';
-      } else if (resource === 'sets' && action === 'view') {
-        actionId = 'edit-sets'; // Same permission for viewing sets
-      } else if (resource === 'sets' && action === 'manage') {
-        actionId = 'edit-sets';
-      
-      // Doctor management resources
-      } else if (resource === 'doctors' && action === 'edit') {
-        actionId = 'manage-doctors';
-      } else if (resource === 'doctors' && action === 'manage') {
-        actionId = 'manage-doctors';
-      } else if (resource === 'doctors' && action === 'view') {
-        actionId = 'manage-doctors';
-      
-      // Procedure management resources
-      } else if (resource === 'procedures' && action === 'edit') {
-        actionId = 'manage-procedure-types';
-      } else if (resource === 'procedures' && action === 'manage') {
-        actionId = 'manage-procedure-types';
-      } else if (resource === 'procedures' && action === 'view') {
-        actionId = 'manage-procedure-types';
-      } else if (resource === 'procedure-types' && action === 'edit') {
-        actionId = 'manage-procedure-types';
-      } else if (resource === 'procedure-types' && action === 'manage') {
-        actionId = 'manage-procedure-types';
-      
-      // Surgery & Implants resources
-      } else if (resource === 'surgery-implants' && action === 'edit') {
-        actionId = 'manage-surgery-implants';
-      } else if (resource === 'surgery-implants' && action === 'manage') {
-        actionId = 'manage-surgery-implants';
-      } else if (resource === 'surgery-implants' && action === 'view') {
-        actionId = 'manage-surgery-implants';
-      } else if (resource === 'implants' && action === 'edit') {
-        actionId = 'manage-surgery-implants';
-      } else if (resource === 'implants' && action === 'manage') {
-        actionId = 'manage-surgery-implants';
-      
-      // Order related resources
-      } else if (resource === 'order' && action === 'create') {
-        actionId = 'process-order';
-      } else if (resource === 'order' && action === 'process') {
-        actionId = 'process-order';
-      } else if (resource === 'order' && action === 'edit') {
-        actionId = 'process-order';
-      } else if (resource === 'order' && action === 'view') {
-        actionId = 'process-order';
-      } else if (resource === 'order' && action === 'processed') {
-        actionId = 'order-processed';
-      
-      // Delivery related resources
-      } else if (resource === 'delivery' && action === 'pending-hospital') {
-        actionId = 'pending-delivery-hospital';
-      } else if (resource === 'delivery' && action === 'hospital') {
-        actionId = 'delivered-hospital';
-      } else if (resource === 'delivery' && action === 'pending-office') {
-        actionId = 'pending-delivery-office';
-      } else if (resource === 'delivery' && action === 'office') {
-        actionId = 'delivered-office';
-      } else if (resource === 'delivery' && action === 'manage') {
-        actionId = 'pending-delivery-hospital'; // Default delivery permission
-      } else if (resource === 'delivery' && action === 'view') {
-        actionId = 'pending-delivery-hospital';
-      
-      // Granular Edit Sets permissions (legacy)
-      } else if (resource === 'other') {
-        // For "other" resource, use the action as-is (for granular permissions)
-        actionId = action;
-      } else {
-        // Fallback to basic format - log for debugging but don't spam console
-        // console.warn(`Unknown permission combination: resource=${resource}, action=${action}`);
-        // Create a safe actionId for unmapped combinations
-        actionId = `${action}-${resource}`;
-      }
+      // Use mapping if available, otherwise construct default format
+      actionId = actionMapping[dbActionId] || `${resource}-${action}`;
       
       return {
         roleId: perm.role,
-        actionId,
+        actionId: actionId,
         allowed: perm.allowed
       };
     });
@@ -591,11 +476,47 @@ export const getSupabaseRolePermissions = async (roleId: string): Promise<Permis
       return getAllPermissions().filter(p => p.roleId === roleId && p.allowed);
     }
 
-    return data?.map(perm => ({
-      roleId: perm.role,
-      actionId: `${perm.resource || 'unknown'}-${perm.action || 'unknown'}`, // Combine resource and action consistently, with fallbacks
-      allowed: perm.allowed
-    })) || [];
+    return data?.map(perm => {
+      // CRITICAL FIX: Convert database format to frontend actionId format
+      const dbActionId = `${perm.resource}-${perm.action}`;
+      let frontendActionId = dbActionId;
+      
+      // Map specific database combinations to frontend actionId format
+      const actionMapping: Record<string, string> = {
+        'case-create': 'create-case',
+        'case-view': 'view-cases',
+        'case-amend': 'amend-case',
+        'case-delete': 'delete-case',
+        'case-update-status': 'update-case-status',
+        'case-cancel': 'cancel-case',
+        'calendar-booking': 'booking-calendar',
+        'user-create': 'create-user',
+        'user-edit': 'edit-user',
+        'user-delete': 'delete-user',
+        'user-view': 'view-users',
+        'user-enable-disable': 'enable-disable-user',
+        'user-reset-password': 'reset-password',
+        'countries-edit': 'edit-countries',
+        'tables-global': 'global-tables',
+        'settings-system': 'system-settings',
+        'settings-email-config': 'email-config',
+        'settings-code-table-setup': 'code-table-setup',
+        'settings-permission-matrix': 'permission-matrix',
+        'logs-audit': 'audit-logs',
+        'data-export': 'export-data',
+        'data-import': 'import-data',
+        'reports-view': 'view-reports'
+      };
+      
+      // Use mapping if available, otherwise use database format
+      frontendActionId = actionMapping[dbActionId] || dbActionId;
+      
+      return {
+        roleId: perm.role,
+        actionId: frontendActionId,
+        allowed: perm.allowed
+      };
+    }) || [];
   } catch (error) {
     return getAllPermissions().filter(p => p.roleId === roleId && p.allowed);
   }

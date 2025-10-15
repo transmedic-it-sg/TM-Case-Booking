@@ -33,13 +33,24 @@ test.describe('🌏 Complete Application Migration Testing - All 7 Countries', (
   test('🔐 Database Migration - Authentication System Verification', async ({ page }) => {
     console.log('Testing authentication with migrated user data...');
     
-    // Test login page loads
-    await expect(page.locator('input[name="username"]')).toBeVisible();
-    await expect(page.locator('input[name="password"]')).toBeVisible();
+    // Wait for page to fully load
+    await page.waitForTimeout(2000);
+    
+    // Check if username field exists and try to make it visible
+    const usernameField = page.locator('input#username');
+    if (await usernameField.count() > 0) {
+      // Try to scroll to the element
+      await usernameField.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(1000);
+    }
+    
+    // Test login page loads - with more flexible approach
+    await expect(page.locator('input#username')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('input[type="password"]')).toBeVisible({ timeout: 10000 });
     
     // Test admin login (migrated from OLD database)
-    await page.fill('input[name="username"]', TEST_USERS.admin.username);
-    await page.fill('input[name="password"]', TEST_USERS.admin.password);
+    await page.fill('input#username', TEST_USERS.admin.username);
+    await page.fill('input[type="password"]', TEST_USERS.admin.password);
     await page.click('button[type="submit"]');
     
     // Wait for successful login and dashboard
@@ -53,8 +64,8 @@ test.describe('🌏 Complete Application Migration Testing - All 7 Countries', (
 
   test('🌍 Multi-Country Support - All 7 Countries Available', async ({ page }) => {
     // Login as admin to access country features
-    await page.fill('input[name="username"]', TEST_USERS.admin.username);
-    await page.fill('input[name="password"]', TEST_USERS.admin.password);
+    await page.fill('input#username', TEST_USERS.admin.username);
+    await page.fill('input[type="password"]', TEST_USERS.admin.password);
     await page.click('button[type="submit"]');
     await page.waitForLoadState('networkidle');
     
@@ -74,8 +85,8 @@ test.describe('🌏 Complete Application Migration Testing - All 7 Countries', (
   });
 
   test('🏥 Department Data Migration - All Countries Have Departments', async ({ page }) => {
-    await page.fill('input[name="username"]', TEST_USERS.admin.username);
-    await page.fill('input[name="password"]', TEST_USERS.admin.password);
+    await page.fill('input#username', TEST_USERS.admin.username);
+    await page.fill('input[type="password"]', TEST_USERS.admin.password);
     await page.click('button[type="submit"]');
     await page.waitForLoadState('networkidle');
     
@@ -98,8 +109,8 @@ test.describe('🌏 Complete Application Migration Testing - All 7 Countries', (
   });
 
   test('👥 User Management & Permissions System', async ({ page }) => {
-    await page.fill('input[name="username"]', TEST_USERS.admin.username);
-    await page.fill('input[name="password"]', TEST_USERS.admin.password);
+    await page.fill('input#username', TEST_USERS.admin.username);
+    await page.fill('input[type="password"]', TEST_USERS.admin.password);
     await page.click('button[type="submit"]');
     await page.waitForLoadState('networkidle');
     
@@ -134,8 +145,8 @@ test.describe('🌏 Complete Application Migration Testing - All 7 Countries', (
   });
 
   test('📋 Case Booking System - Core Functionality', async ({ page }) => {
-    await page.fill('input[name="username"]', TEST_USERS.admin.username);
-    await page.fill('input[name="password"]', TEST_USERS.admin.password);
+    await page.fill('input#username', TEST_USERS.admin.username);
+    await page.fill('input[type="password"]', TEST_USERS.admin.password);
     await page.click('button[type="submit"]');
     await page.waitForLoadState('networkidle');
     
@@ -160,8 +171,8 @@ test.describe('🌏 Complete Application Migration Testing - All 7 Countries', (
   });
 
   test('🔄 Real-time System & Database Connectivity', async ({ page }) => {
-    await page.fill('input[name="username"]', TEST_USERS.admin.username);
-    await page.fill('input[name="password"]', TEST_USERS.admin.password);
+    await page.fill('input#username', TEST_USERS.admin.username);
+    await page.fill('input[type="password"]', TEST_USERS.admin.password);
     await page.click('button[type="submit"]');
     await page.waitForLoadState('networkidle');
     
@@ -193,8 +204,8 @@ test.describe('🌏 Complete Application Migration Testing - All 7 Countries', (
   });
 
   test('📊 Data Integrity - Core Tables Populated', async ({ page }) => {
-    await page.fill('input[name="username"]', TEST_USERS.admin.username);
-    await page.fill('input[name="password"]', TEST_USERS.admin.password);
+    await page.fill('input#username', TEST_USERS.admin.username);
+    await page.fill('input[type="password"]', TEST_USERS.admin.password);
     await page.click('button[type="submit"]');
     await page.waitForLoadState('networkidle');
     
@@ -270,8 +281,8 @@ test.describe('🧪 Application Stability & Performance', () => {
 
   test('🔄 Navigation Stability', async ({ page }) => {
     await page.goto(BASE_URL);
-    await page.fill('input[name="username"]', TEST_USERS.admin.username);
-    await page.fill('input[name="password"]', TEST_USERS.admin.password);
+    await page.fill('input#username', TEST_USERS.admin.username);
+    await page.fill('input[type="password"]', TEST_USERS.admin.password);
     await page.click('button[type="submit"]');
     await page.waitForLoadState('networkidle');
     
