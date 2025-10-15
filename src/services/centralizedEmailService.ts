@@ -303,20 +303,15 @@ class CentralizedEmailService {
   async getConfiguredCountries(): Promise<string[]> {
     try {
       const { data, error } = await supabase
-        .from('app_settings')
-        .select('setting_key')
-        .like('setting_key', `${this.ADMIN_EMAIL_CONFIG_KEY}_%`)
-        .eq('is_system_setting', true)
-        .is('user_id', null);
+        .from('admin_email_configs')
+        .select('country');
 
       if (error) {
         logger.error('Error retrieving configured countries:', error);
         return [];
       }
 
-      return data.map(item => 
-        item.setting_key.replace(`${this.ADMIN_EMAIL_CONFIG_KEY}_`, '')
-      );
+      return data.map(item => item.country);
     } catch (error) {
       logger.error('Error getting configured countries:', error);
       return [];
@@ -329,11 +324,9 @@ class CentralizedEmailService {
   async removeAdminEmailConfig(country: string): Promise<boolean> {
     try {
       const { error } = await supabase
-        .from('app_settings')
+        .from('admin_email_configs')
         .delete()
-        .eq('setting_key', `${this.ADMIN_EMAIL_CONFIG_KEY}_${country}`)
-        .eq('is_system_setting', true)
-        .is('user_id', null);
+        .eq('country', country);
 
       if (error) {
         logger.error(`Failed to remove admin email config for ${country}:`, error);
