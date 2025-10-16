@@ -357,20 +357,22 @@ class CentralizedEmailService {
   }
 
   /**
-   * Test admin email configuration
+   * Test admin email configuration (global)
    */
-  async testAdminEmailConfig(country: string, testEmail: string): Promise<{ success: boolean; error?: string }> {
-    return await this.sendEmail(country, {
+  async testAdminEmailConfig(testEmail: string): Promise<{ success: boolean; error?: string }> {
+    // Email config is global now, use any country for testing
+    const testCountry = 'Singapore'; // Just for the email template
+    return await this.sendEmail(testCountry, {
       to: [testEmail],
       subject: 'TM Case Booking - Admin Email Configuration Test',
       body: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2c5aa0;">Email Configuration Test</h2>
-          <p>This is a test email to verify that the admin email configuration is working correctly for <strong>${country}</strong>.</p>
+          <p>This is a test email to verify that the global admin email configuration is working correctly.</p>
           
           <div style="background-color: #f0f8ff; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h3>Test Details</h3>
-            <p><strong>Country:</strong> ${country}</p>
+            <p><strong>Configuration:</strong> Global (applies to all countries)</p>
             <p><strong>Sent At:</strong> ${new Date().toLocaleString()}</p>
             <p><strong>Authentication:</strong> Admin System Account</p>
           </div>
