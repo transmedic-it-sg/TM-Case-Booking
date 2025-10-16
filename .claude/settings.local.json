@@ -58,7 +58,8 @@
       "mcp__supabase__apply_migration",
       "mcp__supabase__deploy_edge_function",
       "Bash(git checkout:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "mcp__supabase__list_migrations"
     ],
     "deny": [
       "mcp__supabase-old__*",

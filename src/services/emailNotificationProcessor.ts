@@ -391,6 +391,16 @@ const replaceTemplateVariables = async (
   // Format surgery set selection and implant box arrays
   const formatArray = (arr: string[] | undefined) => arr?.length ? arr.join(', ') : 'None selected';
   
+  // Format arrays with quantities
+  const formatArrayWithQuantities = (arr: string[] | undefined, quantities: Record<string, number> | undefined) => {
+    if (!arr?.length) return 'None selected';
+    
+    return arr.map(item => {
+      const quantity = quantities?.[item] || 1; // Default to 1 if no quantity specified
+      return `${item} (Qty: ${quantity})`;
+    }).join(', ');
+  };
+  
   // Get user information asynchronously
   const submitterName = await getSubmitterName(caseData.submittedBy);
   const currentUserInfo = await getCurrentUserInfo(changedBy);
@@ -414,9 +424,9 @@ const replaceTemplateVariables = async (
     .replace(/\{\{procedureType\}\}/g, caseData.procedureType)
     .replace(/\{\{procedureName\}\}/g, caseData.procedureName)
     .replace(/\{\{doctorName\}\}/g, caseData.doctorName || 'Not specified')
-    .replace(/\{\{surgerySetSelection\}\}/g, formatArray(caseData.surgerySetSelection))
-    .replace(/\{\{surgeryImplants\}\}/g, formatArray(caseData.implantBox))
-    .replace(/\{\{implantBox\}\}/g, formatArray(caseData.implantBox))
+    .replace(/\{\{surgerySetSelection\}\}/g, formatArrayWithQuantities(caseData.surgerySetSelection, caseData.quantities))
+    .replace(/\{\{surgeryImplants\}\}/g, formatArrayWithQuantities(caseData.implantBox, caseData.quantities))
+    .replace(/\{\{implantBox\}\}/g, formatArrayWithQuantities(caseData.implantBox, caseData.quantities))
     
     // User & Timestamps
     .replace(/\{\{submittedBy\}\}/g, submitterName || caseData.submittedBy)

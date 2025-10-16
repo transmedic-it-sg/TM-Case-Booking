@@ -625,8 +625,14 @@ const AppContent: React.FC = () => {
   const hasAdminAccess = (user: User | null): boolean => {
     if (!user) return false;
 
+    // Admin role always has access to admin panel
+    if (user.role === 'admin') {
+      console.log('✅ Admin panel access granted for admin role');
+      return true;
+    }
+
     // Check if user has any admin panel permissions
-    return hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) ||
+    const hasAccess = hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) ||
            hasPermission(user.role, PERMISSION_ACTIONS.VIEW_REPORTS) ||
            hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) ||
            hasPermission(user.role, PERMISSION_ACTIONS.PERMISSION_MATRIX) ||
@@ -634,6 +640,14 @@ const AppContent: React.FC = () => {
            hasPermission(user.role, PERMISSION_ACTIONS.AUDIT_LOGS) ||
            hasPermission(user.role, PERMISSION_ACTIONS.EXPORT_DATA) ||
            hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS);
+    
+    console.log('🔍 Admin panel access check:', {
+      role: user.role,
+      hasAccess,
+      username: user.username
+    });
+    
+    return hasAccess;
   };
 
   // Helper function to toggle admin panel
@@ -755,7 +769,7 @@ const AppContent: React.FC = () => {
 
                     {adminPanelExpanded && (
                       <div className="header-admin-submenu">
-                        {hasPermission(user.role, PERMISSION_ACTIONS.VIEW_REPORTS) && (
+                        {(user.role === 'admin' || hasPermission(user.role, PERMISSION_ACTIONS.VIEW_REPORTS)) && (
                           <button
                             onClick={() => {
                               setActivePage('reports');
@@ -767,7 +781,7 @@ const AppContent: React.FC = () => {
                             📊 Reports
                           </button>
                         )}
-                        {hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) && (
+                        {(user.role === 'admin' || hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS)) && (
                           <button
                             onClick={() => {
                               setActivePage('system-settings');
@@ -779,7 +793,7 @@ const AppContent: React.FC = () => {
                             ⚙️ System Settings
                           </button>
                         )}
-                        {hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) && (
+                        {(user.role === 'admin' || hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP)) && (
                           <button
                             onClick={() => {
                               setActivePage('codetables');
@@ -791,7 +805,7 @@ const AppContent: React.FC = () => {
                             📊 Code Table Setup
                           </button>
                         )}
-                        {hasPermission(user.role, PERMISSION_ACTIONS.PERMISSION_MATRIX) && (
+                        {(user.role === 'admin' || hasPermission(user.role, PERMISSION_ACTIONS.PERMISSION_MATRIX)) && (
                           <button
                             onClick={() => {
                               setActivePage('permissions');
@@ -803,7 +817,7 @@ const AppContent: React.FC = () => {
                             🔐 Permissions
                           </button>
                         )}
-                        {hasPermission(user.role, PERMISSION_ACTIONS.EMAIL_CONFIG) && (
+                        {(user.role === 'admin' || hasPermission(user.role, PERMISSION_ACTIONS.EMAIL_CONFIG)) && (
                           <button
                             onClick={() => {
                               setActivePage('email-config');
@@ -815,7 +829,7 @@ const AppContent: React.FC = () => {
                             📧 Email Configuration
                           </button>
                         )}
-                        {hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) && (
+                        {(user.role === 'admin' || hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS)) && (
                           <button
                             onClick={() => {
                               setActivePage('users');
@@ -827,7 +841,7 @@ const AppContent: React.FC = () => {
                             👥 User Management
                           </button>
                         )}
-                        {hasPermission(user.role, PERMISSION_ACTIONS.AUDIT_LOGS) && (
+                        {(user.role === 'admin' || hasPermission(user.role, PERMISSION_ACTIONS.AUDIT_LOGS)) && (
                           <button
                             onClick={() => {
                               setActivePage('audit-logs');
@@ -839,7 +853,7 @@ const AppContent: React.FC = () => {
                             📊 Audit Logs
                           </button>
                         )}
-                        {(hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) || hasPermission(user.role, PERMISSION_ACTIONS.EXPORT_DATA)) && (
+                        {(user.role === 'admin' || hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) || hasPermission(user.role, PERMISSION_ACTIONS.EXPORT_DATA)) && (
                           <button
                             onClick={() => {
                               setActivePage('data-import');

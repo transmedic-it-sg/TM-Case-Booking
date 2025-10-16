@@ -139,6 +139,18 @@ const UserManagement: React.FC = () => {
   const canEnableDisableUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.ENABLE_DISABLE_USER) : false;
   const canResetPassword = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.RESET_PASSWORD) : false;
 
+  // Debug logging for permissions
+  useEffect(() => {
+    console.log('🔍 USER MANAGEMENT PERMISSIONS DEBUG:', {
+      currentUser: currentUser?.role,
+      canEditUsers,
+      canDeleteUsers,
+      canEnableDisableUsers,
+      canResetPassword,
+      DELETE_USER_ACTION: PERMISSION_ACTIONS.DELETE_USER
+    });
+  }, [currentUser, canDeleteUsers]);
+
   const { addNotification } = useNotifications();
   const { showSuccess, showError } = useToast();
   const { playSound } = useSound();

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tm-case-booking-COMPLETE-RESET-' + Date.now() + '-' + Math.random();
+const CACHE_NAME = 'tm-case-booking-v1.3.3-FIXES-' + Date.now() + '-' + Math.random();
 const urlsToCache = [
   '/',
   '/manifest.json',
