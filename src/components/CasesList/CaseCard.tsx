@@ -344,7 +344,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   // Find the most recent attachments for statuses without active forms
   const currentAttachments = useMemo(() => {
     // Only show for specific statuses that don't have their own forms
-    const statusesWithoutForms = ['Order Prepared', 'Sales Approval'];
+    const statusesWithoutForms = ['Order Prepared', 'Sales Approved'];
 
     if (!statusesWithoutForms.includes(caseItem.status)) {
       return [];
@@ -375,7 +375,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   // Find the most recent comments for statuses without active forms
   const currentComments = useMemo(() => {
     // Only show for specific statuses that don't have their own forms
-    const statusesWithoutForms = ['Order Prepared', 'Sales Approval'];
+    const statusesWithoutForms = ['Order Prepared', 'Sales Approved'];
 
     if (!statusesWithoutForms.includes(caseItem.status)) {
       return '';
@@ -559,7 +559,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
             {currentComments && (
               <div className="detail-item full-width">
                 <span className="detail-label">
-                  {caseItem.status === 'Sales Approval' ? 'Sales Approval Comments' : 
+                  {caseItem.status === 'Sales Approved' ? 'Sales Approved Comments' : 
                    caseItem.status === 'Order Prepared' ? 'Order Prepared Comments' : 
                    'Status Comments'}: 
                 </span>
@@ -581,7 +581,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
             {currentAttachments.length > 0 && (
               <div className="detail-item full-width">
                 <span className="detail-label">
-                  {caseItem.status === 'Sales Approval' ? 'Sales Approval Attachments' : 
+                  {caseItem.status === 'Sales Approved' ? 'Sales Approved Attachments' : 
                    caseItem.status === 'Order Prepared' ? 'Order Prepared Attachments' : 
                    'Status Attachments'}: 
                 </span>
@@ -1160,7 +1160,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
           {/* Sales Approval Form */}
           {salesApprovalCase === caseItem.id && (
             <div className="sales-approval-form">
-              <h4>Sales Approval</h4>
+              <h4>Sales Approved</h4>
               <div className="form-group">
                 <label>Comments (Optional):</label>
                 <textarea
@@ -1220,7 +1220,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
                   onClick={() => onSaveSalesApproval(caseItem.id)}
                   className="btn btn-primary btn-md primary-button"
                 >
-                  Submit for Sales Approval
+                  Submit for Sales Approved
                 </button>
                 <button
                   onClick={onCancelSalesApproval}

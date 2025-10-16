@@ -154,16 +154,21 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
       .select()
       .single();
 
+    // Handle 409 Conflict specifically - user already exists
+    if (error?.code === 'PGRST116' || error?.code === '23505' || error?.message?.includes('409')) {
+      throw new Error('A user with this username or email already exists. Please use different values.');
+    }
+    
     if (error) {
-      // Provide specific error message for duplicates
-      if (error.code === '23505') { // Unique constraint violation
+      // Provide specific error message for other database errors
+      if (error.message?.includes('duplicate') || error.message?.includes('already exists')) { 
         throw new Error('A user with this username or email already exists. Please use different values.');
       }
       throw error;
     }
 
     if (!data) {
-      throw new Error('User was not created - no data returned from database');
+      throw new Error('Failed to create user. Please check all required fields are filled correctly.');
     }
 
     return {

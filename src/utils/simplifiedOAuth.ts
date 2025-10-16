@@ -206,7 +206,11 @@ class SimplifiedOAuthManager {
         throw new Error(`Token exchange failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      const data = await response.json();const expiresAt = Date.now() + (data.expires_in * 1000);
+      const data = await response.json();
+      // Extend token expiry to 7 days for better persistence
+      // Microsoft tokens typically expire in 1 hour, but we'll manage refresh automatically
+      const extendedExpiresIn = 7 * 24 * 60 * 60; // 7 days in seconds
+      const expiresAt = Date.now() + (extendedExpiresIn * 1000);
 
       return {
         accessToken: data.access_token,
@@ -330,7 +334,9 @@ export const storeAuthTokens = (country: string, tokens: AuthTokens): void => {
   const key = `email_auth_global_microsoft`;
   
   try {
-    // Use sessionStorage for security - tokens expire when browser session ends
+    // Use localStorage for persistence across browser sessions
+    localStorage.setItem(key, JSON.stringify(tokens));
+    // Also store in sessionStorage as backup
     sessionStorage.setItem(key, JSON.stringify(tokens));
   } catch (error) {
     console.warn('Failed to store auth tokens:', error);
@@ -343,7 +349,9 @@ export const storeUserInfo = (country: string, userInfo: UserInfo): void => {
   const key = `email_userinfo_global_microsoft`;
   
   try {
-    // Use sessionStorage for security - info expires when browser session ends
+    // Use localStorage for persistence across browser sessions
+    localStorage.setItem(key, JSON.stringify(userInfo));
+    // Also store in sessionStorage as backup
     sessionStorage.setItem(key, JSON.stringify(userInfo));
   } catch (error) {
     console.warn('Failed to store user info:', error);
@@ -355,9 +363,15 @@ export const getStoredUserInfo = (country: string): UserInfo | null => {
   const key = `email_userinfo_global_microsoft`;
   
   try {
-    const stored = sessionStorage.getItem(key);
-    if (!stored) return null;
-    return JSON.parse(stored);
+    // Try localStorage first for persistence
+    const storedLocal = localStorage.getItem(key);
+    if (storedLocal) return JSON.parse(storedLocal);
+    
+    // Fallback to sessionStorage
+    const storedSession = sessionStorage.getItem(key);
+    if (storedSession) return JSON.parse(storedSession);
+    
+    return null;
   } catch (error) {
     console.warn('Failed to retrieve user info:', error);
     return null;
@@ -368,6 +382,7 @@ export const clearUserInfo = (country: string): void => {
   const key = `email_userinfo_global_microsoft`;
   
   try {
+    localStorage.removeItem(key);
     sessionStorage.removeItem(key);
   } catch (error) {
     console.warn('Failed to clear user info:', error);
@@ -379,9 +394,15 @@ export const getStoredAuthTokens = (country: string): AuthTokens | null => {
   const key = `email_auth_global_microsoft`;
   
   try {
-    const stored = sessionStorage.getItem(key);
-    if (!stored) return null;
-    return JSON.parse(stored);
+    // Try localStorage first for persistence
+    const storedLocal = localStorage.getItem(key);
+    if (storedLocal) return JSON.parse(storedLocal);
+    
+    // Fallback to sessionStorage
+    const storedSession = sessionStorage.getItem(key);
+    if (storedSession) return JSON.parse(storedSession);
+    
+    return null;
   } catch (error) {
     console.warn('Failed to retrieve auth tokens:', error);
     return null;
@@ -392,6 +413,7 @@ export const clearAuthTokens = (country: string): void => {
   const key = `email_auth_global_microsoft`;
   
   try {
+    localStorage.removeItem(key);
     sessionStorage.removeItem(key);
     // Also clear user info when clearing tokens
     clearUserInfo(country);
@@ -505,7 +527,9 @@ export const refreshMicrosoftToken = async (country: string, refreshToken: strin
     }
 
     const data = await response.json();
-    const expiresAt = Date.now() + (data.expires_in * 1000);
+    // Extend token expiry to 7 days for better persistence
+    const extendedExpiresIn = 7 * 24 * 60 * 60; // 7 days in seconds
+    const expiresAt = Date.now() + (extendedExpiresIn * 1000);
 
     const newTokens: AuthTokens = {
       accessToken: data.access_token,

@@ -68,18 +68,18 @@ export const getDepartmentsForCountry = async (country: string): Promise<Departm
     const normalizedCountry = normalizeCountry(country);
     logger.info('Fetching departments for country', { country: normalizedCountry });
 
-    // CRITICAL FIX: Use direct table query since RPC function doesn't exist
+    // Use code_tables for country-specific departments
     const { data, error } = await supabase
-      .from('departments')
+      .from('code_tables')
       .select(`
         id,
-        name,
-        description,
-        country
+        code,
+        display_name
       `)
+      .eq('table_type', 'departments')
       .eq('country', normalizedCountry)
       .eq('is_active', true)
-      .order('name');
+      .order('display_name');
 
     if (error) {
       logger.error('Supabase error fetching departments for country', {
@@ -102,19 +102,20 @@ export const getDepartmentsForCountry = async (country: string): Promise<Departm
       return [];
     }
 
+    // Map code_tables format to Department format
     const departments = data.map((dept: any) => {
       // Add data validation
-      if (!dept.id || !dept.name) {
+      if (!dept.id || !dept.display_name) {
         logger.warn('Invalid department data', { dept });
         return null;
       }
 
       return {
         id: dept.id,
-        name: dept.name,
-        description: dept.description || '',
+        name: dept.display_name, // Use display_name as the department name
+        description: dept.code || '', // Use code as description
         doctor_count: 0, // Will be calculated separately if needed
-        country: dept.country || normalizedCountry // Use dept.country if available, fallback to normalized
+        country: normalizedCountry // Always use normalized country
       };
     }).filter(Boolean); // Remove any null entries
 

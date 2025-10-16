@@ -99,7 +99,7 @@ const HybridLogin: React.FC<HybridLoginProps> = ({ onLogin }) => {
           name: profile.name,
           departments: profile.departments || [],
           countries: profile.countries || [],
-          selectedCountry: profile.countries[0] || 'Singapore',
+          selectedCountry: profile.countries?.[0] || profile.selected_country || '',
           enabled: profile.enabled,
           email: profile.email || '' // Add email field from profile
         };
@@ -112,8 +112,8 @@ const HybridLogin: React.FC<HybridLoginProps> = ({ onLogin }) => {
   };
 
   const handleLocalStorageLogin = async () => {
-    // Use existing localStorage authentication as fallback
-    const result = await authenticate(email.split('@')[0] || email, password, 'Singapore');
+    // Use existing localStorage authentication as fallback - no country needed for auth
+    const result = await authenticate(email.split('@')[0] || email, password);
     if (result.user) {
       onLogin(result.user);
     } else {

@@ -391,28 +391,50 @@ const replaceTemplateVariables = async (
   // Format surgery set selection and implant box arrays
   const formatArray = (arr: string[] | undefined) => arr?.length ? arr.join(', ') : 'None selected';
   
-  // Get user names asynchronously
+  // Get user information asynchronously
   const submitterName = await getSubmitterName(caseData.submittedBy);
+  const currentUserInfo = await getCurrentUserInfo(changedBy);
   
   return template
+    // Basic Case Information
     .replace(/\{\{caseReference\}\}/g, caseData.caseReferenceNumber)
     .replace(/\{\{caseReferenceNumber\}\}/g, caseData.caseReferenceNumber)
     .replace(/\{\{hospital\}\}/g, caseData.hospital)
     .replace(/\{\{department\}\}/g, caseData.department)
-    .replace(/\{\{doctorName\}\}/g, caseData.doctorName || 'Not specified')
+    .replace(/\{\{country\}\}/g, caseData.country)
+    .replace(/\{\{Status\}\}/g, caseData.status) // Capitalized Status
+    .replace(/\{\{status\}\}/g, caseData.status.toLowerCase()) // Lowercase status
+    .replace(/\{\{mrn\}\}/g, caseData.mrn || 'Not specified')
+    .replace(/\{\{patientName\}\}/g, caseData.patientName || 'Not specified')
+    
+    // Surgery Details
     .replace(/\{\{dateOfSurgery\}\}/g, caseData.dateOfSurgery)
     .replace(/\{\{timeOfProcedure\}\}/g, caseData.timeOfProcedure || 'Not specified')
     .replace(/\{\{procedureType\}\}/g, caseData.procedureType)
     .replace(/\{\{procedureName\}\}/g, caseData.procedureName)
+    .replace(/\{\{doctorName\}\}/g, caseData.doctorName || 'Not specified')
     .replace(/\{\{surgerySetSelection\}\}/g, formatArray(caseData.surgerySetSelection))
+    .replace(/\{\{surgeryImplants\}\}/g, formatArray(caseData.implantBox))
     .replace(/\{\{implantBox\}\}/g, formatArray(caseData.implantBox))
-    .replace(/\{\{specialInstruction\}\}/g, caseData.specialInstruction || 'None')
-    .replace(/\{\{status\}\}/g, caseData.status)
+    
+    // User & Timestamps
     .replace(/\{\{submittedBy\}\}/g, submitterName || caseData.submittedBy)
     .replace(/\{\{submittedAt\}\}/g, formatTimestamp(caseData.submittedAt))
-    .replace(/\{\{country\}\}/g, caseData.country)
-    .replace(/\{\{processedBy\}\}/g, changedBy || 'System')
+    .replace(/\{\{processedBy\}\}/g, currentUserInfo.name || changedBy || 'System')
     .replace(/\{\{processedAt\}\}/g, new Date().toLocaleString())
+    .replace(/\{\{currentDateTime\}\}/g, new Date().toLocaleString())
+    .replace(/\{\{userEmail\}\}/g, currentUserInfo.email || 'Not available')
+    .replace(/\{\{userName\}\}/g, currentUserInfo.name || changedBy || 'System')
+    
+    // Additional Information
+    .replace(/\{\{specialInstruction\}\}/g, caseData.specialInstruction || 'None')
+    .replace(/\{\{specialInstructions\}\}/g, caseData.specialInstruction || 'None') // Plural form
+    .replace(/\{\{remarks\}\}/g, caseData.remarks || caseData.specialInstruction || 'None')
+    .replace(/\{\{salesOrderNo\}\}/g, caseData.salesOrderNo || 'Not specified')
+    .replace(/\{\{poNo\}\}/g, caseData.poNo || 'Not specified')
+    .replace(/\{\{deliveryAddress\}\}/g, caseData.deliveryAddress || 'Not specified')
+    .replace(/\{\{contactPerson\}\}/g, caseData.contactPerson || 'Not specified')
+    .replace(/\{\{contactNumber\}\}/g, caseData.contactNumber || 'Not specified')
     .replace(/\n/g, '<br>'); // Convert line breaks to HTML breaks
 };
 
@@ -441,6 +463,41 @@ const getSubmitterName = async (submitterId?: string): Promise<string | null> =>
   } catch (error) {
     console.log('📧 EMAIL DEBUG - Error fetching user name:', error);
     return submitterId; // Fallback to ID
+  }
+};
+
+/**
+ * Get current user info from user ID or name
+ */
+const getCurrentUserInfo = async (userIdOrName?: string): Promise<{ name: string | null; email: string | null }> => {
+  if (!userIdOrName) return { name: null, email: null };
+  
+  try {
+    // Import supabase here to avoid circular dependencies
+    const { supabase } = await import('../lib/supabase');
+    
+    // First try to find by ID
+    let query = supabase
+      .from('profiles')
+      .select('name, username, email')
+      .or(`id.eq.${userIdOrName},username.eq.${userIdOrName},name.eq.${userIdOrName}`)
+      .limit(1)
+      .single();
+    
+    const { data: user, error } = await query;
+    
+    if (error) {
+      console.log('📧 EMAIL DEBUG - Could not fetch current user info:', error.message);
+      return { name: userIdOrName, email: null };
+    }
+    
+    return {
+      name: user?.name || user?.username || userIdOrName,
+      email: user?.email || null
+    };
+  } catch (error) {
+    console.log('📧 EMAIL DEBUG - Error fetching current user info:', error);
+    return { name: userIdOrName, email: null };
   }
 };
 

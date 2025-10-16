@@ -143,8 +143,15 @@ class RealtimeCaseService {
     amendmentData: Partial<CaseBooking>,
     userInfo: { id: string; name: string }
   ): Promise<boolean> {try {
-      await amendSupabaseCase(caseId, amendmentData, userInfo.name);// Audit trail
-      await auditCaseAmended(userInfo.name, userInfo.id, 'admin', caseId, ['case amended'], 'Singapore', 'General');
+      await amendSupabaseCase(caseId, amendmentData, userInfo.name);
+      
+      // Get case to determine country and department
+      const caseData = await this.getCaseById(caseId);
+      const country = caseData?.country || amendmentData.country;
+      const department = caseData?.department || amendmentData.department || 'General';
+      
+      // Audit trail with actual country and department
+      await auditCaseAmended(userInfo.name, userInfo.id, 'admin', caseId, ['case amended'], country, department);
 
       // Send notifications - but no cache updates needed
       notificationService.addNotification({
@@ -184,7 +191,16 @@ class RealtimeCaseService {
    * Generate case reference number - Direct database operation
    */
   async generateCaseReferenceNumber(country?: string): Promise<string> {try {
-      const referenceNumber = await generateSupabaseCaseReferenceNumber(country || 'Singapore');return referenceNumber;
+      // Get country from user context if not provided
+      if (!country || !country.trim()) {
+        const currentUser = await userService.getCurrentUser();
+        country = currentUser?.selectedCountry || currentUser?.countries?.[0];
+        if (!country) {
+          throw new Error('No country specified for case reference generation');
+        }
+      }
+      
+      const referenceNumber = await generateSupabaseCaseReferenceNumber(country);return referenceNumber;
     } catch (error) {
       throw error;
     }

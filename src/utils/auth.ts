@@ -293,7 +293,7 @@ export const addUser = async (user: Omit<User, 'id'>): Promise<User> => {
   }
 };
 
-export const authenticate = async (username: string, password: string, country: string): Promise<{ user: User | null; error?: string; requiresPasswordChange?: boolean; temporaryUser?: User }> => {
+export const authenticate = async (username: string, password: string, country?: string): Promise<{ user: User | null; error?: string; requiresPasswordChange?: boolean; temporaryUser?: User }> => {
   try {
     let user = await authenticateUser(username, password);
 
@@ -318,9 +318,12 @@ export const authenticate = async (username: string, password: string, country: 
       };
     }
 
-    // Check if user has access to the selected country
-    if (user.role === 'admin' || (user.countries && user.countries.includes(country))) {
-      const userWithCountry = { ...user, selectedCountry: country };
+    // Set country from user's first available country if not specified
+    const selectedCountry = country || user.countries?.[0] || user.selectedCountry || '';
+    
+    // Check if user has access to the selected country (skip check if no country specified)
+    if (!selectedCountry || user.role === 'admin' || (user.countries && user.countries.includes(selectedCountry))) {
+      const userWithCountry = { ...user, selectedCountry: selectedCountry };
 
       // Implement single session enforcement - delete all existing sessions for this user
       try {

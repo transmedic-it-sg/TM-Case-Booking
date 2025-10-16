@@ -540,7 +540,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
     }
 
     try {
-      const userCountry = normalizeCountry(currentUser.selectedCountry || 'Singapore');
+      const userCountry = normalizeCountry(currentUser.selectedCountry || currentUser.countries?.[0] || '');
       const caseReferenceNumber = await generateCaseReferenceNumber();
 
       const newCase: CaseBooking = {

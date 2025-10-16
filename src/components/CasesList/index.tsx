@@ -233,9 +233,19 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     const currentUser = getCurrentUserSync();
     if (currentUser?.role === 'driver') {
       // Auto-apply delivery status filters for drivers
-      // Set the first delivery status as default filter to show driver-relevant cases
+      // Drivers should only see: Sales Approved, Pending Delivery (Hospital), 
+      // Case Completed, Pending Collection (At hospital)
+      const driverVisibleStatuses = [
+        'Sales Approved',
+        'Pending Delivery (Hospital)', 
+        'Case Completed',
+        'Pending Collection (At Hospital)'
+      ];
+      
+      // Note: Since filters only support single status, we'll need to modify the filtering logic
+      // For now, set to Sales Approved as the default view
       const defaultFilters = {
-        status: CASE_STATUSES.PENDING_DELIVERY_HOSPITAL as CaseStatus
+        status: 'Sales Approved' as CaseStatus
       };
 
       setFilters(defaultFilters);
@@ -267,6 +277,21 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   const filteredCases = useMemo(() => {
     const currentUser = getCurrentUserSync();
     let filteredResults = filterCasesLocally(cases, filters, currentUser?.role);
+
+    // Driver users only see specific statuses
+    if (currentUser?.role === 'driver') {
+      const driverVisibleStatuses = [
+        'Sales Approved',
+        'Pending Delivery (Hospital)', 
+        'Case Completed',
+        'Pending Collection (At Hospital)'
+      ];
+      
+      // Filter to only show driver-relevant statuses
+      filteredResults = filteredResults.filter(caseItem => 
+        driverVisibleStatuses.includes(caseItem.status)
+      );
+    }
 
     // Admin users see ALL cases without country/department restrictions
     if (currentUser?.role === 'admin') {
@@ -724,13 +749,13 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setOrderPreparedAttachments([]);
   };
 
-  // Sales Approval workflow
+  // Sales Approved workflow
   const handleSalesApproval = (caseId: string) => {
     const currentUser = getCurrentUserSync();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.SALES_APPROVAL)) {
       return;
     }
-    // Show the Sales Approval form
+    // Show the Sales Approved form
     setSalesApprovalCase(caseId);
     setSalesApprovalComments('');
     setSalesApprovalAttachments([]);
@@ -803,7 +828,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
       // Single notification instead of popup + notification
       addNotification({
-        title: 'Sales Approval Submitted',
+        title: 'Sales Approved Submitted',
         message: `Case ${caseId} successfully submitted for sales approval`,
         type: 'success'
       });
@@ -816,7 +841,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     } catch (error) {
       console.error('❌ SALES APPROVAL DEBUG - Error occurred:', error);
       addNotification({
-        title: 'Sales Approval Failed',
+        title: 'Sales Approved Failed',
         message: 'Failed to submit case for sales approval. Please try again.',
         type: 'error'
       });

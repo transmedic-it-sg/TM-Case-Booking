@@ -76,9 +76,17 @@ interface SupabaseCaseAmendmentHistory {
 /**
  * Generate a unique case reference number
  */
-export const generateCaseReferenceNumber = async (country: string = 'Singapore'): Promise<string> => {
-  // Ensure country has a valid value
-  const validCountry = country && country.trim() ? country.trim() : 'Singapore';
+export const generateCaseReferenceNumber = async (country?: string): Promise<string> => {
+  // Get country from user context if not provided
+  if (!country || !country.trim()) {
+    const { getCurrentUserSync } = await import('../services/userService');
+    const currentUser = getCurrentUserSync();
+    country = currentUser?.selectedCountry || currentUser?.countries?.[0];
+    if (!country) {
+      throw new Error('No country specified for case reference generation');
+    }
+  }
+  const validCountry = country.trim();
   
   try {
     const currentYear = new Date().getFullYear();
@@ -446,7 +454,7 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
     // }
 
     // Generate case reference number with fallback
-    const caseReferenceNumber = await generateCaseReferenceNumber(caseData.country || 'Singapore');
+    const caseReferenceNumber = await generateCaseReferenceNumber(caseData.country);
 
     console.log('Saving case with data:', {
       caseReferenceNumber,
@@ -667,7 +675,7 @@ export const updateSupabaseCaseStatus = async (
   attachments?: string[]
 ): Promise<void> => {
   // CRITICAL FIX: Use optimized status update for performance-critical operations
-  const performanceCriticalStatuses = ['Sales Approval', 'Order Prepared', 'Hospital Delivery'];
+  const performanceCriticalStatuses = ['Sales Approved', 'Order Prepared', 'Hospital Delivery'];
   
   if (performanceCriticalStatuses.includes(newStatus)) {
     const { updateCaseStatusOptimized } = await import('./optimizedStatusUpdateService');

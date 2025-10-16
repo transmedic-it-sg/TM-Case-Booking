@@ -96,6 +96,25 @@ self.addEventListener('fetch', (event) => {
         
         return fetch(request)
           .then((response) => {
+            // Check if we got HTML instead of the expected resource
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('text/html') && 
+                (event.request.url.includes('.js') || event.request.url.includes('.css'))) {
+              console.warn('⚠️ Got HTML instead of expected resource, using fallback:', event.request.url);
+              // Return empty response to avoid MIME type errors
+              if (event.request.url.includes('.js')) {
+                return new Response('// Resource not found', {
+                  status: 200,
+                  headers: { 'Content-Type': 'application/javascript' }
+                });
+              } else if (event.request.url.includes('.css')) {
+                return new Response('/* Resource not found */', {
+                  status: 200,
+                  headers: { 'Content-Type': 'text/css' }
+                });
+              }
+            }
+            
             if (response && response.status === 200) {
               // NEVER cache JS/CSS files - ALWAYS fresh
               console.log('🔄 Serving UNCACHED fresh JS/CSS from network:', event.request.url);
@@ -105,7 +124,22 @@ self.addEventListener('fetch', (event) => {
           .catch((error) => {
             console.warn('⚠️ Network failed for JS/CSS, trying original request:', error);
             // Try original request without cache-busting as fallback
-            return fetch(event.request);
+            return fetch(event.request)
+              .catch(() => {
+                // Final fallback - return empty valid response
+                if (event.request.url.includes('.js')) {
+                  return new Response('// Resource offline', {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/javascript' }
+                  });
+                } else if (event.request.url.includes('.css')) {
+                  return new Response('/* Resource offline */', {
+                    status: 200,
+                    headers: { 'Content-Type': 'text/css' }
+                  });
+                }
+                return new Response('', { status: 404 });
+              });
           });
       }
       

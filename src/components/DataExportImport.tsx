@@ -180,59 +180,33 @@ const DataExportImport: React.FC = () => {
     try {
       const preview: any = {};
       
-      // Get counts for each entity
+      // Get accurate counts for each entity
       for (const entity of dataEntities) {
         if (entity.exportEnabled) {
           try {
-            // For tables that might have RLS issues, try different approaches
             let count = 0;
             
-            if (entity.table === 'code_tables') {
-              // Use a simple select to get approximate count
-              const { data, error } = await supabase
-                .from(entity.table)
-                .select('id')
-                .limit(1000);
-              
-              if (!error && data) {
-                count = data.length;
-                // If we get 1000 records, there might be more
-                if (data.length === 1000) {
-                  count = 1000; // Show 1000+ 
-                }
-              }
-            } else if (entity.table === 'users') {
-              // For users table, try count query with user context
-              const { count: userCount, error } = await supabase
-                .from(entity.table)
-                .select('*', { count: 'exact', head: true });
-              
-              if (!error) {
-                count = userCount || 0;
-              } else {
-                // Fallback: try to get visible users
-                const { data } = await supabase
-                  .from(entity.table)
-                  .select('id')
-                  .limit(100);
-                count = data?.length || 0;
-              }
+            // Use proper table names and count methods
+            const actualTableName = entity.table === 'users' ? 'profiles' : entity.table;
+            
+            // Try exact count first for all tables
+            const { count: exactCount, error: countError } = await supabase
+              .from(actualTableName)
+              .select('*', { count: 'exact', head: true });
+            
+            if (!countError && exactCount !== null) {
+              count = exactCount;
             } else {
-              // Standard count query for other tables
-              const { count: tableCount, error } = await supabase
-                .from(entity.table)
-                .select('*', { count: 'exact', head: true });
+              // Fallback: Get actual records and count them
+              const { data, error: dataError } = await supabase
+                .from(actualTableName)
+                .select('id');
               
-              if (!error) {
-                count = tableCount || 0;
+              if (!dataError && data) {
+                count = data.length;
               } else {
-                console.warn(`Failed to count ${entity.table}:`, error);
-                // For tables we can't count, show estimated count
-                const { data } = await supabase
-                  .from(entity.table)
-                  .select('id')
-                  .limit(10);
-                count = data?.length || 0;
+                console.warn(`Failed to count ${actualTableName}:`, countError || dataError);
+                count = 0;
               }
             }
             

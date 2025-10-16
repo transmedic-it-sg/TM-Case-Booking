@@ -124,7 +124,13 @@ const NotificationBell: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="notification-dropdown" data-testid="notification-dropdown">
+        <>
+          {/* Mobile backdrop */}
+          <div 
+            className="notification-backdrop-mobile"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="notification-dropdown" data-testid="notification-dropdown">
           <div className="notification-header">
             <h3>Notifications</h3>
             <div className="notification-header-actions">
@@ -206,6 +212,7 @@ const NotificationBell: React.FC = () => {
             </div>
           )}
         </div>
+        </>
       )}
 
       {/* Notification Settings Modal */}

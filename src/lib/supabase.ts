@@ -23,12 +23,33 @@ const isSupabaseConfigured =
   process.env.REACT_APP_SUPABASE_ANON_KEY &&
   !process.env.REACT_APP_SUPABASE_URL.includes('your-project-id')
 
-// Create Supabase client
+// Create Supabase client with enhanced session persistence
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storage: {
+      // Use localStorage for better persistence across refreshes
+      getItem: (key) => {
+        if (typeof window !== 'undefined') {
+          return window.localStorage.getItem(key);
+        }
+        return null;
+      },
+      setItem: (key, value) => {
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(key, value);
+        }
+      },
+      removeItem: (key) => {
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem(key);
+        }
+      }
+    },
+    storageKey: 'tm-case-booking-auth',
+    flowType: 'pkce'
   },
   global: {
     headers: {

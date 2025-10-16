@@ -145,26 +145,44 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
 
     // Update or insert each setting
     for (const mapping of configMappings) {
-      const { error } = await supabase
+      // First try to update existing setting
+      const { data: existingData, error: selectError } = await supabase
         .from('system_settings')
-        .upsert({
-          setting_key: mapping.key, // ⚠️ setting_key (settingKey) - NOT settingkey
-          setting_value: mapping.value, // ⚠️ setting_value (settingValue) - NOT settingvalue
-          description: getSettingDescription(mapping.key),
-          updated_at: new Date().toISOString() // ⚠️ updated_at (updatedAt)
-        }, {
-          onConflict: 'setting_key' // ⚠️ setting_key (settingKey) - NOT settingkey
-        });
+        .select('id')
+        .eq('setting_key', mapping.key)
+        .single();
 
-      if (error) {
-        if (error.code === '42P01') {
-          // Table doesn't exist, throw error
-          throw new Error('System settings table not found');
+      if (existingData) {
+        // Update existing setting
+        const { error } = await supabase
+          .from('system_settings')
+          .update({
+            setting_value: mapping.value,
+            description: getSettingDescription(mapping.key),
+            updated_at: new Date().toISOString()
+          })
+          .eq('setting_key', mapping.key);
+
+        if (error) {
+          console.error(`Failed to update setting ${mapping.key}:`, error);
+          throw error;
         }
-        if (error.code === '401' || error.message.includes('permission denied')) {
-          throw new Error('Permission denied for system settings');
+      } else {
+        // Insert new setting
+        const { error } = await supabase
+          .from('system_settings')
+          .insert({
+            setting_key: mapping.key,
+            setting_value: mapping.value,
+            description: getSettingDescription(mapping.key),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        if (error) {
+          console.error(`Failed to insert setting ${mapping.key}:`, error);
+          throw error;
         }
-        throw error;
       }
     }
   } catch (error) {

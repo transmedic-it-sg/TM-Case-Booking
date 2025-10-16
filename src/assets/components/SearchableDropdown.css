@@ -28,13 +28,13 @@
 
 .dropdown-input:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
+  border-color: #28a745;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
   cursor: text;
 }
 
 .dropdown-input:hover:not(:disabled) {
-  border-color: var(--primary-color);
+  border-color: #28a745;
 }
 
 .dropdown-input:disabled {
@@ -64,12 +64,12 @@
 
 .dropdown-arrow:hover:not(:disabled) {
   background: rgba(0, 0, 0, 0.05);
-  color: var(--primary-color);
+  color: #28a745;
 }
 
 .dropdown-arrow.open {
   transform: rotate(180deg);
-  color: var(--primary-color);
+  color: #28a745;
 }
 
 .dropdown-arrow:disabled {
@@ -83,7 +83,7 @@
   left: 0;
   right: 0;
   background: white;
-  border: 2px solid var(--primary-color);
+  border: 2px solid #28a745;
   border-top: none;
   border-radius: 0 0 6px 6px;
   max-height: 200px;
@@ -117,7 +117,7 @@
 .dropdown-option:hover,
 .dropdown-option.focused {
   background: var(--primary-light);
-  color: var(--primary-color);
+  color: #28a745;
 }
 
 .dropdown-option.selected {

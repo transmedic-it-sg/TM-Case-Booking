@@ -123,14 +123,14 @@ export const permissionActions: PermissionAction[] = [
   },
   {
     id: 'sales-approval',
-    name: 'Sales Approval',
-    description: 'Order Prepared → Sales Approval',
+    name: 'Sales Approved',
+    description: 'Order Prepared → Sales Approved',
     category: 'Status Transitions'
   },
   {
     id: 'pending-delivery-hospital',
     name: 'Pending Delivery (Hospital)',
-    description: 'Sales Approval → Pending Delivery (Hospital)',
+    description: 'Sales Approved → Pending Delivery (Hospital)',
     category: 'Status Transitions'
   },
   {

@@ -65,7 +65,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
 
         {caseItem.status === 'Order Prepared' && (
           <Tooltip
-            content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.SALES_APPROVAL) ? 'Submit for Sales Approval' : 'You do not have permission to submit for sales approval'}
+            content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.SALES_APPROVAL) ? 'Submit for Sales Approved' : 'You do not have permission to submit for sales approval'}
             disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.SALES_APPROVAL)}
           >
             <button
@@ -75,12 +75,12 @@ const CaseActions: React.FC<CaseActionsProps> = ({
               }`}
               disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.SALES_APPROVAL)}
             >
-              Sales Approval
+              Sales Approved
             </button>
           </Tooltip>
         )}
 
-        {caseItem.status === 'Sales Approval' && (
+        {caseItem.status === 'Sales Approved' && (
           <Tooltip
             content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.PENDING_DELIVERY_HOSPITAL) ? 'Mark as Pending Delivery to Hospital' : 'You do not have permission to mark pending delivery to hospital'}
             disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.PENDING_DELIVERY_HOSPITAL)}
@@ -234,7 +234,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
       )}
 
       {/* Cancel Case button - only show for specific statuses */}
-      {(['Case Booked', 'Preparing Order', 'Order Prepared', 'Sales Approval', 'Pending Delivery (Hospital)', 'Delivered (Hospital)'].includes(caseItem.status)) && hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE) && (
+      {(['Case Booked', 'Preparing Order', 'Order Prepared', 'Sales Approved', 'Pending Delivery (Hospital)', 'Delivered (Hospital)'].includes(caseItem.status)) && hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE) && (
         <Tooltip
           content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE) ? 'Cancel this case - will mark as cancelled (case data preserved)' : 'You do not have permission to cancel cases'}
           disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.CANCEL_CASE)}

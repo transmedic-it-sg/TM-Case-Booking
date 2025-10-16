@@ -57,7 +57,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
   // Initialize selected country with user's first country or current selection
   useEffect(() => {
     if (currentUser && !selectedCountry) {
-      const userCountry = currentUser.selectedCountry || currentUser.countries?.[0] || 'Singapore';
+      const userCountry = currentUser.selectedCountry || currentUser.countries?.[0] || '';
       setSelectedCountry(userCountry);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -404,14 +404,13 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
         return;
       }
 
-      // Update local state only if Supabase operation succeeded
-      setCountryBasedTables(prevTables => {
-        return prevTables.map(t =>
-          t.id === selectedTable
-            ? { ...t, items: t.items.filter(item => item !== itemName) }
-            : t
-        );
-      });
+      // Force refresh from database to ensure we have the latest data
+      // Import the forceRefreshCodeTables function
+      const { forceRefreshCodeTables } = await import('../utils/supabaseCodeTableService');
+      await forceRefreshCodeTables(selectedCountry);
+      
+      // Reload the code tables to reflect the changes
+      await loadCodeTables();
 
       playSound.delete();
       showSuccess('Item Deleted', `"${itemName}" has been removed from ${table.name}`);

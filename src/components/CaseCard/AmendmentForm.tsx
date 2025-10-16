@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { AmendmentFormProps } from './types';
 import TimePicker from '../common/TimePicker';
 import FilterDatePicker from '../FilterDatePicker';
-import MultiSelectDropdownWithQuantity from '../MultiSelectDropdownWithQuantity';
+import MultiSelectDropdown from '../MultiSelectDropdown';
 import SearchableDropdown from '../SearchableDropdown';
 import { supabase } from '../../lib/supabase';
 import { normalizeCountry } from '../../utils/countryUtils';
@@ -547,40 +547,98 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
 
             {/* Surgery Sets with Quantities */}
             {surgerySetOptions.length > 0 && (
-              <div className="form-group">
-                <MultiSelectDropdownWithQuantity
-                  id="amendment-surgery-sets"
-                  label="Surgery Set"
-                  options={surgerySetOptions}
-                  value={formData.surgerySetSelection || []}
-                  quantities={quantities}
-                  onChange={(values) => handleInputChange('surgerySetSelection', values)}
-                  onQuantityChange={(item: string, quantity: number) => {
-                    setQuantities(prev => ({ ...prev, [item]: quantity }));
-                  }}
-                  placeholder="Select Surgery Sets..."
-                  disabled={!formData.procedureType}
-                />
-              </div>
+              <>
+                <div className="form-group">
+                  <MultiSelectDropdown
+                    id="amendment-surgery-sets"
+                    label="Surgery Sets"
+                    options={surgerySetOptions}
+                    value={formData.surgerySetSelection || []}
+                    onChange={(values) => handleInputChange('surgerySetSelection', values)}
+                    placeholder="Select Surgery Sets..."
+                    disabled={!formData.procedureType}
+                  />
+                </div>
+                
+                {/* Surgery Sets Quantities */}
+                {formData.surgerySetSelection.length > 0 && (
+                  <div className="form-group" style={{ marginTop: '-0.5rem', paddingLeft: '1rem' }}>
+                    <label style={{ fontSize: '0.9rem', color: '#6c757d' }}>Quantities:</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                      {formData.surgerySetSelection.map(set => (
+                        <div key={set} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.85rem' }}>{set}:</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max="99"
+                            value={quantities[set] || 1}
+                            onChange={(e) => {
+                              const quantity = parseInt(e.target.value) || 1;
+                              setQuantities(prev => ({ ...prev, [set]: quantity }));
+                            }}
+                            style={{
+                              width: '60px',
+                              padding: '4px 8px',
+                              border: '1px solid #28a745',
+                              borderRadius: '4px',
+                              textAlign: 'center'
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Implant Boxes with Quantities */}
             {implantBoxOptions.length > 0 && (
-              <div className="form-group">
-                <MultiSelectDropdownWithQuantity
-                  id="amendment-implant-boxes"
-                  label="Implant Box"
-                  options={implantBoxOptions}
-                  value={formData.implantBox || []}
-                  quantities={quantities}
-                  onChange={(values) => handleInputChange('implantBox', values)}
-                  onQuantityChange={(item: string, quantity: number) => {
-                    setQuantities(prev => ({ ...prev, [item]: quantity }));
-                  }}
-                  placeholder="Select Implant Boxes..."
-                  disabled={!formData.procedureType}
-                />
-              </div>
+              <>
+                <div className="form-group">
+                  <MultiSelectDropdown
+                    id="amendment-implant-boxes"
+                    label="Implant Boxes"
+                    options={implantBoxOptions}
+                    value={formData.implantBox || []}
+                    onChange={(values) => handleInputChange('implantBox', values)}
+                    placeholder="Select Implant Boxes..."
+                    disabled={!formData.procedureType}
+                  />
+                </div>
+                
+                {/* Implant Boxes Quantities */}
+                {formData.implantBox.length > 0 && (
+                  <div className="form-group" style={{ marginTop: '-0.5rem', paddingLeft: '1rem' }}>
+                    <label style={{ fontSize: '0.9rem', color: '#6c757d' }}>Quantities:</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                      {formData.implantBox.map(box => (
+                        <div key={box} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.85rem' }}>{box}:</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max="99"
+                            value={quantities[box] || 1}
+                            onChange={(e) => {
+                              const quantity = parseInt(e.target.value) || 1;
+                              setQuantities(prev => ({ ...prev, [box]: quantity }));
+                            }}
+                            style={{
+                              width: '60px',
+                              padding: '4px 8px',
+                              border: '1px solid #28a745',
+                              borderRadius: '4px',
+                              textAlign: 'center'
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

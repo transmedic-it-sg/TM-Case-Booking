@@ -52,7 +52,12 @@
       "Bash(pkill:*)",
       "mcp__supabase-new__get_project_url",
       "mcp__supabase-new__get_anon_key",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__deploy_edge_function",
+      "Bash(git checkout:*)"
     ],
     "deny": [
       "mcp__supabase-old__*",

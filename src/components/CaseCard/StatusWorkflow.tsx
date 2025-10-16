@@ -101,20 +101,20 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
         if (permissions.canSalesApproval) {
           actions.push({
             key: 'sales-approval',
-            label: 'Sales Approval',
+            label: 'Sales Approved',
             action: () => onStatusChange?.(CASE_STATUSES.SALES_APPROVAL),
             className: 'btn btn-success btn-sm',
             icon: '👨‍💼'
           });
           
-          console.log('✅ STATUS WORKFLOW DEBUG - Added Sales Approval action:', {
+          console.log('✅ STATUS WORKFLOW DEBUG - Added Sales Approved action:', {
             actionKey: 'sales-approval',
-            actionLabel: 'Sales Approval',
+            actionLabel: 'Sales Approved',
             targetStatus: CASE_STATUSES.SALES_APPROVAL,
             hasStatusChangeFunction: typeof onStatusChange === 'function'
           });
         } else {
-          console.log('❌ STATUS WORKFLOW DEBUG - Sales Approval NOT ADDED:', {
+          console.log('❌ STATUS WORKFLOW DEBUG - Sales Approved NOT ADDED:', {
             reason: 'Missing canSalesApproval permission',
             canSalesApproval: permissions.canSalesApproval
           });
@@ -122,7 +122,7 @@ const StatusWorkflow: React.FC<StatusWorkflowProps> = ({
         break;
 
       case CASE_STATUSES.SALES_APPROVAL:
-        console.log('🔍 STATUS WORKFLOW DEBUG - Sales Approval Handler:', {
+        console.log('🔍 STATUS WORKFLOW DEBUG - Sales Approved Handler:', {
           status: caseItem.status,
           canMarkDelivered: permissions.canMarkDelivered,
           hasOnOrderDelivered: typeof onOrderDelivered === 'function',

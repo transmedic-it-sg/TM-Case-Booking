@@ -18,7 +18,7 @@ const StatusLegend: React.FC = () => {
     { status: 'Case Booked', description: 'Initial case submission' },
     { status: 'Preparing Order', description: 'Processing order details' },
     { status: 'Order Prepared', description: 'Ready for sales approval' },
-    { status: 'Sales Approval', description: 'Sales team approval required' },
+    { status: 'Sales Approved', description: 'Sales team approval required' },
     { status: 'Pending Delivery (Hospital)', description: 'Pending hospital delivery' },
     { status: 'Delivered (Hospital)', description: 'Delivered to hospital' },
     { status: 'Case Completed', description: 'Surgery completed' },

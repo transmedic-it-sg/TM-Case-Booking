@@ -149,7 +149,9 @@ class DataValidationService {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    const validCountries = ['Singapore', 'Malaysia', 'Global'];
+    // Import from countryUtils to avoid hardcoding
+    const { SUPPORTED_COUNTRIES } = require('./countryUtils');
+    const validCountries = [...SUPPORTED_COUNTRIES, 'Global'];
 
     if (!country || country.trim().length === 0) {
       errors.push('Country is required');

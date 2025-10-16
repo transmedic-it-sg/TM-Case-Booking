@@ -7,6 +7,11 @@ import { useSound } from '../contexts/SoundContext';
 import { useToast } from './ToastContainer';
 import MultiSelectDropdown from './MultiSelectDropdown';
 import SearchableDropdown from './SearchableDropdown';
+import EmailNotificationModal from './EmailNotificationModal';
+import EmailNotificationRulesV132 from './EmailNotificationRulesV132';
+import EmailTemplateVariables from './EmailTemplateVariables';
+import UnifiedEmailAuth from './UnifiedEmailAuth';
+import getDefaultEmailTemplates from '../utils/emailTemplates';
 import { CASE_STATUSES, STATUS_WORKFLOW } from '../constants/statuses';
 import { USER_ROLES } from '../constants/permissions';
 import dynamicConstantsService from '../services/dynamicConstantsService';
@@ -132,6 +137,7 @@ const SimplifiedEmailConfig: React.FC = () => {
   const [ruleCollapsedStates, setRuleCollapsedStates] = useState<Record<number, boolean>>({});
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
+  const [modalConfig, setModalConfig] = useState<{ isOpen: boolean; rule: any; ruleIndex: number } | null>(null);
   
   // CRITICAL FIX: Admin email management state
   const [adminEmailConfigs, setAdminEmailConfigs] = useState<Record<string, AdminEmailCredentials>>({});
@@ -889,14 +895,19 @@ Best regards,
           statuses: rules.map(r => r.status)
         });
         
-        // Convert database rules to UI format
-        const matrixRules = rules.map(rule => ({
-          status: rule.status,
-          enabled: rule.enabled,
-          template: {
-            subject: rule.template.subject || '',
-            body: rule.template.body || ''
-          },
+        // Get default templates
+        const defaultTemplates = getDefaultEmailTemplates();
+        
+        // Convert database rules to UI format with default templates
+        const matrixRules = rules.map(rule => {
+          const defaultTemplate = defaultTemplates[rule.status as keyof typeof defaultTemplates] || { subject: '', body: '' };
+          return {
+            status: rule.status,
+            enabled: rule.enabled,
+            template: {
+              subject: rule.template.subject || defaultTemplate.subject,
+              body: rule.template.body || defaultTemplate.body
+            },
           recipients: {
             roles: rule.recipients.roles || [],
             specificEmails: rule.recipients.members || [],
@@ -904,8 +915,9 @@ Best regards,
             includeSubmitter: rule.recipients.includeSubmitter || false,
             requireSameDepartment: false // UI field not in database
           },
-          conditions: {}
-        }));
+            conditions: {}
+          };
+        });
         
         // Create matrix structure for this country
         const countryMatrix = {
@@ -1215,6 +1227,34 @@ Best regards,
     }));
   };
 
+  // Save email matrix configuration to database
+  const saveEmailMatrix = async (country: string, config: EmailNotificationMatrix) => {
+    try {
+      const user = await userService.getCurrentUser();
+      if (!user) return;
+
+      const { supabase } = await import('../lib/supabase');
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({
+          user_id: user.id,
+          setting_key: `email_matrix_${country}`,
+          setting_value: config,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,setting_key'
+        });
+
+      if (error) {
+        console.error('Error saving email matrix:', error);
+        showError('Failed to save email notification rules', 'Error');
+      }
+    } catch (error) {
+      console.error('Error in saveEmailMatrix:', error);
+      showError('Failed to save email notification rules', 'Error');
+    }
+  };
+
   // Toggle individual rule collapse state
   const toggleRuleCollapse = (ruleIndex: number) => {
     setRuleCollapsedStates(prev => ({
@@ -1223,6 +1263,7 @@ Best regards,
     }));
     playSound.click();
   };
+
 
   // Setup Admin OAuth - IMPLEMENTATION
   const setupAdminOAuth = async () => {
@@ -1525,8 +1566,17 @@ Best regards,
 
       {selectedCountry && (
         <>
-          {/* CRITICAL FIX: Admin Email Configuration Section */}
+          {/* Unified Email System Configuration - Replaces duplicate sections */}
           {currentUser?.role === 'admin' && (
+            <UnifiedEmailAuth
+              selectedCountry={selectedCountry}
+              isCollapsed={isAdminConfigCollapsed}
+              setIsCollapsed={setIsAdminConfigCollapsed}
+            />
+          )}
+
+          {/* DEPRECATED - Old Admin Email Configuration Section - Hidden */}
+          {currentUser?.role === 'admin' && false && (
             <div className="config-section">
               <div
                 className="section-header collapsible-header"
@@ -1700,7 +1750,8 @@ Best regards,
             </div>
           )}
 
-          {/* Collapsible Provider Authentication with Summary */}
+          {/* DEPRECATED - Collapsible Provider Authentication with Summary - Hidden */}
+          {false && (
           <div className="config-section">
             <div
               className="section-header collapsible-header"
@@ -1802,15 +1853,15 @@ Best regards,
                         <div className="auth-info">
                           <div>Authenticated as:</div>
                           <strong>{currentConfig?.providers?.microsoft?.userInfo?.email}</strong>
-                          {currentConfig?.providers?.microsoft?.tokens && (
+                          {currentConfig?.providers?.microsoft?.tokens ? (
                             <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '4px' }}>
-                              {currentConfig?.providers?.microsoft?.tokens && isTokenExpiringSoon(currentConfig.providers.microsoft.tokens) ? (
+                              {isTokenExpiringSoon(currentConfig.providers.microsoft.tokens as AuthTokens) ? (
                                 <span style={{ color: '#ffc107' }}>⚠️ Token expires soon</span>
                               ) : (
                                 <span style={{ color: '#28a745' }}>🔄 Auto-refresh enabled</span>
                               )}
                             </div>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                     ) : (
@@ -1893,170 +1944,62 @@ Best regards,
               </div>
             )}
           </div>
+          )}
 
-          {/* Email Notification Rules Section */}
-          <div className="config-section">
-            <div
-              className="section-header collapsible-header"
-              onClick={() => setIsNotificationRulesCollapsed(!isNotificationRulesCollapsed)}
-              style={{ cursor: 'pointer' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <h3>📮 Email Notification Rules</h3>
-                {/* Rules Summary Badge */}
-                {emailMatrixConfigs[selectedCountry] && (
-                  <div className="provider-status-badge-inline">
-                    <span className="status-icon">📊</span>
-                    <span style={{ fontSize: '0.85rem' }}>
-                      {emailMatrixConfigs[selectedCountry].rules.filter(rule => rule.enabled).length} of {emailMatrixConfigs[selectedCountry].rules.length} Active
-                    </span>
-                  </div>
-                )}
-              </div>
-              <span className={`chevron ${isNotificationRulesCollapsed ? 'collapsed' : 'expanded'}`}>
-                {isNotificationRulesCollapsed ? '▶' : '▼'}
-              </span>
-            </div>
+          {/* Email Notification Rules Section - Version 1.3.2 Design */}
+          <EmailNotificationRulesV132
+            selectedCountry={selectedCountry}
+            emailMatrixConfigs={emailMatrixConfigs}
+            ruleCollapsedStates={ruleCollapsedStates}
+            availableDepartments={availableDepartments}
+            isNotificationRulesCollapsed={isNotificationRulesCollapsed}
+            setIsNotificationRulesCollapsed={setIsNotificationRulesCollapsed}
+            toggleRuleCollapse={toggleRuleCollapse}
+            updateNotificationRule={updateNotificationRule}
+            saveNotificationMatrix={saveNotificationMatrix}
+          />
 
-            {!isNotificationRulesCollapsed && (
-              <div className="section-content">
-                <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#e3f2fd', borderRadius: '8px', border: '1px solid #2196f3' }}>
-                  <h4 style={{ color: '#1976d2', margin: '0 0 0.5rem 0' }}>📋 Configure Status-Based Email Notifications</h4>
-                  <p style={{ margin: '0', color: '#37474f', fontSize: '0.9rem' }}>
-                    Set up automatic email notifications for each case status change. Configure who receives notifications and customize email templates.
-                  </p>
-                </div>
-
-                {/* Important notice about Case Booked notifications */}
-                <div style={{
-                  marginBottom: '1.5rem',
-                  padding: '1rem',
-                  background: '#e8f5e8',
-                  borderRadius: '8px',
-                  border: '1px solid #4caf50'
-                }}>
-                  <h5 style={{ color: '#2e7d32', margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>
-                    📋 Important: Case Booked Notifications
-                  </h5>
-                  <p style={{ margin: '0', color: '#1b5e20', fontSize: '0.85rem' }}>
-                    <strong>Case Booked</strong> notifications are now automatically managed by the booking calendar system. 
-                    When a case is successfully booked, confirmations are sent directly to relevant parties without requiring separate configuration here.
-                  </p>
-                </div>
-
-                {/* Email Notification Matrix */}
-                {emailMatrixConfigs[selectedCountry] && (
-                  <div className="notification-matrix">
-                    <div style={{ display: 'grid', gap: '1rem' }}>
-                      {emailMatrixConfigs[selectedCountry].rules.map((rule, ruleIndex) => (
-                        <div
-                          key={rule.status}
-                          style={{
-                            padding: '1rem',
-                            border: '1px solid #e0e0e0',
-                            borderRadius: '8px',
-                            backgroundColor: rule.enabled ? '#f8f9fa' : '#fff3cd'
-                          }}
-                        >
-                          <div 
-                            style={{ 
-                              display: 'flex', 
-                              justifyContent: 'space-between', 
-                              alignItems: 'center', 
-                              marginBottom: '0.5rem',
-                              cursor: 'pointer'
-                            }}
-                            onClick={() => toggleRuleCollapse(ruleIndex)}
-                          >
-                            <h5 style={{ margin: 0, color: rule.enabled ? '#28a745' : '#856404' }}>
-                              {rule.status} {rule.enabled ? '✅' : '⚠️'}
-                            </h5>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                              <span style={{ 
-                                fontSize: '0.8rem', 
-                                color: rule.enabled ? '#28a745' : '#856404',
-                                fontWeight: '600'
-                              }}>
-                                {rule.enabled ? 'ACTIVE' : 'INACTIVE'}
-                              </span>
-                              <span className={`chevron ${ruleCollapsedStates[ruleIndex] ? 'collapsed' : 'expanded'}`}>
-                                {ruleCollapsedStates[ruleIndex] ? '▶' : '▼'}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          {/* Collapsible content for individual rule customization */}
-                          {!ruleCollapsedStates[ruleIndex] && (
-                            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e0e0e0' }}>
-                              {rule.enabled && rule.recipients && (
-                                <div style={{ fontSize: '0.85rem', color: '#6c757d', marginBottom: '1rem' }}>
-                                  <div><strong>Recipients:</strong></div>
-                                  <div style={{ marginLeft: '1rem', marginTop: '0.25rem' }}>
-                                    {(rule.recipients as any)?.roles && (rule.recipients as any).roles.length > 0 && (
-                                      <div>• Roles: {(rule.recipients as any).roles.join(', ')}</div>
-                                    )}
-                                    {(rule.recipients as any)?.members && (rule.recipients as any).members.length > 0 && (
-                                      <div>• Members: {(rule.recipients as any).members.join(', ')}</div>
-                                    )}
-                                    {(rule.recipients as any)?.specificEmails && (rule.recipients as any).specificEmails.length > 0 && (
-                                      <div>• Emails: {(rule.recipients as any).specificEmails.join(', ')}</div>
-                                    )}
-                                    {(rule.recipients as any)?.departments && (rule.recipients as any).departments.length > 0 && (
-                                      <div>• Departments: {(rule.recipients as any).departments.join(', ')}</div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {!rule.enabled && (
-                                <div style={{ fontSize: '0.85rem', color: '#856404', fontStyle: 'italic', marginBottom: '1rem' }}>
-                                  This status notification is disabled. Enable it to configure recipients and email templates.
-                                </div>
-                              )}
-                              
-                              {/* Rule customization controls */}
-                              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={rule.enabled}
-                                    onChange={(e) => updateNotificationRule(ruleIndex, { enabled: e.target.checked })}
-                                  />
-                                  Enable notifications for {rule.status}
-                                </label>
-                                
-                                {rule.enabled && (
-                                  <button
-                                    style={{
-                                      padding: '0.25rem 0.75rem',
-                                      fontSize: '0.8rem',
-                                      border: '1px solid #007bff',
-                                      backgroundColor: '#007bff',
-                                      color: 'white',
-                                      borderRadius: '4px',
-                                      cursor: 'pointer'
-                                    }}
-                                    onClick={() => {
-                                      // TODO: Open detailed configuration modal
-                                      console.log('Configure detailed settings for:', rule.status);
-                                    }}
-                                  >
-                                    Configure Details
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          {/* Template Variables Reference Section */}
+          <EmailTemplateVariables
+            isCollapsed={isTemplateVariablesCollapsed}
+            setIsCollapsed={setIsTemplateVariablesCollapsed}
+          />
 
         </>
+      )}
+
+      {/* Email Notification Modal */}
+      {modalConfig && (
+        <EmailNotificationModal
+          isOpen={modalConfig.isOpen}
+          onClose={() => setModalConfig(null)}
+          rule={modalConfig.rule}
+          country={selectedCountry}
+          onSave={(updatedRule) => {
+            // Update the rule in the email matrix configs
+            const currentConfig = emailMatrixConfigs[selectedCountry];
+            if (currentConfig) {
+              const updatedRules = [...currentConfig.rules];
+              updatedRules[modalConfig.ruleIndex] = updatedRule;
+              
+              const updatedConfig = {
+                ...currentConfig,
+                rules: updatedRules
+              };
+              
+              setEmailMatrixConfigs({
+                ...emailMatrixConfigs,
+                [selectedCountry]: updatedConfig
+              });
+
+              // Save to database
+              saveEmailMatrix(selectedCountry, updatedConfig);
+              
+              showSuccess('Success', 'Notification rule updated successfully');
+            }
+            setModalConfig(null);
+          }}
+        />
       )}
     </div>
   );

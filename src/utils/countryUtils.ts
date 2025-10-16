@@ -68,11 +68,12 @@ export const isSupportedCountry = (country: string): country is SupportedCountry
 };
 
 /**
- * Get default country (Singapore)
+ * Get default country (first available country, no preference)
  * @returns Default country name
  */
 export const getDefaultCountry = (): SupportedCountry => {
-  return 'Singapore';
+  // No country preference - use first from list or from user's available countries
+  return SUPPORTED_COUNTRIES[0];
 };
 
 /**

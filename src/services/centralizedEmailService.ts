@@ -5,6 +5,7 @@
 
 import { supabase } from '../lib/supabase';
 import { logger } from '../utils/logger';
+import { AuthTokens } from '../utils/simplifiedOAuth';
 
 export interface AdminEmailCredentials {
   provider: 'microsoft' | 'google';
@@ -29,23 +30,36 @@ class CentralizedEmailService {
   private readonly ADMIN_EMAIL_CONFIG_KEY = 'admin_email_config';
 
   /**
-   * Get admin email configuration for a specific country
+   * Get global admin email configuration (not country-specific)
+   * Email auth is application-wide, only notification rules are per-country
    */
-  async getAdminEmailConfig(country: string): Promise<AdminEmailCredentials | null> {
+  async getAdminEmailConfig(country?: string): Promise<AdminEmailCredentials | null> {
     try {
-      const { data, error } = await supabase
-        .from('admin_email_configs')
+      // First try global config (new approach)
+      let { data, error } = await supabase
+        .from('global_email_config')
         .select('*')
-        .eq('country', country)
+        .eq('is_active', true)
         .maybeSingle();
+      
+      // Fallback to country-specific for backward compatibility (will be removed)
+      if (!data && country) {
+        const countryResult = await supabase
+          .from('admin_email_configs')
+          .select('*')
+          .eq('country', country)
+          .maybeSingle();
+        data = countryResult.data;
+        error = countryResult.error;
+      }
 
       if (error) {
-        console.log(`📧 ADMIN CONFIG DEBUG - No admin email config exists yet for country: ${country}`);
+        console.log(`📧 ADMIN CONFIG DEBUG - No global admin email config exists yet`);
         return null;
       }
 
       if (!data) {
-        console.log(`📧 ADMIN CONFIG DEBUG - Empty admin email config for country: ${country}`);
+        console.log(`📧 ADMIN CONFIG DEBUG - Empty global admin email config`);
         return null;
       }
 
@@ -60,7 +74,7 @@ class CentralizedEmailService {
         fromName: data.from_name
       };
 
-      console.log(`📧 ADMIN CONFIG DEBUG - Found admin email config for country: ${country}`, {
+      console.log(`📧 ADMIN CONFIG DEBUG - Found global admin email config`, {
         provider: credentials.provider,
         hasFromEmail: !!credentials.fromEmail,
         tokenExpires: new Date(credentials.expiresAt).toISOString()
@@ -68,25 +82,25 @@ class CentralizedEmailService {
       
       return credentials;
     } catch (error) {
-      console.log(`📧 ADMIN CONFIG DEBUG - Admin email config not available for ${country}:`, error);
+      console.log(`📧 ADMIN CONFIG DEBUG - Global admin email config not available:`, error);
       return null;
     }
   }
 
   /**
-   * Store admin email configuration for a specific country
+   * Store global admin email configuration (not country-specific)
    * Only accessible by admin users
    */
   async setAdminEmailConfig(
-    country: string, 
     credentials: AdminEmailCredentials,
-    updatedBy: string
+    updatedBy: string,
+    country?: string // Optional, for backward compatibility
   ): Promise<boolean> {
     try {
+      // Store in global config table
       const { error } = await supabase
-        .from('admin_email_configs')
+        .from('global_email_config')
         .upsert({
-          country,
           provider: credentials.provider,
           client_id: credentials.clientId,
           tenant_id: credentials.tenantId,
@@ -96,18 +110,19 @@ class CentralizedEmailService {
           from_email: credentials.fromEmail,
           from_name: credentials.fromName,
           created_by: updatedBy,
+          is_active: true,
           updated_at: new Date().toISOString()
         });
 
       if (error) {
-        logger.error(`Failed to store admin email config for ${country}:`, error);
+        logger.error(`Failed to store global admin email config:`, error);
         return false;
       }
 
-      logger.info(`Admin email config stored successfully for country: ${country}`);
+      logger.info(`Global admin email config stored successfully`);
       return true;
     } catch (error) {
-      logger.error(`Error storing admin email config for ${country}:`, error);
+      logger.error(`Error storing global admin email config:`, error);
       return false;
     }
   }
@@ -371,6 +386,18 @@ class CentralizedEmailService {
       `
     });
   }
+}
+
+// Export helper functions
+export function isTokenExpired(tokens: AuthTokens | null | undefined): boolean {
+  if (!tokens?.expiresAt) return true;
+  return Date.now() >= tokens.expiresAt;
+}
+
+export function isTokenExpiringSoon(tokens: AuthTokens | null | undefined): boolean {
+  if (!tokens?.expiresAt) return true;
+  const bufferTime = 10 * 60 * 1000; // 10 minutes
+  return Date.now() >= tokens.expiresAt - bufferTime;
 }
 
 export const centralizedEmailService = new CentralizedEmailService();

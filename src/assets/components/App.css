@@ -4665,8 +4665,29 @@ textarea:focus {
   margin-top: 8px;
 }
 
+/* Mobile notification backdrop */
+.notification-backdrop-mobile {
+  display: none;
+}
+
 /* Mobile notification dropdown optimization */
 @media (max-width: 768px) {
+  .notification-backdrop-mobile {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99999;
+  }
+
+  .notification-bell-container {
+    position: static !important;
+    margin-right: 4px;
+  }
+
   .notification-dropdown {
     position: fixed !important;
     top: 60px !important;
@@ -7814,7 +7835,7 @@ textarea:focus {
   background-color: #0288d1 !important;
 }
 
-/* Sales Approval Form Standardization */
+/* Sales Approved Form Standardization */
 .sales-approval-form {
   background: var(--white);
   border: 1px solid var(--border-light);

@@ -870,8 +870,8 @@ const UserManagement: React.FC = () => {
                     />
                   </div>
 
-                  {/* Only show countries field for non-admin users AND when current user has edit-countries permission */}
-                  {newUser.role !== 'admin' && canEditCountries && (
+                  {/* Show countries field for non-admin users when current user is admin or has edit-countries permission */}
+                  {(newUser.role !== 'admin' && (currentUser?.role === 'admin' || canEditCountries)) && (
                     <div className="form-group">
                       <MultiSelectDropdown
                         id="newCountries"
@@ -940,7 +940,7 @@ const UserManagement: React.FC = () => {
                 )}
 
                 {/* Show message when user cannot edit countries (departments are still editable) */}
-                {newUser.role !== 'admin' && !canEditCountries && (
+                {newUser.role !== 'admin' && currentUser?.role !== 'admin' && !canEditCountries && (
                   <div className="form-group">
                     <div className="permission-warning">
                       <div className="warning-icon">⚠️</div>
