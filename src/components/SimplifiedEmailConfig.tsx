@@ -708,10 +708,10 @@ Best regards,
             fromName: provider.fromName || 'TM Spine Case Booking'
           };
           
-          // Save as system admin config
-          await centralizedEmailService.setAdminEmailConfig(country, adminCredentials, user?.name || 'System');
+          // Save as system admin config (global - no country needed)
+          await centralizedEmailService.setAdminEmailConfig(adminCredentials, user?.name || 'System');
           
-          console.log('✅ SAVE CONFIG DEBUG - Admin config saved for country:', country);
+          console.log('✅ SAVE CONFIG DEBUG - Admin config saved globally');
         }
       }
     } catch (error) {
