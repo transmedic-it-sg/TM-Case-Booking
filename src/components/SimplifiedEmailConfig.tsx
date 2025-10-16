@@ -1709,7 +1709,7 @@ Best regards,
                               onClick={async () => {
                                 setIsTesting(true);
                                 try {
-                                  const result = await centralizedEmailService.testAdminEmailConfig(selectedCountry, testEmailAddress);
+                                  const result = await centralizedEmailService.testAdminEmailConfig(testEmailAddress);
                                   if (result.success) {
                                     showSuccess('Test Successful', 'Test email sent successfully!');
                                   } else {
