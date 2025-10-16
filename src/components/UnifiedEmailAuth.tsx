@@ -106,8 +106,8 @@ const UnifiedEmailAuth: React.FC<UnifiedEmailAuthProps> = ({
           text: `Successfully authenticated as ${result.userInfo.email}` 
         });
 
-        // Schedule proactive token refresh
-        scheduleTokenRefresh(selectedCountry, result.tokens.expiresAt);
+        // Schedule proactive token refresh (global, no country needed)
+        scheduleTokenRefresh(result.tokens.expiresAt);
       } else {
         throw new Error('Authentication failed');
       }
@@ -122,7 +122,7 @@ const UnifiedEmailAuth: React.FC<UnifiedEmailAuthProps> = ({
     }
   };
 
-  const scheduleTokenRefresh = (country: string, expiresAt: number) => {
+  const scheduleTokenRefresh = (expiresAt: number) => {
     // Schedule refresh 30 minutes before expiry for better reliability
     const refreshTime = expiresAt - Date.now() - (30 * 60 * 1000);
     
@@ -134,17 +134,17 @@ const UnifiedEmailAuth: React.FC<UnifiedEmailAuthProps> = ({
     } else {
       // Token already expired or expiring soon, refresh immediately
       console.log('Token expired or expiring soon, refreshing immediately...');
-      refreshToken(country);
+      refreshToken();
     }
   };
 
-  const refreshToken = async (country: string) => {
+  const refreshToken = async () => {
     try {
       const { supabase } = await import('../lib/supabase');
       const { data } = await supabase
-        .from('admin_email_configs')
+        .from('global_email_config')
         .select('*')
-        .eq('country', country)
+        .eq('is_active', true)
         .single();
 
       if (!data || !data.refresh_token) return;
@@ -166,19 +166,19 @@ const UnifiedEmailAuth: React.FC<UnifiedEmailAuthProps> = ({
       if (response.ok) {
         const tokens = await response.json();
         
-        // Update tokens in database
+        // Update tokens in database (global)
         await supabase
-          .from('admin_email_configs')
+          .from('global_email_config')
           .update({
             access_token: tokens.access_token,
             refresh_token: tokens.refresh_token || data.refresh_token,
             expires_at: new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)).toISOString(), // 7 days expiry
             updated_at: new Date().toISOString()
           })
-          .eq('country', country);
+          .eq('is_active', true);
 
-        // Schedule next refresh
-        scheduleTokenRefresh(country, Date.now() + (tokens.expires_in * 1000));
+        // Schedule next refresh (global, no country needed)
+        scheduleTokenRefresh(Date.now() + (tokens.expires_in * 1000));
       }
     } catch (error) {
       console.error('Token refresh failed:', error);
