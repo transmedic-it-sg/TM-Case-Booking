@@ -409,6 +409,25 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       const { forceRefreshCodeTables } = await import('../utils/supabaseCodeTableService');
       await forceRefreshCodeTables(selectedCountry);
 
+      // CRITICAL FIX: Update local state after database deletion
+      // Reload the table data to reflect the deletion in the UI
+      const updatedCountryData = await getSupabaseCodeTables(selectedCountry);
+      const hospitalsTable = updatedCountryData.find(t => t.id === 'hospitals') || {
+        id: 'hospitals',
+        name: 'Hospitals',
+        description: 'Manage hospitals for each country',
+        items: []
+      };
+      const departmentsTable = updatedCountryData.find(t => t.id === 'departments') || {
+        id: 'departments',
+        name: 'Departments',
+        description: 'Manage departments for each country',
+        items: []
+      };
+      
+      // Update the country-based tables state to reflect the deletion
+      setCountryBasedTables([hospitalsTable, departmentsTable]);
+
       playSound.delete();
       showSuccess('Item Deleted', `"${itemName}" has been removed from ${table.name}`);
     } catch (error) {
