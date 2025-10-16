@@ -408,9 +408,6 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
       // Import the forceRefreshCodeTables function
       const { forceRefreshCodeTables } = await import('../utils/supabaseCodeTableService');
       await forceRefreshCodeTables(selectedCountry);
-      
-      // Reload the code tables to reflect the changes
-      await loadCodeTables();
 
       playSound.delete();
       showSuccess('Item Deleted', `"${itemName}" has been removed from ${table.name}`);
