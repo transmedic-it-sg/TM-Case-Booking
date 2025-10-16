@@ -15,6 +15,7 @@ import getDefaultEmailTemplates from '../utils/emailTemplates';
 import { CASE_STATUSES, STATUS_WORKFLOW } from '../constants/statuses';
 import { USER_ROLES } from '../constants/permissions';
 import dynamicConstantsService from '../services/dynamicConstantsService';
+import { SUPPORTED_COUNTRIES } from '../utils/countryUtils';
 import { 
   CASE_BOOKINGS_FIELDS, 
   CASE_QUANTITIES_FIELDS, 
