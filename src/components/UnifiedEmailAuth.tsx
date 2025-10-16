@@ -129,7 +129,7 @@ const UnifiedEmailAuth: React.FC<UnifiedEmailAuthProps> = ({
     if (refreshTime > 0) {
       setTimeout(async () => {
         console.log('Proactively refreshing email authentication token...');
-        await refreshToken(country);
+        await refreshToken();
       }, refreshTime);
     } else {
       // Token already expired or expiring soon, refresh immediately
