@@ -153,11 +153,11 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
         .single();
 
       if (existingData) {
-        // Update existing setting
+        // Update existing setting - convert value to JSON for JSONB column
         const { error } = await supabase
           .from('system_settings')
           .update({
-            setting_value: mapping.value,
+            setting_value: JSON.stringify(mapping.value),
             description: getSettingDescription(mapping.key),
             updated_at: new Date().toISOString()
           })
@@ -168,12 +168,12 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
           throw error;
         }
       } else {
-        // Insert new setting
+        // Insert new setting - convert value to JSON for JSONB column
         const { error } = await supabase
           .from('system_settings')
           .insert({
             setting_key: mapping.key,
-            setting_value: mapping.value,
+            setting_value: JSON.stringify(mapping.value),
             description: getSettingDescription(mapping.key),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()

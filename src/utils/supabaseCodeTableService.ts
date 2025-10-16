@@ -357,15 +357,32 @@ export const removeSupabaseCodeTableItem = async (
       targetCountry = country ? normalizedCountry : 'Global';
     }
 
-    const result = await supabase
-      .from('code_tables')
-      .update({ is_active: false })
-      .eq('country', targetCountry)
-      .eq('table_type', tableType)
-      .eq('code', code);
+    // For departments, do a hard delete instead of soft delete
+    // This allows departments to be truly removed from the system
+    if (tableType === 'departments') {
+      const result = await supabase
+        .from('code_tables')
+        .delete()
+        .eq('country', targetCountry)
+        .eq('table_type', tableType)
+        .eq('code', code);
 
-    if (result.error) {
-      return false;
+      if (result.error) {
+        console.error('Failed to delete department:', result.error);
+        return false;
+      }
+    } else {
+      // For other table types, do soft delete (set is_active to false)
+      const result = await supabase
+        .from('code_tables')
+        .update({ is_active: false })
+        .eq('country', targetCountry)
+        .eq('table_type', tableType)
+        .eq('code', code);
+
+      if (result.error) {
+        return false;
+      }
     }
 
     // Clear cache to ensure UI updates immediately

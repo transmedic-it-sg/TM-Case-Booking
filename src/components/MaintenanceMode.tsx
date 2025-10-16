@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { getCurrentUserSync } from '../utils/auth';
 import '../assets/components/MaintenanceMode.css';
 
 interface MaintenanceModeProps {
@@ -9,9 +10,12 @@ interface MaintenanceModeProps {
 const MaintenanceMode: React.FC<MaintenanceModeProps> = ({ isActive, onForceLogout }) => {
   const [showModal, setShowModal] = useState(false);
   const [countdown, setCountdown] = useState(30);
+  const currentUser = getCurrentUserSync();
+  const isAdmin = currentUser?.role === 'admin';
 
   useEffect(() => {
-    if (isActive) {
+    // Admin users bypass maintenance mode
+    if (isActive && !isAdmin) {
       setShowModal(true);
 
       // Start countdown for auto-logout
@@ -33,9 +37,10 @@ const MaintenanceMode: React.FC<MaintenanceModeProps> = ({ isActive, onForceLogo
       setShowModal(false);
       setCountdown(30);
     }
-  }, [isActive, onForceLogout]);
+  }, [isActive, isAdmin, onForceLogout]);
 
-  if (!isActive || !showModal) {
+  // Don't show modal for admins or if not active
+  if (!isActive || !showModal || isAdmin) {
     return null;
   }
 
