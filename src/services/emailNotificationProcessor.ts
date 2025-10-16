@@ -430,12 +430,12 @@ const replaceTemplateVariables = async (
     // Additional Information
     .replace(/\{\{specialInstruction\}\}/g, caseData.specialInstruction || 'None')
     .replace(/\{\{specialInstructions\}\}/g, caseData.specialInstruction || 'None') // Plural form
-    .replace(/\{\{remarks\}\}/g, caseData.remarks || caseData.specialInstruction || 'None')
-    .replace(/\{\{salesOrderNo\}\}/g, caseData.salesOrderNo || 'Not specified')
-    .replace(/\{\{poNo\}\}/g, caseData.poNo || 'Not specified')
-    .replace(/\{\{deliveryAddress\}\}/g, caseData.deliveryAddress || 'Not specified')
-    .replace(/\{\{contactPerson\}\}/g, caseData.contactPerson || 'Not specified')
-    .replace(/\{\{contactNumber\}\}/g, caseData.contactNumber || 'Not specified')
+    .replace(/\{\{remarks\}\}/g, caseData.specialInstruction || 'None') // Use specialInstruction since remarks field doesn't exist
+    .replace(/\{\{salesOrderNo\}\}/g, 'Not specified') // Field doesn't exist in CaseBooking
+    .replace(/\{\{poNo\}\}/g, 'Not specified') // Field doesn't exist in CaseBooking
+    .replace(/\{\{deliveryAddress\}\}/g, 'Not specified') // Field doesn't exist in CaseBooking
+    .replace(/\{\{contactPerson\}\}/g, 'Not specified') // Field doesn't exist in CaseBooking
+    .replace(/\{\{contactNumber\}\}/g, 'Not specified') // Field doesn't exist in CaseBooking
     .replace(/\n/g, '<br>'); // Convert line breaks to HTML breaks
 };
 
