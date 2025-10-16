@@ -80,17 +80,42 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
   };
 
   const handlePermissionToggle = (actionId: string, roleId: string) => {
-    if (readonly || !onPermissionChange) return;
+    console.log('🔄 PERMISSION TOGGLE - Toggle requested:', {
+      actionId,
+      roleId,
+      readonly,
+      hasOnPermissionChange: !!onPermissionChange,
+      timestamp: new Date().toISOString()
+    });
+    
+    if (readonly || !onPermissionChange) {
+      console.log('⚠️ PERMISSION TOGGLE - Blocked due to readonly or missing callback:', {
+        readonly,
+        hasCallback: !!onPermissionChange
+      });
+      return;
+    }
     
     // Admin role permissions cannot be modified via UI - they are managed via SQL
     if (roleId === 'admin') {
+      console.log('⚠️ PERMISSION TOGGLE - Blocked: Admin role cannot be modified via UI');
       return;
     }
 
     const currentPermission = getPermission(actionId, roleId);
     const newAllowed = !currentPermission?.allowed;
+    
+    console.log('🔄 PERMISSION TOGGLE - Toggle details:', {
+      actionId,
+      roleId,
+      currentPermission,
+      currentAllowed: currentPermission?.allowed,
+      newAllowed
+    });
 
     onPermissionChange(actionId, roleId, newAllowed);
+    
+    console.log('✅ PERMISSION TOGGLE - Callback invoked');
   };
 
   const getPermissionIcon = (allowed: boolean) => {

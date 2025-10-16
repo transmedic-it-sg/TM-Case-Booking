@@ -99,8 +99,22 @@ const PermissionMatrixPage: React.FC = () => {
   }, [error]);
 
   // Handle permission change - using real-time hook
-  const handlePermissionChange = async (actionId: string, roleId: string, allowed: boolean) => {try {
-      await updatePermission(actionId, roleId, allowed);} catch (error) {
+  const handlePermissionChange = async (actionId: string, roleId: string, allowed: boolean) => {
+    console.log('🔄 PERMISSION CHANGE HANDLER - Received:', {
+      actionId,
+      roleId,
+      allowed,
+      isEditing,
+      isMutating,
+      timestamp: new Date().toISOString()
+    });
+    
+    try {
+      console.log('📤 PERMISSION CHANGE HANDLER - Calling updatePermission...');
+      await updatePermission(actionId, roleId, allowed);
+      console.log('✅ PERMISSION CHANGE HANDLER - Update successful');
+    } catch (error) {
+      console.error('❌ PERMISSION CHANGE HANDLER - Update failed:', error);
     }
   };
 
@@ -193,6 +207,17 @@ const PermissionMatrixPage: React.FC = () => {
           rolesFirstItem: roles?.[0],
           actionsFirstItem: permissionActions?.[0],
           isLoadingState: isLoading
+        });
+        return null;
+      })()}
+      
+      {/* Debug: Log editing state before rendering */}
+      {(() => {
+        console.log('🎛️ PERMISSION MATRIX STATE:', {
+          isEditing,
+          isMutating,
+          hasCallback: !!(isEditing && !isMutating),
+          readonly: !isEditing || isMutating
         });
         return null;
       })()}

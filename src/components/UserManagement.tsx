@@ -578,13 +578,28 @@ const UserManagement: React.FC = () => {
       return;
     }
 
+    console.log('👤 USER SAVE - Starting save operation:', {
+      isEditing: !!editingUser,
+      userData: { ...finalUserData, password: finalUserData.password ? '[MASKED]' : 'none' },
+      timestamp: new Date().toISOString()
+    });
+
     try {
       if (editingUser) {
+        console.log('📝 USER UPDATE - Updating existing user:', editingUser);
         // Update existing user
         // Don't send password if it's empty (keep current password)
         const { password, ...updateDataWithoutPassword } = finalUserData;
         const updateData: Partial<User> = finalUserData.password ? finalUserData : updateDataWithoutPassword;
+        
+        console.log('📤 USER UPDATE - Calling updateUser with data:', {
+          userId: editingUser,
+          hasPassword: !!finalUserData.password,
+          dataKeys: Object.keys(updateData)
+        });
+        
         await updateUser(editingUser, updateData);
+        console.log('✅ USER UPDATE - Update successful');
         // Real-time hook automatically updates the users list
 
           // Audit log for user update
@@ -614,6 +629,7 @@ const UserManagement: React.FC = () => {
             type: 'success'
           });
       } else {
+        console.log('👤 USER CREATE - Creating new user');
         // Add new user
         // For admin users created by admin, assign all countries and no departments
         const userDataToSave = currentUser?.role === 'admin' && finalUserData.role === 'admin'
@@ -624,7 +640,16 @@ const UserManagement: React.FC = () => {
             }
           : finalUserData;
 
+        console.log('📤 USER CREATE - Calling addUser with data:', {
+          username: userDataToSave.username,
+          role: userDataToSave.role,
+          hasPassword: !!userDataToSave.password,
+          countriesCount: userDataToSave.countries?.length || 0,
+          departmentsCount: userDataToSave.departments?.length || 0
+        });
+
         await addUser(userDataToSave);
+        console.log('✅ USER CREATE - Creation successful');
         // Real-time hook automatically updates the users list
 
           // Audit log for user creation
@@ -665,10 +690,26 @@ const UserManagement: React.FC = () => {
       setEditingUser(null);
       setShowAddUser(false);
     } catch (err) {
+      console.error('❌ USER SAVE - Error occurred:', {
+        error: err,
+        isEditing: !!editingUser,
+        username: finalUserData.username,
+        errorMessage: err instanceof Error ? err.message : 'Unknown error',
+        errorStack: err instanceof Error ? err.stack : undefined
+      });
+      
       // CRITICAL FIX: Show specific error details instead of generic message
       let errorMessage = editingUser ? 'Failed to update user' : 'Failed to add user';
       
       if (err instanceof Error) {
+        console.log('🔍 USER SAVE - Analyzing error type:', {
+          message: err.message,
+          includesUsername: err.message.includes('Username already exists'),
+          includesDuplicate: err.message.includes('duplicate key value'),
+          includes409: err.message.includes('409'),
+          includes23505: err.message.includes('23505')
+        });
+        
         // Check for specific error types
         if (err.message.includes('Username already exists') || err.message.includes('duplicate key value')) {
           errorMessage = `Username "${finalUserData.username}" is already taken. Please choose a different username.`;
@@ -681,6 +722,8 @@ const UserManagement: React.FC = () => {
           errorMessage = err.message || errorMessage;
         }
       }
+      
+      console.log('💬 USER SAVE - Final error message:', errorMessage);
       
       setError(errorMessage);
       playSound.error();

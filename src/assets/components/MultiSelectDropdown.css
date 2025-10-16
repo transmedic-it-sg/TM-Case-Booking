@@ -121,7 +121,7 @@
 .custom-multi-select .search-input:focus {
   outline: none;
   border-color: #20b2aa;
-  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.1);
+  box-shadow: 0 0 0 2px rgba(32, 178, 170, 0.1);
 }
 
 /* Select All Button */

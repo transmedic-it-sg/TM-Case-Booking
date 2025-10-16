@@ -29,52 +29,9 @@ const StatusLegend: React.FC = () => {
     { status: 'Case Cancelled', description: 'Case cancelled' }
   ];
 
-  // Mobile view shows simplified status legend in navigation menu
+  // Mobile view - hide status legend since status colors are removed in mobile
   if (isMobile) {
-    return (
-      <div className="mobile-status-legend">
-        <button
-          className="status-legend-button mobile mobile-menu-item"
-          onClick={() => setShowPopup(true)}
-        >
-          <span className="mobile-menu-icon">📊</span>
-          <span>Status Colors</span>
-        </button>
-
-        {showPopup && (
-          <div className="status-legend-overlay mobile" onClick={() => setShowPopup(false)}>
-            <div className="status-legend-popup mobile" onClick={(e) => e.stopPropagation()}>
-              <div className="legend-header">
-                <h3>Status Color Legend</h3>
-                <button
-                  className="close-button"
-                  onClick={() => setShowPopup(false)}
-                  aria-label="Close"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="legend-content mobile">
-                <div className="legend-grid mobile">
-                  {statusList.map(({ status, description }) => (
-                    <div key={status} className="legend-item mobile">
-                      <div
-                        className="status-indicator mobile"
-                        style={{ backgroundColor: getStatusColor(status) }}
-                      ></div>
-                      <div className="status-info mobile">
-                        <span className="status-name mobile">{status}</span>
-                        <span className="status-description mobile">{description}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
+    return null; // No status legend in mobile view since status colors are disabled
   }
 
   return (

@@ -887,7 +887,7 @@
   .settings-item button.toggle-switch.enabled,
   .settings-dropdown .toggle-switch.enabled,
   button.toggle-switch.enabled {
-    background: #28a745 !important;
+    background: #20b2aa !important;
   }
   
   .settings-item button.toggle-switch.disabled,

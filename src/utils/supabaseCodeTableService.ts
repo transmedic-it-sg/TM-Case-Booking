@@ -337,9 +337,22 @@ export const removeSupabaseCodeTableItem = async (
   item: string,
   country?: string
 ): Promise<boolean> => {
+  console.log('🗑️ CODE TABLE DELETE - Starting deletion:', {
+    tableType,
+    item,
+    country,
+    timestamp: new Date().toISOString()
+  });
+  
   try {
     const normalizedCountry = normalizeCountryForDB(country);
     const code = item.toLowerCase().replace(/\s+/g, '_');
+    
+    console.log('🔍 CODE TABLE DELETE - Normalized values:', {
+      normalizedCountry,
+      code,
+      originalItem: item
+    });
 
     // Apply correct data model logic:
     // - countries: Always delete from Global
@@ -360,17 +373,29 @@ export const removeSupabaseCodeTableItem = async (
     // For departments, do a hard delete instead of soft delete
     // This allows departments to be truly removed from the system
     if (tableType === 'departments') {
+      console.log('🔥 CODE TABLE DELETE - Performing HARD DELETE for department:', {
+        targetCountry,
+        tableType,
+        code
+      });
+      
       const result = await supabase
         .from('code_tables')
         .delete()
         .eq('country', targetCountry)
         .eq('table_type', tableType)
-        .eq('code', code);
+        .eq('code', code)
+        .select(); // Add select to see what was deleted
 
       if (result.error) {
-        console.error('Failed to delete department:', result.error);
+        console.error('❌ CODE TABLE DELETE - Department deletion failed:', result.error);
         return false;
       }
+      
+      console.log('✅ CODE TABLE DELETE - Department deleted from database:', {
+        deletedRows: result.data,
+        count: result.data?.length || 0
+      });
     } else {
       // For other table types, do soft delete (set is_active to false)
       const result = await supabase
@@ -406,8 +431,10 @@ export const removeSupabaseCodeTableItem = async (
       console.log(`Successfully deleted department: ${item} from ${targetCountry}`);
     }
 
+    console.log('🎉 CODE TABLE DELETE - Operation completed successfully');
     return true;
   } catch (error) {
+    console.error('💥 CODE TABLE DELETE - Critical error:', error);
     return false;
   }
 };

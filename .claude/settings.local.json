@@ -60,7 +60,15 @@
       "Bash(git checkout:*)",
       "Bash(git merge:*)",
       "mcp__supabase__list_migrations",
-      "Bash(git tag:*)"
+      "Bash(git tag:*)",
+      "Bash(find:*)",
+      "Bash(for file in /mnt/c/Users/anrong.low/TM-Case-Booking/src/assets/components/*.css)",
+      "Bash(do)",
+      "Bash(if grep -q \"#28a745\\|#1e7e34\" \"$file\")",
+      "Bash(then)",
+      "Bash(sed:*)",
+      "Bash(fi)",
+      "Bash(done)"
     ],
     "deny": [
       "mcp__supabase-old__*",

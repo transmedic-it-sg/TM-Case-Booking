@@ -1856,7 +1856,7 @@
 
 /* Standard Add Item Button - Top Right Position */
 .enhanced-edit-sets .add-item-button {
-  background: var(--success-color, #28a745);
+  background: var(--success-color, #20b2aa);
   color: white;
   border: none;
   padding: 8px 16px;
@@ -1872,7 +1872,7 @@
 .enhanced-edit-sets .add-item-button:hover {
   background: #218838;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+  box-shadow: 0 2px 8px rgba(32, 178, 170, 0.3);
 }
 
 .enhanced-edit-sets .add-item-button:disabled {

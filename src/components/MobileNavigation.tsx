@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
-import StatusLegend from './StatusLegend';
 import '../assets/components/MobileNavigation.css';
 
 type ActivePage = 'booking' | 'cases' | 'process' | 'users' | 'sets' | 'reports' | 'calendar' | 'permissions' | 'codetables' | 'audit-logs' | 'email-config' | 'data-import' | 'system-settings';
@@ -28,7 +27,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   onLogout
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isMoreSectionOpen, setIsMoreSectionOpen] = useState(false);
+  // Removed isMoreSectionOpen state since "More" section is no longer needed
 
   // Close menu function
   const closeMenu = () => {
@@ -203,22 +202,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   )}
                 </div>
 
-                <div className="mobile-menu-section">
-                  <button
-                    onClick={() => setIsMoreSectionOpen(!isMoreSectionOpen)}
-                    className="mobile-menu-item"
-                    data-testid="more-section"
-                  >
-                    <span className="mobile-menu-icon">{isMoreSectionOpen ? '▼' : '▶'}</span>
-                    More
-                  </button>
-                  
-                  {isMoreSectionOpen && (
-                    <div className="mobile-more-content" data-testid="status-colors">
-                      <StatusLegend />
-                    </div>
-                  )}
-                </div>
+                {/* Removed "More" section since StatusLegend is hidden in mobile view */}
 
                 {(hasPermission(user.role, PERMISSION_ACTIONS.VIEW_USERS) ||
                   hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) ||

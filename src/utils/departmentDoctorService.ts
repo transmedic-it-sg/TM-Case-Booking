@@ -140,31 +140,105 @@ export const getDepartmentsForCountry = async (country: string): Promise<Departm
  * Get doctors for a specific department
  */
 export const getDoctorsForDepartment = async (departmentName: string, country: string): Promise<DepartmentDoctor[]> => {
+  console.log('👩‍⚕️ DOCTOR LOOKUP - Starting search:', {
+    departmentName,
+    country,
+    timestamp: new Date().toISOString()
+  });
+  
   try {
     if (!departmentName || departmentName.trim() === '' || !country || country.trim() === '') {
+      console.log('❌ DOCTOR LOOKUP - Invalid parameters:', { departmentName, country });
       logger.warn('getDoctorsForDepartment: Invalid parameters', { departmentName, country });
       return [];
     }
 
     const normalizedCountry = normalizeCountry(country);
-    // CRITICAL FIX: Use direct table query with join since RPC function doesn't exist
+    console.log('🔍 DOCTOR LOOKUP - Normalized values:', {
+      originalDepartment: departmentName,
+      trimmedDepartment: departmentName.trim(),
+      originalCountry: country,
+      normalizedCountry
+    });
+    // APPROACH 1: Try to use code_tables to find departments, then doctors
+    console.log('🔍 DOCTOR LOOKUP - Step 1: Finding department in code_tables');
+    
+    const { data: departmentData, error: deptError } = await supabase
+      .from('code_tables')
+      .select('*')
+      .eq('table_type', 'departments')
+      .eq('country', normalizedCountry)
+      .eq('display_name', departmentName.trim())
+      .eq('is_active', true);
+    
+    if (deptError) {
+      console.error('❌ DOCTOR LOOKUP - Department lookup failed:', deptError);
+      return [];
+    }
+    
+    console.log('📋 DOCTOR LOOKUP - Department search result:', {
+      searchTerm: departmentName.trim(),
+      foundDepartments: departmentData?.length || 0,
+      departments: departmentData
+    });
+    
+    if (!departmentData || departmentData.length === 0) {
+      console.log('⚠️ DOCTOR LOOKUP - No department found, trying direct doctor search');
+      
+      // APPROACH 2: Search doctors directly by country (fallback)
+      const { data: allDoctors, error: doctorError } = await supabase
+        .from('doctors')
+        .select('*')
+        .eq('country', normalizedCountry)
+        .eq('is_active', true)
+        .order('name');
+      
+      console.log('👥 DOCTOR LOOKUP - Direct doctor search result:', {
+        country: normalizedCountry,
+        doctorsFound: allDoctors?.length || 0,
+        error: doctorError
+      });
+      
+      if (doctorError) {
+        console.error('❌ DOCTOR LOOKUP - Direct doctor search failed:', doctorError);
+        return [];
+      }
+      
+      // Filter doctors that might match the department name in their specialties or other fields
+      const filteredDoctors = allDoctors?.filter(doctor => {
+        const matchesSpecialty = doctor.specialties?.some((specialty: string) => 
+          specialty.toLowerCase().includes(departmentName.toLowerCase()) ||
+          departmentName.toLowerCase().includes(specialty.toLowerCase())
+        );
+        return matchesSpecialty;
+      }) || [];
+      
+      console.log('🎯 DOCTOR LOOKUP - Filtered doctors by specialty:', {
+        originalCount: allDoctors?.length || 0,
+        filteredCount: filteredDoctors.length,
+        filteredDoctors: filteredDoctors.map(d => ({ name: d.name, specialties: d.specialties }))
+      });
+      
+      return filteredDoctors.map((doctor: any) => ({
+        id: doctor.id,
+        name: doctor.name,
+        specialties: doctor.specialties || [],
+        is_active: true
+      }));
+    }
+    
+    // APPROACH 3: If department found, search doctors by department name or ID
+    console.log('🔍 DOCTOR LOOKUP - Step 2: Searching doctors for found department');
+    
     const { data, error } = await supabase
       .from('doctors')
-      .select(`
-        id,
-        name,
-        specialties,
-        department_id,
-        country,
-        is_active,
-        departments!inner(name)
-      `)
+      .select('*')
       .eq('country', normalizedCountry)
-      .eq('departments.name', departmentName.trim())
       .eq('is_active', true)
       .order('name');
 
     if (error) {
+      console.error('❌ DOCTOR LOOKUP - Final doctor search failed:', error);
       logger.error('Error fetching doctors for department', {
         departmentName,
         country: normalizedCountry,
@@ -173,19 +247,52 @@ export const getDoctorsForDepartment = async (departmentName: string, country: s
       return [];
     }
 
+    console.log('👥 DOCTOR LOOKUP - All doctors for country:', {
+      country: normalizedCountry,
+      totalDoctors: data?.length || 0,
+      doctors: data?.map(d => ({ name: d.name, specialties: d.specialties }))
+    });
+
     if (!data || data.length === 0) {
+      console.log('⚠️ DOCTOR LOOKUP - No doctors found in country:', normalizedCountry);
       logger.info('No doctors found for department', { departmentName, country: normalizedCountry });
       return [];
     }
 
-    return data.map((doctor: any) => ({
+    // Filter doctors by department association (if any field links them)
+    const departmentFilteredDoctors = data.filter((doctor: any) => {
+      // Check if doctor has department-related fields or specialties that match
+      const hasMatchingSpecialty = doctor.specialties?.some((specialty: string) => 
+        specialty.toLowerCase().includes(departmentName.toLowerCase()) ||
+        departmentName.toLowerCase().includes(specialty.toLowerCase())
+      );
+      
+      // Could also check department_id if it exists and matches
+      const hasMatchingDeptId = doctor.department_id && 
+        departmentData?.some(dept => dept.id === doctor.department_id);
+      
+      return hasMatchingSpecialty || hasMatchingDeptId;
+    });
+
+    console.log('🎯 DOCTOR LOOKUP - Final result:', {
+      departmentName,
+      totalDoctors: data.length,
+      filteredDoctors: departmentFilteredDoctors.length,
+      finalDoctors: departmentFilteredDoctors.map(d => ({ name: d.name, specialties: d.specialties }))
+    });
+
+    const result = departmentFilteredDoctors.map((doctor: any) => ({
       id: doctor.id,
       name: doctor.name,
       specialties: doctor.specialties || [],
       is_active: true
     }));
+    
+    console.log('✅ DOCTOR LOOKUP - Returning result:', result);
+    return result;
 
   } catch (error) {
+    console.error('💥 DOCTOR LOOKUP - Critical error:', error);
     logger.error('Exception in getDoctorsForDepartment', {
       departmentName,
       country,

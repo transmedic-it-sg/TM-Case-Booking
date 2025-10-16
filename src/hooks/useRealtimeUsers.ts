@@ -105,28 +105,35 @@ const useOptimisticUserMutation = () => {
       // Invalidate and refetch user data
       queryClient.invalidateQueries({ queryKey: ['realtime-users'] });
 
-      // Show success notification
-      const actionText = {
-        add: 'User created successfully',
-        update: 'User updated successfully',
-        delete: 'User deleted successfully',
-        toggle: 'User status updated successfully',
-        resetPassword: 'Password reset successfully'
-      }[action.type];
+      // CRITICAL FIX: Don't show automatic notifications for 'add' operations
+      // Let the calling component handle success messages to avoid duplicate notifications
+      if (action.type !== 'add') {
+        const actionText = {
+          update: 'User updated successfully',
+          delete: 'User deleted successfully',
+          toggle: 'User status updated successfully',
+          resetPassword: 'Password reset successfully'
+        }[action.type];
 
-      await addNotification({
-        title: 'User Management',
-        message: actionText,
-        type: 'success'
-      });
+        if (actionText) {
+          await addNotification({
+            title: 'User Management',
+            message: actionText,
+            type: 'success'
+          });
+        }
+      }
     },
     onError: async (error, action) => {
-
-      await addNotification({
-        title: 'User Management Error',
-        message: `Failed to ${action.type} user: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        type: 'error'
-      });
+      // CRITICAL FIX: Don't show automatic notifications for 'add' operations
+      // Let the calling component handle error messages to avoid duplicate notifications
+      if (action.type !== 'add') {
+        await addNotification({
+          title: 'User Management Error',
+          message: `Failed to ${action.type} user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          type: 'error'
+        });
+      }
     }
   });
 };

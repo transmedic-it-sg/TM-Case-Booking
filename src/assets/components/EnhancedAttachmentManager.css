@@ -194,7 +194,7 @@
 }
 
 .new-attachment {
-  border-color: #28a745;
+  border-color: #20b2aa;
   background-color: #f8fff8;
 }
 
@@ -236,7 +236,7 @@
 }
 
 .new-badge {
-  background: #28a745;
+  background: #20b2aa;
   color: white;
   font-size: 10px;
   padding: 2px 4px;
@@ -337,8 +337,8 @@
 }
 
 .history-add {
-  border-left-color: #28a745;
-  background-color: rgba(40, 167, 69, 0.05);
+  border-left-color: #20b2aa;
+  background-color: rgba(32, 178, 170, 0.05);
 }
 
 .history-delete {

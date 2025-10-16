@@ -136,6 +136,8 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
  * Save system configuration to Supabase
  */
 export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
+  console.log('🔧 SYSTEM SETTINGS SAVE - Starting save operation:', config);
+  
   try {
     // Prepare key-value pairs for Supabase
     const configMappings = [
@@ -151,6 +153,8 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
       { key: 'default_theme', value: config.defaultTheme },
       { key: 'default_language', value: config.defaultLanguage }
     ];
+    
+    console.log('📝 SYSTEM SETTINGS SAVE - Prepared mappings:', configMappings);
 
     // Update or insert each setting
     for (const mapping of configMappings) {
@@ -161,24 +165,39 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
         .eq('setting_key', mapping.key)
         .single();
 
+      console.log(`🔍 SYSTEM SETTINGS SAVE - Processing ${mapping.key}:`, {
+        key: mapping.key,
+        value: mapping.value,
+        valueType: typeof mapping.value,
+        hasExisting: !!existingData
+      });
+
       if (existingData) {
         // Update existing setting - JSONB column handles serialization automatically
-        const { error } = await supabase
+        console.log(`📤 SYSTEM SETTINGS UPDATE - Updating ${mapping.key}`);
+        
+        const { data: updateData, error } = await supabase
           .from('system_settings')
           .update({
             setting_value: mapping.value, // Direct value, no JSON.stringify needed for JSONB
             description: getSettingDescription(mapping.key),
             updated_at: new Date().toISOString()
           })
-          .eq('setting_key', mapping.key);
+          .eq('setting_key', mapping.key)
+          .select()
+          .single();
 
         if (error) {
-          console.error(`Failed to update setting ${mapping.key}:`, error);
+          console.error(`❌ SYSTEM SETTINGS UPDATE - Failed to update ${mapping.key}:`, error);
           throw error;
         }
+        
+        console.log(`✅ SYSTEM SETTINGS UPDATE - Successfully updated ${mapping.key}:`, updateData);
       } else {
         // Insert new setting - JSONB column handles serialization automatically
-        const { error } = await supabase
+        console.log(`📤 SYSTEM SETTINGS INSERT - Creating ${mapping.key}`);
+        
+        const { data: insertData, error } = await supabase
           .from('system_settings')
           .insert({
             setting_key: mapping.key,
@@ -186,15 +205,22 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
             description: getSettingDescription(mapping.key),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          });
+          })
+          .select()
+          .single();
 
         if (error) {
-          console.error(`Failed to insert setting ${mapping.key}:`, error);
+          console.error(`❌ SYSTEM SETTINGS INSERT - Failed to insert ${mapping.key}:`, error);
           throw error;
         }
+        
+        console.log(`✅ SYSTEM SETTINGS INSERT - Successfully created ${mapping.key}:`, insertData);
       }
     }
+    
+    console.log('🎉 SYSTEM SETTINGS SAVE - All settings saved successfully');
   } catch (error) {
+    console.error('💥 SYSTEM SETTINGS SAVE - Critical error:', error);
     throw error;
   }
 };

@@ -303,7 +303,7 @@
 
 .selected-file {
   background: white;
-  border: 2px solid #28a745;
+  border: 2px solid #20b2aa;
   border-radius: 8px;
   padding: 1rem;
   margin-top: 1rem;
@@ -320,7 +320,7 @@
 
 .file-name {
   font-weight: 500;
-  color: #28a745;
+  color: #20b2aa;
 }
 
 .file-size {
@@ -540,7 +540,7 @@
 }
 
 .stat-item.success .stat-value {
-  color: #28a745;
+  color: #20b2aa;
 }
 
 .stat-item.error .stat-value {
@@ -628,14 +628,14 @@
 }
 
 .btn-success {
-  background: #28a745;
+  background: #20b2aa;
   color: white;
 }
 
 .btn-success:hover:not(:disabled) {
   background: #218838;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+  box-shadow: 0 4px 8px rgba(32, 178, 170, 0.3);
 }
 
 .btn-warning {

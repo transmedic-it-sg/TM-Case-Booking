@@ -241,7 +241,7 @@
 }
 
 .data-export-import .import-results.success {
-  border-color: #28a745;
+  border-color: #20b2aa;
   background: #d4edda;
 }
 
@@ -268,7 +268,7 @@
 }
 
 .data-export-import .result-stats .stat.success {
-  background: #28a745;
+  background: #20b2aa;
   color: white;
 }
 

@@ -123,7 +123,7 @@
 }
 
 .setting-value.supported {
-  color: #28a745;
+  color: #20b2aa;
 }
 
 .setting-value.not-supported {
@@ -131,7 +131,7 @@
 }
 
 .setting-value.subscribed {
-  color: #28a745;
+  color: #20b2aa;
 }
 
 .setting-value.not-subscribed {
