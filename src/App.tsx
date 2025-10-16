@@ -247,7 +247,7 @@ const AppContent: React.FC = () => {
     checkMaintenanceMode();
 
     // Set up periodic check for maintenance mode changes
-    const maintenanceCheckInterval = setInterval(checkMaintenanceMode, 30000); // Check every 30 seconds
+    const maintenanceCheckInterval = setInterval(checkMaintenanceMode, 1000); // Check every 1 second for immediate response
 
     // Remove automatic session validation - the app uses custom auth
     // Session management should be handled by user activity, not periodic checks
@@ -1000,15 +1000,15 @@ const AppContent: React.FC = () => {
           <UserManagement />
         )}
 
-        {activePage === 'audit-logs' && hasPermission(user.role, PERMISSION_ACTIONS.AUDIT_LOGS) && (
+        {activePage === 'audit-logs' && (user.role === 'admin' || hasPermission(user.role, PERMISSION_ACTIONS.AUDIT_LOGS)) && (
           <AuditLogs />
         )}
 
-        {activePage === 'permissions' && hasPermission(user.role, PERMISSION_ACTIONS.PERMISSION_MATRIX) && (
+        {activePage === 'permissions' && (user.role === 'admin' || hasPermission(user.role, PERMISSION_ACTIONS.PERMISSION_MATRIX)) && (
           <PermissionMatrixPage />
         )}
 
-        {activePage === 'email-config' && hasPermission(user.role, PERMISSION_ACTIONS.EMAIL_CONFIG) && (
+        {activePage === 'email-config' && (user.role === 'admin' || hasPermission(user.role, PERMISSION_ACTIONS.EMAIL_CONFIG)) && (
           <SimplifiedEmailConfig />
         )}
 
@@ -1029,16 +1029,16 @@ const AppContent: React.FC = () => {
           <Reports />
         )}
 
-        {activePage === 'codetables' && hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP) && (
+        {activePage === 'codetables' && (user.role === 'admin' || hasPermission(user.role, PERMISSION_ACTIONS.CODE_TABLE_SETUP)) && (
           <CodeTableSetup />
         )}
 
 
-        {activePage === 'data-import' && (hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) || hasPermission(user.role, PERMISSION_ACTIONS.EXPORT_DATA)) && (
+        {activePage === 'data-import' && (user.role === 'admin' || hasPermission(user.role, PERMISSION_ACTIONS.IMPORT_DATA) || hasPermission(user.role, PERMISSION_ACTIONS.EXPORT_DATA)) && (
           <DataExportImport />
         )}
 
-        {activePage === 'system-settings' && hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) && (
+        {activePage === 'system-settings' && (user.role === 'admin' || hasPermission(user.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS)) && (
           <SystemSettings />
         )}
       </main>

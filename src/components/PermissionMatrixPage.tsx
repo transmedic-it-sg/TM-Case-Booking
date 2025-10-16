@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import PermissionMatrix from './PermissionMatrix';
-import { permissionActions } from '../data/permissionMatrixData';
+import { permissionActions, getAllMatrixRoles, getAllPermissions } from '../data/permissionMatrixData';
 import { useRealtimePermissions } from '../hooks/useRealtimePermissions';
 import { useModal } from '../hooks/useModal';
 import CustomModal from './CustomModal';
@@ -27,6 +27,24 @@ const PermissionMatrixPage: React.FC = () => {
     enableRealTime: true,
     enableTesting: true
   });
+  
+  // CRITICAL FIX: Ensure we always have data to display
+  // Import fallback data directly if hook returns nothing
+  const displayRoles = useMemo(() => {
+    if (!roles || roles.length === 0) {
+      console.warn('⚠️ No roles from hook, using fallback data');
+      return getAllMatrixRoles();
+    }
+    return roles;
+  }, [roles]);
+  
+  const displayPermissions = useMemo(() => {
+    if (!permissions || permissions.length === 0) {
+      console.warn('⚠️ No permissions from hook, using fallback data');
+      return getAllPermissions();
+    }
+    return permissions;
+  }, [permissions]);
 
   // Component validation for testing
   useEffect(() => {
@@ -54,7 +72,25 @@ const PermissionMatrixPage: React.FC = () => {
       roles,
       permissions: permissions?.slice(0, 5) // Show first 5 permissions
     });
-  }, [isLoading, error, roles, permissions]);
+    
+    // Additional detailed logging
+    if (!isLoading && !error) {
+      console.log('📊 PERMISSION MATRIX DATA LOADED:', {
+        totalRoles: roles?.length,
+        totalPermissions: permissions?.length,
+        totalActions: permissionActions?.length,
+        hasData: (roles?.length || 0) > 0 && (permissions?.length || 0) > 0
+      });
+      
+      if (roles?.length === 0 || permissions?.length === 0) {
+        console.error('⚠️ PERMISSION MATRIX IS EMPTY!', {
+          roles: roles || [],
+          permissions: permissions || [],
+          actions: permissionActions || []
+        });
+      }
+    }
+  }, [isLoading, error, roles, permissions, permissionActions]);
 
   // Real-time error handling
   useEffect(() => {
@@ -148,10 +184,23 @@ const PermissionMatrixPage: React.FC = () => {
         </div>
       )}
 
+      {/* Debug: Check data before rendering PermissionMatrix */}
+      {(() => {
+        console.log('📍 BEFORE PERMISSION MATRIX RENDER:', {
+          rolesCount: roles?.length,
+          actionsCount: permissionActions?.length,
+          permissionsCount: permissions?.length,
+          rolesFirstItem: roles?.[0],
+          actionsFirstItem: permissionActions?.[0],
+          isLoadingState: isLoading
+        });
+        return null;
+      })()}
+      
       <PermissionMatrix
-        roles={roles}
-        actions={permissionActions}
-        permissions={permissions}
+        roles={displayRoles}
+        actions={permissionActions || []}
+        permissions={displayPermissions}
         onPermissionChange={isEditing && !isMutating ? handlePermissionChange : undefined}
         readonly={!isEditing || isMutating}
       />
@@ -163,7 +212,7 @@ const PermissionMatrixPage: React.FC = () => {
           </div>
         </div>
         <div className="role-definitions">
-          {roles && Array.isArray(roles) && roles.length > 0 && roles.map(role => {
+          {displayRoles && Array.isArray(displayRoles) && displayRoles.length > 0 && displayRoles.map(role => {
             // Type assertion for role object
             const roleObj = role as { id: string; color: string; displayName: string; description: string };
             return roleObj && roleObj.id ? (

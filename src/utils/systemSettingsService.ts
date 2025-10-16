@@ -104,16 +104,25 @@ export const getSystemConfig = async (): Promise<SystemConfig> => {
     });
 
     // Build config from key-value pairs with defaults
+    // Parse JSONB values properly - they come as already parsed objects/primitives
     const supabaseConfig: SystemConfig = {
       appVersion: getAppVersion(), // Always use current version from package.json
-      maintenanceMode: settingsMap.has('maintenance_mode') ? settingsMap.get('maintenance_mode') : DEFAULT_CONFIG.maintenanceMode,
-      cacheTimeout: settingsMap.get('cache_timeout') || DEFAULT_CONFIG.cacheTimeout,
-      maxFileSize: settingsMap.get('max_file_size') || DEFAULT_CONFIG.maxFileSize,
-      sessionTimeout: settingsMap.get('session_timeout') || DEFAULT_CONFIG.sessionTimeout,
-      passwordComplexity: settingsMap.has('password_complexity') ? settingsMap.get('password_complexity') : DEFAULT_CONFIG.passwordComplexity,
-      auditLogRetention: settingsMap.get('audit_logs_retention_days') || DEFAULT_CONFIG.auditLogRetention,
-      amendmentTimeLimit: settingsMap.get('amendment_time_limit') || DEFAULT_CONFIG.amendmentTimeLimit,
-      maxAmendmentsPerCase: settingsMap.get('max_amendments_per_case') || DEFAULT_CONFIG.maxAmendmentsPerCase,
+      maintenanceMode: settingsMap.has('maintenance_mode') 
+        ? (typeof settingsMap.get('maintenance_mode') === 'string' 
+          ? settingsMap.get('maintenance_mode') === 'true' 
+          : settingsMap.get('maintenance_mode')) 
+        : DEFAULT_CONFIG.maintenanceMode,
+      cacheTimeout: Number(settingsMap.get('cache_timeout')) || DEFAULT_CONFIG.cacheTimeout,
+      maxFileSize: Number(settingsMap.get('max_file_size')) || DEFAULT_CONFIG.maxFileSize,
+      sessionTimeout: Number(settingsMap.get('session_timeout')) || DEFAULT_CONFIG.sessionTimeout,
+      passwordComplexity: settingsMap.has('password_complexity') 
+        ? (typeof settingsMap.get('password_complexity') === 'string'
+          ? settingsMap.get('password_complexity') === 'true'
+          : settingsMap.get('password_complexity'))
+        : DEFAULT_CONFIG.passwordComplexity,
+      auditLogRetention: Number(settingsMap.get('audit_logs_retention_days')) || DEFAULT_CONFIG.auditLogRetention,
+      amendmentTimeLimit: Number(settingsMap.get('amendment_time_limit')) || DEFAULT_CONFIG.amendmentTimeLimit,
+      maxAmendmentsPerCase: Number(settingsMap.get('max_amendments_per_case')) || DEFAULT_CONFIG.maxAmendmentsPerCase,
       defaultTheme: settingsMap.get('default_theme') || DEFAULT_CONFIG.defaultTheme,
       defaultLanguage: settingsMap.get('default_language') || DEFAULT_CONFIG.defaultLanguage
     };
@@ -153,11 +162,11 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
         .single();
 
       if (existingData) {
-        // Update existing setting - convert value to JSON for JSONB column
+        // Update existing setting - JSONB column handles serialization automatically
         const { error } = await supabase
           .from('system_settings')
           .update({
-            setting_value: JSON.stringify(mapping.value),
+            setting_value: mapping.value, // Direct value, no JSON.stringify needed for JSONB
             description: getSettingDescription(mapping.key),
             updated_at: new Date().toISOString()
           })
@@ -168,12 +177,12 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<void> => {
           throw error;
         }
       } else {
-        // Insert new setting - convert value to JSON for JSONB column
+        // Insert new setting - JSONB column handles serialization automatically
         const { error } = await supabase
           .from('system_settings')
           .insert({
             setting_key: mapping.key,
-            setting_value: JSON.stringify(mapping.value),
+            setting_value: mapping.value, // Direct value, no JSON.stringify needed for JSONB
             description: getSettingDescription(mapping.key),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()

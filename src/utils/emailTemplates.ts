@@ -99,10 +99,10 @@ TM Case Booking System`
   },
 
   'Sales Approved': {
-    subject: '⏳ Pending Sales Approved: {{caseReference}} - {{hospital}}',
-    body: `Dear Sales Team,
+    subject: '✅ Sales Approved: {{caseReference}} - {{hospital}}',
+    body: `Dear Team,
 
-Case {{caseReference}} requires sales approval before proceeding.
+Case {{caseReference}} has been approved by sales and is ready for delivery.
 
 📋 CASE DETAILS:
 • Case Reference: {{caseReference}}

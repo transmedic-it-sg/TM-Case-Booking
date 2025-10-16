@@ -385,15 +385,26 @@ export const removeSupabaseCodeTableItem = async (
       }
     }
 
-    // Clear cache to ensure UI updates immediately
+    // Clear ALL caches to ensure UI updates immediately
+    // Clear both the specific country cache and Global cache
     const cacheKey = normalizedCountry || 'Global';
     codeTableCache.delete(cacheKey);
     pendingRequests.delete(cacheKey);
+    
+    // Also clear the opposite cache (if we're deleting from a country, clear Global too)
+    if (normalizedCountry && normalizedCountry !== 'Global') {
+      codeTableCache.delete('Global');
+      pendingRequests.delete('Global');
+    }
 
-    // Also clear department-specific cache if this is a departments table
+    // Clear department-specific cache if this is a departments table
     if (tableType === 'departments') {
       departmentCache.clear();
-      departmentPendingRequests.clear();}
+      departmentPendingRequests.clear();
+      
+      // Log successful deletion for debugging
+      console.log(`Successfully deleted department: ${item} from ${targetCountry}`);
+    }
 
     return true;
   } catch (error) {

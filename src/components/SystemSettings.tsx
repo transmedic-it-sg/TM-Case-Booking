@@ -46,8 +46,8 @@ const SystemSettings: React.FC = () => {
     ui: false
   });
 
-  // Check permissions
-  const canManageSettings = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) : false;
+  // Check permissions - admin override
+  const canManageSettings = currentUser ? (currentUser.role === 'admin' || hasPermission(currentUser.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS)) : false;
 
   const loadSystemConfig = useCallback(async () => {
     setIsLoading(true);

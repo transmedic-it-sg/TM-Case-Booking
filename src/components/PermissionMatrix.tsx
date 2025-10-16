@@ -41,6 +41,30 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showRoleSummary, setShowRoleSummary] = useState<string | null>(null);
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('🔴 PERMISSION MATRIX COMPONENT DEBUG:', {
+      rolesReceived: roles?.length || 0,
+      rolesData: roles,
+      actionsReceived: actions?.length || 0,
+      actionsData: actions?.slice(0, 3), // Show first 3 actions
+      permissionsReceived: permissions?.length || 0,
+      permissionsData: permissions?.slice(0, 5), // Show first 5 permissions
+      isDataValid: roles?.length > 0 && actions?.length > 0,
+      componentMounted: true
+    });
+    
+    if (!roles || roles.length === 0) {
+      console.error('❌ PERMISSION MATRIX: NO ROLES PROVIDED!');
+    }
+    if (!actions || actions.length === 0) {
+      console.error('❌ PERMISSION MATRIX: NO ACTIONS PROVIDED!');
+    }
+    if (!permissions || permissions.length === 0) {
+      console.warn('⚠️ PERMISSION MATRIX: NO PERMISSIONS PROVIDED (table will be empty)');
+    }
+  }, [roles, actions, permissions]);
 
   const categories = Array.from(new Set(actions.map(action => action.category)));
 

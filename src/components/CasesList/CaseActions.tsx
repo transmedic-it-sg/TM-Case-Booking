@@ -65,7 +65,7 @@ const CaseActions: React.FC<CaseActionsProps> = ({
 
         {caseItem.status === 'Order Prepared' && (
           <Tooltip
-            content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.SALES_APPROVAL) ? 'Submit for Sales Approved' : 'You do not have permission to submit for sales approval'}
+            content={hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.SALES_APPROVAL) ? 'Submit for Sales Approved' : 'You do not have permission to approve sales'}
             disabled={!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.SALES_APPROVAL)}
           >
             <button

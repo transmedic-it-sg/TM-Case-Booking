@@ -25,16 +25,27 @@
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <script>
-      // Register service worker for PWA functionality
+      // Register service worker for PWA functionality with cache busting
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registered: ', registration);
-            })
-            .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
+          // Force unregister all old service workers first
+          navigator.serviceWorker.getRegistrations().then((registrations) => {
+            registrations.forEach(registration => {
+              registration.unregister();
+              console.log('Unregistered old SW:', registration);
             });
+          }).then(() => {
+            // Register new service worker with cache bust parameter
+            navigator.serviceWorker.register('/sw.js?v=1.3.4-' + Date.now())
+              .then((registration) => {
+                console.log('SW registered: ', registration);
+                // Force immediate update
+                registration.update();
+              })
+              .catch((registrationError) => {
+                console.log('SW registration failed: ', registrationError);
+              });
+          });
         });
       }
     </script>

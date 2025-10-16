@@ -764,14 +764,14 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
   const handleSaveSalesApproval = async (caseId: string) => {
     const currentUser = getCurrentUserSync();
     
-    console.log('🔄 SALES APPROVAL DEBUG - Function called:', {
+    console.log('🔄 SALES APPROVED DEBUG - Function called:', {
       caseId,
       timestamp: new Date().toISOString(),
       isMutating,
       currentUser: currentUser?.email
     });
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.SALES_APPROVAL)) {
-      console.log('❌ SALES APPROVAL DEBUG - Permission denied:', {
+      console.log('❌ SALES APPROVED DEBUG - Permission denied:', {
         hasUser: !!currentUser,
         userRole: currentUser?.role,
         hasPermission: hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.SALES_APPROVAL)
@@ -781,13 +781,13 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
     // Prevent double submission by checking if already processing
     if (isMutating) {
-      console.log('🚫 SALES APPROVAL DEBUG - Blocked due to mutation in progress');
+      console.log('🚫 SALES APPROVED DEBUG - Blocked due to mutation in progress');
       return;
     }
 
     try {
       const startTime = performance.now();
-      console.log('⚡ SALES APPROVAL DEBUG - Starting status update...');
+      console.log('⚡ SALES APPROVED DEBUG - Starting status update...');
 
       // Prepare status update details - optimize by only including necessary data
       const updateDetails = salesApprovalComments.trim() || salesApprovalAttachments.length > 0 
@@ -799,7 +799,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
           })
         : `Sales approval by ${currentUser.name}`;
 
-      console.log('📝 SALES APPROVAL DEBUG - Details prepared:', {
+      console.log('📝 SALES APPROVED DEBUG - Details prepared:', {
         hasComments: !!salesApprovalComments.trim(),
         attachmentCount: salesApprovalAttachments.length,
         detailsSize: updateDetails.length
@@ -809,7 +809,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
       await updateCaseStatus(caseId, CASE_STATUSES.SALES_APPROVAL, updateDetails, salesApprovalAttachments);
 
       const statusUpdateTime = performance.now();
-      console.log('✅ SALES APPROVAL DEBUG - Status update completed:', {
+      console.log('✅ SALES APPROVED DEBUG - Status update completed:', {
         duration: `${(statusUpdateTime - startTime).toFixed(2)}ms`
       });
 
@@ -828,21 +828,21 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
 
       // Single notification instead of popup + notification
       addNotification({
-        title: 'Sales Approved Submitted',
-        message: `Case ${caseId} successfully submitted for sales approval`,
+        title: 'Sales Approved Successfully',
+        message: `Case ${caseId} has been approved by sales`,
         type: 'success'
       });
 
       const totalTime = performance.now();
-      console.log('🎉 SALES APPROVAL DEBUG - Complete function finished:', {
+      console.log('🎉 SALES APPROVED DEBUG - Complete function finished:', {
         totalDuration: `${(totalTime - startTime).toFixed(2)}ms`
       });
 
     } catch (error) {
-      console.error('❌ SALES APPROVAL DEBUG - Error occurred:', error);
+      console.error('❌ SALES APPROVED DEBUG - Error occurred:', error);
       addNotification({
         title: 'Sales Approved Failed',
-        message: 'Failed to submit case for sales approval. Please try again.',
+        message: 'Failed to approve case. Please try again.',
         type: 'error'
       });
     }

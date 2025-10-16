@@ -102,6 +102,26 @@
   }
 }
 
+/* Remove ALL status colors in mobile view */
+@media screen and (max-width: 768px) {
+  /* Force all status badges to have neutral gray color - NO STATUS COLORS */
+  html body .case-status .status-text,
+  html body .status-badge,
+  html body .status-text,
+  html body [class*="status"][style*="background"] {
+    background: #f0f0f0 !important;
+    background-color: #f0f0f0 !important;
+    background-image: none !important;
+    color: #333333 !important;
+  }
+  
+  /* Remove gradient from case card headers */
+  html body .case-card-header {
+    background: #f8f9fa !important;
+    background-image: none !important;
+  }
+}
+
 /* Advanced Filter mobile view design fixes */
 @media screen and (max-width: 768px) {
   /* Fix for filters header layout on mobile */

@@ -153,6 +153,15 @@ const UserManagement: React.FC = () => {
       hasPermissionResult: currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.DELETE_USER) : 'no user',
       permissionCheckFormula: `currentUser.role === 'admin' (${currentUser?.role === 'admin'}) || hasPermission(${currentUser?.role}, ${PERMISSION_ACTIONS.DELETE_USER}) = ${canDeleteUsers}`
     });
+    
+    // Force log to ensure it's visible
+    if (currentUser?.role === 'admin') {
+      console.log('🚨 ADMIN USER DETECTED - Delete button SHOULD be visible!', {
+        canDeleteUsers,
+        adminCheck: currentUser.role === 'admin',
+        username: currentUser.username
+      });
+    }
   }, [currentUser, canDeleteUsers]);
 
   const { addNotification } = useNotifications();
@@ -1340,7 +1349,7 @@ const UserManagement: React.FC = () => {
                             <span>{userEnabled ? '🔒' : '🔓'}<br/>{userEnabled ? 'Disable' : 'Enable'}</span>
                           </button>
                         )}
-                        {canDeleteUsers && (
+                        {(console.log(`🔍 Delete button check for ${user.name}:`, { canDeleteUsers, userId: user.id, currentUserRole: currentUser?.role }), canDeleteUsers) && (
                           <button
                             className="action-btn delete"
                             onClick={() => handleDeleteUser(user.id)}

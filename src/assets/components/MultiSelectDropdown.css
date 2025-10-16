@@ -23,14 +23,14 @@
 }
 
 .custom-multi-select .multi-select-trigger:hover:not(.disabled) {
-  border-color: #28a745;
-  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.15);
+  border-color: #20b2aa;
+  box-shadow: 0 2px 8px rgba(32, 178, 170, 0.15);
 }
 
 .custom-multi-select .multi-select-trigger:focus {
   outline: none;
-  border-color: #28a745;
-  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+  border-color: #20b2aa;
+  box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
 }
 
 .custom-multi-select .multi-select-trigger.disabled {
@@ -64,7 +64,7 @@
 
 .custom-multi-select .dropdown-arrow.open {
   transform: rotate(180deg);
-  color: #28a745;
+  color: #20b2aa;
 }
 
 /* Dropdown Content */
@@ -74,7 +74,7 @@
   left: 0;
   right: 0;
   background: white;
-  border: 2px solid #28a745;
+  border: 2px solid #20b2aa;
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   z-index: 1000;
@@ -120,7 +120,7 @@
 
 .custom-multi-select .search-input:focus {
   outline: none;
-  border-color: #28a745;
+  border-color: #20b2aa;
   box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.1);
 }
 
@@ -177,7 +177,7 @@
 
 .custom-multi-select .multi-select-option:hover {
   background: #f0f8ff !important;
-  border-color: #28a745;
+  border-color: #20b2aa;
   transform: translateX(2px);
 }
 
@@ -209,8 +209,8 @@
 
 /* When checkbox is checked */
 .custom-multi-select .multi-select-option input:checked ~ .checkmark {
-  background-color: #28a745;
-  border-color: #28a745;
+  background-color: #20b2aa;
+  border-color: #20b2aa;
 }
 
 /* Create the checkmark/indicator (hidden when not checked) */
@@ -246,7 +246,7 @@
 
 .custom-multi-select .multi-select-option input:checked ~ .option-text {
   font-weight: 500;
-  color: #1e7e34;
+  color: #178a80; /* Darker shade of #20b2aa */
 }
 
 /* No Options */
@@ -260,7 +260,7 @@
 
 /* Focus Styles for Accessibility */
 .custom-multi-select .multi-select-option:focus-within {
-  outline: 2px solid #28a745;
+  outline: 2px solid #20b2aa;
   outline-offset: 2px;
 }
 

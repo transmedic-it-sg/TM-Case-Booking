@@ -88,8 +88,8 @@ export const STATUS_LABELS = {
 export const STATUS_DESCRIPTIONS = {
   [CASE_STATUSES.CASE_BOOKED]: 'Case has been submitted and is awaiting order preparation',
   [CASE_STATUSES.ORDER_PREPARATION]: 'Order is being prepared by operations team',
-  [CASE_STATUSES.ORDER_PREPARED]: 'Order has been prepared and is ready for sales approval',
-  [CASE_STATUSES.SALES_APPROVAL]: 'Order requires sales team approval before delivery',
+  [CASE_STATUSES.ORDER_PREPARED]: 'Order has been prepared and is ready for sales approved',
+  [CASE_STATUSES.SALES_APPROVAL]: 'Order has been approved by sales team for delivery',
   [CASE_STATUSES.PENDING_DELIVERY_HOSPITAL]: 'Order is pending delivery to hospital',
   [CASE_STATUSES.DELIVERED_HOSPITAL]: 'Order has been delivered to the hospital',
   [CASE_STATUSES.CASE_COMPLETED]: 'Surgical case has been completed successfully',
