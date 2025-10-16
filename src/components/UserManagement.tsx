@@ -636,9 +636,13 @@ const UserManagement: React.FC = () => {
           ? {
               ...finalUserData,
               countries: availableCountries,
-              departments: [] // Admin users don't need department restrictions
+              departments: [], // Admin users don't need department restrictions
+              selectedCountry: finalUserData.countries?.[0] || availableCountries[0] // Set default selected country
             }
-          : finalUserData;
+          : {
+              ...finalUserData,
+              selectedCountry: finalUserData.countries?.[0] || currentUser?.selectedCountry || 'Singapore' // Set default selected country
+            };
 
         console.log('📤 USER CREATE - Calling addUser with data:', {
           username: userDataToSave.username,
