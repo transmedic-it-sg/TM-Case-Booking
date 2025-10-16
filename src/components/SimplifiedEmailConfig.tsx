@@ -1284,14 +1284,18 @@ Best regards,
       };
       
       const success = await centralizedEmailService.setAdminEmailConfig(
-        selectedCountry, 
         adminCredentials, 
         currentUser!.id
       );
       
       if (success) {
-        setAdminEmailConfigs(prev => ({...prev, [selectedCountry]: adminCredentials}));
-        showSuccess('Admin OAuth Setup Complete', 'Admin email authentication configured successfully');
+        // Email config is now global, update all countries
+        const allCountries = SUPPORTED_COUNTRIES.reduce((acc, country) => ({
+          ...acc,
+          [country]: adminCredentials
+        }), {});
+        setAdminEmailConfigs(allCountries);
+        showSuccess('Admin OAuth Setup Complete', 'Admin email authentication configured successfully (global)');
       }
     } catch (error) {
       console.error('Admin OAuth setup error:', error);
