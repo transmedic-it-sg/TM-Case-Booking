@@ -41,7 +41,7 @@ import {
   type DepartmentDoctor,
   type DoctorProcedure,
   type ProcedureSet
-} from '../utils/departmentDoctorService';
+} from '../utils/departmentDoctorService_fixed';
 import {
   type CaseQuantity
 } from '../utils/doctorService';

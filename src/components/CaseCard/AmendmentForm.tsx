@@ -27,7 +27,7 @@ import {
   type DepartmentDoctor,
   type DoctorProcedure,
   type ProcedureSet
-} from '../../utils/departmentDoctorService';
+} from '../../utils/departmentDoctorService_fixed';
 
 const AmendmentForm: React.FC<AmendmentFormProps> = ({
   caseItem,
