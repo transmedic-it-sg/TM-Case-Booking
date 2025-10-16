@@ -346,11 +346,40 @@ export const removeSupabaseCodeTableItem = async (
   
   try {
     const normalizedCountry = normalizeCountryForDB(country);
-    const code = item.toLowerCase().replace(/\s+/g, '_');
     
-    console.log('🔍 CODE TABLE DELETE - Normalized values:', {
+    // CRITICAL FIX: Don't transform the item name - find the actual code from database
+    // The item name is the display_name, we need to find the corresponding code
+    console.log('🔍 CODE TABLE DELETE - Finding actual code for item:', {
       normalizedCountry,
-      code,
+      itemDisplayName: item,
+      tableType
+    });
+
+    // First, find the actual code by looking up the display_name
+    const { data: existingItem, error: lookupError } = await supabase
+      .from('code_tables')
+      .select('code, display_name')
+      .eq('country', normalizedCountry)
+      .eq('table_type', tableType)
+      .eq('display_name', item)
+      .single();
+
+    if (lookupError || !existingItem) {
+      console.error('❌ CODE TABLE DELETE - Item not found for deletion:', {
+        item,
+        tableType,
+        country: normalizedCountry,
+        lookupError
+      });
+      return false;
+    }
+
+    const actualCode = existingItem.code;
+    
+    console.log('🔍 CODE TABLE DELETE - Found actual database values:', {
+      normalizedCountry,
+      actualCode,
+      displayName: existingItem.display_name,
       originalItem: item
     });
 
@@ -376,7 +405,7 @@ export const removeSupabaseCodeTableItem = async (
       console.log('🔥 CODE TABLE DELETE - Performing HARD DELETE for department:', {
         targetCountry,
         tableType,
-        code
+        actualCode
       });
       
       const result = await supabase
@@ -384,7 +413,7 @@ export const removeSupabaseCodeTableItem = async (
         .delete()
         .eq('country', targetCountry)
         .eq('table_type', tableType)
-        .eq('code', code)
+        .eq('code', actualCode)  // Use the actual code from database
         .select(); // Add select to see what was deleted
 
       if (result.error) {
@@ -403,7 +432,7 @@ export const removeSupabaseCodeTableItem = async (
         .update({ is_active: false })
         .eq('country', targetCountry)
         .eq('table_type', tableType)
-        .eq('code', code);
+        .eq('code', actualCode);
 
       if (result.error) {
         return false;

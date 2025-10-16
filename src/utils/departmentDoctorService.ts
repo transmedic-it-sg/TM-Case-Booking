@@ -140,7 +140,7 @@ export const getDepartmentsForCountry = async (country: string): Promise<Departm
  * Get doctors for a specific department
  */
 export const getDoctorsForDepartment = async (departmentName: string, country: string): Promise<DepartmentDoctor[]> => {
-  console.log('👩‍⚕️ DOCTOR LOOKUP - Starting search:', {
+  console.log('👩‍⚕️ DOCTOR LOOKUP FIXED - Starting search:', {
     departmentName,
     country,
     timestamp: new Date().toISOString()
@@ -148,13 +148,12 @@ export const getDoctorsForDepartment = async (departmentName: string, country: s
   
   try {
     if (!departmentName || departmentName.trim() === '' || !country || country.trim() === '') {
-      console.log('❌ DOCTOR LOOKUP - Invalid parameters:', { departmentName, country });
-      logger.warn('getDoctorsForDepartment: Invalid parameters', { departmentName, country });
+      console.log('❌ DOCTOR LOOKUP FIXED - Invalid parameters:', { departmentName, country });
       return [];
     }
 
     const normalizedCountry = normalizeCountry(country);
-    console.log('🔍 DOCTOR LOOKUP - Normalized values:', {
+    console.log('🔍 DOCTOR LOOKUP FIXED - Normalized values:', {
       originalDepartment: departmentName,
       trimmedDepartment: departmentName.trim(),
       originalCountry: country,
