@@ -195,7 +195,7 @@ const UnifiedEmailAuth: React.FC<UnifiedEmailAuthProps> = ({
     setMessage(null);
 
     try {
-      const result = await centralizedEmailService.testAdminEmailConfig(selectedCountry, testEmailAddress);
+      const result = await centralizedEmailService.testAdminEmailConfig(testEmailAddress);
       
       if (result.success) {
         setMessage({ 
