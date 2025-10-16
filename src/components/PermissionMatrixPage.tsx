@@ -32,7 +32,9 @@ const PermissionMatrixPage: React.FC = () => {
   useEffect(() => {
     const runValidation = async () => {
       try {
-        await validateComponent();} catch (error) {
+        await validateComponent();
+      } catch (error) {
+        console.error('Validation error:', error);
       }
     };
 
@@ -40,6 +42,19 @@ const PermissionMatrixPage: React.FC = () => {
       runValidation();
     }
   }, [isLoading, validateComponent]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 PERMISSION MATRIX DEBUG:', {
+      isLoading,
+      error,
+      rolesCount: roles?.length || 0,
+      permissionsCount: permissions?.length || 0,
+      actionsCount: permissionActions?.length || 0,
+      roles,
+      permissions: permissions?.slice(0, 5) // Show first 5 permissions
+    });
+  }, [isLoading, error, roles, permissions]);
 
   // Real-time error handling
   useEffect(() => {

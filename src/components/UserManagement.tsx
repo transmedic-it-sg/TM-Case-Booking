@@ -133,21 +133,25 @@ const UserManagement: React.FC = () => {
 
   // Ref for the add user form to handle click outside
   const addUserFormRef = useRef<HTMLDivElement>(null);
-  const canEditUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_USER) : false;
-  const canEditCountries = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_COUNTRIES) : false;
-  const canDeleteUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.DELETE_USER) : false;
-  const canEnableDisableUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.ENABLE_DISABLE_USER) : false;
-  const canResetPassword = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.RESET_PASSWORD) : false;
+  // Admin role always has all permissions
+  const canEditUsers = currentUser ? (currentUser.role === 'admin' || hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_USER)) : false;
+  const canEditCountries = currentUser ? (currentUser.role === 'admin' || hasPermission(currentUser.role, PERMISSION_ACTIONS.EDIT_COUNTRIES)) : false;
+  const canDeleteUsers = currentUser ? (currentUser.role === 'admin' || hasPermission(currentUser.role, PERMISSION_ACTIONS.DELETE_USER)) : false;
+  const canEnableDisableUsers = currentUser ? (currentUser.role === 'admin' || hasPermission(currentUser.role, PERMISSION_ACTIONS.ENABLE_DISABLE_USER)) : false;
+  const canResetPassword = currentUser ? (currentUser.role === 'admin' || hasPermission(currentUser.role, PERMISSION_ACTIONS.RESET_PASSWORD)) : false;
 
   // Debug logging for permissions
   useEffect(() => {
     console.log('🔍 USER MANAGEMENT PERMISSIONS DEBUG:', {
       currentUser: currentUser?.role,
+      isAdmin: currentUser?.role === 'admin',
       canEditUsers,
       canDeleteUsers,
       canEnableDisableUsers,
       canResetPassword,
-      DELETE_USER_ACTION: PERMISSION_ACTIONS.DELETE_USER
+      DELETE_USER_ACTION: PERMISSION_ACTIONS.DELETE_USER,
+      hasPermissionResult: currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.DELETE_USER) : 'no user',
+      permissionCheckFormula: `currentUser.role === 'admin' (${currentUser?.role === 'admin'}) || hasPermission(${currentUser?.role}, ${PERMISSION_ACTIONS.DELETE_USER}) = ${canDeleteUsers}`
     });
   }, [currentUser, canDeleteUsers]);
 

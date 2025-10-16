@@ -555,7 +555,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
               </div>
             )}
             
-            {/* FIXED: Display current status comments for Sales Approval and Order Prepared */}
+            {/* FIXED: Display current status comments for Sales Approved and Order Prepared */}
             {currentComments && (
               <div className="detail-item full-width">
                 <span className="detail-label">
@@ -577,7 +577,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
               </div>
             )}
             
-            {/* FIXED: Display current status attachments for Sales Approval and Order Prepared */}
+            {/* FIXED: Display current status attachments for Sales Approved and Order Prepared */}
             {currentAttachments.length > 0 && (
               <div className="detail-item full-width">
                 <span className="detail-label">
@@ -1157,7 +1157,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
             </div>
           )}
 
-          {/* Sales Approval Form */}
+          {/* Sales Approved Form */}
           {salesApprovalCase === caseItem.id && (
             <div className="sales-approval-form">
               <h4>Sales Approved</h4>

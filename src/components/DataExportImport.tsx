@@ -165,12 +165,12 @@ const DataExportImport: React.FC = () => {
   const [currentDataPreview, setCurrentDataPreview] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'export' | 'import'>('export');
 
-  // Check permissions
-  const canExportData = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.EXPORT_DATA) : false;
-  const canImportData = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.IMPORT_DATA) : false;
-  const canManageUsers = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.VIEW_USERS) : false;
-  const canManagePermissions = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.PERMISSION_MATRIX) : false;
-  const canManageSettings = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS) : false;
+  // Check permissions - Admin role always has access
+  const canExportData = currentUser ? (currentUser.role === 'admin' || hasPermission(currentUser.role, PERMISSION_ACTIONS.EXPORT_DATA)) : false;
+  const canImportData = currentUser ? (currentUser.role === 'admin' || hasPermission(currentUser.role, PERMISSION_ACTIONS.IMPORT_DATA)) : false;
+  const canManageUsers = currentUser ? (currentUser.role === 'admin' || hasPermission(currentUser.role, PERMISSION_ACTIONS.VIEW_USERS)) : false;
+  const canManagePermissions = currentUser ? (currentUser.role === 'admin' || hasPermission(currentUser.role, PERMISSION_ACTIONS.PERMISSION_MATRIX)) : false;
+  const canManageSettings = currentUser ? (currentUser.role === 'admin' || hasPermission(currentUser.role, PERMISSION_ACTIONS.SYSTEM_SETTINGS)) : false;
   
   // Use the DATA_ENTITIES constant defined outside the component
   const dataEntities = DATA_ENTITIES;
