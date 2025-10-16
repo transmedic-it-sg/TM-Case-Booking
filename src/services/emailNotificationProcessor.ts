@@ -404,8 +404,9 @@ const replaceTemplateVariables = async (
     .replace(/\{\{country\}\}/g, caseData.country)
     .replace(/\{\{Status\}\}/g, caseData.status) // Capitalized Status
     .replace(/\{\{status\}\}/g, caseData.status.toLowerCase()) // Lowercase status
-    .replace(/\{\{mrn\}\}/g, caseData.mrn || 'Not specified')
-    .replace(/\{\{patientName\}\}/g, caseData.patientName || 'Not specified')
+    // MRN and patient info not available in case booking data
+    .replace(/\{\{mrn\}\}/g, 'Not specified')
+    .replace(/\{\{patientName\}\}/g, 'Not specified')
     
     // Surgery Details
     .replace(/\{\{dateOfSurgery\}\}/g, caseData.dateOfSurgery)
