@@ -329,20 +329,11 @@ export const getUnifiedDepartmentData = async (departmentName: string, country: 
 };
 
 /**
- * Legacy compatibility wrapper - returns data in old format
+ * Legacy compatibility wrapper - returns full UnifiedDoctor format
  * This allows existing components to work without modification while we transition
  */
-export const getDoctorsForDepartment = async (departmentName: string, country: string) => {
-  const doctors = await getUnifiedDoctorsForDepartment(departmentName, country);
-  
-  // Convert to legacy format for backward compatibility
-  return doctors.map(doctor => ({
-    id: doctor.id,
-    name: doctor.name,
-    specialties: doctor.specialties,
-    department_id: doctor.department_id,
-    is_active: doctor.is_active
-  }));
+export const getDoctorsForDepartment = async (departmentName: string, country: string): Promise<UnifiedDoctor[]> => {
+  return await getUnifiedDoctorsForDepartment(departmentName, country);
 };
 
 /**
