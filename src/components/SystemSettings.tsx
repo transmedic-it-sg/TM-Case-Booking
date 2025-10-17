@@ -137,19 +137,24 @@ const SystemSettings: React.FC = () => {
   };
 
   const handleSaveConfig = () => {
-    console.log('🔧 SYSTEM SETTINGS DEBUG - Save button clicked:', {
-      hasChanges,
-      config,
-      originalConfig,
-      timestamp: new Date().toISOString()
-    });
+    console.log('🔧 SYSTEM SETTINGS SAVE - Save button clicked:');
+    console.log('hasChanges:', hasChanges);
+    console.log('config:', config);
+    console.log('originalConfig:', originalConfig);
+    console.log('canManageSettings:', canManageSettings);
+    console.log('currentUser:', currentUser);
     
     if (!hasChanges) {
-      console.log('🔧 SYSTEM SETTINGS DEBUG - No changes detected, save blocked');
+      console.log('🔧 SYSTEM SETTINGS SAVE - No changes detected, save blocked');
       return;
     }
 
-    console.log('🔧 SYSTEM SETTINGS DEBUG - Showing save confirmation modal');
+    if (!canManageSettings) {
+      console.log('🔧 SYSTEM SETTINGS SAVE - No permission to manage settings');
+      return;
+    }
+
+    console.log('🔧 SYSTEM SETTINGS SAVE - Showing save confirmation modal');
     showConfirm(
       '💾 Save Configuration',
       'Are you sure you want to save these system settings?\n\nSome changes may require system restart to take effect.',

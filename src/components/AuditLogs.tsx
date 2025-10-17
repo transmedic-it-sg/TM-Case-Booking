@@ -46,13 +46,12 @@ const AuditLogs: React.FC = () => {
   const canViewAuditLogs = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.AUDIT_LOGS) : false;
   
   // Debug logging for audit logs access
-  console.log('🔍 AUDIT LOGS ACCESS DEBUG:', {
-    currentUser: currentUser?.username,
-    role: currentUser?.role,
-    auditLogsAction: PERMISSION_ACTIONS.AUDIT_LOGS,
-    canViewAuditLogs,
-    timestamp: new Date().toISOString()
-  });
+  console.log('🔍 AUDIT LOGS ACCESS DEBUG:');
+  console.log('currentUser?.username:', currentUser?.username);
+  console.log('currentUser?.role:', currentUser?.role);
+  console.log('PERMISSION_ACTIONS.AUDIT_LOGS:', PERMISSION_ACTIONS.AUDIT_LOGS);
+  console.log('canViewAuditLogs:', canViewAuditLogs);
+  console.log('hasPermission function result:', currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.AUDIT_LOGS) : 'no user');
 
   // Load users for mapping user IDs to usernames
   const loadUsers = useCallback(async () => {

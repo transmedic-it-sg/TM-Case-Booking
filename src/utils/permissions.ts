@@ -91,15 +91,17 @@ export const hasPermission = (roleId: string, actionId: string): boolean => {
 // Check if a role has permission for a specific action with user context
 export const hasPermissionForUser = (roleId: string, actionId: string, userId: string = 'system'): boolean => {
   // CRITICAL DEBUG: Enhanced logging for permission checking
-  console.log('🔍 PERMISSION CHECK DEBUG:', {
-    roleId,
-    actionId,
-    userId,
-    cacheExists: !!globalPermissionsCache,
-    cacheAge: globalPermissionsCache ? Date.now() - globalPermissionsCacheTime : null,
-    cacheSize: globalPermissionsCache?.length || 0,
-    timestamp: new Date().toISOString()
-  });
+  if (actionId === 'audit-logs' || actionId === 'system-settings' || actionId === 'manage-doctors' || actionId === 'manage-procedure-types') {
+    console.log('🔍 CRITICAL PERMISSION CHECK:', JSON.stringify({
+      roleId,
+      actionId,
+      userId,
+      cacheExists: !!globalPermissionsCache,
+      cacheAge: globalPermissionsCache ? Date.now() - globalPermissionsCacheTime : null,
+      cacheSize: globalPermissionsCache?.length || 0,
+      timestamp: new Date().toISOString()
+    }, null, 2));
+  }
   
   // Admin privileges are now stored in database - no hardcoded logic
 
@@ -139,16 +141,14 @@ export const hasPermissionForUser = (roleId: string, actionId: string, userId: s
   
   // CRITICAL DEBUG: Enhanced permission lookup logging
   if (roleId === 'admin' && actionId === 'audit-logs') {
-    console.log('🚨 CRITICAL AUDIT LOGS PERMISSION DEBUG:', {
-      roleId,
-      actionId,
-      foundPermission: permission,
-      result,
-      allPermissionsForAdmin: cacheToUse.filter(p => p.roleId === 'admin'),
-      allAuditRelatedPermissions: cacheToUse.filter(p => p.actionId?.includes('audit') || p.actionId?.includes('logs')),
-      cacheSize: cacheToUse.length,
-      timestamp: new Date().toISOString()
-    });
+    console.log('🚨 CRITICAL AUDIT LOGS PERMISSION DEBUG:');
+    console.log('roleId:', roleId);
+    console.log('actionId:', actionId);
+    console.log('foundPermission:', permission);
+    console.log('result:', result);
+    console.log('allPermissionsForAdmin:', cacheToUse.filter(p => p.roleId === 'admin'));
+    console.log('allAuditRelatedPermissions:', cacheToUse.filter(p => p.actionId?.includes('audit') || p.actionId?.includes('logs')));
+    console.log('cacheSize:', cacheToUse.length);
   }
 
   // Log permission check result for debugging
