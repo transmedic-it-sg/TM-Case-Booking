@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { getCurrentUser } from '../utils/authCompat';
-import { supabase } from '../utils/supabaseClient';
+import { supabase } from '../lib/supabase';
 import { 
   getStatusHistoryEntry, 
   updateStatusHistoryAttachments 
