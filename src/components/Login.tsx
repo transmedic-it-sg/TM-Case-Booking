@@ -16,7 +16,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const countrySelectRef = useRef<HTMLSelectElement>(null);
 
@@ -32,33 +31,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     };
     loadCountries();
 
-    // Load remembered credentials from localStorage (only for login credentials)
-    // CRITICAL FIX: Use direct localStorage for Remember Me since user isn't authenticated yet
-    const loadSavedCredentials = () => {
-      try {
-        const savedData = localStorage.getItem('tm_remember_me');
-        if (savedData) {
-          const savedCredentials = JSON.parse(savedData);
-          const now = Date.now();
-          
-          // Check if saved credentials haven't expired (30 days)
-          if (savedCredentials.expires && savedCredentials.expires > now) {
-            setUsername(savedCredentials.username || '');
-            setPassword(savedCredentials.password || '');
-            setCountry(savedCredentials.country || '');
-            setRememberMe(true);
-          } else {
-            // Remove expired credentials
-            localStorage.removeItem('tm_remember_me');
-          }
-        }
-      } catch (error) {
-        // Clear corrupted data
-        localStorage.removeItem('tm_remember_me');
-      }
-    };
-
-    loadSavedCredentials();
+    // Remember Me functionality removed for security - no localStorage dependencies
   }, []);
 
   // Set custom validation message for country select
@@ -99,19 +72,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     try {
       const result = await authenticate(username, password, country);
       if (result.user) {
-        // Save credentials if remember me is checked
-        // CRITICAL FIX: Use direct localStorage for Remember Me credentials
-        if (rememberMe) {
-          const credentialsData = {
-            username,
-            password,
-            country,
-            expires: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days from now
-          };
-          localStorage.setItem('tm_remember_me', JSON.stringify(credentialsData));
-        } else {
-          localStorage.removeItem('tm_remember_me');
-        }
+        // Remember Me functionality removed for security - relying on Supabase session management
         onLogin(result.user);
       } else {
         setError(result.error || 'Login failed');
@@ -205,18 +166,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <div className="input-underline"></div>
               </div>
 
-              <div className="remember-me-group">
-                <label className="remember-me-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    disabled={isLoading}
-                  />
-                  <span className="checkmark"></span>
-                  <span className="remember-me-text">Remember me</span>
-                </label>
-              </div>
+              {/* Remember Me functionality removed for security */}
 
               <div className="dropdown-input-group">
                 <label htmlFor="country" className="dropdown-label required">Country</label>

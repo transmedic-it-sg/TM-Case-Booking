@@ -34,7 +34,7 @@ import {
   DOCTORS_FIELDS,
   getDbField
 } from '../../utils/fieldMappings';
-import { getCaseQuantities } from '../../utils/doctorService';
+import { getCaseQuantities } from '../../utils/unifiedDataService';
 
 const CaseCard: React.FC<CaseCardProps> = ({
   caseItem,

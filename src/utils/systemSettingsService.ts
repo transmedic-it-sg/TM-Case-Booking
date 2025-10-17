@@ -271,7 +271,7 @@ export const resetSystemConfig = async (): Promise<SystemConfig> => {
 };
 
 /**
- * Get system health status
+ * Get system health status - MODERNIZED: No localStorage dependency
  */
 export const getSystemHealth = async (): Promise<{
   status: 'healthy' | 'warning' | 'error';
@@ -296,29 +296,12 @@ export const getSystemHealth = async (): Promise<{
       message: dbError ? 'Database connection failed' : 'Database connection healthy'
     });
 
-    // Check session storage
-    try {
-      sessionStorage.setItem('healthcheck', 'test');
-      sessionStorage.removeItem('healthcheck');
-      checks.push({
-        name: 'Session Storage',
-        status: 'pass',
-        message: 'Session storage is working'
-      });
-    } catch (error) {
-      checks.push({
-        name: 'Session Storage',
-        status: 'fail',
-        message: 'Session storage is not available'
-      });
-    }
-
     // Check system configuration
     const config = await getSystemConfig();
     checks.push({
       name: 'System Configuration',
       status: config ? 'pass' : 'fail',
-      message: config ? 'System configuration loaded' : 'System configuration unavailable'
+      message: config ? 'System configuration loaded from database' : 'System configuration unavailable'
     });
 
     // Determine overall status
@@ -334,6 +317,7 @@ export const getSystemHealth = async (): Promise<{
 
     return { status, checks };
   } catch (error) {
+    console.error('❌ SYSTEM HEALTH - Error during health check:', error);
     return {
       status: 'error',
       checks: [{
@@ -346,32 +330,18 @@ export const getSystemHealth = async (): Promise<{
 };
 
 /**
- * Apply system configuration changes
+ * Apply system configuration changes - MODERNIZED: No sessionStorage dependency
  */
 export const applySystemConfig = async (config: SystemConfig): Promise<void> => {
   try {
-    // Apply session timeout
-    if (config.sessionTimeout > 0) {
-      const sessionTimeout = config.sessionTimeout * 1000; // Convert to milliseconds
-      sessionStorage.setItem('sessionTimeout', sessionTimeout.toString());
-    }
+    console.log('🔧 SYSTEM CONFIG - Applying configuration changes:', config);
 
-    // Apply maintenance mode
-    if (config.maintenanceMode) {
-      sessionStorage.setItem('maintenanceMode', 'true');
-    } else {
-      sessionStorage.removeItem('maintenanceMode');
-    }
-
-    // Apply theme changes
+    // Apply theme changes to DOM immediately
     if (config.defaultTheme) {
       // Apply theme to document
       document.documentElement.setAttribute('data-theme', config.defaultTheme);
       document.body.className = document.body.className.replace(/theme-\w+/g, '');
       document.body.classList.add(`theme-${config.defaultTheme}`);
-
-      // Store in sessionStorage
-      sessionStorage.setItem('defaultTheme', config.defaultTheme);
 
       // Apply CSS variables for light/dark theme
       const root = document.documentElement;
@@ -388,22 +358,11 @@ export const applySystemConfig = async (config: SystemConfig): Promise<void> => 
       }
     }
 
-    // Apply cache timeout
-    sessionStorage.setItem('cacheTimeout', config.cacheTimeout.toString());
-    
-    // Apply max file size
-    sessionStorage.setItem('maxFileSize', config.maxFileSize.toString());
-    
-    // Apply audit log retention
-    sessionStorage.setItem('auditLogRetention', config.auditLogRetention.toString());
-    
-    // Apply amendment settings
-    sessionStorage.setItem('amendmentTimeLimit', config.amendmentTimeLimit.toString());
-    sessionStorage.setItem('maxAmendmentsPerCase', config.maxAmendmentsPerCase.toString());
-    
-    // Apply security settings
-    sessionStorage.setItem('passwordComplexity', config.passwordComplexity.toString());
+    // All configuration is already saved to database via saveSystemConfig
+    // No need for sessionStorage fallbacks - components can call getSystemConfig
+    console.log('✅ SYSTEM CONFIG - Configuration applied successfully');
   } catch (error) {
+    console.error('❌ SYSTEM CONFIG - Error applying configuration:', error);
     throw error;
   }
 };

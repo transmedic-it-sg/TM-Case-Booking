@@ -1804,3 +1804,54 @@ export const checkCasesExist = async (): Promise<boolean> => {
     return false;
   }
 };
+
+/**
+ * Update status history attachments (for image amendments)
+ */
+export const updateStatusHistoryAttachments = async (
+  statusHistoryId: string,
+  updatedAttachments: string[]
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('status_history')
+      .update({
+        attachments: updatedAttachments,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', statusHistoryId);
+
+    if (error) {
+      console.error('❌ CASE SERVICE - Error updating status history attachments:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ CASE SERVICE - Error in updateStatusHistoryAttachments:', error);
+    return false;
+  }
+};
+
+/**
+ * Get status history entry with attachments
+ */
+export const getStatusHistoryEntry = async (statusHistoryId: string): Promise<{ attachments?: string[], details?: string } | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('status_history')
+      .select('attachments, details')
+      .eq('id', statusHistoryId)
+      .single();
+
+    if (error) {
+      console.error('❌ CASE SERVICE - Error fetching status history:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('❌ CASE SERVICE - Error in getStatusHistoryEntry:', error);
+    return null;
+  }
+};

@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { getCaseQuantities, type CaseQuantity } from '../utils/doctorService';
+import { getCaseQuantities, type CaseQuantity } from '../utils/unifiedDataService';
 
 export const useCaseQuantities = (caseId: string) => {
   const [quantities, setQuantities] = useState<CaseQuantity[]>([]);

@@ -122,7 +122,7 @@ export const useRealtimeCasesQuery = (filters?: {
           changes
         )
       `)
-      .order('created_at', { ascending: false }); // ⚠️ created_at (createdAt)
+      .order(CASE_BOOKINGS_FIELDS.createdAt, { ascending: false });
 
     // Apply filters dynamically
     if (filters?.country) {

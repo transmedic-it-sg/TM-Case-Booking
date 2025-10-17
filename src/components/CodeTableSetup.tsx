@@ -534,7 +534,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
           >
             🌍 Global Tables
             <span className="category-count">({globalTables.length})</span>
-            {!canManageGlobalTables && <span className="read-only-indicator">👁️</span>}
+            {!canManageGlobalTables}
           </button>
         </div>
       </div>

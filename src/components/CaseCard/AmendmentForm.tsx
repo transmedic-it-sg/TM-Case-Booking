@@ -18,6 +18,8 @@ import {
   AMENDMENT_HISTORY_FIELDS,
   PROFILES_FIELDS,
   DOCTORS_FIELDS,
+  SURGERY_SETS_FIELDS,
+  IMPLANT_BOXES_FIELDS,
   getDbField
 } from '../../utils/fieldMappings';
 import {
@@ -277,7 +279,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
             .from('surgery_sets')
             .select('name, sort_order')
             .eq('country', normalizedCountry)
-            .eq('is_active', true) // ⚠️ is_active (isActive)
+            .eq(SURGERY_SETS_FIELDS.isActive, true)
             .order('sort_order', { ascending: true, nullsFirst: false })
             .order('name');
 
@@ -293,7 +295,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
             .from('implant_boxes')
             .select('name, sort_order')
             .eq('country', normalizedCountry)
-            .eq('is_active', true)
+            .eq(IMPLANT_BOXES_FIELDS.isActive, true)
             .order('sort_order', { ascending: true, nullsFirst: false })
             .order('name');
 

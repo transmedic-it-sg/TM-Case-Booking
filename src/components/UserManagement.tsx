@@ -189,28 +189,14 @@ const UserManagement: React.FC = () => {
   useEffect(() => {
     // Users now loaded automatically by useRealtimeUsers hook
 
-    // Load countries directly from code_tables to avoid fake data detection
+    // Load countries using standardized service - no direct database access
     const loadCountries = async () => {
-      try {const { supabase } = await import('../lib/supabase');
-        const { data, error } = await supabase
-          .from('code_tables')
-          .select('display_name')
-          .eq('table_type', 'countries')
-          .eq('country', 'Global')
-          .eq('is_active', true) // ⚠️ is_active (isActive)
-          .order('display_name');
-
-        if (error) {
-          setAvailableCountries([]);
-          return;
-        }
-
-        if (data && data.length > 0) {
-          const countryNames = data.map((item: any) => item.display_name);setAvailableCountries(countryNames);
-        } else {
-          setAvailableCountries([]);
-        }
+      try {
+        const { getStandardizedCountries } = await import('../utils/unifiedDataService');
+        const countries = await getStandardizedCountries();
+        setAvailableCountries(countries);
       } catch (error) {
+        console.error('❌ USER MANAGEMENT - Error loading countries:', error);
         setAvailableCountries([]);
       }
     };

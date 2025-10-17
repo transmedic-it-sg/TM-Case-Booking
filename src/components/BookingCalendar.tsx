@@ -8,7 +8,7 @@ import SearchableDropdown from './SearchableDropdown';
 import { getMonthYearDisplay } from '../utils/dateFormat';
 import { getStatusColor } from './CasesList/utils';
 import { CASE_STATUSES } from '../constants/statuses';
-import { getDailyUsageForDate, type DailyUsage } from '../utils/doctorService';
+import { getDailyUsageForDate, type DailyUsage } from '../utils/unifiedDataService';
 import { normalizeCountry } from '../utils/countryUtils';
 import { 
   CASE_BOOKINGS_FIELDS, 

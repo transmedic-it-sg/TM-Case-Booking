@@ -69,7 +69,8 @@
       "Bash(sed:*)",
       "Bash(fi)",
       "Bash(done)",
-      "WebFetch(domain:tmcasebooking.vercel.app)"
+      "WebFetch(domain:tmcasebooking.vercel.app)",
+      "WebFetch(domain:tm-case-booking-h106cvm2c-tmsg-its-projects-8f75c637.vercel.app)"
     ],
     "deny": [
       "mcp__supabase-old__*",

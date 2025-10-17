@@ -125,11 +125,9 @@ export const createSession = async (userId: string): Promise<void> => {
   }
 };
 
-export const deleteSession = async (sessionToken?: string): Promise<void> => {
+export const deleteSession = async (sessionToken: string): Promise<void> => {
   try {
-    const token = sessionToken || sessionStorage.getItem('session-token');
-
-    if (token) {
+    if (sessionToken) {
       // Import supabase dynamically to avoid circular dependencies
       const { supabase } = await import('../lib/supabase');
 
@@ -137,25 +135,20 @@ export const deleteSession = async (sessionToken?: string): Promise<void> => {
       const { error } = await supabase
         .from('user_sessions')
         .delete()
-        .eq('session_token', token);
+        .eq('session_token', sessionToken);
 
       if (error) {
-        // Failed to delete database session
+        console.error('❌ AUTH SERVICE - Failed to delete database session:', error);
       }
     }
-
-    // Always remove from browser storage
-    sessionStorage.removeItem('session-token');
   } catch (error) {
-    // Always remove from browser storage even if database operation fails
-    sessionStorage.removeItem('session-token');
+    console.error('❌ AUTH SERVICE - Error deleting session:', error);
   }
 };
 
-export const validateSession = async (sessionToken?: string): Promise<boolean> => {
+export const validateSession = async (sessionToken: string): Promise<boolean> => {
   try {
-    const token = sessionToken || sessionStorage.getItem('session-token');
-    if (!token) return false;
+    if (!sessionToken) return false;
 
     const { supabase } = await import('../lib/supabase');
 
@@ -163,12 +156,11 @@ export const validateSession = async (sessionToken?: string): Promise<boolean> =
     const { data, error } = await supabase
       .from('user_sessions')
       .select('expires_at, user_id')
-      .eq('session_token', token)
+      .eq('session_token', sessionToken)
       .single();
 
     if (error || !data) {
-      // Session not found in database, remove from browser
-      sessionStorage.removeItem('session-token');
+      // Session not found in database
       return false;
     }
 
@@ -176,12 +168,13 @@ export const validateSession = async (sessionToken?: string): Promise<boolean> =
     const expiresAt = new Date(data.expires_at);
     if (expiresAt <= new Date()) {
       // Session expired, clean up
-      await deleteSession(token);
+      await deleteSession(sessionToken);
       return false;
     }
 
     return true;
   } catch (error) {
+    console.error('❌ AUTH SERVICE - Error validating session:', error);
     return false;
   }
 };
@@ -222,7 +215,6 @@ export const saveCurrentUserToStorage = async (user: User): Promise<void> => {
 
 export const clearCurrentUserFromStorage = async (): Promise<void> => {
   await SafeStorage.removeItem(CURRENT_USER_KEY);
-  sessionStorage.removeItem('session-token');
 };
 
 export const getUsers = async (): Promise<User[]> => {
@@ -367,9 +359,9 @@ export const getCurrentUserSync = (): User | null => {
 
 export const logout = async (): Promise<void> => {
   try {
-    // Get current session token if exists
+    // Get current session token from secure storage
     const sessionToken = await SafeStorage.getItem('session-token');
-    if (sessionToken) {
+    if (sessionToken && typeof sessionToken === 'string') {
       await deleteSession(sessionToken);
       await SafeStorage.removeItem('session-token');
     }
@@ -377,8 +369,9 @@ export const logout = async (): Promise<void> => {
     // Clear secure storage session
     await clearCurrentUserFromStorage();
   } catch (error) {
-    // Still clear secure storage even if Supabase logout fails
-    clearCurrentUserFromStorage();
+    console.error('❌ AUTH SERVICE - Error during logout:', error);
+    // Still clear secure storage even if session deletion fails
+    await clearCurrentUserFromStorage();
   }
 };
 

@@ -330,96 +330,41 @@ class SimplifiedOAuthManager {
 
 // Token storage utilities (Microsoft-only)
 export const storeAuthTokens = (country: string, tokens: AuthTokens): void => {
-  // Microsoft auth is global (same account for all countries)
-  const key = `email_auth_global_microsoft`;
-  
-  try {
-    // Use localStorage for persistence across browser sessions
-    localStorage.setItem(key, JSON.stringify(tokens));
-    // Also store in sessionStorage as backup
-    sessionStorage.setItem(key, JSON.stringify(tokens));
-  } catch (error) {
-    console.warn('Failed to store auth tokens:', error);
-  }
+  console.warn('⚠️ OAuth tokens are not stored for security reasons. Please implement server-side token storage.');
+  // SECURITY: OAuth tokens should never be stored in browser storage
+  // This function is kept for API compatibility but tokens are not persisted
+  // Consider implementing secure server-side token storage with httpOnly cookies
 };
 
 // User info storage utilities (Microsoft-only)
 export const storeUserInfo = (country: string, userInfo: UserInfo): void => {
-  // Microsoft user info is global (same account for all countries)
-  const key = `email_userinfo_global_microsoft`;
-  
-  try {
-    // Use localStorage for persistence across browser sessions
-    localStorage.setItem(key, JSON.stringify(userInfo));
-    // Also store in sessionStorage as backup
-    sessionStorage.setItem(key, JSON.stringify(userInfo));
-  } catch (error) {
-    console.warn('Failed to store user info:', error);
-  }
+  console.warn('⚠️ User OAuth info is not stored for security reasons. Please implement server-side storage.');
+  // SECURITY: User OAuth data should not be stored in browser storage
+  // This function is kept for API compatibility but data is not persisted
 };
 
 export const getStoredUserInfo = (country: string): UserInfo | null => {
-  // Microsoft user info is global (same account for all countries)
-  const key = `email_userinfo_global_microsoft`;
-  
-  try {
-    // Try localStorage first for persistence
-    const storedLocal = localStorage.getItem(key);
-    if (storedLocal) return JSON.parse(storedLocal);
-    
-    // Fallback to sessionStorage
-    const storedSession = sessionStorage.getItem(key);
-    if (storedSession) return JSON.parse(storedSession);
-    
-    return null;
-  } catch (error) {
-    console.warn('Failed to retrieve user info:', error);
-    return null;
-  }
+  // SECURITY: No OAuth data stored in browser for security reasons
+  console.warn('⚠️ OAuth user info retrieval disabled. Implement server-side storage.');
+  return null;
 };
 
 export const clearUserInfo = (country: string): void => {
-  const key = `email_userinfo_global_microsoft`;
-  
-  try {
-    localStorage.removeItem(key);
-    sessionStorage.removeItem(key);
-  } catch (error) {
-    console.warn('Failed to clear user info:', error);
-  }
+  // SECURITY: No OAuth data stored in browser, so nothing to clear
+  console.log('🧹 OAuth user info clear operation completed (no browser storage used).');
 };
 
 export const getStoredAuthTokens = (country: string): AuthTokens | null => {
-  // Microsoft auth is global (same account for all countries)
-  const key = `email_auth_global_microsoft`;
-  
-  try {
-    // Try localStorage first for persistence
-    const storedLocal = localStorage.getItem(key);
-    if (storedLocal) return JSON.parse(storedLocal);
-    
-    // Fallback to sessionStorage
-    const storedSession = sessionStorage.getItem(key);
-    if (storedSession) return JSON.parse(storedSession);
-    
-    return null;
-  } catch (error) {
-    console.warn('Failed to retrieve auth tokens:', error);
-    return null;
-  }
+  // SECURITY: No OAuth tokens stored in browser for security reasons
+  console.warn('⚠️ OAuth token retrieval disabled. Implement server-side storage.');
+  return null;
 };
 
 export const clearAuthTokens = (country: string): void => {
-  const key = `email_auth_global_microsoft`;
-  
-  try {
-    localStorage.removeItem(key);
-    sessionStorage.removeItem(key);
-    // Also clear user info when clearing tokens
-    clearUserInfo(country);
-  } catch (error) {
-    console.warn('Failed to clear auth tokens:', error);
-  }
+  // SECURITY: No OAuth tokens stored in browser, so nothing to clear
+  console.log('🧹 OAuth token clear operation completed (no browser storage used).');
+  // Also clear user info when clearing tokens
+  clearUserInfo(country);
 };
 
 export const isTokenExpired = (tokens: AuthTokens): boolean => {

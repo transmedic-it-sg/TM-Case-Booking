@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { authenticateWithPopup, getStoredAuthTokens, clearAuthTokens } from '../utils/simplifiedOAuth';
-import centralizedEmailService from '../services/centralizedEmailService';
+import centralizedEmailService, { AdminEmailCredentials } from '../services/centralizedEmailService';
 import userService from '../services/userService';
 
 interface UnifiedEmailAuthProps {
@@ -32,26 +32,20 @@ const UnifiedEmailAuth: React.FC<UnifiedEmailAuthProps> = ({
 
   const loadAuthStatus = async () => {
     try {
-      const { supabase } = await import('../lib/supabase');
-      // Load from global config
-      const { data } = await supabase
-        .from('global_email_config')
-        .select('*')
-        .eq('is_active', true)
-        .single();
-
-      if (data && data.access_token) {
+      // Use centralized email service instead of direct database access
+      const config = await centralizedEmailService.getAdminEmailConfig();
+      if (config && config.accessToken) {
         setAuthStatus({
           isAuthenticated: true,
-          email: data.from_email,
-          expiresAt: data.expires_at,
-          provider: data.provider
+          email: config.fromEmail,
+          expiresAt: new Date(config.expiresAt).toISOString(),
+          provider: config.provider
         });
       } else {
         setAuthStatus(null);
       }
     } catch (error) {
-      console.error('Error loading auth status:', error);
+      console.error('❌ EMAIL AUTH - Error loading auth status:', error);
       setAuthStatus(null);
     }
   };
@@ -70,29 +64,23 @@ const UnifiedEmailAuth: React.FC<UnifiedEmailAuthProps> = ({
       const result = await authenticateWithPopup('global');
 
       if (result.tokens) {
-        // Store tokens in global database
-        const { supabase } = await import('../lib/supabase');
+        // Store tokens using centralized email service
+        const currentUser = await userService.getCurrentUser();
+        const credentials: AdminEmailCredentials = {
+          provider: 'microsoft',
+          clientId: process.env.REACT_APP_MICROSOFT_CLIENT_ID || '',
+          tenantId: process.env.REACT_APP_MICROSOFT_TENANT_ID || '',
+          accessToken: result.tokens.accessToken,
+          refreshToken: result.tokens.refreshToken,
+          expiresAt: result.tokens.expiresAt,
+          fromEmail: result.userInfo.email,
+          fromName: result.userInfo.name || 'TM Case Booking System'
+        };
         
-        // Deactivate any existing config
-        await supabase
-          .from('global_email_config')
-          .update({ is_active: false })
-          .eq('is_active', true);
-        
-        // Insert new global config
-        await supabase
-          .from('global_email_config')
-          .insert({
-            provider: 'microsoft',
-            client_id: process.env.REACT_APP_MICROSOFT_CLIENT_ID || '',
-            tenant_id: process.env.REACT_APP_MICROSOFT_TENANT_ID || '',
-            access_token: result.tokens.accessToken,
-            refresh_token: result.tokens.refreshToken,
-            expires_at: new Date(result.tokens.expiresAt).toISOString(),
-            from_email: result.userInfo.email,
-            from_name: result.userInfo.name || 'TM Case Booking System',
-            updated_at: new Date().toISOString()
-          });
+        await centralizedEmailService.setAdminEmailConfig(
+          credentials,
+          currentUser?.username || 'unknown'
+        );
 
         setAuthStatus({
           isAuthenticated: true,

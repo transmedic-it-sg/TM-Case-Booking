@@ -114,7 +114,7 @@ const supabaseService = {
     let query = supabase
       .from('case_bookings')
       .select('*')
-      .order('created_at', { ascending: false }); // ⚠️ created_at (createdAt)
+      .order(CASE_BOOKINGS_FIELDS.createdAt, { ascending: false });
 
     if (filters?.country) {
       query = query.eq('country', filters.country);
@@ -125,15 +125,15 @@ const supabaseService = {
     }
 
     if (filters?.submitter) {
-      query = query.eq('submitted_by', filters.submitter);
+      query = query.eq(CASE_BOOKINGS_FIELDS.submittedBy, filters.submitter);
     }
 
     if (filters?.dateFrom) {
-      query = query.gte('date_of_surgery', filters.dateFrom); // ⚠️ date_of_surgery (dateOfSurgery) - NOT case_date
+      query = query.gte(CASE_BOOKINGS_FIELDS.dateOfSurgery, filters.dateFrom);
     }
 
     if (filters?.dateTo) {
-      query = query.lte('date_of_surgery', filters.dateTo);
+      query = query.lte(CASE_BOOKINGS_FIELDS.dateOfSurgery, filters.dateTo);
     }
 
     const { data, error } = await query;
