@@ -325,20 +325,9 @@ const AppContent: React.FC = () => {
 
         const currentUser = UserService.getCurrentUserSync();
         if (currentUser) {
-          // Validate session to prevent concurrent logins
-          const isValidSession = await validateSession();
-          if (isValidSession) {
-            setUser(currentUser);
-            // User is already logged in with valid session, no need to show mobile entry
-          } else {
-            // Invalid session, force logout
-            // Invalid session detected, logging out user
-            await logout();
-            setUser(null);
-            if (isMobileDevice()) {
-              setShowMobileEntry(true);
-            }
-          }
+          // TODO: Re-implement session validation after SafeStorage replacement
+          setUser(currentUser);
+          // User is already logged in, no need to show mobile entry
         } else if (isMobileDevice()) {
           setShowMobileEntry(true); // Only show mobile entry if no user and on mobile
         }
@@ -531,10 +520,7 @@ const AppContent: React.FC = () => {
     const { clearPermissionsCache } = await import('./utils/permissions');
     clearPermissionsCache();
 
-    // CRITICAL FIX: Clear Remember Me data if user chooses to forget
-    if (forgetMe) {
-      localStorage.removeItem('tm_remember_me');
-    }
+    // Remember Me functionality removed - no localStorage dependencies
 
     setUser(null);
     setActivePage('booking');
