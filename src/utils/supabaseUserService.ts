@@ -36,10 +36,11 @@ export const authenticateSupabaseUser = fixedAuthenticateSupabaseUser;
 export const getAllSupabaseUsers = async (): Promise<User[]> => {
   const result = await ErrorHandler.executeWithRetry(
     async () => {
-      // Get users from profiles table
+      // Get users from profiles table (exclude soft-deleted users)
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
+        .is('deleted_at', null) // Only get non-deleted users
         .order('username');
 
       let allUsers: User[] = [];
@@ -261,14 +262,19 @@ export const updateSupabaseUser = async (userId: string, userData: Partial<User>
   return result.success;
 };
 
-// Delete user
+// Delete user (soft delete)
 export const deleteSupabaseUser = async (userId: string): Promise<boolean> => {
   const result = await ErrorHandler.executeWithRetry(
     async () => {
+      // Soft delete: set deleted_at timestamp and disable user
       const { error } = await supabase
         .from('profiles')
-        .delete()
-        .eq('id', userId);
+        .update({ 
+          deleted_at: new Date().toISOString(),
+          enabled: false
+        })
+        .eq('id', userId)
+        .is('deleted_at', null); // Only delete users that aren't already deleted
 
       if (error) throw error;
       return true;
@@ -450,7 +456,8 @@ export const checkUsernameAvailable = async (username: string, excludeUserId?: U
       let query = supabase
         .from('profiles')
         .select('id')
-        .eq('username', username);
+        .eq('username', username)
+        .is('deleted_at', null); // Only check active (non-deleted) users
 
       if (excludeUserId && excludeUserId.id) {
         query = query.neq('id', excludeUserId.id);

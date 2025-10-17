@@ -87,20 +87,21 @@ const Reports: React.FC = () => {
   useEffect(() => {
     const loadConstants = async () => {
       try {
-        // Load countries and case statuses normally, but use standardized departments
+        // Load countries and case statuses using unified services
+        const { getStandardizedCountries } = await import('../utils/unifiedDataService');
         const [countries, statuses] = await Promise.all([
-          dynamicConstantsService.getCountries(),
+          getStandardizedCountries(),
           dynamicConstantsService.getCaseStatuses()
         ]);
 
-        // Get departments from all countries using standardized code table
-        const { getDepartmentsForCountry } = await import('../utils/supabaseCodeTableService');
+        // Get departments from all countries using unified service
+        const { getStandardizedDepartments } = await import('../utils/unifiedDataService');
         const allDepartments = new Set<string>();
 
         // Collect departments from all countries
         for (const country of countries) {
           try {
-            const countryDepartments = await getDepartmentsForCountry(country);
+            const countryDepartments = await getStandardizedDepartments(country);
             countryDepartments.forEach(dept => allDepartments.add(dept));
           } catch (error) {
           }

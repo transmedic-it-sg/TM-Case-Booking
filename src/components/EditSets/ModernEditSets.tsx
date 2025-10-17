@@ -28,6 +28,9 @@ import {
   AMENDMENT_HISTORY_FIELDS,
   PROFILES_FIELDS,
   DOCTORS_FIELDS,
+  DOCTOR_PROCEDURES_FIELDS,
+  SURGERY_SETS_FIELDS,
+  IMPLANT_BOXES_FIELDS,
   getDbField
 } from '../../utils/fieldMappings';
 import './ModernEditSets.css';
@@ -250,18 +253,12 @@ const ModernEditSets: React.FC = () => {
 
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('doctors')
-          .select('id, name, specialties, department_id, country, is_active, sort_order')
-          .eq('department_id', selectedDepartment.id)
-          .eq('country', normalizedCountry)
-          .eq('is_active', true) // ⚠️ is_active (isActive)
-          .order('sort_order', { ascending: true, nullsFirst: false })
-          .order('name');
-
-        if (error) throw error;
+        // Use unified service instead of direct Supabase query
+        const { getDoctorsForDepartment } = await import('../../utils/unifiedDataService');
+        const doctorData = await getDoctorsForDepartment(selectedDepartment.name, normalizedCountry);
+        
         // Add sort_order if missing and assign sequential numbers
-        const processedData = (data || []).map((item, index) => ({
+        const processedData = doctorData.map((item, index) => ({
           ...item,
           sort_order: item.sort_order ?? index + 1
         }));
@@ -292,7 +289,7 @@ const ModernEditSets: React.FC = () => {
           .from('doctor_procedures')
           .select('id, procedure_type, doctor_id, country, is_active, sort_order')
           .eq('country', normalizedCountry)
-          .eq('is_active', true)
+          .eq(DOCTOR_PROCEDURES_FIELDS.isActive, true)
           .order('sort_order', { ascending: true, nullsFirst: false })
           .order('procedure_type'); // ⚠️ procedure_type (procedureType) - NOT procedure
 
@@ -358,7 +355,7 @@ const ModernEditSets: React.FC = () => {
           .from('surgery_sets')
           .select('id, name, description, doctor_id, procedure_type, country, is_active, sort_order')
           .eq('country', normalizedCountry)
-          .eq('is_active', true)
+          .eq(SURGERY_SETS_FIELDS.isActive, true)
           .order('sort_order', { ascending: true, nullsFirst: false })
           .order('name');
 
@@ -386,7 +383,7 @@ const ModernEditSets: React.FC = () => {
           .from('implant_boxes')
           .select('id, name, description, doctor_id, procedure_type, country, is_active, sort_order')
           .eq('country', normalizedCountry)
-          .eq('is_active', true)
+          .eq(IMPLANT_BOXES_FIELDS.isActive, true)
           .order('sort_order', { ascending: true, nullsFirst: false })
           .order('name');
 
@@ -448,7 +445,7 @@ const ModernEditSets: React.FC = () => {
               .select('sort_order')
               .eq('doctor_id', selectedDoctor.id) // ⚠️ doctor_id (doctorId) FK
               .eq('country', normalizedCountry)
-              .eq('is_active', true);
+              .eq(DOCTOR_PROCEDURES_FIELDS.isActive, true);
               
             if (existingProcs && existingProcs.length > 0) {
               const maxSortOrder = Math.max(...existingProcs.map(p => p.sort_order || 0));

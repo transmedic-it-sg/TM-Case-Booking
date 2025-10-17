@@ -21,6 +21,7 @@ import {
   AMENDMENT_HISTORY_FIELDS,
   PROFILES_FIELDS,
   DOCTORS_FIELDS,
+  DOCTOR_PROCEDURES_FIELDS,
   getDbField
 } from '../../utils/fieldMappings';
 import './ModernEditSets.css';
@@ -169,22 +170,14 @@ const ComprehensiveEditSets: React.FC = () => {
   const loadDepartments = async () => {
     try {
       setIsLoading(true);
-      // Use standardized data service - single source of truth for all dropdowns
-      const { getStandardizedDepartments } = await import('../../utils/standardizedDataService');
-      const departmentNames = await getStandardizedDepartments(normalizedCountry);
+      // Use unified data service to get proper department objects with IDs
+      const { getUnifiedDepartments } = await import('../../utils/unifiedDataService');
+      const departmentData = await getUnifiedDepartments(normalizedCountry);
       
-      if (!departmentNames || departmentNames.length === 0) {
+      if (!departmentData || departmentData.length === 0) {
         setDepartments([]);
         return;
       }
-      
-      // Transform to Department objects for compatibility with existing code
-      const departmentData = departmentNames.map(name => ({
-        id: name,
-        name: name,
-        country: normalizedCountry,
-        doctor_count: 0 // Will be updated when doctors load
-      }));
       
       setDepartments(departmentData);
     } catch (error) {
@@ -196,15 +189,15 @@ const ComprehensiveEditSets: React.FC = () => {
 
   const loadDoctorsForDepartment = async (departmentId: string, context?: string) => {
     try {
-      const { data, error } = await supabase
-        .from('doctors')
-        .select('*')
-        .eq('department_id', departmentId)
-        .eq('country', normalizedCountry)
-        .eq('is_active', true) // ⚠️ is_active (isActive)
-        .order('name');
+      // Find department name from ID to use with unified service
+      const department = departments.find(dept => dept.id === departmentId);
+      if (!department) {
+        throw new Error('Department not found');
+      }
 
-      if (error) throw error;
+      // Use unified service instead of direct Supabase query
+      const { getDoctorsForDepartment } = await import('../../utils/unifiedDataService');
+      const data = await getDoctorsForDepartment(department.name, normalizedCountry);
 
       if (context === 'procedures') {
         // Store for procedure type dropdown
@@ -228,7 +221,7 @@ const ComprehensiveEditSets: React.FC = () => {
         .select('*')
         .eq('doctor_id', doctorId) // ⚠️ doctor_id (doctorId) FK
         .eq('country', normalizedCountry)
-        .eq('is_active', true)
+        .eq(DOCTOR_PROCEDURES_FIELDS.isActive, true)
         .order('procedure_type'); // ⚠️ procedure_type (procedureType) - NOT procedure
 
       if (error) throw error;
