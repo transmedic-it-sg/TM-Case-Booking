@@ -832,10 +832,10 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
               </div>
             ) : (
               <div className="procedure-sets-form">
-                <div className="form-row two-columns">
+                <div className="form-row responsive-sets-layout">
                   {/* Surgery Sets */}
                   {availableProcedureSets.filter(set => set.item_type === 'surgery_set').length > 0 && (
-                    <>
+                    <div className="surgery-sets-container">
                       <div className="form-group">
                         <SimpleMultiSelectDropdown
                           id="case-booking-surgery-sets"
@@ -851,14 +851,14 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
                         />
                       </div>
                       
-                      {/* Surgery Sets Quantities */}
+                      {/* Surgery Sets Quantities - Directly below dropdown */}
                       {formData.surgerySetSelection.length > 0 && (
-                        <div className="form-group" style={{ marginTop: '-0.5rem', paddingLeft: '1rem' }}>
-                          <label style={{ fontSize: '0.9rem', color: '#6c757d' }}>Quantities:</label>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                        <div className="form-group quantities-section">
+                          <label className="quantities-label">Quantities:</label>
+                          <div className="quantities-container">
                             {formData.surgerySetSelection.map(set => (
-                              <div key={set} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ fontSize: '0.85rem' }}>{set}:</span>
+                              <div key={set} className="quantity-item">
+                                <span className="item-name">{set}:</span>
                                 <input
                                   type="number"
                                   min="1"
@@ -870,24 +870,19 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
                                       quantities: { ...prev.quantities, [set]: quantity }
                                     }));
                                   }}
-                                  style={{
-                                    width: '60px',
-                                    padding: '0.25rem',
-                                    borderRadius: '4px',
-                                    border: '1px solid #ced4da'
-                                  }}
+                                  className="quantity-input"
                                 />
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
-                    </>
+                    </div>
                   )}
 
                   {/* Implant Boxes */}
                   {availableProcedureSets.filter(set => set.item_type === 'implant_box').length > 0 && (
-                    <>
+                    <div className="implant-boxes-container">
                       <div className="form-group">
                         <SimpleMultiSelectDropdown
                           id="case-booking-implant-boxes"
@@ -902,14 +897,14 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
                         />
                       </div>
                       
-                      {/* Implant Boxes Quantities */}
+                      {/* Implant Boxes Quantities - Directly below dropdown */}
                       {formData.implantBox.length > 0 && (
-                        <div className="form-group" style={{ marginTop: '-0.5rem', paddingLeft: '1rem' }}>
-                          <label style={{ fontSize: '0.9rem', color: '#6c757d' }}>Quantities:</label>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                        <div className="form-group quantities-section">
+                          <label className="quantities-label">Quantities:</label>
+                          <div className="quantities-container">
                             {formData.implantBox.map(box => (
-                              <div key={box} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ fontSize: '0.85rem' }}>{box}:</span>
+                              <div key={box} className="quantity-item">
+                                <span className="item-name">{box}:</span>
                                 <input
                                   type="number"
                                   min="1"
@@ -921,19 +916,14 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
                                       quantities: { ...prev.quantities, [box]: quantity }
                                     }));
                                   }}
-                                  style={{
-                                    width: '60px',
-                                    padding: '0.25rem',
-                                    borderRadius: '4px',
-                                    border: '1px solid #ced4da'
-                                  }}
+                                  className="quantity-input"
                                 />
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
-                    </>
+                    </div>
                   )}
                 </div>
 

@@ -549,7 +549,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
 
             {/* Surgery Sets with Quantities */}
             {surgerySetOptions.length > 0 && (
-              <>
+              <div className="surgery-sets-container">
                 <div className="form-group">
                   <SimpleMultiSelectDropdown
                     id="amendment-surgery-sets"
@@ -562,14 +562,14 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
                   />
                 </div>
                 
-                {/* Surgery Sets Quantities */}
+                {/* Surgery Sets Quantities - Directly below dropdown */}
                 {formData.surgerySetSelection.length > 0 && (
-                  <div className="form-group" style={{ marginTop: '-0.5rem', paddingLeft: '1rem' }}>
-                    <label style={{ fontSize: '0.9rem', color: '#6c757d' }}>Quantities:</label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div className="form-group quantities-section">
+                    <label className="quantities-label">Quantities:</label>
+                    <div className="quantities-container">
                       {formData.surgerySetSelection.map(set => (
-                        <div key={set} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontSize: '0.85rem' }}>{set}:</span>
+                        <div key={set} className="quantity-item">
+                          <span className="item-name">{set}:</span>
                           <input
                             type="number"
                             min="1"
@@ -579,25 +579,19 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
                               const quantity = parseInt(e.target.value) || 1;
                               setQuantities(prev => ({ ...prev, [set]: quantity }));
                             }}
-                            style={{
-                              width: '60px',
-                              padding: '4px 8px',
-                              border: '1px solid #28a745',
-                              borderRadius: '4px',
-                              textAlign: 'center'
-                            }}
+                            className="quantity-input"
                           />
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-              </>
+              </div>
             )}
 
             {/* Implant Boxes with Quantities */}
             {implantBoxOptions.length > 0 && (
-              <>
+              <div className="implant-boxes-container">
                 <div className="form-group">
                   <SimpleMultiSelectDropdown
                     id="amendment-implant-boxes"
@@ -610,14 +604,14 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
                   />
                 </div>
                 
-                {/* Implant Boxes Quantities */}
+                {/* Implant Boxes Quantities - Directly below dropdown */}
                 {formData.implantBox.length > 0 && (
-                  <div className="form-group" style={{ marginTop: '-0.5rem', paddingLeft: '1rem' }}>
-                    <label style={{ fontSize: '0.9rem', color: '#6c757d' }}>Quantities:</label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div className="form-group quantities-section">
+                    <label className="quantities-label">Quantities:</label>
+                    <div className="quantities-container">
                       {formData.implantBox.map(box => (
-                        <div key={box} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontSize: '0.85rem' }}>{box}:</span>
+                        <div key={box} className="quantity-item">
+                          <span className="item-name">{box}:</span>
                           <input
                             type="number"
                             min="1"
@@ -627,20 +621,14 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
                               const quantity = parseInt(e.target.value) || 1;
                               setQuantities(prev => ({ ...prev, [box]: quantity }));
                             }}
-                            style={{
-                              width: '60px',
-                              padding: '4px 8px',
-                              border: '1px solid #28a745',
-                              borderRadius: '4px',
-                              textAlign: 'center'
-                            }}
+                            className="quantity-input"
                           />
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
 

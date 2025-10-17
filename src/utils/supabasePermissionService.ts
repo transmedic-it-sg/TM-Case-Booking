@@ -86,7 +86,7 @@ const parseActionId = (actionId: string): { resource: string; action: string } |
     case 'code-table-setup':
       return { resource: 'settings', action: 'code-table-setup' };
     case 'audit-logs':
-      return { resource: 'logs', action: 'audit' };
+      return { resource: 'system', action: 'audit-logs' };
     case 'permission-matrix':
       return { resource: 'settings', action: 'permission-matrix' };
     

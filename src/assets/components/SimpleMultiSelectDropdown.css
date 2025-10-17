@@ -227,12 +227,19 @@
   font-size: 14px;
 }
 
-/* Selected items display below dropdown */
+/* Selected items display below dropdown - Web view only */
 .selected-items-display {
   margin-top: 8px;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+/* Hide selected item tags on mobile view */
+@media (max-width: 768px) {
+  .selected-items-display {
+    display: none;
+  }
 }
 
 .selected-item-tag {
