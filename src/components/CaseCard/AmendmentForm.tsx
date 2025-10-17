@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { AmendmentFormProps } from './types';
 import TimePicker from '../common/TimePicker';
 import FilterDatePicker from '../FilterDatePicker';
-import MultiSelectDropdown from '../MultiSelectDropdown';
+import SimpleMultiSelectDropdown from '../SimpleMultiSelectDropdown';
 import SearchableDropdown from '../SearchableDropdown';
 import { supabase } from '../../lib/supabase';
 import { normalizeCountry } from '../../utils/countryUtils';
@@ -551,7 +551,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
             {surgerySetOptions.length > 0 && (
               <>
                 <div className="form-group">
-                  <MultiSelectDropdown
+                  <SimpleMultiSelectDropdown
                     id="amendment-surgery-sets"
                     label="Surgery Sets"
                     options={surgerySetOptions}
@@ -599,7 +599,7 @@ const AmendmentForm: React.FC<AmendmentFormProps> = ({
             {implantBoxOptions.length > 0 && (
               <>
                 <div className="form-group">
-                  <MultiSelectDropdown
+                  <SimpleMultiSelectDropdown
                     id="amendment-implant-boxes"
                     label="Implant Boxes"
                     options={implantBoxOptions}

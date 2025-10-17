@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import SearchableDropdown from './SearchableDropdown';
-import MultiSelectDropdown from './MultiSelectDropdown';
+import SimpleMultiSelectDropdown from './SimpleMultiSelectDropdown';
 import MobileSelectPopup from './MobileSelectPopup';
 
 interface ResponsiveDropdownProps {
@@ -135,7 +135,7 @@ const ResponsiveDropdown: React.FC<ResponsiveDropdownProps> = ({
 
   if (multiple) {
     return (
-      <MultiSelectDropdown
+      <SimpleMultiSelectDropdown
         id={id}
         label={label}
         options={options as string[]}

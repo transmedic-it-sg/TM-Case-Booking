@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import MultiSelectDropdown from './MultiSelectDropdown';
+import SimpleMultiSelectDropdown from './SimpleMultiSelectDropdown';
 
 interface EmailNotificationModalProps {
   isOpen: boolean;
@@ -315,7 +315,7 @@ TM Case Booking System`
                 <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
                   Send to Roles
                 </label>
-                <MultiSelectDropdown
+                <SimpleMultiSelectDropdown
                   id="notification-roles"
                   label=""
                   options={availableRoles}
@@ -333,7 +333,7 @@ TM Case Booking System`
                 <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
                   Send to Specific Members
                 </label>
-                <MultiSelectDropdown
+                <SimpleMultiSelectDropdown
                   id="notification-members"
                   label=""
                   options={availableMembers}
@@ -390,7 +390,7 @@ TM Case Booking System`
                     <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
                       Specific Departments (optional)
                     </label>
-                    <MultiSelectDropdown
+                    <SimpleMultiSelectDropdown
                       id="notification-departments"
                       label=""
                       options={availableDepartments}

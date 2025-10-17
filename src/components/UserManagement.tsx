@@ -26,7 +26,7 @@ import PasswordInput from './PasswordInput';
 import { validatePassword, getPasswordRequirementsSync } from '../utils/passwordValidation';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getAllRoles } from '../data/permissionMatrixData';
-import MultiSelectDropdown from './MultiSelectDropdown';
+import SimpleMultiSelectDropdown from './SimpleMultiSelectDropdown';
 import SearchableDropdown from './SearchableDropdown';
 import CountryGroupedDepartments from './CountryGroupedDepartments';
 import RoleManagement from './RoleManagement';
@@ -931,7 +931,7 @@ const UserManagement: React.FC = () => {
                   {/* Show countries field for non-admin users when current user is admin or has edit-countries permission */}
                   {(newUser.role !== 'admin' && (currentUser?.role === 'admin' || canEditCountries)) && (
                     <div className="form-group">
-                      <MultiSelectDropdown
+                      <SimpleMultiSelectDropdown
                         id="newCountries"
                         label="Countries"
                         options={availableCountries}

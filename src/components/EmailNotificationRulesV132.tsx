@@ -1,5 +1,5 @@
 import React from 'react';
-import MultiSelectDropdown from './MultiSelectDropdown';
+import SimpleMultiSelectDropdown from './SimpleMultiSelectDropdown';
 import { getAllRoles } from '../data/permissionMatrixData';
 import { CASE_STATUSES } from '../constants/statuses';
 
@@ -222,7 +222,7 @@ const EmailNotificationRulesV132: React.FC<EmailNotificationRulesProps> = ({
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                           <div>
-                            <MultiSelectDropdown
+                            <SimpleMultiSelectDropdown
                               id={`roles-${index}`}
                               label="👥 Notify User Roles"
                               options={availableRoles}
@@ -300,7 +300,7 @@ const EmailNotificationRulesV132: React.FC<EmailNotificationRulesProps> = ({
                           </div>
 
                           <div>
-                            <MultiSelectDropdown
+                            <SimpleMultiSelectDropdown
                               id={`departments-${index}`}
                               label="🏥 Additional Department Filter (Optional)"
                               options={availableDepartments}

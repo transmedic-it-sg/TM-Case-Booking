@@ -5,7 +5,7 @@ import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { getAllRoles } from '../data/permissionMatrixData';
 import { useSound } from '../contexts/SoundContext';
 import { useToast } from './ToastContainer';
-import MultiSelectDropdown from './MultiSelectDropdown';
+import SimpleMultiSelectDropdown from './SimpleMultiSelectDropdown';
 import SearchableDropdown from './SearchableDropdown';
 import EmailNotificationModal from './EmailNotificationModal';
 import EmailNotificationRulesV132 from './EmailNotificationRulesV132';

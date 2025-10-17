@@ -19,7 +19,7 @@ import { useRealtimeCases } from '../hooks/useRealtimeCases';
 import { useRealtimeMasterDataQuery } from '../services/realtimeQueryService';
 import TimePicker from './common/TimePicker';
 import SearchableDropdown from './SearchableDropdown';
-import MultiSelectDropdown from './MultiSelectDropdown';
+import SimpleMultiSelectDropdown from './SimpleMultiSelectDropdown';
 import CustomModal from './CustomModal';
 import { useModal } from '../hooks/useModal';
 import FilterDatePicker from './FilterDatePicker';
@@ -837,7 +837,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
                   {availableProcedureSets.filter(set => set.item_type === 'surgery_set').length > 0 && (
                     <>
                       <div className="form-group">
-                        <MultiSelectDropdown
+                        <SimpleMultiSelectDropdown
                           id="case-booking-surgery-sets"
                           label="Surgery Sets"
                           options={availableProcedureSets
@@ -889,7 +889,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
                   {availableProcedureSets.filter(set => set.item_type === 'implant_box').length > 0 && (
                     <>
                       <div className="form-group">
-                        <MultiSelectDropdown
+                        <SimpleMultiSelectDropdown
                           id="case-booking-implant-boxes"
                           label="Implant Boxes"
                           options={availableProcedureSets
