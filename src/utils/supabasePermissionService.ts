@@ -367,13 +367,28 @@ export const updateSupabasePermission = async (
   allowed: boolean
 ): Promise<boolean> => {
   try {
+    console.log('🔧 UPDATE SUPABASE PERMISSION - Starting update:', {
+      roleId,
+      actionId,
+      allowed,
+      timestamp: new Date().toISOString()
+    });
+    
     // First check if the permission exists
     const parsed = parseActionId(actionId);
     if (!parsed) {
+      console.error('❌ UPDATE SUPABASE PERMISSION - Failed to parse actionId:', actionId);
       return false;
     }
     
     const { resource, action } = parsed;
+    
+    console.log('🔧 UPDATE SUPABASE PERMISSION - Parsed actionId:', {
+      actionId,
+      resource,
+      action,
+      roleId
+    });
     
     const { data: existing, error: checkError } = await supabase
       .from('permissions')
@@ -384,13 +399,21 @@ export const updateSupabasePermission = async (
 
     // Handle the array result - check if any rows exist
     if (checkError) {
+      console.error('❌ UPDATE SUPABASE PERMISSION - Error checking existing permission:', checkError);
       return false;
     }
     
     const hasExisting = existing && existing.length > 0;
+    
+    console.log('🔧 UPDATE SUPABASE PERMISSION - Existing permission check:', {
+      hasExisting,
+      existingCount: existing?.length || 0,
+      existingIds: existing?.map(e => e.id) || []
+    });
 
     if (hasExisting) {
       // Update existing permission
+      console.log('🔧 UPDATE SUPABASE PERMISSION - Updating existing permission...');
       const { error: updateError } = await supabase
         .from('permissions')
         .update({ allowed: allowed })
@@ -399,10 +422,13 @@ export const updateSupabasePermission = async (
         .eq('action', action);
 
       if (updateError) {
+        console.error('❌ UPDATE SUPABASE PERMISSION - Update failed:', updateError);
         return false;
       }
+      console.log('✅ UPDATE SUPABASE PERMISSION - Update successful');
     } else {
       // Insert new permission
+      console.log('🔧 UPDATE SUPABASE PERMISSION - Inserting new permission...');
       const { error: insertError } = await supabase
         .from('permissions')
         .insert({
@@ -413,12 +439,15 @@ export const updateSupabasePermission = async (
         });
 
       if (insertError) {
+        console.error('❌ UPDATE SUPABASE PERMISSION - Insert failed:', insertError);
         return false;
       }
+      console.log('✅ UPDATE SUPABASE PERMISSION - Insert successful');
     }
 
     return true;
   } catch (error) {
+    console.error('❌ UPDATE SUPABASE PERMISSION - Unexpected error:', error);
     return false;
   }
 };

@@ -90,6 +90,17 @@ export const hasPermission = (roleId: string, actionId: string): boolean => {
 
 // Check if a role has permission for a specific action with user context
 export const hasPermissionForUser = (roleId: string, actionId: string, userId: string = 'system'): boolean => {
+  // CRITICAL DEBUG: Enhanced logging for permission checking
+  console.log('🔍 PERMISSION CHECK DEBUG:', {
+    roleId,
+    actionId,
+    userId,
+    cacheExists: !!globalPermissionsCache,
+    cacheAge: globalPermissionsCache ? Date.now() - globalPermissionsCacheTime : null,
+    cacheSize: globalPermissionsCache?.length || 0,
+    timestamp: new Date().toISOString()
+  });
+  
   // Admin privileges are now stored in database - no hardcoded logic
 
   // Use global cache for non-user-specific permissions
@@ -125,6 +136,20 @@ export const hasPermissionForUser = (roleId: string, actionId: string, userId: s
   // Use cached database permissions for authorization
   const permission = cacheToUse.find(p => p.roleId === roleId && p.actionId === actionId);
   const result = permission?.allowed || false;
+  
+  // CRITICAL DEBUG: Enhanced permission lookup logging
+  if (roleId === 'admin' && actionId === 'audit-logs') {
+    console.log('🚨 CRITICAL AUDIT LOGS PERMISSION DEBUG:', {
+      roleId,
+      actionId,
+      foundPermission: permission,
+      result,
+      allPermissionsForAdmin: cacheToUse.filter(p => p.roleId === 'admin'),
+      allAuditRelatedPermissions: cacheToUse.filter(p => p.actionId?.includes('audit') || p.actionId?.includes('logs')),
+      cacheSize: cacheToUse.length,
+      timestamp: new Date().toISOString()
+    });
+  }
 
   // Log permission check result for debugging
   //   userId,

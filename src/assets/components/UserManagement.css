@@ -1282,6 +1282,57 @@
   box-shadow: 0 0 0 3px rgba(32, 178, 170, 0.1);
 }
 
+/* Enhanced mobile dropdown styles for modals */
+.modal-content .custom-multi-select .multi-select-dropdown-content {
+  position: fixed !important;
+  top: auto !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  max-height: 70vh !important;
+  border-radius: 16px 16px 0 0 !important;
+  z-index: 10000 !important;
+  animation: slideUpModal 0.3s ease !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+@keyframes slideUpModal {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced mobile touch targets */
+@media (max-width: 768px) {
+  .modal-content .custom-multi-select .multi-select-option {
+    min-height: 48px !important;
+    padding: 12px 16px !important;
+    font-size: 16px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+  }
+  
+  .modal-content .custom-multi-select .dropdown-header {
+    padding: 16px !important;
+    border-bottom: 2px solid #e5e7eb !important;
+    background: #f8fafc !important;
+  }
+  
+  .modal-content .custom-multi-select .search-input {
+    font-size: 16px !important;
+    padding: 12px 16px !important;
+    border-radius: 12px !important;
+  }
+  
+  .modal-content .custom-multi-select .select-all-btn {
+    padding: 8px 16px !important;
+    font-size: 14px !important;
+    border-radius: 8px !important;
+  }
+}
+
 /* Responsive popup design */
 @media (max-width: 768px) {
   .popup-overlay {

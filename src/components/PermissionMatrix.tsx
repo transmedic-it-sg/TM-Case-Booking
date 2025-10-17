@@ -88,6 +88,20 @@ const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
       timestamp: new Date().toISOString()
     });
     
+    // CRITICAL DEBUG: Check for specific problematic permissions
+    if ((actionId === 'manage-doctors' && (roleId === 'operations' || roleId === 'operations-manager')) ||
+        (actionId === 'manage-procedure-types' && roleId === 'operations')) {
+      console.log('🚨 PERMISSION TOGGLE - CRITICAL DEBUG FOR PROBLEMATIC PERMISSION:', {
+        actionId,
+        roleId,
+        readonly,
+        hasCallback: !!onPermissionChange,
+        permissions: permissions.filter(p => p.actionId === actionId),
+        currentPermission: getPermission(actionId, roleId),
+        callbackFunction: onPermissionChange?.toString().slice(0, 100)
+      });
+    }
+    
     if (readonly || !onPermissionChange) {
       console.log('⚠️ PERMISSION TOGGLE - Blocked due to readonly or missing callback:', {
         readonly,
