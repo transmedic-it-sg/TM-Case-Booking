@@ -170,14 +170,24 @@ const ComprehensiveEditSets: React.FC = () => {
   const loadDepartments = async () => {
     try {
       setIsLoading(true);
-      // Use unified data service to get proper department objects with IDs
-      const { getUnifiedDepartments } = await import('../../utils/unifiedDataService');
-      const departmentData = await getUnifiedDepartments(normalizedCountry);
+      // FIXED: Use same data source as Case Booking for consistency
+      const { getStandardizedDepartments } = await import('../../utils/unifiedDataService');
+      const departmentNames = await getStandardizedDepartments(normalizedCountry);
       
-      if (!departmentData || departmentData.length === 0) {
+      if (!departmentNames || departmentNames.length === 0) {
         setDepartments([]);
         return;
       }
+      
+      // Convert string names to department objects for compatibility with existing code
+      const departmentData = departmentNames.map(name => ({
+        id: name, // Use name as ID for consistency with dropdown selections
+        name: name,
+        country: normalizedCountry,
+        description: '',
+        is_active: true,
+        doctor_count: 0
+      }));
       
       setDepartments(departmentData);
     } catch (error) {
