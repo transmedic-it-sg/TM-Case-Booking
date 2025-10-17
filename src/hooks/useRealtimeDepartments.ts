@@ -7,15 +7,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import {
-  getDepartmentsForCountry,
+  getStandardizedDepartments,
   getDoctorsForDepartment,
+  addDoctorToDepartment,
+  removeDoctorFromSystem,
   type UnifiedDepartment as Department
 } from '../utils/unifiedDataService';
-// TODO: Add addDoctorToDepartment and removeDoctorFromSystem to unified service
-import {
-  addDoctorToDepartment,
-  removeDoctorFromSystem
-} from '../utils/departmentDoctorService';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useTestingValidation } from './useTestingValidation';
 
@@ -29,13 +26,34 @@ interface UseRealtimeDepartmentsOptions {
 const useRealtimeDepartmentsQuery = (country?: string) => {
   return useQuery({
     queryKey: ['realtime-departments', country], // FIXED: Stable key without Date.now()
-    queryFn: async () => {const departments = await getDepartmentsForCountry(country || '');
+    queryFn: async () => {
+      console.log('🔧 EDIT SETS HOOK DEBUG - Starting department load for country:', country);
+      
+      // FIXED: Use same data source as Case Booking for consistency
+      const departmentNames = await getStandardizedDepartments(country || '');
+      console.log('🔧 EDIT SETS HOOK DEBUG - Raw department names from getStandardizedDepartments:', departmentNames);
+
+      // Convert string names to department objects for compatibility with existing code
+      const departments = departmentNames.map(name => ({
+        id: name, // Use name as ID for consistency with dropdown selections
+        name: name,
+        country: country || '',
+        description: '',
+        is_active: true,
+        doctor_count: 0
+      }));
+      
+      console.log('🔧 EDIT SETS HOOK DEBUG - Final department objects:', departments);
+      console.log('🔧 EDIT SETS HOOK DEBUG - Department count:', departments.length);
 
       // Validate that departments have country field
       departments.forEach(dept => {
         if (!dept.country) {
+          console.warn('🔧 EDIT SETS HOOK DEBUG - Department missing country:', dept);
         }
-      });return departments;
+      });
+      
+      return departments;
     },
     enabled: !!country, // Only run if country is provided
     staleTime: 1000 * 60, // Consider data fresh for 1 minute to reduce loops
