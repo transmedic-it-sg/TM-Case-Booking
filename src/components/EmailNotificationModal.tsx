@@ -58,9 +58,10 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
 
   const loadAvailableOptions = async () => {
     try {
-      // Load roles
-      const rolesData = ['admin', 'operations', 'sales', 'surgeon', 'coordinator'];
-      setAvailableRoles(rolesData);
+      // Load roles from permission system - no hardcoded data
+      const { getAllRoles } = await import('../data/permissionMatrixData');
+      const rolesData = getAllRoles();
+      setAvailableRoles(rolesData.map(role => role.id));
 
       // Load users
       const { data: users } = await supabase
@@ -71,8 +72,9 @@ const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
         setAvailableMembers(users.map(u => u.name));
       }
 
-      // Load departments
-      const departments = ['Orthopaedics', 'Neurosurgery', 'Cardiology', 'General Surgery'];
+      // Load departments from unified service - no hardcoded data
+      const { getStandardizedDepartments } = await import('../utils/unifiedDataService');
+      const departments = await getStandardizedDepartments(country);
       setAvailableDepartments(departments);
     } catch (error) {
       console.error('Error loading options:', error);

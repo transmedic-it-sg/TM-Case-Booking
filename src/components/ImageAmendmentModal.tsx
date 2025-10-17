@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { getCurrentUser } from '../utils/authCompat';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../utils/supabaseClient';
+import { 
+  getStatusHistoryEntry, 
+  updateStatusHistoryAttachments 
+} from '../utils/supabaseCaseService';
 import { 
   CASE_BOOKINGS_FIELDS, 
   CASE_QUANTITIES_FIELDS, 
@@ -73,15 +77,11 @@ const ImageAmendmentModal: React.FC<ImageAmendmentModalProps> = ({
     setError('');
 
     try {
-      // Get current status history entry
-      const { data: statusHistory, error: fetchError } = await supabase
-        .from('status_history')
-        .select('attachments, details')
-        .eq('id', statusHistoryId)
-        .single();
-
-      if (fetchError) {
-        throw fetchError;
+      // Get current status history entry using service
+      const statusHistory = await getStatusHistoryEntry(statusHistoryId);
+      
+      if (!statusHistory) {
+        throw new Error('Failed to fetch status history entry');
       }
 
       // Update the specific attachment in the array
@@ -97,16 +97,11 @@ const ImageAmendmentModal: React.FC<ImageAmendmentModalProps> = ({
 
       updatedAttachments[attachmentIndex] = JSON.stringify(newImageFile);
 
-      // Update status history with new attachment
-      const { error: updateError } = await supabase
-        .from('status_history')
-        .update({
-          attachments: updatedAttachments
-        })
-        .eq('id', statusHistoryId);
+      // Update status history with new attachment using service
+      const updateSuccess = await updateStatusHistoryAttachments(statusHistoryId, updatedAttachments);
 
-      if (updateError) {
-        throw updateError;
+      if (!updateSuccess) {
+        throw new Error('Failed to update status history attachments');
       }
 
       // Create audit log for image amendment
