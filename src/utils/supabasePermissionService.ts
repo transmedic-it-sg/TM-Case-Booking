@@ -532,6 +532,7 @@ export const getSupabaseRolePermissions = async (roleId: string): Promise<Permis
         'settings-code-table-setup': 'code-table-setup',
         'settings-permission-matrix': 'permission-matrix',
         'logs-audit': 'audit-logs',
+        'system-audit-logs': 'audit-logs',
         'data-export': 'export-data',
         'data-import': 'import-data',
         'reports-view': 'view-reports'
