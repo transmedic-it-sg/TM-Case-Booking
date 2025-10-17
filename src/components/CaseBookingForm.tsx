@@ -402,35 +402,49 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
   useEffect(() => {
     const loadDepartments = async () => {
       if (!currentUser) {
+        console.log('🔧 CASE BOOKING DEBUG - No current user, setting empty departments');
         setAvailableDepartments([]);
         return;
       }
 
       const userCountry = currentUser.selectedCountry || currentUser.countries?.[0];
+      console.log('🔧 CASE BOOKING DEBUG - Starting department load for country:', userCountry);
+      console.log('🔧 CASE BOOKING DEBUG - User role:', currentUser.role);
+      
       if (userCountry) {
         try {
           // Use the STANDARDIZED data service - single source of truth for all dropdowns
-          const { getStandardizedDepartments } = await import('../utils/standardizedDataService');
+          const { getStandardizedDepartments } = await import('../utils/unifiedDataService');
+          console.log('🔧 CASE BOOKING DEBUG - Imported getStandardizedDepartments function');
+          
           const countrySpecificDepts = await getStandardizedDepartments(userCountry);
+          console.log('🔧 CASE BOOKING DEBUG - Raw department names from getStandardizedDepartments:', countrySpecificDepts);
 
           // Admin and IT users can access all departments for their country
           if (currentUser.role === 'admin' || currentUser.role === 'it') {
+            console.log('🔧 CASE BOOKING DEBUG - Admin/IT user, using all departments:', countrySpecificDepts.sort());
             setAvailableDepartments(countrySpecificDepts.sort());
           } else {
             // Other users are restricted to their assigned departments
             const userDepartments = currentUser.departments || [];
+            console.log('🔧 CASE BOOKING DEBUG - Non-admin user departments:', userDepartments);
+            
             // Filter departments by user's assigned departments
             const userDepartmentNames = userDepartments;
             const filteredDepts = countrySpecificDepts.filter(dept => userDepartmentNames.includes(dept));
+            console.log('🔧 CASE BOOKING DEBUG - Filtered departments:', filteredDepts);
 
             // If no filtered departments, fall back to all available departments
             if (filteredDepts.length === 0) {
+              console.log('🔧 CASE BOOKING DEBUG - No filtered departments, using all:', countrySpecificDepts.sort());
               setAvailableDepartments(countrySpecificDepts.sort());
             } else {
+              console.log('🔧 CASE BOOKING DEBUG - Using filtered departments:', filteredDepts.sort());
               setAvailableDepartments(filteredDepts.sort());
             }
           }
         } catch (error) {
+          console.error('🔧 CASE BOOKING DEBUG - Error loading departments:', error);
           // Error loading departments from Supabase
           // No fallback - use empty array
           setAvailableDepartments([]); // Empty array if fails - forces user to contact support
@@ -570,7 +584,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
       
       if ((formData.surgerySetSelection.length > 0 || formData.implantBox.length > 0) && Object.keys(formData.quantities).length > 0) {
         try {
-          const { saveCaseQuantities } = await import('../utils/doctorService');
+          const { saveCaseQuantities } = await import('../utils/unifiedDataService');
           const quantities: CaseQuantity[] = [];
 
           // Add surgery set quantities

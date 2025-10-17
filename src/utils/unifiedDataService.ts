@@ -16,6 +16,18 @@
 
 import { supabase } from '../lib/supabase';
 import { normalizeCountry } from './countryUtils';
+import { 
+  CASE_BOOKINGS_FIELDS, 
+  CASE_QUANTITIES_FIELDS, 
+  STATUS_HISTORY_FIELDS, 
+  AMENDMENT_HISTORY_FIELDS,
+  PROFILES_FIELDS,
+  DOCTORS_FIELDS,
+  DEPARTMENTS_FIELDS,
+  CODE_TABLES_FIELDS,
+  getDbField
+} from './fieldMappings';
+import { getDepartmentsForCountry as getCodeTableDepartments } from './supabaseCodeTableService';
 
 // ========================================
 // UNIFIED INTERFACES - Single Definition
@@ -72,6 +84,29 @@ export interface UnifiedImplantBox {
 }
 
 // ========================================
+// STANDARDIZED DROPDOWN INTERFACES  
+// ========================================
+
+export interface StandardizedDepartment {
+  name: string;
+  country: string;
+}
+
+export interface StandardizedDoctor {
+  id: string;
+  name: string;
+  department: string;
+  country: string;
+  specialties: string[];
+}
+
+export interface StandardizedDropdownData {
+  countries: string[];
+  departments: string[];
+  doctors: StandardizedDoctor[];
+}
+
+// ========================================
 // CORE UNIFIED FUNCTIONS
 // ========================================
 
@@ -89,11 +124,11 @@ export const getUnifiedDepartments = async (country: string): Promise<UnifiedDep
         name,
         country,
         description,
-        is_active,
+        ${DEPARTMENTS_FIELDS.isActive},
         doctors!doctors_department_id_fkey(id)
       `)
       .eq('country', normalizedCountry)
-      .eq('is_active', true)
+      .eq(DEPARTMENTS_FIELDS.isActive, true)
       .order('name');
 
     if (error) throw error;
@@ -131,7 +166,7 @@ export const getUnifiedDoctorsForDepartment = async (departmentName: string, cou
       .select('id, name')
       .eq('country', normalizedCountry)
       .eq('name', departmentName.trim())
-      .eq('is_active', true);
+      .eq(DEPARTMENTS_FIELDS.isActive, true);
 
     if (deptError) throw deptError;
     
@@ -294,6 +329,141 @@ export interface CaseQuantity {
   quantity: number;
 }
 
+export interface TopItem {
+  item_name: string;
+  quantity: number;
+}
+
+export interface DailyUsage {
+  usage_date: string;
+  department: string;
+  surgery_sets_total: number;
+  implant_boxes_total: number;
+  country: string;
+  top_items?: TopItem[];
+}
+
+// ========================================
+// STANDARDIZED DROPDOWN FUNCTIONS
+// ========================================
+
+/**
+ * SINGLE SOURCE OF TRUTH for departments across the entire application
+ * This function should be used by ALL components that need department data
+ */
+export const getStandardizedDepartments = async (country: string): Promise<string[]> => {
+  try {
+    console.log('🔧 UNIFIED SERVICE DEBUG - getStandardizedDepartments called with country:', country);
+    const normalizedCountry = normalizeCountry(country);
+    console.log('🔧 UNIFIED SERVICE DEBUG - Normalized country:', normalizedCountry);
+    
+    // Use the code_tables service as the single source of truth
+    const departments = await getCodeTableDepartments(normalizedCountry);
+    console.log('🔧 UNIFIED SERVICE DEBUG - Raw departments from getCodeTableDepartments:', departments);
+    
+    const sortedDepartments = departments.sort();
+    console.log('🔧 UNIFIED SERVICE DEBUG - Final sorted departments:', sortedDepartments);
+    
+    return sortedDepartments; // Always return sorted for consistency
+  } catch (error) {
+    console.error('🔧 UNIFIED SERVICE DEBUG - Error loading standardized departments:', error);
+    return [];
+  }
+};
+
+/**
+ * SINGLE SOURCE OF TRUTH for countries across the entire application
+ */
+export const getStandardizedCountries = async (): Promise<string[]> => {
+  try {
+    // Get countries directly from code_tables - single source of truth
+    const { data, error } = await supabase
+      .from('code_tables')
+      .select('display_name')
+      .eq('table_type', 'countries')
+      .eq(CODE_TABLES_FIELDS.isActive, true)
+      .order('display_name');
+    
+    if (error) {
+      console.error('Error loading countries from code_tables:', error);
+      return [];
+    }
+    
+    const countries = data?.map(item => item.display_name) || [];
+    return countries.sort(); // Always return sorted for consistency
+  } catch (error) {
+    console.error('Error loading standardized countries:', error);
+    return [];
+  }
+};
+
+/**
+ * Get doctors for a department using the standardized approach
+ * This ensures doctor data is consistent with department data
+ */
+export const getStandardizedDoctorsForDepartment = async (
+  departmentName: string, 
+  country: string
+): Promise<StandardizedDoctor[]> => {
+  try {
+    const normalizedCountry = normalizeCountry(country);
+    
+    // Use the existing unified service but transform to standardized format
+    const doctors = await getUnifiedDoctorsForDepartment(departmentName, normalizedCountry);
+    
+    // Transform to standardized format
+    return doctors.map(doctor => ({
+      id: doctor.id,
+      name: doctor.name,
+      department: departmentName,
+      country: normalizedCountry,
+      specialties: doctor.specialties || []
+    })).sort((a, b) => a.name.localeCompare(b.name));
+    
+  } catch (error) {
+    console.error('Error loading standardized doctors:', error);
+    return [];
+  }
+};
+
+/**
+ * Get all dropdown data for a country in a single call
+ * This is efficient for forms that need multiple dropdown types
+ */
+export const getStandardizedDropdownData = async (country: string): Promise<StandardizedDropdownData> => {
+  try {
+    const normalizedCountry = normalizeCountry(country);
+    
+    // Load countries and departments in parallel
+    const [countries, departments] = await Promise.all([
+      getStandardizedCountries(),
+      getStandardizedDepartments(normalizedCountry)
+    ]);
+    
+    // Load doctors for all departments
+    const doctorPromises = departments.map(dept => 
+      getStandardizedDoctorsForDepartment(dept, normalizedCountry)
+    );
+    
+    const doctorResults = await Promise.all(doctorPromises);
+    const doctors = doctorResults.flat();
+    
+    return {
+      countries,
+      departments,
+      doctors
+    };
+    
+  } catch (error) {
+    console.error('Error loading standardized dropdown data:', error);
+    return {
+      countries: [],
+      departments: [],
+      doctors: []
+    };
+  }
+};
+
 // ========================================
 // CONVENIENCE FUNCTIONS
 // ========================================
@@ -377,5 +547,135 @@ export const getSetsForDoctorProcedure = async (doctorId: string, procedureType:
   } catch (error) {
     console.error('❌ UNIFIED SERVICE - Error in getSetsForDoctorProcedure:', error);
     return [];
+  }
+};
+
+/**
+ * Get daily usage data for a specific date and country
+ */
+export const getDailyUsageForDate = async (usageDate: string, country: string): Promise<DailyUsage[]> => {
+  try {
+    const normalizedCountry = normalizeCountry(country);
+    
+    const { data, error } = await supabase.rpc('get_daily_usage', {
+      p_usage_date: usageDate,
+      p_country: normalizedCountry
+    });
+
+    if (error) {
+      console.error('❌ UNIFIED SERVICE - Error fetching daily usage:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('❌ UNIFIED SERVICE - Error in getDailyUsageForDate:', error);
+    return [];
+  }
+};
+
+/**
+ * Get case quantities for a case booking
+ */
+export const getCaseQuantities = async (caseBookingId: string): Promise<CaseQuantity[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('case_booking_quantities')
+      .select('*')
+      .eq('case_booking_id', caseBookingId)
+      .order('item_type')
+      .order('item_name');
+
+    if (error) throw error;
+
+    return (data || []).map(item => ({
+      item_type: item.item_type as 'surgery_set' | 'implant_box',
+      item_name: item.item_name,
+      quantity: item.quantity || 1
+    }));
+  } catch (error) {
+    console.error('❌ UNIFIED SERVICE - Error in getCaseQuantities:', error);
+    return [];
+  }
+};
+
+/**
+ * Save case quantities for a case booking
+ */
+export const saveCaseQuantities = async (caseBookingId: string, quantities: CaseQuantity[]): Promise<boolean> => {
+  try {
+    // Delete existing quantities
+    await supabase
+      .from('case_booking_quantities')
+      .delete()
+      .eq('case_booking_id', caseBookingId);
+
+    // Insert new quantities
+    if (quantities.length > 0) {
+      const { error } = await supabase
+        .from('case_booking_quantities')
+        .insert(
+          quantities.map(q => ({
+            case_booking_id: caseBookingId,
+            item_type: q.item_type,
+            item_name: q.item_name,
+            quantity: q.quantity
+          }))
+        );
+
+      if (error) throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ UNIFIED SERVICE - Error in saveCaseQuantities:', error);
+    return false;
+  }
+};
+
+/**
+ * Add doctor to department using proper foreign key relationship
+ */
+export const addDoctorToDepartment = async (departmentId: string, doctorName: string, country: string): Promise<boolean> => {
+  try {
+    const normalizedCountry = normalizeCountry(country);
+    
+    const { error } = await supabase
+      .from('doctors')
+      .insert({
+        name: doctorName.trim(),
+        department_id: departmentId,
+        country: normalizedCountry,
+        is_active: true,
+        sort_order: 1,
+        specialties: []
+      });
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('❌ UNIFIED SERVICE - Error adding doctor to department:', error);
+    return false;
+  }
+};
+
+/**
+ * Remove doctor from system
+ */
+export const removeDoctorFromSystem = async (doctorId: string, country: string): Promise<boolean> => {
+  try {
+    const normalizedCountry = normalizeCountry(country);
+    
+    const { error } = await supabase
+      .from('doctors')
+      .update({ is_active: false })
+      .eq('id', doctorId)
+      .eq('country', normalizedCountry);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('❌ UNIFIED SERVICE - Error removing doctor from system:', error);
+    return false;
   }
 };

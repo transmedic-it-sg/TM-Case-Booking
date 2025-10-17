@@ -170,11 +170,17 @@ const ComprehensiveEditSets: React.FC = () => {
   const loadDepartments = async () => {
     try {
       setIsLoading(true);
+      console.log('🔧 EDIT SETS DEBUG - Starting department load for country:', normalizedCountry);
+      
       // FIXED: Use same data source as Case Booking for consistency
       const { getStandardizedDepartments } = await import('../../utils/unifiedDataService');
+      console.log('🔧 EDIT SETS DEBUG - Imported getStandardizedDepartments function');
+      
       const departmentNames = await getStandardizedDepartments(normalizedCountry);
+      console.log('🔧 EDIT SETS DEBUG - Raw department names from getStandardizedDepartments:', departmentNames);
       
       if (!departmentNames || departmentNames.length === 0) {
+        console.log('🔧 EDIT SETS DEBUG - No departments found, setting empty array');
         setDepartments([]);
         return;
       }
@@ -189,11 +195,16 @@ const ComprehensiveEditSets: React.FC = () => {
         doctor_count: 0
       }));
       
+      console.log('🔧 EDIT SETS DEBUG - Final department data objects:', departmentData);
+      console.log('🔧 EDIT SETS DEBUG - Department count:', departmentData.length);
+      
       setDepartments(departmentData);
     } catch (error) {
+      console.error('🔧 EDIT SETS DEBUG - Error loading departments:', error);
       showError('Database Error', 'Failed to load departments');
     } finally {
       setIsLoading(false);
+      console.log('🔧 EDIT SETS DEBUG - Department loading completed');
     }
   };
 
