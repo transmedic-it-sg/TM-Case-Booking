@@ -116,8 +116,19 @@ const SystemSettings: React.FC = () => {
   };
 
   const handleSaveConfig = () => {
-    if (!hasChanges) return;
+    console.log('🔧 SYSTEM SETTINGS DEBUG - Save button clicked:', {
+      hasChanges,
+      config,
+      originalConfig,
+      timestamp: new Date().toISOString()
+    });
+    
+    if (!hasChanges) {
+      console.log('🔧 SYSTEM SETTINGS DEBUG - No changes detected, save blocked');
+      return;
+    }
 
+    console.log('🔧 SYSTEM SETTINGS DEBUG - Showing save confirmation modal');
     showConfirm(
       '💾 Save Configuration',
       'Are you sure you want to save these system settings?\n\nSome changes may require system restart to take effect.',

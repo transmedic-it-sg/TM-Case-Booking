@@ -44,6 +44,15 @@ const AuditLogs: React.FC = () => {
 
   // Check permission
   const canViewAuditLogs = currentUser ? hasPermission(currentUser.role, PERMISSION_ACTIONS.AUDIT_LOGS) : false;
+  
+  // Debug logging for audit logs access
+  console.log('🔍 AUDIT LOGS ACCESS DEBUG:', {
+    currentUser: currentUser?.username,
+    role: currentUser?.role,
+    auditLogsAction: PERMISSION_ACTIONS.AUDIT_LOGS,
+    canViewAuditLogs,
+    timestamp: new Date().toISOString()
+  });
 
   // Load users for mapping user IDs to usernames
   const loadUsers = useCallback(async () => {

@@ -1505,7 +1505,7 @@ const ModernEditSets: React.FC = () => {
       .map(dept => ({
         id: dept.id,
         name: dept.name,
-        description: dept.description || 'No description'
+        description: dept.description || ''
       }));
 
     return (
@@ -1515,7 +1515,7 @@ const ModernEditSets: React.FC = () => {
           value={selectedDepartment ? {
             id: selectedDepartment.id,
             name: selectedDepartment.name,
-            description: selectedDepartment.description || 'No description'
+            description: selectedDepartment.description || ''
           } : null}
           onChange={(option) => {
             if (option) {

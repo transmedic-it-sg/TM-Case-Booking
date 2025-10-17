@@ -135,6 +135,65 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
   // CRITICAL FIX: User creation should NOT use retries as it's not idempotent
   // Each retry attempts to create the same user again, causing 409 conflicts
   try {
+    // FIRST: Check if user exists (including soft-deleted users)
+    const { data: existingUser, error: checkError } = await supabase
+      .from('profiles')
+      .select('id, username, email, deleted_at')
+      .or(`username.eq.${userData.username},email.eq.${userData.email}`)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      // Error other than "not found"
+      throw checkError;
+    }
+
+    if (existingUser) {
+      if (existingUser.deleted_at) {
+        // User is soft-deleted, restore them with new data
+        console.log('🔄 USER CREATE - Restoring soft-deleted user:', existingUser.username);
+        
+        const hashedPassword = await hashPassword(userData.password);
+        
+        const { data: restoredUser, error: restoreError } = await supabase
+          .from('profiles')
+          .update({
+            password_hash: hashedPassword,
+            role: userData.role,
+            name: userData.name,
+            departments: userData.departments,
+            countries: userData.countries,
+            selected_country: userData.selectedCountry,
+            enabled: userData.enabled,
+            email: userData.email,
+            is_temporary_password: false,
+            deleted_at: null // Restore user
+          })
+          .eq('id', existingUser.id)
+          .select()
+          .single();
+
+        if (restoreError) throw restoreError;
+        if (!restoredUser) throw new Error('Failed to restore user');
+
+        return {
+          id: restoredUser.id,
+          username: restoredUser.username,
+          password: '', // Never expose password
+          role: restoredUser.role,
+          name: restoredUser.name,
+          departments: restoredUser.departments || [],
+          countries: restoredUser.countries || [],
+          selectedCountry: restoredUser.selected_country,
+          enabled: restoredUser.enabled,
+          email: restoredUser.email,
+          isTemporaryPassword: restoredUser.is_temporary_password || false
+        };
+      } else {
+        // User exists and is not deleted
+        throw new Error('A user with this username or email already exists. Please use different values.');
+      }
+    }
+
     // SECURITY: Hash password before storing in database
     const hashedPassword = await hashPassword(userData.password);
     
