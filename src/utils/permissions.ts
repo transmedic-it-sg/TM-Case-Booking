@@ -101,7 +101,7 @@ export const hasPermissionForUser = (roleId: string, actionId: string, userId: s
 
     // For critical actions, allow access during cache refresh to prevent lockouts
     const criticalActions = ['view-cases', 'create-case', 'booking-calendar', 'logout'];
-    const adminCriticalActions = ['email-config', 'system-settings', 'permission-matrix'];
+    const adminCriticalActions = ['email-config', 'system-settings', 'permission-matrix', 'manage-doctors', 'manage-procedure-types', 'manage-surgery-implants'];
     
     if (criticalActions.includes(actionId)) {
       // Trigger async refresh but don't wait for it
