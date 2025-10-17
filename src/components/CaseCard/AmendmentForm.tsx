@@ -22,12 +22,12 @@ import {
 } from '../../utils/fieldMappings';
 import {
   getDoctorsForDepartment,
-  getProceduresForDoctor,
+  getUnifiedProceduresForDoctor as getProceduresForDoctor,
   getSetsForDoctorProcedure,
-  type DepartmentDoctor,
-  type DoctorProcedure,
+  type UnifiedDoctor as DepartmentDoctor,
+  type UnifiedProcedure as DoctorProcedure,
   type ProcedureSet
-} from '../../utils/departmentDoctorService_fixed';
+} from '../../utils/unifiedDataService';
 
 const AmendmentForm: React.FC<AmendmentFormProps> = ({
   caseItem,

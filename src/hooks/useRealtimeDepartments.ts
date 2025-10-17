@@ -8,11 +8,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import {
   getDepartmentsForCountry,
+  getDoctorsForDepartment,
+  type UnifiedDepartment as Department
+} from '../utils/unifiedDataService';
+// TODO: Add addDoctorToDepartment and removeDoctorFromSystem to unified service
+import {
   addDoctorToDepartment,
-  removeDoctorFromSystem,
-  type Department
+  removeDoctorFromSystem
 } from '../utils/departmentDoctorService';
-import { getDoctorsForDepartment } from '../utils/departmentDoctorService_fixed';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useTestingValidation } from './useTestingValidation';
 

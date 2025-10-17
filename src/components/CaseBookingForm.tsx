@@ -36,15 +36,13 @@ import {
 } from '../utils/fieldMappings';
 import {
   getDoctorsForDepartment,
-  getProceduresForDoctor,
+  getUnifiedProceduresForDoctor as getProceduresForDoctor,
   getSetsForDoctorProcedure,
-  type DepartmentDoctor,
-  type DoctorProcedure,
-  type ProcedureSet
-} from '../utils/departmentDoctorService_fixed';
-import {
+  type UnifiedDoctor as DepartmentDoctor,
+  type UnifiedProcedure as DoctorProcedure,
+  type ProcedureSet,
   type CaseQuantity
-} from '../utils/doctorService';
+} from '../utils/unifiedDataService';
 
 interface CaseBookingFormProps {
   onCaseSubmitted: () => void;

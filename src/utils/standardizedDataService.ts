@@ -1,19 +1,13 @@
 /**
  * Standardized Data Service - Single source of truth for all dropdown data
  * 
- * This service ensures all dropdowns throughout the TM-Case-Booking app
- * link to the same Supabase datasets, preventing data inconsistency.
- * 
- * IMPORTANT: All components should use this service instead of:
- * - departmentDoctorService.ts
- * - supabaseDepartmentService.ts  
- * - Direct code table imports
- * - Hardcoded constants
+ * UPDATED: Now uses unifiedDataService for consistent table access patterns
+ * All components should use this service for data consistency.
  */
 
 import { getDepartmentsForCountry as getCodeTableDepartments } from './supabaseCodeTableService';
 import { supabase } from '../lib/supabase';
-import { getDoctorsForDepartment } from './departmentDoctorService_fixed';
+import { getDoctorsForDepartment } from './unifiedDataService';
 import { normalizeCountry } from './countryUtils';
 import { 
   CASE_BOOKINGS_FIELDS, 
