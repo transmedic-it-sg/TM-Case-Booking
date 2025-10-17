@@ -52,7 +52,12 @@ const SystemSettings: React.FC = () => {
   const loadSystemConfig = useCallback(async () => {
     setIsLoading(true);
     try {
+      console.log('🔧 SYSTEM SETTINGS DEBUG - Loading system config...');
       const loadedConfig = await getSystemConfig();
+      console.log('🔧 SYSTEM SETTINGS DEBUG - Config loaded:', {
+        loadedConfig,
+        timestamp: new Date().toISOString()
+      });
       setConfig(loadedConfig);
       setOriginalConfig({ ...loadedConfig });
     } catch (error) {
@@ -95,12 +100,28 @@ const SystemSettings: React.FC = () => {
   // Check for changes
   useEffect(() => {
     if (config && originalConfig) {
-      setHasChanges(JSON.stringify(config) !== JSON.stringify(originalConfig));
+      const hasChangesResult = JSON.stringify(config) !== JSON.stringify(originalConfig);
+      console.log('🔧 SYSTEM SETTINGS DEBUG - Change detection:', {
+        hasChanges: hasChangesResult,
+        configStr: JSON.stringify(config),
+        originalConfigStr: JSON.stringify(originalConfig),
+        configKeys: Object.keys(config),
+        originalConfigKeys: Object.keys(originalConfig),
+        timestamp: new Date().toISOString()
+      });
+      setHasChanges(hasChangesResult);
     }
   }, [config, originalConfig]);
 
   const handleConfigChange = (key: keyof SystemConfig, value: any) => {
     if (!config) return;
+
+    console.log('🔧 SYSTEM SETTINGS DEBUG - Config change:', {
+      key,
+      oldValue: config[key],
+      newValue: value,
+      timestamp: new Date().toISOString()
+    });
 
     setConfig(prev => prev ? ({
       ...prev,
@@ -337,6 +358,17 @@ const SystemSettings: React.FC = () => {
             <p className="settings-subtitle">Configure application settings and system preferences</p>
           </div>
           <div className="settings-header-actions">
+            {(() => {
+              console.log('🔧 SYSTEM SETTINGS DEBUG - Header actions render:', {
+                hasChanges,
+                isSaving,
+                isLoading,
+                config: !!config,
+                originalConfig: !!originalConfig,
+                timestamp: new Date().toISOString()
+              });
+              return null;
+            })()}
             {hasChanges && (
               <div className="changes-indicator">
                 <span className="changes-indicator-icon">⚡</span>
@@ -419,7 +451,14 @@ const SystemSettings: React.FC = () => {
                 type="checkbox"
                 className="modern-checkbox"
                 checked={config.maintenanceMode}
-                onChange={(e) => handleConfigChange('maintenanceMode', e.target.checked)}
+                onChange={(e) => {
+                  console.log('🔧 SYSTEM SETTINGS DEBUG - Maintenance mode checkbox clicked:', {
+                    currentValue: config.maintenanceMode,
+                    newValue: e.target.checked,
+                    timestamp: new Date().toISOString()
+                  });
+                  handleConfigChange('maintenanceMode', e.target.checked);
+                }}
               />
               <label className="modern-checkbox-label">Maintenance Mode</label>
             </div>
@@ -487,7 +526,14 @@ const SystemSettings: React.FC = () => {
             <input
               type="checkbox"
               checked={config.passwordComplexity}
-              onChange={(e) => handleConfigChange('passwordComplexity', e.target.checked)}
+              onChange={(e) => {
+                console.log('🔧 SYSTEM SETTINGS DEBUG - Password complexity checkbox clicked:', {
+                  currentValue: config.passwordComplexity,
+                  newValue: e.target.checked,
+                  timestamp: new Date().toISOString()
+                });
+                handleConfigChange('passwordComplexity', e.target.checked);
+              }}
             />
             Password Complexity Requirements
           </label>

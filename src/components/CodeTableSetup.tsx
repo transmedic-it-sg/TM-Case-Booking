@@ -530,11 +530,11 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
               setSelectedTable('');
             }}
             className={`category-tab ${selectedCategory === 'global' ? 'active' : ''}`}
-            disabled={!canManageGlobalTables}
-            title={canManageGlobalTables ? "Manage tables that apply to all countries" : "You need Global Tables permission to access this section"}
+            title={canManageGlobalTables ? "Manage tables that apply to all countries" : "View global tables (read-only access)"}
           >
             🌍 Global Tables
             <span className="category-count">({globalTables.length})</span>
+            {!canManageGlobalTables && <span className="read-only-indicator">👁️</span>}
           </button>
         </div>
       </div>
