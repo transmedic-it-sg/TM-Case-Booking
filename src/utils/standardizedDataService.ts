@@ -13,7 +13,7 @@
 
 import { getDepartmentsForCountry as getCodeTableDepartments } from './supabaseCodeTableService';
 import { supabase } from '../lib/supabase';
-import { getDoctorsForDepartment } from './departmentDoctorService';
+import { getDoctorsForDepartment } from './departmentDoctorService_fixed';
 import { normalizeCountry } from './countryUtils';
 import { 
   CASE_BOOKINGS_FIELDS, 
