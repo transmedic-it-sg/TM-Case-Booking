@@ -307,7 +307,7 @@ export const saveSupabasePermissions = async (permissions: Permission[]): Promis
     const { error: deleteError } = await supabase
       .from('permissions')
       .delete()
-      .gt('id', 0); // Delete all rows using a valid condition
+      .neq('id', ''); // Delete all rows where id is not empty string (safe for UUID)
 
     if (deleteError && !deleteError.message.includes('does not exist')) {
       return false;
