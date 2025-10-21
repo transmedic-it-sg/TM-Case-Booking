@@ -655,15 +655,30 @@ const UserManagement: React.FC = () => {
               );
             }
           } catch (auditError) {
+            console.warn('🔍 AUDIT ERROR - Audit logging failed but user creation succeeded:', auditError);
           }
 
-          playSound.success();
-          showSuccess('User Created', `Welcome ${userDataToSave.name}! New user account has been created successfully.`);
-          addNotification({
-            title: 'New User Account Created',
-            message: `${userDataToSave.name} (${userDataToSave.username}) has been added to the system with ${userDataToSave.role} role.`,
-            type: 'success'
-          });
+          try {
+            playSound.success();
+          } catch (soundError) {
+            console.warn('🔊 SOUND ERROR - Sound notification failed:', soundError);
+          }
+          
+          try {
+            showSuccess('User Created', `Welcome ${userDataToSave.name}! New user account has been created successfully.`);
+          } catch (toastError) {
+            console.warn('📢 TOAST ERROR - Toast notification failed:', toastError);
+          }
+          
+          try {
+            addNotification({
+              title: 'New User Account Created',
+              message: `${userDataToSave.name} (${userDataToSave.username}) has been added to the system with ${userDataToSave.role} role.`,
+              type: 'success'
+            });
+          } catch (notificationError) {
+            console.warn('🔔 NOTIFICATION ERROR - Notification failed:', notificationError);
+          }
       }
 
       // Reset form
