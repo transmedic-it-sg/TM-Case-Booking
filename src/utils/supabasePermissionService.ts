@@ -244,6 +244,14 @@ export const getSupabasePermissions = async (): Promise<Permission[]> => {
         'settings-audit-logs': 'audit-logs',
         'system_settings-manage': 'system-settings',
         
+        // System (NEW format)
+        'system-audit-logs': 'audit-logs',
+        'system-code-table-setup': 'code-table-setup',
+        'system-system-settings': 'system-settings',
+        'system-email-config': 'email-config',
+        'system-permission-matrix': 'permission-matrix',
+        'system-global-tables': 'global-tables',
+        
         // Data Operations
         'data-export': 'export-data',
         'data-import': 'import-data', 

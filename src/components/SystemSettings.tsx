@@ -8,6 +8,7 @@ import { getCurrentUser } from '../utils/authCompat';
 import { hasPermission, PERMISSION_ACTIONS } from '../utils/permissions';
 import { useToast } from './ToastContainer';
 import { useModal } from '../hooks/useModal';
+import CustomModal from './CustomModal';
 import {
   SystemConfig,
   getSystemConfig,
@@ -22,7 +23,7 @@ import '../assets/components/SystemSettings.css';
 const SystemSettings: React.FC = () => {
   const currentUser = getCurrentUser();
   const { showSuccess, showError } = useToast();
-  const { showConfirm } = useModal();
+  const { showConfirm, modal, closeModal } = useModal();
   const [config, setConfig] = useState<SystemConfig | null>(null);
   const [originalConfig, setOriginalConfig] = useState<SystemConfig | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -589,6 +590,20 @@ const SystemSettings: React.FC = () => {
       </CollapsibleSection>
 
       </div>
+
+      {/* Modal Component */}
+      <CustomModal
+        isOpen={modal.isOpen}
+        title={modal.title}
+        onClose={closeModal}
+        message={modal.message}
+        actions={modal.type === 'confirm' ? [
+          { label: 'Cancel', onClick: closeModal, style: 'secondary' },
+          { label: modal.confirmLabel || 'Confirm', onClick: () => modal.onConfirm?.(), style: 'primary' }
+        ] : [
+          { label: 'OK', onClick: closeModal, style: 'primary' }
+        ]}
+      />
     </div>
   );
 };
