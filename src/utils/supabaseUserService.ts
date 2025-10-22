@@ -136,14 +136,27 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
   // Each retry attempts to create the same user again, causing 409 conflicts
   try {
     // FIRST: Check if user exists (including soft-deleted users)
+    console.log('🔍 USER CREATE - Checking if user exists:', {
+      username: userData.username,
+      email: userData.email
+    });
+    
     const { data: existingUser, error: checkError } = await supabase
       .from('profiles')
       .select('id, username, email, deleted_at')
       .or(`username.eq.${userData.username},email.eq.${userData.email}`)
       .single();
 
+    console.log('🔍 USER CREATE - Existence check result:', {
+      checkError: checkError,
+      errorCode: checkError?.code,
+      existingUser: existingUser,
+      userDeletedAt: existingUser?.deleted_at
+    });
+
     if (checkError && checkError.code !== 'PGRST116') {
       // Error other than "not found"
+      console.error('❌ USER CREATE - Database error during existence check:', checkError);
       throw checkError;
     }
 
@@ -172,8 +185,27 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
           .select()
           .single();
 
-        if (restoreError) throw restoreError;
-        if (!restoredUser) throw new Error('Failed to restore user');
+        console.log('🔄 USER RESTORE DEBUG:', {
+          existingUserId: existingUser.id,
+          existingUsername: existingUser.username,
+          restoreError: restoreError,
+          restoredUser: restoredUser,
+          updateData: {
+            role: userData.role,
+            name: userData.name,
+            enabled: userData.enabled,
+            email: userData.email
+          }
+        });
+
+        if (restoreError) {
+          console.error('❌ USER RESTORE - Update failed:', restoreError);
+          throw new Error(`User "${userData.username}" exists but is archived. Please contact your system administrator to restore this account or use a different username.`);
+        }
+        if (!restoredUser) {
+          console.error('❌ USER RESTORE - No data returned after update');
+          throw new Error(`User "${userData.username}" exists but could not be restored. Please contact your system administrator or use a different username.`);
+        }
 
         return {
           id: restoredUser.id,
