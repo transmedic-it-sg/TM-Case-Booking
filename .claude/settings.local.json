@@ -70,7 +70,12 @@
       "Bash(fi)",
       "Bash(done)",
       "WebFetch(domain:tmcasebooking.vercel.app)",
-      "WebFetch(domain:tm-case-booking-h106cvm2c-tmsg-its-projects-8f75c637.vercel.app)"
+      "WebFetch(domain:tm-case-booking-h106cvm2c-tmsg-its-projects-8f75c637.vercel.app)",
+      "Bash(git branch:*)",
+      "mcp__supabase-old__execute_sql",
+      "mcp__supabase-old__get_project_url",
+      "Bash(env)",
+      "Bash(git cherry-pick:*)"
     ],
     "deny": [
       "mcp__supabase-old__*",
