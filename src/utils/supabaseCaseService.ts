@@ -537,17 +537,16 @@ export const saveSupabaseCase = async (caseData: Omit<CaseBooking, 'id' | 'caseR
     if (!finalInsertedCase || finalInsertedCase.length === 0) {
       console.log('🔍 E2E DEBUG - Upsert returned null, attempting verification query...');
       
-      // Use a small delay to ensure database consistency
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Use robust database operation for verification
+      const { DatabaseUtils } = await import('./robustDatabaseOperations');
       
-      const { data: verificationData, error: verifyError } = await supabase
-        .from('case_bookings')
-        .select('*')
-        .eq('case_reference_number', caseReferenceNumber)
-        .single();
+      const verificationData = await DatabaseUtils.robustSingle(
+        supabase.from('case_bookings').select('*').eq('case_reference_number', caseReferenceNumber),
+        DatabaseUtils.RETRY_CONFIGS.CRITICAL
+      );
       
-      if (verifyError) {
-        console.error('❌ E2E DEBUG - Verification query failed:', verifyError);
+      if (!verificationData) {
+        console.error('❌ E2E DEBUG - Verification query returned no data');
         throw new Error('Failed to create case - no data returned and verification failed');
       }
       
@@ -1634,66 +1633,28 @@ export const deleteSupabaseCase = async (caseId: string): Promise<void> => {
 
 /**
  * Recalculate usage for a specific date after case deletion
+ * Note: Usage data is now calculated dynamically via get_daily_usage RPC function
+ * No manual recalculation needed as the function reads live data from case_bookings
  */
 export const recalculateUsageForDate = async (date: string, country: string, department: string): Promise<void> => {
   try {
-    console.log('🔢 USAGE RECALCULATION DEBUG - Starting recalculation:', {
+    console.log('🔢 USAGE RECALCULATION DEBUG - Usage calculation is now automatic via get_daily_usage RPC:', {
+      date,
+      country,
+      department,
+      timestamp: new Date().toISOString(),
+      note: 'No manual recalculation needed - get_daily_usage reads live data from case_bookings table'
+    });
+
+    // Usage is now calculated dynamically, no manual recalculation needed
+    // The get_daily_usage RPC function automatically reads current data from case_bookings
+    
+    console.log('✅ USAGE RECALCULATION DEBUG - No action needed, usage is automatically calculated:', {
       date,
       country,
       department,
       timestamp: new Date().toISOString()
     });
-
-    // Call RPC function to recalculate usage
-    const { error } = await supabase.rpc('recalculate_daily_usage', {
-      p_usage_date: date,
-      p_country: country,
-      p_department: department
-    });
-
-    if (error) {
-      console.error('❌ USAGE RECALCULATION ERROR - RPC function failed:', {
-        date,
-        country,
-        department,
-        error: error,
-        errorMessage: error.message,
-        errorCode: error.code,
-        errorDetails: error.details,
-        errorHint: error.hint,
-        timestamp: new Date().toISOString()
-      });
-
-      // If RPC doesn't exist, manually delete and recalculate
-      console.log('🔄 USAGE RECALCULATION DEBUG - Attempting manual recalculation fallback');
-      
-      const { error: deleteError } = await supabase
-        .from('daily_usage_aggregation')
-        .delete()
-        .eq('usage_date', date)
-        .eq('country', country)
-        .eq('department', department);
-      
-      if (deleteError) {
-        console.error('❌ USAGE RECALCULATION ERROR - Manual deletion failed:', {
-          date,
-          country,
-          department,
-          deleteError: deleteError,
-          timestamp: new Date().toISOString()
-        });
-        throw deleteError;
-      } else {
-        console.log('✅ USAGE RECALCULATION DEBUG - Manual deletion successful');
-      }
-    } else {
-      console.log('✅ USAGE RECALCULATION DEBUG - RPC function completed successfully:', {
-        date,
-        country,
-        department,
-        timestamp: new Date().toISOString()
-      });
-    }
   } catch (error) {
     console.error('❌ USAGE RECALCULATION CRITICAL ERROR - Unexpected error:', {
       date,

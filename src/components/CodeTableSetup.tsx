@@ -37,6 +37,7 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [isManualUpdate, setIsManualUpdate] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [countryDataCache, setCountryDataCache] = useState<Map<string, CodeTable[]>>(new Map());
 
   const { showSuccess } = useToast();
   const { playSound } = useSound();
@@ -131,44 +132,57 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
         // Update global tables immediately
         setGlobalTables(filteredGlobalTables);
 
-        // Load country-based tables with actual data from Supabase
-        let countryBasedTablesData = [];
+        // Load country-based tables with caching for better performance
+        let countryBasedTablesData: CodeTable[] = [];
 
-        // Load all country-specific data in one call
-        try {
-          const countryData = await getSupabaseCodeTables(selectedCountry);// Find existing tables or create empty ones
-          const hospitalsTable = countryData.find(t => t.id === 'hospitals') || {
-            id: 'hospitals',
-            name: 'Hospitals',
-            description: 'Manage hospitals for each country',
-            items: []
-          };
-
-          const departmentsTable = countryData.find(t => t.id === 'departments') || {
-            id: 'departments',
-            name: 'Departments',
-            description: 'Manage departments for each country',
-            items: []
-          };
-
-          countryBasedTablesData = [hospitalsTable, departmentsTable];
-
-        } catch (error) {
-          // Fallback to empty tables
-          countryBasedTablesData = [
-            {
+        // Check cache first to avoid repeated database calls
+        if (countryDataCache.has(selectedCountry)) {
+          countryBasedTablesData = countryDataCache.get(selectedCountry)!;
+        } else {
+          // Load all country-specific data in one call
+          try {
+            const countryData = await getSupabaseCodeTables(selectedCountry);
+            
+            // Find existing tables or create empty ones
+            const hospitalsTable = countryData.find(t => t.id === 'hospitals') || {
               id: 'hospitals',
               name: 'Hospitals',
               description: 'Manage hospitals for each country',
               items: []
-            },
-            {
+            };
+
+            const departmentsTable = countryData.find(t => t.id === 'departments') || {
               id: 'departments',
               name: 'Departments',
               description: 'Manage departments for each country',
               items: []
-            }
-          ];
+            };
+
+            countryBasedTablesData = [hospitalsTable, departmentsTable];
+            
+            // Cache the result for future use
+            setCountryDataCache(prev => new Map(prev).set(selectedCountry, countryBasedTablesData));
+
+          } catch (error) {
+            // Fallback to empty tables
+            countryBasedTablesData = [
+              {
+                id: 'hospitals',
+                name: 'Hospitals',
+                description: 'Manage hospitals for each country',
+                items: []
+              },
+              {
+                id: 'departments',
+                name: 'Departments',
+                description: 'Manage departments for each country',
+                items: []
+              }
+            ];
+            
+            // Cache the fallback data too
+            setCountryDataCache(prev => new Map(prev).set(selectedCountry, countryBasedTablesData));
+          }
         }
 
         // Apply user filtering to country-based tables
@@ -272,6 +286,13 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
         return;
       }
 
+      // Clear cache for this country to ensure fresh data on next load
+      setCountryDataCache(prev => {
+        const newCache = new Map(prev);
+        newCache.delete(selectedCountry);
+        return newCache;
+      });
+
       // Update local state only if Supabase operation succeeded
       setCountryBasedTables(prev => {
         return prev.map(table =>
@@ -334,6 +355,13 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
         setItemError('Failed to update item. The new name may already exist.');
         return;
       }
+
+      // Clear cache for this country to ensure fresh data on next load
+      setCountryDataCache(prev => {
+        const newCache = new Map(prev);
+        newCache.delete(selectedCountry);
+        return newCache;
+      });
 
       // Update local state only if Supabase operation succeeded
       setCountryBasedTables(prev => {
@@ -404,10 +432,12 @@ const CodeTableSetup: React.FC<CodeTableSetupProps> = () => {
         return;
       }
 
-      // Force refresh from database to ensure we have the latest data
-      // Import the forceRefreshCodeTables function
-      const { forceRefreshCodeTables } = await import('../utils/supabaseCodeTableService');
-      await forceRefreshCodeTables(selectedCountry);
+      // Clear cache for this country to ensure fresh data on next load
+      setCountryDataCache(prev => {
+        const newCache = new Map(prev);
+        newCache.delete(selectedCountry);
+        return newCache;
+      });
 
       // CRITICAL FIX: Update local state after database deletion
       // Reload the table data to reflect the deletion in the UI

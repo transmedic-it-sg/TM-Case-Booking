@@ -577,21 +577,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
               </div>
             )}
             
-            {/* FIXED: Display current status attachments for Sales Approved and Order Prepared */}
-            {currentAttachments.length > 0 && (
-              <div className="detail-item full-width">
-                <span className="detail-label">
-                  {caseItem.status === 'Sales Approved' ? 'Sales Approved Attachments' : 
-                   caseItem.status === 'Order Prepared' ? 'Order Prepared Attachments' : 
-                   'Status Attachments'}: 
-                </span>
-                <AttachmentRenderer 
-                  attachments={currentAttachments} 
-                  title=""
-                  showCount={true}
-                />
-              </div>
-            )}
+            {/* Removed duplicate status attachments section as they're already included in case attachments */}
             
             {caseItem.amendmentHistory && caseItem.amendmentHistory.length > 0 && (
               <div className="detail-item full-width amendment-history">

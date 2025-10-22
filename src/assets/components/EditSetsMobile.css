@@ -395,8 +395,9 @@
 
 .quantity-item {
   display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.6rem;
   padding-bottom: 0.6rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);

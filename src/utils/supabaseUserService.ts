@@ -201,24 +201,18 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
           })
           .eq('id', existingUser.id);
 
-        // Fetch the restored user separately to ensure we get the data
-        // Add delay to ensure database consistency
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Use robust database operation to fetch the restored user
+        const { DatabaseUtils } = await import('./robustDatabaseOperations');
         
-        const { data: restoredUserArray, error: fetchError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', existingUser.id);
-          
-        const restoredUser = restoredUserArray?.[0] || null;
+        const restoredUser = await DatabaseUtils.robustSingle<any>(
+          supabase.from('profiles').select('*').eq('id', existingUser.id),
+          DatabaseUtils.RETRY_CONFIGS.CRITICAL
+        );
 
         console.log('🔄 USER RESTORE DEBUG:', {
           existingUserId: existingUser.id,
           existingUsername: existingUser.username,
           restoreError: restoreError,
-          fetchError: fetchError,
-          restoredUserArray: restoredUserArray,
-          restoredUserArrayLength: restoredUserArray?.length || 0,
           restoredUser: restoredUser,
           hasRestoredUser: !!restoredUser,
           updateData: {
@@ -234,10 +228,7 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
           throw new Error(`User "${userData.username}" exists but is archived. Please contact your system administrator to restore this account or use a different username.`);
         }
         
-        if (fetchError) {
-          console.error('❌ USER RESTORE - Fetch after update failed:', fetchError);
-          throw new Error(`User "${userData.username}" restoration failed. Please contact your system administrator or use a different username.`);
-        }
+        // Removed fetchError check since we're using robust database operations
         
         if (!restoredUser) {
           console.error('❌ USER RESTORE - No data returned after fetch');

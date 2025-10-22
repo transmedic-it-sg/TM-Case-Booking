@@ -728,7 +728,7 @@ Create `.env.local` file:
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-VITE_APP_VERSION=1.3.2
+VITE_APP_VERSION=1.3.4
 ```
 
 ### Supabase Setup

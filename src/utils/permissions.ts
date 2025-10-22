@@ -130,6 +130,15 @@ export const hasPermissionForUser = (roleId: string, actionId: string, userId: s
       });
       return true;
     }
+    
+    // Allow admin access to all status transition actions 
+    const statusTransitionActions = ['process-order', 'order-processed', 'sales-approval', 'pending-delivery-hospital', 'delivered-hospital', 'case-completed', 'pending-delivery-office', 'delivered-office', 'to-be-billed', 'case-closed'];
+    if (roleId === 'admin' && statusTransitionActions.includes(actionId)) {
+      // Trigger async refresh but don't wait for it
+      initializePermissions(false).catch(error => {
+      });
+      return true;
+    }
 
     // FAIL SECURE: Deny access for non-critical actions when permissions cannot be verified
     return false;

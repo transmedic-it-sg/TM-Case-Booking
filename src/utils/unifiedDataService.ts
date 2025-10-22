@@ -557,9 +557,12 @@ export const getDailyUsageForDate = async (usageDate: string, country: string): 
   try {
     const normalizedCountry = normalizeCountry(country);
     
+    // Use the correct get_daily_usage function with proper parameters
     const { data, error } = await supabase.rpc('get_daily_usage', {
-      p_usage_date: usageDate,
-      p_country: normalizedCountry
+      country_filter: normalizedCountry,
+      department_filter: null,
+      start_date: usageDate,
+      end_date: usageDate
     });
 
     if (error) {
@@ -567,7 +570,56 @@ export const getDailyUsageForDate = async (usageDate: string, country: string): 
       return [];
     }
 
-    return data || [];
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Transform the raw data into DailyUsage format
+    const usageMap: Record<string, DailyUsage> = {};
+
+    data.forEach((item: any) => {
+      const key = `${item.usage_date}-${item.department}`;
+      
+      if (!usageMap[key]) {
+        usageMap[key] = {
+          usage_date: item.usage_date,
+          department: item.department,
+          country: item.country,
+          surgery_sets_total: 0,
+          implant_boxes_total: 0,
+          top_items: []
+        };
+      }
+
+      // Add to totals based on item type
+      if (item.item_type === 'surgery_set') {
+        usageMap[key].surgery_sets_total += item.total_quantity || 0;
+      } else if (item.item_type === 'implant_box') {
+        usageMap[key].implant_boxes_total += item.total_quantity || 0;
+      }
+
+      // Add to top items list
+      if (item.item_name && item.total_quantity > 0) {
+        if (!usageMap[key].top_items) {
+          usageMap[key].top_items = [];
+        }
+        usageMap[key].top_items!.push({
+          item_name: item.item_name,
+          quantity: item.total_quantity
+        });
+      }
+    });
+
+    // Sort top items by quantity and limit to top 5
+    Object.values(usageMap).forEach(usage => {
+      if (usage.top_items) {
+        usage.top_items = usage.top_items
+          .sort((a, b) => b.quantity - a.quantity)
+          .slice(0, 5);
+      }
+    });
+
+    return Object.values(usageMap);
   } catch (error) {
     console.error('❌ UNIFIED SERVICE - Error in getDailyUsageForDate:', error);
     return [];

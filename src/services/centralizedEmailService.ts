@@ -153,15 +153,27 @@ class CentralizedEmailService {
 
       // Check if token is expired and needs refresh
       if (this.isTokenExpired(adminCredentials)) {
+        console.log('🔄 TOKEN REFRESH - Admin token expired, attempting refresh...');
         const refreshedCredentials = await this.refreshAdminToken(country, adminCredentials);
         if (!refreshedCredentials) {
+          console.error('❌ TOKEN REFRESH - Failed to refresh admin email token');
           return {
             success: false,
             error: `Failed to refresh admin email token for country: ${country}`
           };
         }
+        
+        // Update credentials in memory
         adminCredentials.accessToken = refreshedCredentials.accessToken;
         adminCredentials.expiresAt = refreshedCredentials.expiresAt;
+        
+        // Update credentials in database
+        const updateSuccess = await this.updateTokenInDatabase(adminCredentials);
+        if (!updateSuccess) {
+          console.warn('⚠️ TOKEN REFRESH - Successfully refreshed token but failed to update database');
+        } else {
+          console.log('✅ TOKEN REFRESH - Token refreshed and database updated successfully');
+        }
       }
 
       // Prepare email payload for Edge Function
@@ -177,29 +189,75 @@ class CentralizedEmailService {
         provider: adminCredentials.provider
       };
 
-      // Send via Edge Function with admin authentication
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: emailPayload
-      });
+      // Send via Edge Function with admin authentication (with retry logic)
+      const maxRetries = 3;
+      let lastError: any = null;
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`📧 EMAIL ATTEMPT ${attempt}/${maxRetries} - Sending admin email for ${country}`);
+          
+          const { data, error } = await supabase.functions.invoke('send-email', {
+            body: emailPayload
+          });
 
-      if (error) {
-        logger.error(`Edge function error for admin email (${country}):`, error);
-        return {
-          success: false,
-          error: error.message || 'Failed to send admin email'
-        };
+          if (error) {
+            lastError = error;
+            console.warn(`📧 EMAIL ATTEMPT ${attempt} FAILED - Edge function error:`, error);
+            
+            // If it's an auth error, try refreshing the token
+            if (error.message?.includes('401') || error.message?.includes('authentication')) {
+              console.log('🔄 AUTH ERROR - Attempting token refresh before retry...');
+              const refreshedCredentials = await this.refreshAdminToken(country, adminCredentials);
+              if (refreshedCredentials) {
+                emailPayload.accessToken = refreshedCredentials.accessToken;
+                await this.updateTokenInDatabase({
+                  ...adminCredentials,
+                  accessToken: refreshedCredentials.accessToken,
+                  expiresAt: refreshedCredentials.expiresAt
+                });
+              }
+            }
+            
+            // Wait before retry (exponential backoff)
+            if (attempt < maxRetries) {
+              const delay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+            continue;
+          }
+
+          if (data?.success) {
+            logger.info(`✅ Admin email sent successfully for country: ${country} (attempt ${attempt})`);
+            return { success: true };
+          } else {
+            lastError = data?.error || 'Admin email send failed';
+            console.warn(`📧 EMAIL ATTEMPT ${attempt} FAILED - Send error:`, data?.error);
+            
+            // Wait before retry
+            if (attempt < maxRetries) {
+              const delay = Math.pow(2, attempt - 1) * 1000;
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          }
+        } catch (networkError) {
+          lastError = networkError;
+          console.warn(`📧 EMAIL ATTEMPT ${attempt} FAILED - Network error:`, networkError);
+          
+          // Wait before retry
+          if (attempt < maxRetries) {
+            const delay = Math.pow(2, attempt - 1) * 1000;
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
       }
 
-      if (data?.success) {
-        logger.info(`Admin email sent successfully for country: ${country}`);
-        return { success: true };
-      } else {
-        logger.error(`Admin email send failed for country: ${country}:`, data?.error);
-        return {
-          success: false,
-          error: data?.error || 'Unknown error occurred'
-        };
-      }
+      // All retries failed
+      logger.error(`❌ Admin email send failed after ${maxRetries} attempts for country: ${country}:`, lastError);
+      return {
+        success: false,
+        error: typeof lastError === 'string' ? lastError : (lastError?.message || 'Failed to send admin email after retries')
+      };
     } catch (error) {
       logger.error(`Admin email service error for country ${country}:`, error);
       return {
@@ -210,10 +268,58 @@ class CentralizedEmailService {
   }
 
   /**
-   * Check if admin token is expired
+   * Check if admin token is expired or expiring soon
    */
   private isTokenExpired(credentials: AdminEmailCredentials): boolean {
-    return Date.now() >= credentials.expiresAt - 300000; // Refresh 5 minutes before expiry
+    // Refresh 30 minutes before expiry for better reliability
+    return Date.now() >= credentials.expiresAt - 1800000; // 30 minutes = 1800000ms
+  }
+
+  /**
+   * Start background token refresh service
+   * Checks and refreshes tokens every 15 minutes
+   */
+  startBackgroundTokenRefresh(): void {
+    const refreshInterval = 15 * 60 * 1000; // 15 minutes
+    
+    setInterval(async () => {
+      try {
+        console.log('🔄 BACKGROUND TOKEN REFRESH - Checking token status...');
+        
+        const adminCredentials = await this.getAdminEmailConfig();
+        if (!adminCredentials) {
+          console.log('⚠️ BACKGROUND TOKEN REFRESH - No admin credentials found, skipping refresh');
+          return;
+        }
+
+        if (this.isTokenExpired(adminCredentials)) {
+          console.log('🔄 BACKGROUND TOKEN REFRESH - Token expiring soon, refreshing proactively...');
+          
+          const refreshedCredentials = await this.refreshAdminToken('global', adminCredentials);
+          if (refreshedCredentials) {
+            const updateSuccess = await this.updateTokenInDatabase({
+              ...adminCredentials,
+              accessToken: refreshedCredentials.accessToken,
+              expiresAt: refreshedCredentials.expiresAt
+            });
+            
+            if (updateSuccess) {
+              console.log('✅ BACKGROUND TOKEN REFRESH - Token refreshed successfully');
+            } else {
+              console.warn('⚠️ BACKGROUND TOKEN REFRESH - Token refreshed but database update failed');
+            }
+          } else {
+            console.error('❌ BACKGROUND TOKEN REFRESH - Failed to refresh token');
+          }
+        } else {
+          console.log('✅ BACKGROUND TOKEN REFRESH - Token is still valid');
+        }
+      } catch (error) {
+        console.error('❌ BACKGROUND TOKEN REFRESH - Error during background refresh:', error);
+      }
+    }, refreshInterval);
+    
+    console.log('✅ BACKGROUND TOKEN REFRESH - Service started (checks every 15 minutes)');
   }
 
   /**
@@ -275,6 +381,32 @@ class CentralizedEmailService {
     } catch (error) {
       logger.error('Microsoft token refresh error:', error);
       return null;
+    }
+  }
+
+  /**
+   * Update refreshed token in database
+   */
+  private async updateTokenInDatabase(credentials: AdminEmailCredentials): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('global_email_config')
+        .update({
+          access_token: credentials.accessToken,
+          expires_at: credentials.expiresAt,
+          updated_at: new Date().toISOString()
+        })
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('❌ TOKEN UPDATE - Failed to update token in database:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('❌ TOKEN UPDATE - Error updating token in database:', error);
+      return false;
     }
   }
 
@@ -403,4 +535,8 @@ export function isTokenExpiringSoon(tokens: AuthTokens | null | undefined): bool
 }
 
 export const centralizedEmailService = new CentralizedEmailService();
+
+// Initialize background token refresh service
+centralizedEmailService.startBackgroundTokenRefresh();
+
 export default centralizedEmailService;

@@ -487,13 +487,27 @@ const getCurrentUserInfo = async (userIdOrName?: string): Promise<{ name: string
     // Import supabase here to avoid circular dependencies
     const { supabase } = await import('../lib/supabase');
     
-    // First try to find by ID
-    let query = supabase
-      .from('profiles')
-      .select('name, username, email')
-      .or(`id.eq.${userIdOrName},username.eq.${userIdOrName},name.eq.${userIdOrName}`)
-      .limit(1)
-      .single();
+    // Check if the input looks like a UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userIdOrName);
+    
+    let query;
+    if (isUUID) {
+      // If it's a UUID, search by ID only
+      query = supabase
+        .from('profiles')
+        .select('name, username, email')
+        .eq('id', userIdOrName)
+        .limit(1)
+        .single();
+    } else {
+      // If it's not a UUID, search by username and name only (not ID)
+      query = supabase
+        .from('profiles')
+        .select('name, username, email')
+        .or(`username.eq.${userIdOrName},name.eq.${userIdOrName}`)
+        .limit(1)
+        .single();
+    }
     
     const { data: user, error } = await query;
     

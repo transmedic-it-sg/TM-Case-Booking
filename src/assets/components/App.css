@@ -4684,7 +4684,7 @@ textarea:focus {
   }
 
   .notification-bell-container {
-    position: static !important;
+    position: relative !important;
     margin-right: 4px;
   }
 
@@ -4698,8 +4698,25 @@ textarea:focus {
     max-height: calc(100vh - 80px) !important;
     z-index: 100000 !important;
     margin-top: 0 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
     border-radius: 12px !important;
     overflow: hidden !important;
+    background: white !important;
+    border: 1px solid #ddd !important;
+  }
+  
+  .notification-list {
+    overflow-y: auto !important;
+    max-height: calc(100vh - 160px) !important;
+  }
+  
+  .notification-item {
+    border-bottom: 1px solid #f0f0f0 !important;
+    padding: 12px 16px !important;
+  }
+  
+  .notification-item:last-child {
+    border-bottom: none !important;
   }
   
   .notification-header {

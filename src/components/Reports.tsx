@@ -345,8 +345,60 @@ const Reports: React.FC = () => {
     ).join('\n');
   };
 
-  const printReport = () => {
-    window.print();
+  const exportToExcel = () => {
+    const fileName = `TM_Case_Report_${filters.reportType}_${new Date().toISOString().split('T')[0]}.csv`;
+    const csvContent = generateDetailedCSVReport();
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', fileName);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const generateDetailedCSVReport = (): string => {
+    // Enhanced headers with more details
+    const headers = [
+      'Case Reference', 'Hospital', 'Department', 'Date of Surgery', 'Time of Procedure',
+      'Procedure Type', 'Procedure Name', 'Doctor', 'Status', 'Country',
+      'Surgery Sets', 'Implant Boxes', 'Special Instructions',
+      'Submitted By', 'Submitted At', 'Processed By', 'Processed At',
+      'Amended By', 'Amended At', 'Is Amended', 'DO Number',
+      'Delivery Details', 'Order Summary'
+    ];
+
+    const rows = filteredCases.map(c => [
+      c.caseReferenceNumber || '',
+      c.hospital || '',
+      c.department || '',
+      c.dateOfSurgery || '',
+      c.timeOfProcedure || '',
+      c.procedureType || '',
+      c.procedureName || '',
+      c.doctorName || '',
+      c.status || '',
+      c.country || '',
+      Array.isArray(c.surgerySetSelection) ? c.surgerySetSelection.join('; ') : '',
+      Array.isArray(c.implantBox) ? c.implantBox.join('; ') : '',
+      c.specialInstruction || '',
+      c.submittedBy || '',
+      c.submittedAt ? formatDate(new Date(c.submittedAt)) : '',
+      c.processedBy || '',
+      c.processedAt ? formatDate(new Date(c.processedAt)) : '',
+      c.amendedBy || '',
+      c.amendedAt ? formatDate(new Date(c.amendedAt)) : '',
+      c.isAmended ? 'Yes' : 'No',
+      c.doNumber || '',
+      c.deliveryDetails || '',
+      c.orderSummary || ''
+    ]);
+
+    return [headers, ...rows].map(row =>
+      row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
   };
 
   if (!hasPermission(currentUser?.role || '', PERMISSION_ACTIONS.VIEW_REPORTS)) {
@@ -379,11 +431,11 @@ const Reports: React.FC = () => {
             </button>
           )}
           <button
-            onClick={printReport}
-            className="btn btn-outline-secondary"
-            title="Print Report"
+            onClick={exportToExcel}
+            className="btn btn-success"
+            title="Export to Excel"
           >
-            🖨️ Print
+            📊 Export to Excel
           </button>
         </div>
       </div>

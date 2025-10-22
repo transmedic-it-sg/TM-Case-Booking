@@ -75,7 +75,14 @@
       "mcp__supabase-old__execute_sql",
       "mcp__supabase-old__get_project_url",
       "Bash(env)",
-      "Bash(git cherry-pick:*)"
+      "Bash(git cherry-pick:*)",
+      "mcp__supabase__list_extensions",
+      "Bash(\"/mnt/c/Users/anrong.low/TM-Case-Booking/DEEP_ANALYSIS_REPORT.md\" )",
+      "Bash(\"/mnt/c/Users/anrong.low/TM-Case-Booking/IMPLEMENTATION_GUIDE.md\" )",
+      "Bash(\"/mnt/c/Users/anrong.low/TM-Case-Booking/itemname.png\" )",
+      "Bash(\"/mnt/c/Users/anrong.low/TM-Case-Booking/menu.png\" )",
+      "Bash(\"/mnt/c/Users/anrong.low/TM-Case-Booking/notificationpopup.png\" )",
+      "Bash(\"/mnt/c/Users/anrong.low/TM-Case-Booking/systemsettings.png\")"
     ],
     "deny": [
       "mcp__supabase-old__*",

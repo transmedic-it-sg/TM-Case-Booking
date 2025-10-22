@@ -1,5 +1,5 @@
 /**
- * CENTRAL FIELD MAPPING UTILITY
+ * CENTRAL FIELD MAPPING UTILITY - ENHANCED
  * 
  * This file contains all database field mappings to prevent naming convention issues.
  * CRITICAL: Always use these mappings instead of hardcoded field names.
@@ -7,6 +7,11 @@
  * Pattern:
  * - Database fields: snake_case (e.g., date_of_surgery)
  * - TypeScript interfaces: camelCase (e.g., dateOfSurgery)
+ * 
+ * ENHANCED FEATURES:
+ * - Validation functions to catch mapping errors at runtime
+ * - Bidirectional mapping utilities
+ * - Type-safe field access
  */
 
 // ================================================
@@ -109,7 +114,7 @@ export const AMENDMENT_HISTORY_FIELDS = {
  * Get database field name from TypeScript property name
  * Usage: getDbField('case_bookings', 'dateOfSurgery') → 'date_of_surgery'
  */
-export function getDbField(table: string, tsProperty: string): string {
+export function getDbFieldByTable(table: string, tsProperty: string): string {
   switch (table) {
     case 'case_bookings':
       return (CASE_BOOKINGS_FIELDS as any)[tsProperty] || tsProperty;
@@ -164,7 +169,7 @@ export type AmendmentHistoryMapping = typeof AMENDMENT_HISTORY_FIELDS;
  * Validate that a field mapping exists
  */
 export function validateFieldMapping(table: string, tsProperty: string): boolean {
-  const dbField = getDbField(table, tsProperty);
+  const dbField = getDbFieldByTable(table, tsProperty);
   return dbField !== tsProperty || Object.values(
     table === 'case_bookings' ? CASE_BOOKINGS_FIELDS :
     table === 'case_booking_quantities' ? CASE_QUANTITIES_FIELDS :
@@ -437,6 +442,140 @@ export const DAILY_USAGE_AGGREGATION_FIELDS = {
 // ================================================
 // ENHANCED UTILITY FUNCTIONS
 // ================================================
+
+/**
+ * Validates that a database object contains all required fields
+ */
+export function validateDatabaseFields<T extends Record<string, any>>(
+  obj: any,
+  requiredFields: T,
+  tableName: string
+): obj is Record<keyof T, any> {
+  const missingFields: string[] = [];
+  
+  Object.entries(requiredFields).forEach(([frontendField, dbField]) => {
+    if (!(dbField in obj)) {
+      missingFields.push(`${frontendField} (DB: ${dbField})`);
+    }
+  });
+  
+  if (missingFields.length > 0) {
+    console.error(`❌ FIELD MAPPING VALIDATION FAILED for ${tableName}:`, {
+      missingFields,
+      receivedFields: Object.keys(obj),
+      expectedFields: Object.values(requiredFields)
+    });
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * Transforms database object to frontend format using field mappings
+ */
+export function transformDbToFrontend<TDb, TFrontend>(
+  dbObj: TDb,
+  fieldMappings: Record<string, string>,
+  tableName: string
+): Partial<TFrontend> {
+  if (!dbObj || typeof dbObj !== 'object') {
+    console.warn(`⚠️ FIELD MAPPING: Invalid object for ${tableName}:`, dbObj);
+    return {} as Partial<TFrontend>;
+  }
+  
+  const frontendObj: any = {};
+  
+  Object.entries(fieldMappings).forEach(([frontendField, dbField]) => {
+    if (dbField in (dbObj as any)) {
+      frontendObj[frontendField] = (dbObj as any)[dbField];
+    }
+  });
+  
+  return frontendObj;
+}
+
+/**
+ * Transforms frontend object to database format using field mappings
+ */
+export function transformFrontendToDb<TFrontend, TDb>(
+  frontendObj: TFrontend,
+  fieldMappings: Record<string, string>,
+  tableName: string
+): Partial<TDb> {
+  if (!frontendObj || typeof frontendObj !== 'object') {
+    console.warn(`⚠️ FIELD MAPPING: Invalid object for ${tableName}:`, frontendObj);
+    return {} as Partial<TDb>;
+  }
+  
+  const dbObj: any = {};
+  
+  Object.entries(fieldMappings).forEach(([frontendField, dbField]) => {
+    if (frontendField in (frontendObj as any)) {
+      dbObj[dbField] = (frontendObj as any)[frontendField];
+    }
+  });
+  
+  return dbObj;
+}
+
+/**
+ * Creates a reverse mapping from database fields to frontend fields
+ */
+export function createReverseMapping(fieldMappings: Record<string, string>): Record<string, string> {
+  const reverseMap: Record<string, string> = {};
+  
+  Object.entries(fieldMappings).forEach(([frontendField, dbField]) => {
+    reverseMap[dbField] = frontendField;
+  });
+  
+  return reverseMap;
+}
+
+/**
+ * Type-safe field accessor with validation
+ */
+export function safeFieldAccess<T extends Record<string, any>>(
+  obj: any,
+  fieldMappings: T,
+  field: keyof T,
+  tableName: string,
+  defaultValue?: any
+): any {
+  if (!obj || typeof obj !== 'object') {
+    console.warn(`⚠️ SAFE FIELD ACCESS: Invalid object for ${tableName}.${String(field)}:`, obj);
+    return defaultValue;
+  }
+  
+  const dbField = fieldMappings[field];
+  if (!(dbField in obj)) {
+    console.warn(`⚠️ SAFE FIELD ACCESS: Missing field ${tableName}.${String(field)} (DB: ${dbField})`);
+    return defaultValue;
+  }
+  
+  return obj[dbField];
+}
+
+// Legacy function for backward compatibility
+export const getDbField = (mapping: Record<string, string>, frontendField: string): string => {
+  return mapping[frontendField] || frontendField;
+};
+
+// Export enhanced mapping utilities
+export const FieldMappingUtils = {
+  validateDatabaseFields,
+  transformDbToFrontend,
+  transformFrontendToDb,
+  createReverseMapping,
+  safeFieldAccess,
+  getDbField,
+  
+  // Pre-computed reverse mappings for performance
+  CASE_BOOKINGS_REVERSE: createReverseMapping(CASE_BOOKINGS_FIELDS),
+  PROFILES_REVERSE: createReverseMapping(PROFILES_FIELDS),
+  PERMISSIONS_REVERSE: createReverseMapping(PERMISSIONS_FIELDS),
+  CODE_TABLES_REVERSE: createReverseMapping(CODE_TABLES_FIELDS)
+};
 
 
 
