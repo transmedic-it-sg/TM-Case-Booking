@@ -165,6 +165,24 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
         // User is soft-deleted, restore them with new data
         console.log('🔄 USER CREATE - Restoring soft-deleted user:', existingUser.username);
         
+        // CRITICAL: Double-check the user is actually soft-deleted
+        const { data: recheck, error: recheckError } = await supabase
+          .from('profiles')
+          .select('id, username, deleted_at')
+          .eq('id', existingUser.id)
+          .single();
+          
+        if (recheckError) {
+          console.error('❌ USER CREATE - Error rechecking user status:', recheckError);
+          throw new Error(`User "${userData.username}" exists but could not verify status. Please try again.`);
+        }
+        
+        if (!recheck.deleted_at) {
+          // User is actually NOT soft-deleted, just exists
+          console.log('⚠️ USER CREATE - User is not actually soft-deleted, user already exists');
+          throw new Error(`User "${userData.username}" already exists and is active. Please use a different username.`);
+        }
+        
         const hashedPassword = await hashPassword(userData.password);
         
         const { data: restoredUser, error: restoreError } = await supabase
