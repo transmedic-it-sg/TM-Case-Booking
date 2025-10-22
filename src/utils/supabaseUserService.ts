@@ -185,7 +185,7 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
         
         const hashedPassword = await hashPassword(userData.password);
         
-        const { data: restoredUser, error: restoreError } = await supabase
+        const { error: restoreError } = await supabase
           .from('profiles')
           .update({
             password_hash: hashedPassword,
@@ -199,15 +199,28 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
             is_temporary_password: false,
             deleted_at: null // Restore user
           })
-          .eq('id', existingUser.id)
-          .select()
-          .single();
+          .eq('id', existingUser.id);
+
+        // Fetch the restored user separately to ensure we get the data
+        // Add delay to ensure database consistency
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const { data: restoredUserArray, error: fetchError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', existingUser.id);
+          
+        const restoredUser = restoredUserArray?.[0] || null;
 
         console.log('🔄 USER RESTORE DEBUG:', {
           existingUserId: existingUser.id,
           existingUsername: existingUser.username,
           restoreError: restoreError,
+          fetchError: fetchError,
+          restoredUserArray: restoredUserArray,
+          restoredUserArrayLength: restoredUserArray?.length || 0,
           restoredUser: restoredUser,
+          hasRestoredUser: !!restoredUser,
           updateData: {
             role: userData.role,
             name: userData.name,
@@ -220,9 +233,15 @@ export const addSupabaseUser = async (userData: Omit<User, 'id'>): Promise<User>
           console.error('❌ USER RESTORE - Update failed:', restoreError);
           throw new Error(`User "${userData.username}" exists but is archived. Please contact your system administrator to restore this account or use a different username.`);
         }
+        
+        if (fetchError) {
+          console.error('❌ USER RESTORE - Fetch after update failed:', fetchError);
+          throw new Error(`User "${userData.username}" restoration failed. Please contact your system administrator or use a different username.`);
+        }
+        
         if (!restoredUser) {
-          console.error('❌ USER RESTORE - No data returned after update');
-          throw new Error(`User "${userData.username}" exists but could not be restored. Please contact your system administrator or use a different username.`);
+          console.error('❌ USER RESTORE - No data returned after fetch');
+          throw new Error(`User "${userData.username}" restoration completed but data could not be retrieved. The user account has been successfully restored - please try creating the user again.`);
         }
 
         return {
