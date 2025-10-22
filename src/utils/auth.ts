@@ -268,8 +268,23 @@ export const addUser = async (user: Omit<User, 'id'>): Promise<User> => {
     }
     throw new Error('Failed to create user in Supabase');
   } catch (error) {
-    // Error adding user to Supabase, falling back to secure storage
-    // Fallback to secure storage
+    console.log('🔄 USER CREATE - Supabase failed, checking if user-specific error:', {
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      username: user.username
+    });
+    
+    // If it's a user-specific error (already exists, etc.), don't fall back
+    if (error instanceof Error && 
+        (error.message.includes('already exists') || 
+         error.message.includes('duplicate') ||
+         error.message.includes('User "') ||
+         error.message.includes('archived'))) {
+      console.log('🚫 USER CREATE - User-specific error, not falling back to storage');
+      throw error; // Re-throw user-specific errors
+    }
+    
+    // Only fall back to secure storage for system/connectivity errors
+    console.log('🔄 USER CREATE - System error, falling back to secure storage');
     const users = await getUsersFromSecureStorage();
     const newUser: User = {
       ...user,
