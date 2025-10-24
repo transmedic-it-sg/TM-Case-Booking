@@ -468,7 +468,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
         <div className="permission-denied-content">
           <h2>🚫 Access Denied</h2>
           <p>You don't have permission to create new cases.</p>
-          <p>Contact your administrator to request access.</p>
+          <p>Contact your Administrator to grant you access.</p>
         </div>
       </div>
     );
@@ -787,7 +787,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
           {errors.doctorId && <span className="error-text">{errors.doctorId}</span>}
           {formData.department && availableDoctors.length === 0 && !isLoadingDoctors && (
             <div className="help-text">
-              ℹ️ No doctors found for your department. Contact your administrator to add doctors.
+              ℹ️ No doctors found for your department. Please contact your Manager to add doctors.
             </div>
           )}
           </div>
@@ -828,7 +828,7 @@ const CaseBookingForm: React.FC<CaseBookingFormProps> = ({ onCaseSubmitted, pref
             ) : availableProcedureSets.length === 0 ? (
               <div className="no-sets-message">
                 <p>ℹ️ No surgery sets or implant boxes configured for this doctor-procedure combination.</p>
-                <p>Contact your administrator to configure sets for this combination.</p>
+                <p>Contact your Manager to configure sets for this combination.</p>
               </div>
             ) : (
               <div className="procedure-sets-form">

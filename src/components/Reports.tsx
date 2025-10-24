@@ -346,8 +346,12 @@ const Reports: React.FC = () => {
   };
 
   const exportToExcel = () => {
-    const fileName = `TM_Case_Report_${filters.reportType}_${new Date().toISOString().split('T')[0]}.csv`;
-    const csvContent = generateDetailedCSVReport();
+    // Apply current tempFilters to ensure export uses latest filter settings
+    const currentFilters = { ...tempFilters };
+    const casesToExport = applyFiltersToCase(cases, currentFilters);
+    
+    const fileName = `TM_Case_Report_${currentFilters.reportType}_${new Date().toISOString().split('T')[0]}.csv`;
+    const csvContent = generateDetailedCSVReport(casesToExport);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -359,7 +363,10 @@ const Reports: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const generateDetailedCSVReport = (): string => {
+  const generateDetailedCSVReport = (casesToExport?: CaseBooking[]): string => {
+    // Use provided cases or fall back to filteredCases
+    const exportCases = casesToExport || filteredCases;
+    
     // Enhanced headers with more details
     const headers = [
       'Case Reference', 'Hospital', 'Department', 'Date of Surgery', 'Time of Procedure',
@@ -370,7 +377,7 @@ const Reports: React.FC = () => {
       'Delivery Details', 'Order Summary'
     ];
 
-    const rows = filteredCases.map(c => [
+    const rows = exportCases.map(c => [
       c.caseReferenceNumber || '',
       c.hospital || '',
       c.department || '',

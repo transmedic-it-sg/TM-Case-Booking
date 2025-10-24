@@ -298,8 +298,11 @@ const ModernEditSets: React.FC = () => {
         // Add sort_order if missing and assign sequential numbers per doctor
         const doctorGroups = new Map<string, any[]>();
         
-        // Group procedures by doctor_id
+        // Group procedures by doctor_id with null safety
         (data || []).forEach(item => {
+          // Skip null/undefined items or items without doctor_id
+          if (!item || !item.doctor_id) return;
+          
           if (!doctorGroups.has(item.doctor_id)) {
             doctorGroups.set(item.doctor_id, []);
           }
@@ -432,7 +435,7 @@ const ModernEditSets: React.FC = () => {
           
           // Calculate next sort_order for this doctor
           // First check local state, then fallback to database query if needed
-          const doctorProcedures = procedures.filter(p => p.doctor_id === selectedDoctor.id);
+          const doctorProcedures = procedures.filter(p => p && p.doctor_id === selectedDoctor.id);
           let nextSortOrder = 1;
           
           if (doctorProcedures.length > 0) {
@@ -570,8 +573,8 @@ const ModernEditSets: React.FC = () => {
       // Only reorder procedures for the selected doctor
       if (!selectedDoctor) return;
       
-      const doctorProcedures = procedures.filter(p => p.doctor_id === selectedDoctor.id);
-      const otherProcedures = procedures.filter(p => p.doctor_id !== selectedDoctor.id);
+      const doctorProcedures = procedures.filter(p => p && p.doctor_id === selectedDoctor.id);
+      const otherProcedures = procedures.filter(p => p && p.doctor_id !== selectedDoctor.id);
       
       // Sort doctor procedures by sort_order to ensure correct initial order
       doctorProcedures.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -963,8 +966,8 @@ const ModernEditSets: React.FC = () => {
 
     try {
       // Only work with procedures for the selected doctor
-      const doctorProcedures = procedures.filter(p => p.doctor_id === selectedDoctor.id);
-      const otherProcedures = procedures.filter(p => p.doctor_id !== selectedDoctor.id);
+      const doctorProcedures = procedures.filter(p => p && p.doctor_id === selectedDoctor.id);
+      const otherProcedures = procedures.filter(p => p && p.doctor_id !== selectedDoctor.id);
       
       // Sort doctor procedures by sort_order to ensure correct initial order
       doctorProcedures.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -1122,14 +1125,14 @@ const ModernEditSets: React.FC = () => {
           className={`mode-tab ${surgeryImplantMode === 'surgery' ? 'active' : ''}`}
         >
           <span className="mode-icon">🔧</span>
-          Surgery Sets ({activeTab === TABS.SURGERY_IMPLANTS && surgeryImplantMode === 'surgery' ? filteredData.length : (selectedDoctor && selectedProcedure) ? surgerySets.filter(item => item.doctor_id === selectedDoctor.id && item.procedure_type === selectedProcedure.procedure_type).length : 0})
+          Surgery Sets ({activeTab === TABS.SURGERY_IMPLANTS && surgeryImplantMode === 'surgery' ? filteredData.length : (selectedDoctor && selectedProcedure) ? surgerySets.filter(item => item && item.doctor_id === selectedDoctor.id && item.procedure_type === selectedProcedure.procedure_type).length : 0})
         </button>
         <button
           onClick={() => setSurgeryImplantMode('implant')}
           className={`mode-tab ${surgeryImplantMode === 'implant' ? 'active' : ''}`}
         >
           <span className="mode-icon">📦</span>
-          Implant Boxes ({activeTab === TABS.SURGERY_IMPLANTS && surgeryImplantMode === 'implant' ? filteredData.length : (selectedDoctor && selectedProcedure) ? implantBoxes.filter(item => item.doctor_id === selectedDoctor.id && item.procedure_type === selectedProcedure.procedure_type).length : 0})
+          Implant Boxes ({activeTab === TABS.SURGERY_IMPLANTS && surgeryImplantMode === 'implant' ? filteredData.length : (selectedDoctor && selectedProcedure) ? implantBoxes.filter(item => item && item.doctor_id === selectedDoctor.id && item.procedure_type === selectedProcedure.procedure_type).length : 0})
         </button>
       </div>
       <div className="mode-info">
@@ -1237,7 +1240,7 @@ const ModernEditSets: React.FC = () => {
         }
         
         // Filter by selected doctor first, then by search query
-        let filteredProcs = procedures.filter(proc => proc.doctor_id === selectedDoctor.id);
+        let filteredProcs = procedures.filter(proc => proc && proc.doctor_id === selectedDoctor.id);
         
         // Sort by sort_order to maintain per-doctor ordering
         filteredProcs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -1255,7 +1258,7 @@ const ModernEditSets: React.FC = () => {
         
         // Filter by selected doctor and procedure first, then by search query
         let filteredSurgeryImplants = currentData.filter(item => 
-          item.doctor_id === selectedDoctor.id && 
+          item && item.doctor_id === selectedDoctor.id && 
           item.procedure_type === selectedProcedure.procedure_type
         );
         

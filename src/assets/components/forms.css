@@ -486,6 +486,9 @@ select:focus {
 .item-name {
   font-size: 0.85rem;
   color: var(--text-primary);
+  white-space: nowrap;
+  word-break: normal;
+  display: inline-block;
 }
 
 .quantity-input {
@@ -527,6 +530,8 @@ select:focus {
   }
   
   .item-name {
+    white-space: nowrap !important;
+    word-break: normal !important;
     font-weight: 500;
   }
   

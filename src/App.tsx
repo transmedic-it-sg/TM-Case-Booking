@@ -368,6 +368,44 @@ const AppContent: React.FC = () => {
     };
   }, [adminPanelExpanded]);
 
+  // Global keyboard handler for Enter key on btn-primary buttons
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        const target = event.target as HTMLElement;
+        
+        // Don't handle Enter if user is in a textarea or multiline input
+        if (target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
+          return;
+        }
+        
+        // Find the focused element or form container
+        const focusedElement = document.activeElement as HTMLElement;
+        let searchContainer = focusedElement;
+        
+        // If focused on an input, search within its form or parent container
+        if (focusedElement?.tagName === 'INPUT' || focusedElement?.tagName === 'SELECT') {
+          searchContainer = focusedElement.closest('form, .modal-content, .form-container, .case-card, .admin-panel') as HTMLElement || document.body;
+        }
+        
+        // Find the primary button within the search container
+        const primaryButton = searchContainer.querySelector('.btn-primary:not(:disabled)') as HTMLButtonElement;
+        
+        if (primaryButton && primaryButton.offsetParent !== null) { // Check if button is visible
+          event.preventDefault();
+          primaryButton.click();
+          primaryButton.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   // Return SSO callback component if needed (after all hooks)
   if (isCallbackRoute) {
     return <SSOCallback />;
