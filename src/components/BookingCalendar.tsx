@@ -213,7 +213,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ onCaseClick, onDateCl
     };
 
     loadUsageData();
-  }, [viewMode, activeCountry, currentDate, usageRefreshTimestamp]);
+  }, [viewMode, activeCountry, currentDate, usageRefreshTimestamp, cases]);
 
   // Auto-refresh usage data every 30 seconds when in usage mode to detect amendment changes
   useEffect(() => {
