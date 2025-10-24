@@ -327,150 +327,65 @@ export const useOptimisticCaseMutation = () => {
       const { caseId, status, data, details, attachments } = variables;
 
       if (status) {
-        // Status update for case
-
-        // PERFORMANCE OPTIMIZATION: Batch update and history in parallel
-        const updateData = { 
+        // ⚡ PERFORMANCE OPTIMIZATION: Parallel execution for maximum speed
+        const timestamp = new Date().toISOString();
+        
+        // Prepare case update data
+        const caseUpdateData = { 
           [CASE_BOOKINGS_FIELDS.status]: status, 
-          [CASE_BOOKINGS_FIELDS.updatedAt]: new Date().toISOString() 
+          [CASE_BOOKINGS_FIELDS.updatedAt]: timestamp 
         };
-        
-        // Start case update immediately (non-blocking)
-        const caseUpdatePromise = supabase
-          .from('case_bookings')
-          .update(updateData)
-          .eq('id', caseId)
-          .select('id, status'); // Only select minimal fields for performance
 
-        // Execute update and wait for result
-        const { data: updateResult, error } = await caseUpdatePromise;
+        // Simple and fast detail extraction - no complex parsing
+        const statusDetails = details || 'Status updated via real-time system';
+        const statusAttachments = attachments || null;
 
-        if (error) {
-          console.error('Case status update failed:', error.message);
-          throw error;
-        }
+        // Get current user name once (cached)
+        const currentUserName = await getCurrentUserName();
 
-        // Status update completed successfully
+        // Prepare status history data
+        const statusHistoryData = {
+          [STATUS_HISTORY_FIELDS.caseId]: caseId,
+          [STATUS_HISTORY_FIELDS.status]: status,
+          [STATUS_HISTORY_FIELDS.timestamp]: timestamp,
+          [STATUS_HISTORY_FIELDS.processedBy]: currentUserName,
+          [STATUS_HISTORY_FIELDS.details]: statusDetails,
+          [STATUS_HISTORY_FIELDS.attachments]: statusAttachments
+        };
 
-        // Use direct parameters first, then fall back to parsing details/processOrderDetails
-        let statusDetails = details || 'Status updated via real-time system';
-        let statusAttachments = attachments || null;
-        
-        console.log('🔧 STATUS DETAILS DEBUG - Initial parameters:', {
-          caseId,
-          status,
-          directDetails: details,
-          directAttachments: attachments,
-          hasProcessOrderDetails: !!data?.processOrderDetails
-        });
-        
-        // ENHANCED: Always try to parse details field if it contains JSON to get clean details text
-        if (details) {
-          try {
-            const detailsJson = JSON.parse(details);
-            
-            // Extract clean comment text for details (salesApprovalComments, comments, etc)
-            if (detailsJson.salesApprovalComments) {
-              statusDetails = detailsJson.salesApprovalComments;
-            } else if (detailsJson.comments) {
-              statusDetails = detailsJson.comments;
-            }
-            
-            // Use direct attachments parameter if provided, otherwise use parsed attachments
-            if (!attachments && detailsJson.attachments && Array.isArray(detailsJson.attachments) && detailsJson.attachments.length > 0) {
-              statusAttachments = detailsJson.attachments;
-            }
-            
-            console.log('🔧 JSON PARSING DEBUG - Successfully parsed details:', {
-              originalDetails: details,
-              extractedComments: statusDetails,
-              extractedAttachments: detailsJson.attachments,
-              usingDirectAttachments: !!attachments,
-              finalAttachments: statusAttachments
-            });
-          } catch {
-            // details is not JSON, keep as plain text
-            console.log('🔧 JSON PARSING DEBUG - Details is not JSON, using as plain text:', details);
-          }
-        }
-        
-        // Fallback: Extract details and attachments from processOrderDetails if direct params not available
-        if ((!details || !attachments) && data?.processOrderDetails) {
-          try {
-            const orderDetails = JSON.parse(data.processOrderDetails as string);
-            
-            // Use parsed details if direct details not provided
-            if (!details && orderDetails.details) {
-              try {
-                const nestedDetails = JSON.parse(orderDetails.details);
-                if (nestedDetails.salesApprovalComments) {
-                  statusDetails = nestedDetails.salesApprovalComments;
-                } else if (typeof nestedDetails === 'string') {
-                  statusDetails = nestedDetails;
-                }
-              } catch {
-                statusDetails = orderDetails.details;
-              }
-            }
-            
-            // Use parsed attachments if direct attachments not provided
-            if (!statusAttachments && orderDetails.attachments && orderDetails.attachments.length > 0) {
-              statusAttachments = orderDetails.attachments;
-            }
-          } catch (error) {
-            console.warn('Failed to parse processOrderDetails:', error);
-          }
-        }
-
-        console.log('📎 ATTACHMENT DEBUG - Status history attachments:', {
-          caseId,
-          status,
-          directDetails: details,
-          directAttachments: attachments,
-          parsedAttachments: statusAttachments,
-          finalDetails: statusDetails,
-          willSaveDetails: statusDetails,
-          willSaveAttachments: statusAttachments,
-          timestamp: new Date().toISOString()
-        });
-
-        // PERFORMANCE OPTIMIZATION: Skip duplicate check for better performance
-        // The database unique constraint will handle true duplicates
-        // Only check if we're processing the exact same status within 5 seconds
-        const recentTimestamp = new Date(Date.now() - 5000).toISOString();
-        
-        const { count } = await supabase
-          .from('status_history')
-          .select('id', { count: 'exact', head: true }) // Count only, no data transfer
-          .eq(STATUS_HISTORY_FIELDS.caseId, caseId)
-          .eq(STATUS_HISTORY_FIELDS.status, status)
-          .gte(STATUS_HISTORY_FIELDS.timestamp, recentTimestamp);
-
-        if (count && count > 0) {
-          console.log('Duplicate status history entry prevented');
-        } else {
-          // Insert status history using proper field mappings
-          const statusHistoryData = {
-            [STATUS_HISTORY_FIELDS.caseId]: caseId,
-            [STATUS_HISTORY_FIELDS.status]: status,
-            [STATUS_HISTORY_FIELDS.timestamp]: new Date().toISOString(),
-            [STATUS_HISTORY_FIELDS.processedBy]: await getCurrentUserName(),
-            [STATUS_HISTORY_FIELDS.details]: statusDetails,
-            [STATUS_HISTORY_FIELDS.attachments]: statusAttachments
-          };
-
-          // Insert status history with field mappings
-
-          const { error: historyError } = await supabase
+        // ⚡ EXECUTE BOTH OPERATIONS IN PARALLEL FOR MAXIMUM SPEED
+        const [caseUpdateResult, historyResult] = await Promise.allSettled([
+          supabase
+            .from('case_bookings')
+            .update(caseUpdateData)
+            .eq('id', caseId)
+            .select('id, status'),
+          
+          supabase
             .from('status_history')
-            .insert(statusHistoryData);
+            .insert(statusHistoryData)
+            .select('id')
+        ]);
 
-          if (historyError) {
-            console.error('Status history insertion failed:', historyError.message);
-          }
+        // Check case update result
+        if (caseUpdateResult.status === 'rejected') {
+          console.error('Case status update failed:', caseUpdateResult.reason);
+          throw new Error(`Failed to update case status: ${caseUpdateResult.reason}`);
         }
 
-        // Status history handling completed
+        if (caseUpdateResult.value.error) {
+          console.error('Case status update failed:', caseUpdateResult.value.error.message);
+          throw caseUpdateResult.value.error;
+        }
+
+        // Log history result (non-blocking for better performance)
+        if (historyResult.status === 'rejected' || historyResult.value.error) {
+          console.warn('Status history insertion failed (non-critical):', 
+            historyResult.status === 'rejected' ? historyResult.reason : historyResult.value.error?.message);
+          // Don't throw - history is important but not critical enough to block the UI
+        }
+
+        console.log(`⚡ Status update completed in parallel for case ${caseId}: ${status}`);
       }
 
       if (data) {

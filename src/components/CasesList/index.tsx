@@ -29,6 +29,7 @@ import { useModal } from '../../hooks/useModal';
 import { normalizeCountry } from '../../utils/countryUtils';
 import { amendCase, processCaseOrder } from '../../utils/realTimeStorage'; // Using real-time storage instead
 import StatusLegend from '../StatusLegend';
+import { supabase } from '../../lib/supabase';
 import { 
   CASE_BOOKINGS_FIELDS, 
   CASE_QUANTITIES_FIELDS, 
@@ -1217,6 +1218,48 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
     setDoNumber('');
   };
 
+  // Handle case attachment changes (Replace/Delete functionality)
+  const handleCaseAttachmentsChange = async (caseId: string, newAttachments: string[]) => {
+    const currentUser = getCurrentUserSync();
+    if (!currentUser) {
+      return;
+    }
+
+    try {
+      // Update the case in the database with new attachments
+      const result = await supabase
+        .from('case_bookings')
+        .update({ 
+          attachments: newAttachments,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', caseId)
+        .select();
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      // Refresh cases to get updated data
+      await refreshCases();
+
+      // Show success notification
+      addNotification({
+        title: 'Attachments Updated',
+        message: `Case attachments have been successfully updated by ${currentUser.name}`,
+        type: 'success'
+      });
+
+    } catch (error) {
+      console.error('Failed to update case attachments:', error);
+      addNotification({
+        title: 'Update Failed',
+        message: 'Failed to update case attachments. Please try again.',
+        type: 'error'
+      });
+    }
+  };
+
   const handleDeleteCase = (caseId: string, caseItem: CaseBooking) => {
     const currentUser = getCurrentUserSync();
     if (!currentUser || !hasPermission(currentUser.role, PERMISSION_ACTIONS.DELETE_CASE)) {
@@ -1426,6 +1469,7 @@ const CasesList: React.FC<CasesListProps> = ({ onProcessCase, currentUser, highl
                     onOfficeDeliveryAttachmentsChange={setOfficeDeliveryAttachments}
                     onOfficeDeliveryCommentsChange={setOfficeDeliveryComments}
                     onCompletedAttachmentsChange={setAttachments}
+                    onCaseAttachmentsChange={handleCaseAttachmentsChange}
                     onNavigateToPermissions={onNavigateToPermissions}
                   />
                 ))

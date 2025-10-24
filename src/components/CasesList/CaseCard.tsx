@@ -126,6 +126,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
   onOfficeDeliveryAttachmentsChange,
   onOfficeDeliveryCommentsChange,
   onCompletedAttachmentsChange,
+  onCaseAttachmentsChange,
   onNavigateToPermissions
 }) => {
   // Get user IDs from case data and status history - memoized to prevent infinite re-renders
@@ -547,10 +548,14 @@ const CaseCard: React.FC<CaseCardProps> = ({
             {caseItem.attachments && caseItem.attachments.length > 0 && (
               <div className="detail-item full-width">
                 <span className="detail-label">Case Attachments: </span>
-                <AttachmentRenderer 
+                <EditableAttachmentRenderer 
                   attachments={caseItem.attachments} 
                   title="Case Attachments"
                   showCount={true}
+                  maxThumbnailSize={{ width: 100, height: 75 }}
+                  onAttachmentsChange={(newAttachments) => onCaseAttachmentsChange(caseItem.id, newAttachments)}
+                  canEdit={true}
+                  currentUser={currentUser || undefined}
                 />
               </div>
             )}
